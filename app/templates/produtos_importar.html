@@ -11,8 +11,8 @@
     <div class="card-body">
         <form method="POST" enctype="multipart/form-data">
             <div class="mb-3">
-                <label for="arquivo" class="form-label">Selecione o arquivo CSV</label>
-                <input type="file" name="arquivo" id="arquivo" class="form-control" accept=".csv" required>
+                <label for="arquivo" class="form-label">Selecione o arquivo</label>
+                <input type="file" name="arquivo" id="arquivo" class="form-control" accept=".csv,.xlsx" required>
             </div>
 
             <button type="submit" class="btn btn-success">
@@ -28,10 +28,10 @@
 
         <h6>📌 Instruções:</h6>
         <ul class="small text-muted">
-            <li>O arquivo deve estar no formato <code>.csv</code> separado por vírgulas.</li>
+            <li>O arquivo pode estar em formato <code>.csv</code> (separado por vírgulas ou ponto e vírgula) ou <code>.xlsx</code> (Excel).</li>
             <li>Colunas aceitas: <code>sku, nome, preco_fornecedor, desconto_fornecedor, margem, ipi, ipi_tipo, difal, imposto_venda</code>.</li>
-            <li>Os campos numéricos podem ser informados com ponto ou vírgula (ex: 3500.50 ou 3500,50).</li>
-            <li><code>ipi_tipo</code> pode ser <strong>%</strong> ou <strong>R$</strong>.</li>
+            <li>Os campos numéricos podem ser informados com ponto ou vírgula (ex: <code>3500.50</code> ou <code>3500,50</code>).</li>
+            <li><code>ipi_tipo</code> deve ser <strong>%</strong> ou <strong>R$</strong> (valores inválidos serão corrigidos para <strong>%</strong>).</li>
             <li>Se o SKU já existir, o produto será atualizado; caso contrário, será criado.</li>
         </ul>
     </div>

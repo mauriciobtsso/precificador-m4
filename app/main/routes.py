@@ -6,6 +6,7 @@ from app.main import main
 import csv
 from io import TextIOWrapper
 import os
+import pandas as pd  # <<--- novo
 
 # =========================
 # Helpers
@@ -203,12 +204,29 @@ def importar_produtos():
             return redirect(url_for("main.importar_produtos"))
 
         try:
-            stream = TextIOWrapper(file.stream, encoding="utf-8")
-            reader = csv.DictReader(stream)
+            # Detecta Excel ou CSV
+            if file.filename.lower().endswith(".xlsx"):
+                df = pd.read_excel(file)
+            else:
+                try:
+                    df = pd.read_csv(file, encoding="utf-8-sig", sep=None, engine="python")
+                except UnicodeDecodeError:
+                    file.stream.seek(0)
+                    df = pd.read_csv(file, encoding="latin1", sep=None, engine="python")
+
+            # Normaliza cabeçalhos
+            df.columns = [str(c).strip().lower() for c in df.columns]
+
+            # Garante colunas obrigatórias
+            obrig = ["sku","nome","preco_fornecedor","desconto_fornecedor","margem","ipi","ipi_tipo","difal","imposto_venda"]
+            for col in obrig:
+                if col not in df.columns:
+                    df[col] = 0 if col != "ipi_tipo" else "%"
 
             criados, atualizados = 0, 0
-            for row in reader:
-                sku = (row.get("sku") or "").strip().upper()
+
+            for _, row in df.iterrows():
+                sku = (str(row["sku"]).strip().upper()) if pd.notna(row["sku"]) else ""
                 if not sku:
                     continue
 
@@ -220,14 +238,24 @@ def importar_produtos():
                 else:
                     atualizados += 1
 
-                produto.nome = row.get("nome", produto.nome)
-                produto.preco_fornecedor = to_float(row.get("preco_fornecedor"))
-                produto.desconto_fornecedor = to_float(row.get("desconto_fornecedor"))
-                produto.margem = to_float(row.get("margem"))
-                produto.ipi = to_float(row.get("ipi"))
-                produto.ipi_tipo = row.get("ipi_tipo") or "%"
-                produto.difal = to_float(row.get("difal"))
-                produto.imposto_venda = to_float(row.get("imposto_venda"))
+                produto.nome = str(row.get("nome", produto.nome) or "").strip()
+
+                def to_number(x):
+                    if pd.isna(x): return 0.0
+                    s = str(x).strip().replace("R$", "").replace(" ", "")
+                    s = s.replace(".", "").replace(",", ".")
+                    try:
+                        return float(s)
+                    except:
+                        return 0.0
+
+                produto.preco_fornecedor = to_number(row.get("preco_fornecedor"))
+                produto.desconto_fornecedor = to_number(row.get("desconto_fornecedor"))
+                produto.margem = to_number(row.get("margem"))
+                produto.ipi = to_number(row.get("ipi"))
+                produto.ipi_tipo = str(row.get("ipi_tipo") or "%").strip().upper()
+                produto.difal = to_number(row.get("difal"))
+                produto.imposto_venda = to_number(row.get("imposto_venda"))
 
                 produto.calcular_precos()
 
