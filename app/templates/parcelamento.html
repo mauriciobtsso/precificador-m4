@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2><i class="fas fa-credit-card"></i> Simulação de Parcelamento</h2>
+  <span class="text-muted">Condições para <strong>{{ produto.nome }}</strong></span>
+</div>
+
+<!-- Resumo do produto -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body d-flex justify-content-between align-items-center">
+    <div>
+      <h5 class="card-title mb-1">{{ produto.nome }}</h5>
+      <small class="text-muted">SKU: {{ produto.sku }}</small>
+    </div>
+    <span class="badge bg-primary fs-5">À vista: {{ (produto.preco_final or produto.preco_a_vista)|currency }}</span>
+  </div>
+</div>
+
+<!-- Tabela -->
+<div class="card shadow-sm">
+  <div class="card-header bg-light fw-semibold d-flex justify-content-between align-items-center">
+    <span><i class="fas fa-list"></i> Opções de Parcelamento</span>
+    <button id="btnCopy" class="btn btn-sm btn-success">
+      <i class="fas fa-copy me-1"></i> Copiar para WhatsApp
+    </button>
+  </div>
+  <div class="card-body">
+    {% if resultado %}
+    <div class="table-responsive">
+      <table class="table table-sm table-striped table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Plano</th>
+            <th class="text-end">Parcela</th>
+            <th class="text-end">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- PIX -->
+          <tr>
+            <td>PIX</td>
+            <td class="text-end">{{ (produto.preco_final or produto.preco_a_vista)|currency }}</td>
+            <td class="text-end">{{ (produto.preco_final or produto.preco_a_vista)|currency }}</td>
+          </tr>
+          <!-- Débito (1,09%) -->
+          {% set debito_total = (produto.preco_final or produto.preco_a_vista) / (1 - 0.0109) %}
+          <tr>
+            <td>Débito</td>
+            <td class="text-end">{{ debito_total|currency }}</td>
+            <td class="text-end">{{ debito_total|currency }}</td>
+          </tr>
+
+          <!-- Demais planos -->
+          {% for r in resultado %}
+          <tr>
+            <td>{{ r.rotulo }}</td>
+            <td class="fw-bold text-end">{{ r.parcela|currency }}</td>
+            <td class="text-end">{{ r.total|currency }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted">Nenhuma taxa configurada ainda.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  // Texto pronto vindo do backend (usa "=" e não inclui diferença)
+  const textoWhats = {{ texto_whats|tojson|safe }};
+  document.getElementById('btnCopy').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(textoWhats);
+      alert('Texto copiado! Abra o WhatsApp e cole a mensagem.');
+    } catch (e) {
+      console.error(e);
+      alert('Não foi possível copiar. Tente novamente.');
+    }
+  });
+</script>
+{% endblock %}

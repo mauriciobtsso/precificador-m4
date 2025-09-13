@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-credit-card"></i> Simulação de Parcelamento</h2>
+    <span class="text-muted">Escolha um produto ou use a simulação rápida</span>
+</div>
+
+<div class="row">
+    <!-- Seleção de Produto Cadastrado -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light fw-semibold">
+                <i class="fas fa-box"></i> Produto Cadastrado
+            </div>
+            <div class="card-body">
+                {% if produtos %}
+                <form method="GET" id="formParcelamento">
+                    <label for="produto_id" class="form-label">Selecione o produto</label>
+                    <select name="produto_id" id="produto_id" class="form-select" required>
+                        <option value="">-- Selecione --</option>
+                        {% for p in produtos %}
+                        <option value="{{ p.id }}">{{ p.nome }} ({{ p.sku }})</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="btn btn-primary mt-3" onclick="verParcelamento()">
+                        <i class="fas fa-search"></i> Ver Parcelamento
+                    </button>
+                </form>
+                <script>
+                    function verParcelamento() {
+                        const produtoId = document.getElementById("produto_id").value;
+                        if (produtoId) {
+                            window.location.href = "{{ url_for('main.parcelamento', produto_id=0) }}".replace("0", produtoId);
+                        } else {
+                            alert("Selecione um produto para continuar.");
+                        }
+                    }
+                </script>
+                {% else %}
+                <p class="text-muted">Nenhum produto cadastrado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulação Rápida -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light fw-semibold">
+                <i class="fas fa-bolt"></i> Simulação Rápida
+            </div>
+            <div class="card-body">
+                <p>Sem precisar cadastrar o produto.</p>
+                <a href="{{ url_for('main.parcelamento_rapido') }}" class="btn btn-success">
+                    <i class="fas fa-play"></i> Iniciar Simulação Rápida
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+    <span class="text-muted">Visão geral do sistema</span>
+</div>
+
+<!-- Atalhos principais -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <a href="{{ url_for('main.gerenciar_produto') }}" class="card text-center shadow-sm text-decoration-none">
+            <div class="card-body">
+                <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
+                <h6 class="text-dark">Cadastrar Produto</h6>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{{ url_for('main.taxas') }}" class="card text-center shadow-sm text-decoration-none">
+            <div class="card-body">
+                <i class="fas fa-percent fa-2x text-success mb-2"></i>
+                <h6 class="text-dark">Gerenciar Taxas</h6>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{{ url_for('main.produtos') }}" class="card text-center shadow-sm text-decoration-none">
+            <div class="card-body">
+                <i class="fas fa-box fa-2x text-warning mb-2"></i>
+                <h6 class="text-dark">Lista de Produtos</h6>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{{ url_for('main.parcelamento_rapido') }}" class="card text-center shadow-sm text-decoration-none">
+            <div class="card-body">
+                <i class="fas fa-credit-card fa-2x text-info mb-2"></i>
+                <h6 class="text-dark">Simulação Rápida</h6>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Resumo -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h6>Total Produtos</h6>
+                <h4 class="text-primary">{{ produtos|length }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h6>Maior Lucro</h6>
+                <h4 class="text-success">
+                    {% if produtos %}
+                        {{ (produtos|max(attribute="lucro_liquido_real")).lucro_liquido_real | currency }}
+                    {% else %}-{% endif %}
+                </h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h6>Menor Lucro</h6>
+                <h4 class="text-danger">
+                    {% if produtos %}
+                        {{ (produtos|min(attribute="lucro_liquido_real")).lucro_liquido_real | currency }}
+                    {% else %}-{% endif %}
+                </h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Últimos cadastrados -->
+<div class="card shadow-sm">
+    <div class="card-header bg-light">
+        <i class="fas fa-clock"></i> Últimos Produtos
+    </div>
+    <div class="card-body">
+        {% if produtos %}
+            <ul class="list-group">
+                {% for p in produtos|sort(attribute="id", reverse=True) %}
+                    {% if loop.index <= 3 %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ p.nome }}
+                            <span class="badge bg-primary">{{ p.preco_a_vista|currency }}</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">Nenhum produto cadastrado.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

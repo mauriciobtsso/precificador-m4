@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2><i class="fas fa-box"></i> Produtos</h2>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('main.gerenciar_produto') }}" class="btn btn-sm btn-primary">
+      <i class="fas fa-plus"></i> Novo Produto
+    </a>
+    <a href="{{ url_for('main.importar_produtos') }}" class="btn btn-sm btn-success">
+      <i class="fas fa-file-upload"></i> Importar Planilha
+    </a>
+    <a href="{{ url_for('main.parcelamento_rapido') }}" class="btn btn-sm btn-info">
+      <i class="fas fa-credit-card"></i> Simulação Rápida
+    </a>
+  </div>
+</div>
+
+<!-- Filtros -->
+<form method="GET" class="card card-body shadow-sm mb-3">
+  <div class="row g-2">
+    <div class="col-md-4">
+      <input type="text" name="termo" value="{{ request.args.get('termo','') }}" class="form-control" placeholder="Buscar por SKU ou Nome">
+    </div>
+    <div class="col-md-3">
+      <select name="lucro" class="form-select">
+        <option value="">-- Lucro --</option>
+        <option value="positivo" {% if request.args.get('lucro') == 'positivo' %}selected{% endif %}>Positivo</option>
+        <option value="negativo" {% if request.args.get('lucro') == 'negativo' %}selected{% endif %}>Negativo</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <input type="number" step="0.01" name="preco_min" value="{{ request.args.get('preco_min','') }}" class="form-control" placeholder="Preço mín">
+    </div>
+    <div class="col-md-2">
+      <input type="number" step="0.01" name="preco_max" value="{{ request.args.get('preco_max','') }}" class="form-control" placeholder="Preço máx">
+    </div>
+    <div class="col-md-1">
+      <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search"></i></button>
+    </div>
+  </div>
+</form>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th class="text-start">SKU</th>
+          <th class="text-start">Nome</th>
+          <th class="text-end">Fornecedor</th>
+          <th class="text-end">Custo Total</th>
+          <th class="text-end">Preço à Vista</th>
+          <th class="text-end">Lucro Líquido</th>
+          <th class="text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for produto in produtos %}
+        <tr>
+          <td class="text-start">{{ produto.sku }}</td>
+          <td class="text-start">{{ produto.nome }}</td>
+          <td class="text-end">{{ produto.preco_fornecedor|currency }}</td>
+          <td class="text-end">{{ produto.custo_total|currency }}</td>
+          <td class="text-end">{{ produto.preco_a_vista|currency }}</td>
+          <td class="text-end">
+            <span class="{% if produto.lucro_liquido_real >= 0 %}text-success{% else %}text-danger{% endif %}">
+              {{ produto.lucro_liquido_real|currency }}
+            </span>
+          </td>
+          <td class="text-center">
+            <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}" 
+               class="btn btn-sm btn-outline-info me-1" title="Parcelamento">
+              <i class="fas fa-credit-card"></i>
+            </a>
+            <a href="{{ url_for('main.gerenciar_produto', produto_id=produto.id) }}" 
+               class="btn btn-sm btn-outline-warning me-1" title="Editar">
+              <i class="fas fa-edit"></i>
+            </a>
+            <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}" 
+               class="btn btn-sm btn-outline-danger" title="Excluir"
+               onclick="return confirm('Tem certeza que deseja excluir este produto?');">
+              <i class="fas fa-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-3">Nenhum produto encontrado.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

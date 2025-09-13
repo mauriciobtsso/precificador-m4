@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">
+    <i class="fas fa-box-open me-2"></i>
+    {{ 'Editar Produto' if produto else 'Novo Produto' }}
+  </h2>
+  <small class="text-muted">Preencha os dados e salve</small>
+</div>
+
+<form method="POST" action="" class="needs-validation" novalidate>
+  <!-- DADOS GERAIS -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-header bg-light fw-semibold">
+      <i class="fas fa-info-circle me-1"></i>Dados gerais
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <!-- SKU -->
+        <div class="col-md-4">
+          <label class="form-label">SKU</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+            <input
+              type="text" name="sku" id="sku"
+              class="form-control" placeholder="Ex.: ABC123"
+              style="text-transform: uppercase;"
+              value="{{ produto.sku if produto else '' }}" required>
+          </div>
+        </div>
+
+        <!-- Nome -->
+        <div class="col-md-8">
+          <label class="form-label">Nome</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-tag"></i></span>
+            <input
+              type="text" name="nome" id="nome"
+              class="form-control" placeholder="Nome do produto"
+              value="{{ produto.nome if produto else '' }}" required>
+          </div>
+        </div>
+
+        <!-- Preço fornecedor (R$) -->
+        <div class="col-md-4">
+          <label class="form-label">Preço do fornecedor (R$)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-money-bill-wave"></i></span>
+            <input
+              type="text" name="preco_fornecedor" id="in_preco_fornecedor"
+              class="form-control" inputmode="decimal">
+          </div>
+          <div class="form-text text-muted">
+            Atual: {{ produto.preco_fornecedor|currency if produto else 'R$ 0,00' }}
+          </div>
+        </div>
+
+        <!-- Desconto fornecedor (%) -->
+        <div class="col-md-4">
+          <label class="form-label">Desconto fornecedor (%)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-percent"></i></span>
+            <input
+              type="number" name="desconto_fornecedor" id="in_desconto"
+              class="form-control" step="0.01" min="0" placeholder="0,00"
+              value="{{ produto.desconto_fornecedor if produto else '' }}">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBJETIVOS -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-header bg-light fw-semibold">
+      <i class="fas fa-bullseye me-1"></i>Objetivos (opcionais)
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <!-- Margem (%) -->
+        <div class="col-md-4">
+          <label class="form-label">Margem (%)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-chart-line"></i></span>
+            <input
+              type="number" name="margem" id="in_margem"
+              class="form-control" step="0.01" min="0" placeholder="0,00"
+              value="{{ produto.margem if produto else '' }}">
+          </div>
+        </div>
+
+        <!-- Lucro alvo (R$) -->
+        <div class="col-md-4">
+          <label class="form-label">Lucro alvo (R$)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-hand-holding-usd"></i></span>
+            <input
+              type="text" name="lucro_alvo" id="in_lucro_alvo"
+              class="form-control" inputmode="decimal"
+              value="{{ produto.lucro_alvo if produto and produto.lucro_alvo is not none else '' }}">
+          </div>
+        </div>
+
+        <!-- Preço final desejado (R$) -->
+        <div class="col-md-4">
+          <label class="form-label">Preço final desejado (R$)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
+            <input
+              type="text" name="preco_final" id="in_preco_final"
+              class="form-control" inputmode="decimal"
+              value="{{ produto.preco_final if produto and produto.preco_final is not none else '' }}">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRIBUTOS -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-header bg-light fw-semibold">
+      <i class="fas fa-file-invoice-dollar me-1"></i>Tributos
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <!-- IPI Tipo -->
+        <div class="col-md-3">
+          <label class="form-label">IPI - tipo</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-receipt"></i></span>
+            <select name="ipi_tipo" id="in_ipi_tipo" class="form-select">
+              {% set tipo = (produto.ipi_tipo if produto else '%') %}
+              <option value="%" {{ 'selected' if tipo == '%' else '' }}>%</option>
+              <option value="R$" {{ 'selected' if tipo == 'R$' else '' }}>R$</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- IPI valor -->
+        <div class="col-md-3">
+          <label class="form-label">IPI (valor)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-percentage"></i></span>
+            <input
+              type="number" name="ipi" id="in_ipi"
+              class="form-control" step="0.01" min="0" placeholder="0,00"
+              value="{{ produto.ipi if produto else '' }}">
+          </div>
+          <div class="form-text">Se tipo = %, informe percentual; se R$, informe valor fixo.</div>
+        </div>
+
+        <!-- DIFAL -->
+        <div class="col-md-3">
+          <label class="form-label">DIFAL (%)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-exchange-alt"></i></span>
+            <input
+              type="number" name="difal" id="in_difal"
+              class="form-control" step="0.01" min="0" placeholder="0,00"
+              value="{{ produto.difal if produto else '' }}">
+          </div>
+        </div>
+
+        <!-- Imposto sobre a venda -->
+        <div class="col-md-3">
+          <label class="form-label">Imposto sobre a venda (%)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-balance-scale"></i></span>
+            <input
+              type="number" name="imposto_venda" id="in_imposto_venda"
+              class="form-control" step="0.01" min="0" placeholder="0,00"
+              value="{{ produto.imposto_venda if produto else '' }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mt-3">
+        <!-- Custo total -->
+        <div class="col-md-4">
+          <label class="form-label">Custo total (estimado)</label>
+          <input type="text" id="out_custo_total" class="form-control" value="-" readonly>
+        </div>
+
+        <!-- Preço à vista -->
+        <div class="col-md-4">
+          <label class="form-label">Preço à vista (estimado)</label>
+          <input type="text" id="out_preco_a_vista" class="form-control" value="-" readonly>
+        </div>
+
+        <!-- Lucro líquido -->
+        <div class="col-md-4">
+          <label class="form-label">Lucro líquido (estimado)</label>
+          <input type="text" id="out_lucro_liquido" class="form-control" value="-" readonly>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AÇÕES -->
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-success">
+      <i class="fas fa-check me-1"></i>Salvar
+    </button>
+    <a href="{{ url_for('main.produtos') }}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i>Cancelar
+    </a>
+
+    {% if produto and produto.id %}
+      <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}"
+         class="btn btn-outline-danger ms-auto"
+         onclick="return confirm('Tem certeza que deseja excluir este produto?');"
+         title="Excluir produto">
+        <i class="fas fa-trash-alt"></i>
+      </a>
+    {% endif %}
+  </div>
+</form>
+
+<!-- AutoNumeric para máscara + cálculos -->
+<script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.5"></script>
+<script>
+  // ======= Máscaras =======
+  const anOpts = {
+    digitGroupSeparator: '.',
+    decimalCharacter: ',',
+    decimalPlaces: 2,
+    currencySymbol: 'R$ ',
+    currencySymbolPlacement: 'p',
+    unformatOnSubmit: true,
+    emptyInputBehavior: 'zero',
+    modifyValueOnWheel: false
+  };
+
+  const anFornecedor = new AutoNumeric('#in_preco_fornecedor', anOpts);
+  const anLucroAlvo   = new AutoNumeric('#in_lucro_alvo',   anOpts);
+  const anPrecoFinal  = new AutoNumeric('#in_preco_final',  anOpts);
+
+  // Precarrega valores atuais do servidor (se houver)
+  {% if produto %}
+    if (!isNaN({{ produto.preco_fornecedor or 0 }})) anFornecedor.set({{ produto.preco_fornecedor or 0 }});
+    if (!isNaN({{ produto.lucro_alvo or 0 }}))       anLucroAlvo.set({{ produto.lucro_alvo or 0 }});
+    if (!isNaN({{ produto.preco_final or 0 }}))      anPrecoFinal.set({{ produto.preco_final or 0 }});
+  {% endif %}
+
+  // ======= Util =======
+  const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  const el  = (id) => document.getElementById(id);
+  const num = (id) => parseFloat((el(id).value || '0').replace(',', '.')) || 0;
+  const getAN = (an) => parseFloat(an.getNumber()) || 0;
+
+  // ======= Cálculo =======
+  function recalcular() {
+    const precoCompra   = getAN(anFornecedor);
+    const descFornecedor= num('in_desconto');
+    const margem        = num('in_margem');
+    const impostoVenda  = num('in_imposto_venda');
+    const difal         = num('in_difal');
+    const ipiValor      = num('in_ipi');
+    const ipiTipo       = el('in_ipi_tipo').value;
+
+    const lucroAlvo     = getAN(anLucroAlvo);
+    let   precoFinal    = getAN(anPrecoFinal);
+
+    // 1) Preço com desconto
+    const base = precoCompra * (1 - (descFornecedor/100));
+
+    // 2) IPI: só para base do DIFAL
+    const valorIPI = (ipiTipo === 'R$') ? ipiValor : (base * (ipiValor/100));
+
+    // 3) DIFAL (base exclui IPI)
+    const baseDifal  = Math.max(base - valorIPI, 0);
+    const valorDifal = baseDifal * (difal/100);
+
+    // 4) CUSTO TOTAL
+    const custoTotal = base + valorDifal;
+
+    // 5) PREÇO FINAL prioritário
+    if (!(precoFinal > 0)) {
+      if (lucroAlvo > 0) {
+        precoFinal = (custoTotal + lucroAlvo) / (1 - (impostoVenda/100));
+      } else if (margem > 0) {
+        const vendaSemImposto = custoTotal * (1 + margem/100);
+        precoFinal = vendaSemImposto / (1 - (impostoVenda/100));
+      } else {
+        precoFinal = custoTotal;
+      }
+    }
+
+    // 6) Imposto sobre a venda e Lucro líquido
+    const impostoVendaValor = precoFinal * (impostoVenda/100);
+    const lucroLiquido      = precoFinal - custoTotal - impostoVendaValor;
+
+    // 7) Preço à vista = preço final sugerido
+    const precoAVista = precoFinal;
+
+    // Saídas
+    el('out_custo_total').value = brl.format(custoTotal);
+    el('out_preco_a_vista').value = brl.format(precoAVista);
+    el('out_lucro_liquido').value = brl.format(lucroLiquido);
+  }
+
+  // Recalcular em todas as mudanças relevantes
+  ['in_desconto','in_margem','in_imposto_venda','in_difal','in_ipi','in_ipi_tipo']
+    .forEach(id => el(id).addEventListener('input', recalcular));
+
+  // Eventos do AutoNumeric
+  document.addEventListener('autoNumeric:rawValueModified', (e) => {
+    if (['in_preco_fornecedor','in_lucro_alvo','in_preco_final'].includes(e.target.id)) {
+      recalcular();
+    }
+  });
+
+  // Primeiro cálculo ao carregar
+  recalcular();
+</script>
+
+<style>
+  .card-header { font-size: .95rem; }
+  .input-group-text i { font-size: .9rem; }
+  .form-label { font-weight: 500; }
+</style>
+{% endblock %}
