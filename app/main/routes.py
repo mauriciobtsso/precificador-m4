@@ -3,8 +3,6 @@ from flask_login import login_user, logout_user, login_required
 from app import db
 from app.models import Produto, Taxa, User, Configuracao
 from app.main import main
-import csv
-from io import TextIOWrapper
 import os
 import pandas as pd
 
@@ -241,10 +239,20 @@ def importar_produtos():
 
         try:
             filename = file.filename.lower()
-            if filename.endswith(".xlsx"):
-                df = pd.read_excel(file)
+
+            # Detecta e abre o arquivo corretamente
+            if filename.endswith((".xlsx", ".xls")):
+                df = pd.read_excel(file, sheet_name=0)
+            elif filename.endswith(".csv"):
+                try:
+                    df = pd.read_csv(file, encoding="utf-8-sig", sep=None, engine="python")
+                except Exception:
+                    # fallback caso o arquivo venha em latin1/Windows-1252
+                    file.stream.seek(0)
+                    df = pd.read_csv(file, encoding="latin1", sep=None, engine="python")
             else:
-                df = pd.read_csv(file, encoding="utf-8-sig", sep=None, engine="python")
+                flash("Formato de arquivo não suportado. Use .csv ou .xlsx", "danger")
+                return redirect(url_for("main.importar_produtos"))
 
             criados, atualizados = 0, 0
 
