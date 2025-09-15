@@ -77,37 +77,39 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
 
     incluir_pix = get_config("whatsapp_incluir_pix", "1") == "1"
     debito_percent = to_float(get_config("whatsapp_debito_percent", "1.09"), 1.09)
-    prefixo = get_config("whatsapp_prefixo", "")
 
     cab = []
-    if prefixo:
-        cab.append(prefixo)
-
     if produto:
-        cab.append(f"📦 Produto: {produto.nome}")
+        cab.append(f"🔫 {produto.nome}")
         cab.append(f"🔖 SKU: {produto.sku}")
-        cab.append(f"💰 À vista: {br_money(base)}")
+        if incluir_pix:
+            cab.append(f"💰 À vista (PIX): {br_money(base)}")
+        if debito_percent > 0:
+            j = debito_percent / 100.0
+            coef = max(1.0 - j, 1e-9)
+            total_debito = base / coef
+            cab.append(f"💳 Débito: {br_money(total_debito)}")
     else:
         cab.append("💳 Simulação de Parcelamento")
-        cab.append(f"💰 À vista: {br_money(base)}")
+        if incluir_pix:
+            cab.append(f"💰 À vista (PIX): {br_money(base)}")
+        if debito_percent > 0:
+            j = debito_percent / 100.0
+            coef = max(1.0 - j, 1e-9)
+            total_debito = base / coef
+            cab.append(f"💳 Débito: {br_money(total_debito)}")
 
     corpo = []
+    if linhas:
+        corpo.append("📌 Parcelamento no Cartão:")
+        for r in linhas:
+            if r["parcelas"] == 1:
+                corpo.append(f"{r['parcelas']}x {br_money(r['parcela'])}")
+            else:
+                corpo.append(f"{r['parcelas']}x {br_money(r['parcela'])} = {br_money(r['total'])}")
 
-    if incluir_pix:
-        corpo.append(f"PIX {br_money(base)} = {br_money(base)}")
-
-    if debito_percent > 0:
-        j = debito_percent / 100.0
-        coef = max(1.0 - j, 1e-9)
-        total_debito = base / coef
-        corpo.append(f"Débito {br_money(total_debito)} = {br_money(total_debito)}")
-    else:
-        corpo.append(f"Débito {br_money(base)} = {br_money(base)}")
-
-    for r in linhas:
-        corpo.append(f"{r['rotulo']} {br_money(r['parcela'])} = {br_money(r['total'])}")
-
-    txt = "\n".join(cab) + "\n\n" + "💳 Opções de Parcelamento:\n" + "\n".join(corpo)
+    txt = "\n".join(cab) + "\n\n" + "\n".join(corpo)
+    txt += "\n\n⚠️ *Os valores poderão sofrer alterações sem aviso prévio.*"
     return txt
 
 # =========================
@@ -134,12 +136,10 @@ def to_number(x):
 
     s = s.replace("R$", "").replace(" ", "")
 
-    # Caso com ponto e vírgula → assume "." como milhar e "," como decimal
     if "," in s and "." in s:
         s = s.replace(".", "").replace(",", ".")
     elif "," in s:
         s = s.replace(",", ".")
-    # se só tiver ponto, mantém (decimal estilo en-US)
 
     try:
         return float(s)
@@ -189,21 +189,15 @@ def produtos():
     preco_max = request.args.get("preco_max")
 
     query = Produto.query
-
-    # filtro por nome ou SKU
     if termo:
         like = f"%{termo}%"
         query = query.filter(
             (Produto.nome.ilike(like)) | (Produto.sku.ilike(like))
         )
-
-    # filtro por lucro
     if lucro == "positivo":
         query = query.filter(Produto.lucro_liquido_real >= 0)
     elif lucro == "negativo":
         query = query.filter(Produto.lucro_liquido_real < 0)
-
-    # filtro por preço
     if preco_min:
         try:
             query = query.filter(Produto.preco_a_vista >= float(preco_min))
@@ -230,14 +224,11 @@ def gerenciar_produto(produto_id=None):
 
         produto.sku = request.form.get("sku", "").upper()
         produto.nome = request.form["nome"]
-
         produto.preco_fornecedor = to_float(request.form.get("preco_fornecedor"))
         produto.desconto_fornecedor = to_float(request.form.get("desconto_fornecedor"))
-
         produto.margem = to_float(request.form.get("margem"))
         produto.lucro_alvo = (to_float(request.form.get("lucro_alvo")) or None)
         produto.preco_final = (to_float(request.form.get("preco_final")) or None)
-
         produto.ipi = to_float(request.form.get("ipi"))
         produto.ipi_tipo = request.form.get("ipi_tipo", "%")
         produto.difal = to_float(request.form.get("difal"))
@@ -271,8 +262,6 @@ def importar_produtos():
 
         try:
             filename = file.filename.lower()
-
-            # Detecta e abre o arquivo corretamente
             if filename.endswith((".xlsx", ".xls")):
                 df = pd.read_excel(file, sheet_name=0)
             elif filename.endswith(".csv"):
@@ -286,7 +275,6 @@ def importar_produtos():
                 return redirect(url_for("main.importar_produtos"))
 
             criados, atualizados = 0, 0
-
             for _, row in df.iterrows():
                 sku = (str(row.get("sku") or "").strip().upper())
                 if not sku:
@@ -306,7 +294,6 @@ def importar_produtos():
                 produto.margem = to_number(row.get("margem"))
                 produto.lucro_alvo = to_number(row.get("lucro_alvo")) or None
                 produto.preco_final = to_number(row.get("preco_final")) or None
-
                 produto.ipi = to_number(row.get("ipi"))
                 produto.ipi_tipo = row.get("ipi_tipo") or "%"
                 produto.difal = to_number(row.get("difal"))
