@@ -10,26 +10,30 @@
     </a>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <form method="POST">
-            <div class="mb-3">
-                <label for="chave" class="form-label">Chave</label>
-                <input type="text" name="chave" id="chave" class="form-control"
-                       value="{{ config.chave if config else '' }}" required>
-                <div class="form-text">Identificador único da configuração (ex: <code>whatsapp_prefixo</code>)</div>
-            </div>
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="chave" class="form-label">Chave</label>
+                        <input type="text" name="chave" id="chave" class="form-control"
+                               value="{{ config.chave if config else '' }}" required>
+                        <div class="form-text">Exemplo: <code>margem_padrao</code>, <code>observacao_whatsapp</code></div>
+                    </div>
 
-            <div class="mb-3">
-                <label for="valor" class="form-label">Valor</label>
-                <input type="text" name="valor" id="valor" class="form-control"
-                       value="{{ config.valor if config else '' }}" required>
-            </div>
+                    <div class="mb-3">
+                        <label for="valor" class="form-label">Valor</label>
+                        <input type="text" name="valor" id="valor" class="form-control"
+                               value="{{ config.valor if config else '' }}" required>
+                    </div>
 
-            <button type="submit" class="btn btn-success">
-                <i class="fas fa-save"></i> Salvar
-            </button>
-        </form>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

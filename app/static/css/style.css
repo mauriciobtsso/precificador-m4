@@ -472,3 +472,67 @@ body {
     padding: 0.8rem;  /* menos padding = mais compacto */
   }
 }
+@media (max-width: 768px) {
+  .card-item {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+
+  .card-item small {
+    display: inline-block;
+    width: 48%;
+    margin-bottom: 4px;
+  }
+
+  .card-actions {
+    margin-top: 6px;
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+  }
+}
+/* Ações compactas na tabela */
+.table-produtos .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+}
+
+.acoes-produto {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+}
+/* Botões compactos nas ações da tabela */
+.table-produtos .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+}
+
+.acoes-produto {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+}
+
+/* Ajustes mobile */
+@media (max-width: 768px) {
+  .card-item {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+
+  .card-item small {
+    display: inline-block;
+    width: 48%;
+    margin-bottom: 4px;
+  }
+
+  .card-actions {
+    margin-top: 6px;
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+  }
+}

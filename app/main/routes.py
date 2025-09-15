@@ -249,6 +249,19 @@ def excluir_produto(produto_id):
     db.session.commit()
     flash("Produto excluído com sucesso!", "success")
     return redirect(url_for("main.produtos"))
+@main.route("/produto/whatsapp/<int:produto_id>")
+@login_required
+def produto_whatsapp(produto_id):
+    produto = Produto.query.get_or_404(produto_id)
+    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+
+    valor_base = produto.preco_final or produto.preco_a_vista or 0.0
+    taxas_planos = [t for t in taxas if (t.numero_parcelas or 0) >= 1]
+    resultado = montar_parcelas(valor_base, taxas_planos, modo="coeficiente_total")
+
+    texto_whats = compor_whatsapp(produto=produto, valor_base=valor_base, linhas=resultado)
+    return {"texto": texto_whats}
+
 
 # --- Importação de Produtos ---
 @main.route("/produtos/importar", methods=["GET", "POST"])
