@@ -4,7 +4,7 @@ from app import db
 from app.models import Produto, Taxa, User, Configuracao
 from app.main import main
 import os
-import pandas as pd
+import csv
 
 # =========================
 # Helpers
@@ -134,12 +134,10 @@ def to_number(x):
 
     s = s.replace("R$", "").replace(" ", "")
 
-    # Caso com ponto e vírgula → assume "." como milhar e "," como decimal
     if "," in s and "." in s:
         s = s.replace(".", "").replace(",", ".")
     elif "," in s:
         s = s.replace(",", ".")
-    # se só tiver ponto, mantém (decimal estilo en-US)
 
     try:
         return float(s)
@@ -190,20 +188,17 @@ def produtos():
 
     query = Produto.query
 
-    # filtro por nome ou SKU
     if termo:
         like = f"%{termo}%"
         query = query.filter(
             (Produto.nome.ilike(like)) | (Produto.sku.ilike(like))
         )
 
-    # filtro por lucro
     if lucro == "positivo":
         query = query.filter(Produto.lucro_liquido_real >= 0)
     elif lucro == "negativo":
         query = query.filter(Produto.lucro_liquido_real < 0)
 
-    # filtro por preço
     if preco_min:
         try:
             query = query.filter(Produto.preco_a_vista >= float(preco_min))
@@ -233,11 +228,9 @@ def gerenciar_produto(produto_id=None):
 
         produto.preco_fornecedor = to_float(request.form.get("preco_fornecedor"))
         produto.desconto_fornecedor = to_float(request.form.get("desconto_fornecedor"))
-
         produto.margem = to_float(request.form.get("margem"))
         produto.lucro_alvo = (to_float(request.form.get("lucro_alvo")) or None)
         produto.preco_final = (to_float(request.form.get("preco_final")) or None)
-
         produto.ipi = to_float(request.form.get("ipi"))
         produto.ipi_tipo = request.form.get("ipi_tipo", "%")
         produto.difal = to_float(request.form.get("difal"))
@@ -271,49 +264,75 @@ def importar_produtos():
 
         try:
             filename = file.filename.lower()
+            criados, atualizados = 0, 0
 
-            # Detecta e abre o arquivo corretamente
+            # XLSX / XLS via openpyxl (linha a linha)
             if filename.endswith((".xlsx", ".xls")):
-                df = pd.read_excel(file, sheet_name=0)
+                from openpyxl import load_workbook
+                wb = load_workbook(file, read_only=True, data_only=True)
+                ws = wb.active
+
+                headers = [str(c.value).strip().lower() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
+                for row in ws.iter_rows(min_row=2):
+                    dados = {headers[i]: (row[i].value if i < len(row) else None) for i in range(len(headers))}
+                    sku = (str(dados.get("sku") or "").strip().upper())
+                    if not sku:
+                        continue
+
+                    produto = Produto.query.filter_by(sku=sku).first()
+                    if not produto:
+                        produto = Produto(sku=sku)
+                        db.session.add(produto)
+                        criados += 1
+                    else:
+                        atualizados += 1
+
+                    produto.nome = dados.get("nome", produto.nome)
+                    produto.preco_fornecedor = to_number(dados.get("preco_fornecedor"))
+                    produto.desconto_fornecedor = to_number(dados.get("desconto_fornecedor"))
+                    produto.margem = to_number(dados.get("margem"))
+                    produto.ipi = to_number(dados.get("ipi"))
+                    produto.ipi_tipo = dados.get("ipi_tipo") or "%"
+                    produto.difal = to_number(dados.get("difal"))
+                    produto.imposto_venda = to_number(dados.get("imposto_venda"))
+
+                    produto.calcular_precos()
+
+            # CSV
             elif filename.endswith(".csv"):
-                try:
-                    df = pd.read_csv(file, encoding="utf-8-sig", sep=None, engine="python")
-                except Exception:
-                    # fallback caso o arquivo venha em latin1/Windows-1252
-                    file.stream.seek(0)
-                    df = pd.read_csv(file, encoding="latin1", sep=None, engine="python")
+                file.stream.seek(0)
+                reader = csv.DictReader((line.decode("utf-8-sig") for line in file), delimiter=";")
+                for row in reader:
+                    sku = (str(row.get("sku") or "").strip().upper())
+                    if not sku:
+                        continue
+
+                    produto = Produto.query.filter_by(sku=sku).first()
+                    if not produto:
+                        produto = Produto(sku=sku)
+                        db.session.add(produto)
+                        criados += 1
+                    else:
+                        atualizados += 1
+
+                    produto.nome = row.get("nome", produto.nome)
+                    produto.preco_fornecedor = to_number(row.get("preco_fornecedor"))
+                    produto.desconto_fornecedor = to_number(row.get("desconto_fornecedor"))
+                    produto.margem = to_number(row.get("margem"))
+                    produto.ipi = to_number(row.get("ipi"))
+                    produto.ipi_tipo = row.get("ipi_tipo") or "%"
+                    produto.difal = to_number(row.get("difal"))
+                    produto.imposto_venda = to_number(row.get("imposto_venda"))
+
+                    produto.calcular_precos()
+
             else:
                 flash("Formato de arquivo não suportado. Use .csv ou .xlsx", "danger")
                 return redirect(url_for("main.importar_produtos"))
 
-            criados, atualizados = 0, 0
-
-            for _, row in df.iterrows():
-                sku = (str(row.get("sku") or "").strip().upper())
-                if not sku:
-                    continue
-
-                produto = Produto.query.filter_by(sku=sku).first()
-                if not produto:
-                    produto = Produto(sku=sku)
-                    db.session.add(produto)
-                    criados += 1
-                else:
-                    atualizados += 1
-
-                produto.nome = row.get("nome", produto.nome)
-                produto.preco_fornecedor = to_number(row.get("preco_fornecedor"))
-                produto.desconto_fornecedor = to_number(row.get("desconto_fornecedor"))
-                produto.margem = to_number(row.get("margem"))
-                produto.ipi = to_number(row.get("ipi"))
-                produto.ipi_tipo = row.get("ipi_tipo") or "%"
-                produto.difal = to_number(row.get("difal"))
-                produto.imposto_venda = to_number(row.get("imposto_venda"))
-
-                produto.calcular_precos()
-
             db.session.commit()
             flash(f"Importação concluída! {criados} criados, {atualizados} atualizados.", "success")
+
         except Exception as e:
             flash(f"Erro ao importar: {e}", "danger")
 
