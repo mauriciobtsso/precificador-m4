@@ -4,7 +4,7 @@ from app import db
 from app.models import Produto, Taxa, User, Configuracao
 from app.main import main
 import os
-import csv
+import pandas as pd
 
 # =========================
 # Helpers
@@ -134,10 +134,12 @@ def to_number(x):
 
     s = s.replace("R$", "").replace(" ", "")
 
+    # Caso com ponto e vírgula → assume "." como milhar e "," como decimal
     if "," in s and "." in s:
         s = s.replace(".", "").replace(",", ".")
     elif "," in s:
         s = s.replace(",", ".")
+    # se só tiver ponto, mantém (decimal estilo en-US)
 
     try:
         return float(s)
@@ -188,17 +190,20 @@ def produtos():
 
     query = Produto.query
 
+    # filtro por nome ou SKU
     if termo:
         like = f"%{termo}%"
         query = query.filter(
             (Produto.nome.ilike(like)) | (Produto.sku.ilike(like))
         )
 
+    # filtro por lucro
     if lucro == "positivo":
         query = query.filter(Produto.lucro_liquido_real >= 0)
     elif lucro == "negativo":
         query = query.filter(Produto.lucro_liquido_real < 0)
 
+    # filtro por preço
     if preco_min:
         try:
             query = query.filter(Produto.preco_a_vista >= float(preco_min))
@@ -228,9 +233,11 @@ def gerenciar_produto(produto_id=None):
 
         produto.preco_fornecedor = to_float(request.form.get("preco_fornecedor"))
         produto.desconto_fornecedor = to_float(request.form.get("desconto_fornecedor"))
+
         produto.margem = to_float(request.form.get("margem"))
         produto.lucro_alvo = (to_float(request.form.get("lucro_alvo")) or None)
         produto.preco_final = (to_float(request.form.get("preco_final")) or None)
+
         produto.ipi = to_float(request.form.get("ipi"))
         produto.ipi_tipo = request.form.get("ipi_tipo", "%")
         produto.difal = to_float(request.form.get("difal"))
@@ -297,7 +304,7 @@ def importar_produtos():
                 produto.preco_fornecedor = to_number(row.get("preco_fornecedor"))
                 produto.desconto_fornecedor = to_number(row.get("desconto_fornecedor"))
                 produto.margem = to_number(row.get("margem"))
-                produto.lucro_alvo = to_number(row.get("lucro_alvo")) or None  # ✅ agora aceita lucro_alvo
+                produto.lucro_alvo = to_number(row.get("lucro_alvo")) or None
                 produto.preco_final = to_number(row.get("preco_final")) or None
 
                 produto.ipi = to_number(row.get("ipi"))
@@ -315,7 +322,6 @@ def importar_produtos():
         return redirect(url_for("main.produtos"))
 
     return render_template("produtos_importar.html")
-
 
 @main.route("/produtos/exemplo-csv")
 @login_required
