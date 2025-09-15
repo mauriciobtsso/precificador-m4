@@ -7,68 +7,63 @@
 
 <!-- Resumo do produto -->
 <div class="card shadow-sm mb-4">
-  <div class="card-body d-flex justify-content-between align-items-center">
+  <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
     <div>
       <h5 class="card-title mb-1">{{ produto.nome }}</h5>
       <small class="text-muted">SKU: {{ produto.sku }}</small>
     </div>
-    <span class="badge bg-primary fs-5">À vista: {{ (produto.preco_final or produto.preco_a_vista)|currency }}</span>
+    <span class="badge bg-primary fs-5 mt-2 mt-md-0">
+      À vista: {{ (produto.preco_final or produto.preco_a_vista)|currency }}
+    </span>
   </div>
 </div>
 
-<!-- Tabela -->
-<div class="card shadow-sm">
-  <div class="card-header bg-light fw-semibold d-flex justify-content-between align-items-center">
-    <span><i class="fas fa-list"></i> Opções de Parcelamento</span>
-    <button id="btnCopy" class="btn btn-sm btn-success">
-      <i class="fas fa-copy me-1"></i> Copiar para WhatsApp
-    </button>
-  </div>
-  <div class="card-body">
-    {% if resultado %}
-    <div class="table-responsive">
-      <table class="table table-sm table-striped table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>Plano</th>
-            <th class="text-end">Parcela</th>
-            <th class="text-end">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- PIX -->
-          <tr>
-            <td>PIX</td>
-            <td class="text-end">{{ (produto.preco_final or produto.preco_a_vista)|currency }}</td>
-            <td class="text-end">{{ (produto.preco_final or produto.preco_a_vista)|currency }}</td>
-          </tr>
-          <!-- Débito (1,09%) -->
-          {% set debito_total = (produto.preco_final or produto.preco_a_vista) / (1 - 0.0109) %}
-          <tr>
-            <td>Débito</td>
-            <td class="text-end">{{ debito_total|currency }}</td>
-            <td class="text-end">{{ debito_total|currency }}</td>
-          </tr>
-
-          <!-- Demais planos -->
-          {% for r in resultado %}
-          <tr>
-            <td>{{ r.rotulo }}</td>
-            <td class="fw-bold text-end">{{ r.parcela|currency }}</td>
-            <td class="text-end">{{ r.total|currency }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+<!-- Tabela de Parcelamento em Cards -->
+<div class="row g-3">
+  <!-- PIX -->
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm h-100 text-center card-parcela">
+      <div class="card-body">
+        <span class="badge bg-success mb-2">PIX</span>
+        <h5 class="fw-bold">{{ (produto.preco_final or produto.preco_a_vista)|currency }}</h5>
+        <small class="text-muted">Total: {{ (produto.preco_final or produto.preco_a_vista)|currency }}</small>
+      </div>
     </div>
-    {% else %}
-    <p class="text-muted">Nenhuma taxa configurada ainda.</p>
-    {% endif %}
   </div>
+
+  <!-- Débito -->
+  {% set debito_total = (produto.preco_final or produto.preco_a_vista) / (1 - 0.0109) %}
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm h-100 text-center card-parcela">
+      <div class="card-body">
+        <span class="badge bg-info mb-2">Débito</span>
+        <h5 class="fw-bold">{{ debito_total|currency }}</h5>
+        <small class="text-muted">Total: {{ debito_total|currency }}</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Demais planos -->
+  {% for r in resultado %}
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm h-100 text-center card-parcela">
+      <div class="card-body">
+        <span class="badge bg-secondary mb-2">{{ r.rotulo }}</span>
+        <h5 class="fw-bold">{{ r.parcela|currency }}</h5>
+        <small class="text-muted">Total: {{ r.total|currency }}</small>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="mt-4 text-end">
+  <button id="btnCopy" class="btn btn-success">
+    <i class="fas fa-copy me-1"></i> Copiar para WhatsApp
+  </button>
 </div>
 
 <script>
-  // Texto pronto vindo do backend (usa "=" e não inclui diferença)
   const textoWhats = {{ texto_whats|tojson|safe }};
   document.getElementById('btnCopy').addEventListener('click', async () => {
     try {

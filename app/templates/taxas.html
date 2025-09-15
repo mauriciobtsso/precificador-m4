@@ -7,45 +7,65 @@
     </a>
 </div>
 
-<div class="card shadow-sm">
+<!-- Tabela (desktop) -->
+<div class="card shadow-sm d-none d-md-block">
     <div class="card-body p-0">
         {% if taxas %}
-        <div class="table-responsive">
-            <table class="table table-sm table-striped table-hover mb-0 align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th><i class="fas fa-receipt"></i> Parcelas</th>
-                        <th class="text-end"><i class="fas fa-percentage"></i> Juros</th>
-                        <th class="text-center"><i class="fas fa-cogs"></i> Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for taxa in taxas %}
-                    <tr>
-                        <td>{{ taxa.numero_parcelas }}x</td>
-                        <td class="text-end">{{ "%.2f"|format(taxa.juros)|replace(".", ",") }} %</td>
-                        <td class="text-center">
-                            <a href="{{ url_for('main.gerenciar_taxa', taxa_id=taxa.id) }}" 
-                               class="btn btn-sm btn-outline-warning me-1" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <a href="{{ url_for('main.excluir_taxa', taxa_id=taxa.id) }}" 
-                               class="btn btn-sm btn-outline-danger" 
-                               onclick="return confirm('Tem certeza que deseja excluir esta taxa?');" 
-                               title="Excluir">
-                                <i class="fas fa-trash"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <table class="table table-sm table-striped table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th><i class="fas fa-receipt"></i> Parcelas</th>
+                    <th class="text-end"><i class="fas fa-percentage"></i> Juros</th>
+                    <th class="text-center"><i class="fas fa-cogs"></i> Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for taxa in taxas %}
+                <tr>
+                    <td>{{ taxa.numero_parcelas }}x</td>
+                    <td class="text-end">{{ "%.2f"|format(taxa.juros)|replace(".", ",") }} %</td>
+                    <td class="text-center">
+                        <a href="{{ url_for('main.gerenciar_taxa', taxa_id=taxa.id) }}" 
+                           class="btn btn-sm btn-outline-warning me-1" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{{ url_for('main.excluir_taxa', taxa_id=taxa.id) }}" 
+                           class="btn btn-sm btn-outline-danger" 
+                           onclick="return confirm('Tem certeza que deseja excluir esta taxa?');" 
+                           title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         {% else %}
         <div class="p-3 text-center text-muted">
             <i class="fas fa-info-circle"></i> Nenhuma taxa cadastrada.
         </div>
         {% endif %}
     </div>
+</div>
+
+<!-- Cards (mobile) -->
+<div class="card-list d-md-none">
+  {% for taxa in taxas %}
+  <div class="card-item">
+    <h6>{{ taxa.numero_parcelas }}x</h6>
+    <small>Juros: {{ "%.2f"|format(taxa.juros)|replace(".", ",") }} %</small>
+
+    <div class="card-actions">
+      <a href="{{ url_for('main.gerenciar_taxa', taxa_id=taxa.id) }}" class="btn btn-sm btn-outline-warning">
+        <i class="fas fa-edit"></i>
+      </a>
+      <a href="{{ url_for('main.excluir_taxa', taxa_id=taxa.id) }}" 
+         class="btn btn-sm btn-outline-danger"
+         onclick="return confirm('Excluir esta taxa?');">
+        <i class="fas fa-trash"></i>
+      </a>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 {% endblock %}

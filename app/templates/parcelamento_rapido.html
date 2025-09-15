@@ -14,7 +14,9 @@
           <input type="number" step="0.01" class="form-control" name="preco_base" value="{{ preco_base or '' }}" required>
         </div>
         <div class="col-md-3">
-          <button type="submit" class="btn btn-primary"><i class="fas fa-calculator me-1"></i> Calcular</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-calculator me-1"></i> Calcular
+          </button>
         </div>
         {% if resultado %}
         <div class="col-md-5 text-end">
@@ -29,47 +31,42 @@
 </div>
 
 {% if resultado %}
-<div class="card shadow-sm">
-  <div class="card-header bg-light fw-semibold">
-    <i class="fas fa-list"></i> Opções de Parcelamento
-  </div>
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-sm table-striped table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>Plano</th>
-            <th class="text-end">Parcela</th>
-            <th class="text-end">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- PIX -->
-          <tr>
-            <td>PIX</td>
-            <td class="text-end">{{ preco_base|currency }}</td>
-            <td class="text-end">{{ preco_base|currency }}</td>
-          </tr>
-          <!-- Débito (1,09%) -->
-          {% set debito_total = (preco_base or 0) / (1 - 0.0109) %}
-          <tr>
-            <td>Débito</td>
-            <td class="text-end">{{ debito_total|currency }}</td>
-            <td class="text-end">{{ debito_total|currency }}</td>
-          </tr>
-
-          <!-- Demais planos -->
-          {% for r in resultado %}
-          <tr>
-            <td>{{ r.rotulo }}</td>
-            <td class="fw-bold text-end">{{ r.parcela|currency }}</td>
-            <td class="text-end">{{ r.total|currency }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+<div class="row g-3">
+  <!-- PIX -->
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm h-100 text-center card-parcela">
+      <div class="card-body">
+        <span class="badge bg-success mb-2">PIX</span>
+        <h5 class="fw-bold">{{ preco_base|currency }}</h5>
+        <small class="text-muted">Total: {{ preco_base|currency }}</small>
+      </div>
     </div>
   </div>
+
+  <!-- Débito -->
+  {% set debito_total = (preco_base or 0) / (1 - 0.0109) %}
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm h-100 text-center card-parcela">
+      <div class="card-body">
+        <span class="badge bg-info mb-2">Débito</span>
+        <h5 class="fw-bold">{{ debito_total|currency }}</h5>
+        <small class="text-muted">Total: {{ debito_total|currency }}</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Demais planos -->
+  {% for r in resultado %}
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm h-100 text-center card-parcela">
+      <div class="card-body">
+        <span class="badge bg-secondary mb-2">{{ r.rotulo }}</span>
+        <h5 class="fw-bold">{{ r.parcela|currency }}</h5>
+        <small class="text-muted">Total: {{ r.total|currency }}</small>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 {% endif %}
 

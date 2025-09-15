@@ -6,7 +6,7 @@
 </div>
 
 <!-- Atalhos principais -->
-<div class="row mb-4">
+<div class="row mb-4 d-none d-md-flex">
     <div class="col-md-3">
         <a href="{{ url_for('main.gerenciar_produto') }}" class="card text-center shadow-sm text-decoration-none">
             <div class="card-body">
@@ -41,8 +41,32 @@
     </div>
 </div>
 
+<!-- Atalhos principais (MOBILE) -->
+<div class="card-list d-md-none mb-4">
+    <div class="card-item">
+        <a href="{{ url_for('main.gerenciar_produto') }}" class="text-decoration-none">
+            <h6><i class="fas fa-plus-circle text-primary me-1"></i> Cadastrar Produto</h6>
+        </a>
+    </div>
+    <div class="card-item">
+        <a href="{{ url_for('main.taxas') }}" class="text-decoration-none">
+            <h6><i class="fas fa-percent text-success me-1"></i> Gerenciar Taxas</h6>
+        </a>
+    </div>
+    <div class="card-item">
+        <a href="{{ url_for('main.produtos') }}" class="text-decoration-none">
+            <h6><i class="fas fa-box text-warning me-1"></i> Lista de Produtos</h6>
+        </a>
+    </div>
+    <div class="card-item">
+        <a href="{{ url_for('main.parcelamento_rapido') }}" class="text-decoration-none">
+            <h6><i class="fas fa-credit-card text-info me-1"></i> Simulação Rápida</h6>
+        </a>
+    </div>
+</div>
+
 <!-- Resumo -->
-<div class="row mb-4">
+<div class="row mb-4 d-none d-md-flex">
     <div class="col-md-3">
         <div class="card text-center shadow-sm">
             <div class="card-body">
@@ -77,8 +101,32 @@
     </div>
 </div>
 
+<!-- Resumo (MOBILE) -->
+<div class="card-list d-md-none mb-4">
+    <div class="card-item">
+        <h6>Total Produtos</h6>
+        <span class="fw-bold text-primary">{{ produtos|length }}</span>
+    </div>
+    <div class="card-item">
+        <h6>Maior Lucro</h6>
+        <span class="fw-bold text-success">
+            {% if produtos %}
+                {{ (produtos|max(attribute="lucro_liquido_real")).lucro_liquido_real | currency }}
+            {% else %}-{% endif %}
+        </span>
+    </div>
+    <div class="card-item">
+        <h6>Menor Lucro</h6>
+        <span class="fw-bold text-danger">
+            {% if produtos %}
+                {{ (produtos|min(attribute="lucro_liquido_real")).lucro_liquido_real | currency }}
+            {% else %}-{% endif %}
+        </span>
+    </div>
+</div>
+
 <!-- Últimos cadastrados -->
-<div class="card shadow-sm">
+<div class="card shadow-sm d-none d-md-block">
     <div class="card-header bg-light">
         <i class="fas fa-clock"></i> Últimos Produtos
     </div>
@@ -98,5 +146,21 @@
             <p class="text-muted">Nenhum produto cadastrado.</p>
         {% endif %}
     </div>
+</div>
+
+<!-- Últimos cadastrados (MOBILE) -->
+<div class="card-list d-md-none">
+    {% if produtos %}
+        {% for p in produtos|sort(attribute="id", reverse=True) %}
+            {% if loop.index <= 3 %}
+                <div class="card-item d-flex justify-content-between align-items-center">
+                    <span>{{ p.nome }}</span>
+                    <span class="badge bg-primary">{{ p.preco_a_vista|currency }}</span>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <p class="text-muted">Nenhum produto cadastrado.</p>
+    {% endif %}
 </div>
 {% endblock %}
