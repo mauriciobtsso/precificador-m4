@@ -183,7 +183,39 @@ def dashboard():
 @main.route("/produtos")
 @login_required
 def produtos():
-    produtos = Produto.query.all()
+    termo = request.args.get("termo", "").strip()
+    lucro = request.args.get("lucro")
+    preco_min = request.args.get("preco_min")
+    preco_max = request.args.get("preco_max")
+
+    query = Produto.query
+
+    # filtro por nome ou SKU
+    if termo:
+        like = f"%{termo}%"
+        query = query.filter(
+            (Produto.nome.ilike(like)) | (Produto.sku.ilike(like))
+        )
+
+    # filtro por lucro
+    if lucro == "positivo":
+        query = query.filter(Produto.lucro_liquido_real >= 0)
+    elif lucro == "negativo":
+        query = query.filter(Produto.lucro_liquido_real < 0)
+
+    # filtro por preço
+    if preco_min:
+        try:
+            query = query.filter(Produto.preco_a_vista >= float(preco_min))
+        except:
+            pass
+    if preco_max:
+        try:
+            query = query.filter(Produto.preco_a_vista <= float(preco_max))
+        except:
+            pass
+
+    produtos = query.all()
     return render_template("produtos.html", produtos=produtos)
 
 @main.route("/produto/novo", methods=["GET", "POST"])
