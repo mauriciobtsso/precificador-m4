@@ -92,6 +92,7 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
         cab.append(f"💰 À vista: {br_money(base)}")
 
     corpo = []
+
     if incluir_pix:
         corpo.append(f"PIX {br_money(base)} = {br_money(base)}")
 
@@ -106,11 +107,13 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
     for r in linhas:
         corpo.append(f"{r['rotulo']} {br_money(r['parcela'])} = {br_money(r['total'])}")
 
-    rodape = "\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio"
-
-    txt = "\n".join(cab) + "\n\n" + "💳 Opções de Parcelamento:\n" + "\n".join(corpo) + rodape
+    txt = "\n".join(cab) + "\n\n" + "💳 Opções de Parcelamento:\n" + "\n".join(corpo)
+    txt += "\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio."
     return txt
 
+# =========================
+# Função auxiliar para importação
+# =========================
 def to_number(x):
     """
     Converte valores para float tratando formatos de CSV/XLSX (pt-BR e en-US).
@@ -131,6 +134,7 @@ def to_number(x):
         return 0.0
 
     s = s.replace("R$", "").replace(" ", "")
+
     if "," in s and "." in s:
         s = s.replace(".", "").replace(",", ".")
     elif "," in s:
@@ -142,7 +146,7 @@ def to_number(x):
         return 0.0
 
 # =========================
-# Rotas principais
+# Rotas
 # =========================
 @main.route("/")
 def index():
@@ -222,11 +226,14 @@ def gerenciar_produto(produto_id=None):
 
         produto.sku = request.form.get("sku", "").upper()
         produto.nome = request.form["nome"]
+
         produto.preco_fornecedor = to_float(request.form.get("preco_fornecedor"))
         produto.desconto_fornecedor = to_float(request.form.get("desconto_fornecedor"))
+
         produto.margem = to_float(request.form.get("margem"))
         produto.lucro_alvo = (to_float(request.form.get("lucro_alvo")) or None)
         produto.preco_final = (to_float(request.form.get("preco_final")) or None)
+
         produto.ipi = to_float(request.form.get("ipi"))
         produto.ipi_tipo = request.form.get("ipi_tipo", "%")
         produto.difal = to_float(request.form.get("difal"))
@@ -248,17 +255,6 @@ def excluir_produto(produto_id):
     flash("Produto excluído com sucesso!", "success")
     return redirect(url_for("main.produtos"))
 
-@main.route("/produto/whatsapp/<int:produto_id>")
-@login_required
-def produto_whatsapp(produto_id):
-    produto = Produto.query.get_or_404(produto_id)
-    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
-    valor_base = produto.preco_final or produto.preco_a_vista or 0.0
-    taxas_planos = [t for t in taxas if (t.numero_parcelas or 0) >= 1]
-    resultado = montar_parcelas(valor_base, taxas_planos, modo="coeficiente_total")
-    texto_whats = compor_whatsapp(produto=produto, valor_base=valor_base, linhas=resultado)
-    return {"texto": texto_whats}
-
 # --- Importação de Produtos ---
 @main.route("/produtos/importar", methods=["GET", "POST"])
 @login_required
@@ -271,6 +267,7 @@ def importar_produtos():
 
         try:
             filename = file.filename.lower()
+
             if filename.endswith((".xlsx", ".xls")):
                 df = pd.read_excel(file, sheet_name=0)
             elif filename.endswith(".csv"):
@@ -284,6 +281,7 @@ def importar_produtos():
                 return redirect(url_for("main.importar_produtos"))
 
             criados, atualizados = 0, 0
+
             for _, row in df.iterrows():
                 sku = (str(row.get("sku") or "").strip().upper())
                 if not sku:
@@ -303,10 +301,12 @@ def importar_produtos():
                 produto.margem = to_number(row.get("margem"))
                 produto.lucro_alvo = to_number(row.get("lucro_alvo")) or None
                 produto.preco_final = to_number(row.get("preco_final")) or None
+
                 produto.ipi = to_number(row.get("ipi"))
                 produto.ipi_tipo = row.get("ipi_tipo") or "%"
                 produto.difal = to_number(row.get("difal"))
                 produto.imposto_venda = to_number(row.get("imposto_venda"))
+
                 produto.calcular_precos()
 
             db.session.commit()
@@ -343,6 +343,7 @@ def gerenciar_taxa(taxa_id=None):
 
         numero_parcelas_raw = request.form.get("numero_parcelas")
         juros_raw = request.form.get("juros")
+
         taxa.numero_parcelas = int(numero_parcelas_raw or (taxa.numero_parcelas or 1))
         taxa.juros = to_float(juros_raw, default=(taxa.juros or 0))
 
@@ -373,10 +374,13 @@ def parcelamento_index():
 def parcelamento(produto_id):
     produto = Produto.query.get_or_404(produto_id)
     taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+
     valor_base = produto.preco_final or produto.preco_a_vista or 0.0
     taxas_planos = [t for t in taxas if (t.numero_parcelas or 0) >= 1]
     resultado = montar_parcelas(valor_base, taxas_planos, modo="coeficiente_total")
+
     texto_whats = compor_whatsapp(produto=produto, valor_base=valor_base, linhas=resultado)
+
     return render_template("parcelamento.html", produto=produto, resultado=resultado, texto_whats=texto_whats)
 
 @main.route("/parcelamento/rapido", methods=["GET", "POST"])
@@ -385,6 +389,7 @@ def parcelamento_rapido():
     resultado = []
     preco_base = None
     texto_whats = ""
+
     if request.method == "POST":
         preco_base = to_float(request.form.get("preco_base"))
         taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
@@ -472,7 +477,7 @@ def excluir_usuario(user_id):
     return redirect(url_for("main.usuarios"))
 
 # --- Health Check ---
-@main.route("/health")
+@main.route("/health", methods=["GET", "HEAD"])
 def health():
     """Rota para UptimeRobot monitorar a aplicação e o banco"""
     try:
