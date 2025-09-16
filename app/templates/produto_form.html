@@ -235,20 +235,17 @@
   const anLucroAlvo   = new AutoNumeric('#in_lucro_alvo',   anOpts);
   const anPrecoFinal  = new AutoNumeric('#in_preco_final',  anOpts);
 
-  // Precarrega valores atuais do servidor (se houver)
   {% if produto %}
     if (!isNaN({{ produto.preco_fornecedor or 0 }})) anFornecedor.set({{ produto.preco_fornecedor or 0 }});
     if (!isNaN({{ produto.lucro_alvo or 0 }}))       anLucroAlvo.set({{ produto.lucro_alvo or 0 }});
     if (!isNaN({{ produto.preco_final or 0 }}))      anPrecoFinal.set({{ produto.preco_final or 0 }});
   {% endif %}
 
-  // ======= Util =======
   const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
   const el  = (id) => document.getElementById(id);
   const num = (id) => parseFloat((el(id).value || '0').replace(',', '.')) || 0;
   const getAN = (an) => parseFloat(an.getNumber()) || 0;
 
-  // ======= Cálculo =======
   function recalcular() {
     const precoCompra   = getAN(anFornecedor);
     const descFornecedor= num('in_desconto');
@@ -261,56 +258,51 @@
     const lucroAlvo     = getAN(anLucroAlvo);
     let   precoFinal    = getAN(anPrecoFinal);
 
-    // 1) Preço com desconto
+    // 1) Base com desconto
     const base = precoCompra * (1 - (descFornecedor/100));
 
-    // 2) IPI: só para base do DIFAL
+    // 2) IPI (referência)
     const valorIPI = (ipiTipo === 'R$') ? ipiValor : (base * (ipiValor/100));
 
-    // 3) DIFAL (base exclui IPI)
+    // 3) DIFAL
     const baseDifal  = Math.max(base - valorIPI, 0);
     const valorDifal = baseDifal * (difal/100);
 
-    // 4) CUSTO TOTAL
+    // 4) Custo total
     const custoTotal = base + valorDifal;
 
-    // 5) PREÇO FINAL prioritário
+    // 5) Preço sugerido
     if (!(precoFinal > 0)) {
       if (lucroAlvo > 0) {
         precoFinal = (custoTotal + lucroAlvo) / (1 - (impostoVenda/100));
       } else if (margem > 0) {
-        const vendaSemImposto = custoTotal * (1 + margem/100);
-        precoFinal = vendaSemImposto / (1 - (impostoVenda/100));
+        // CORRIGIDO: usa coeficiente (custo / (1 - margem))
+        const vendaSemImposto = custoTotal / (1 - (margem/100));
+        precoFinal = vendaSemImposto;
       } else {
         precoFinal = custoTotal;
       }
     }
 
-    // 6) Imposto sobre a venda e Lucro líquido
+    // 6) Imposto e lucro líquido
     const impostoVendaValor = precoFinal * (impostoVenda/100);
     const lucroLiquido      = precoFinal - custoTotal - impostoVendaValor;
 
-    // 7) Preço à vista = preço final sugerido
-    const precoAVista = precoFinal;
-
-    // Saídas
+    // 7) Saídas
     el('out_custo_total').value = brl.format(custoTotal);
-    el('out_preco_a_vista').value = brl.format(precoAVista);
+    el('out_preco_a_vista').value = brl.format(precoFinal);
     el('out_lucro_liquido').value = brl.format(lucroLiquido);
   }
 
-  // Recalcular em todas as mudanças relevantes
   ['in_desconto','in_margem','in_imposto_venda','in_difal','in_ipi','in_ipi_tipo']
     .forEach(id => el(id).addEventListener('input', recalcular));
 
-  // Eventos do AutoNumeric
   document.addEventListener('autoNumeric:rawValueModified', (e) => {
     if (['in_preco_fornecedor','in_lucro_alvo','in_preco_final'].includes(e.target.id)) {
       recalcular();
     }
   });
 
-  // Primeiro cálculo ao carregar
   recalcular();
 </script>
 
