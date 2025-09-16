@@ -5,7 +5,14 @@ from flask_migrate import Migrate
 from jinja2.runtime import Undefined
 from config import Config
 
-db = SQLAlchemy()
+# Configuração extra para estabilidade de conexão
+db = SQLAlchemy(engine_options={
+    "pool_pre_ping": True,      # testa conexão antes de usar
+    "pool_recycle": 280,        # recicla conexões após 280s (antes do timeout padrão de 300s)
+    "pool_size": 5,             # conexões simultâneas no pool
+    "max_overflow": 10          # conexões extras se necessário
+})
+
 login_manager = LoginManager()
 migrate = Migrate()
 
@@ -19,7 +26,9 @@ def create_app():
     login_manager.login_view = "main.login"
     migrate.init_app(app, db)
 
-    # Registrar blueprint (dentro de app/main)
+    # -------------------------
+    # Registrar blueprint
+    # -------------------------
     from app.main import main
     app.register_blueprint(main)
 
