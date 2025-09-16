@@ -477,11 +477,13 @@ def excluir_usuario(user_id):
     return redirect(url_for("main.usuarios"))
 
 # --- Health Check ---
+from sqlalchemy import text
+
 @main.route("/health", methods=["GET", "HEAD"])
 def health():
     """Rota para UptimeRobot monitorar a aplicação e o banco"""
     try:
-        db.session.execute("SELECT 1")
+        db.session.execute(text("SELECT 1"))
         return {"status": "ok"}, 200
     except Exception as e:
         return {"status": "error", "msg": str(e)}, 500

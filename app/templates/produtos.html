@@ -69,23 +69,24 @@
             </span>
           </td>
           <td class="text-center">
-            <div class="acoes-produto">
+            <div class="acoes-produto d-flex justify-content-center gap-1">
               <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}" 
-                 class="btn btn-outline-info" title="Parcelamento">
+                 class="btn btn-outline-info btn-sm" title="Parcelamento">
                 <i class="fas fa-credit-card"></i>
               </a>
               <a href="{{ url_for('main.gerenciar_produto', produto_id=produto.id) }}" 
-                 class="btn btn-outline-warning" title="Editar">
+                 class="btn btn-outline-warning btn-sm" title="Editar">
                 <i class="fas fa-edit"></i>
               </a>
               <button type="button" 
-                      class="btn btn-outline-success btn-whatsapp" 
-                      data-id="{{ produto.id }}" 
-                      title="Copiar WhatsApp">
+                      class="btn btn-outline-success btn-sm btn-whatsapp" 
+                      data-nome="{{ produto.nome }}"
+                      data-sku="{{ produto.sku }}"
+                      data-preco="{{ produto.preco_a_vista|currency }}">
                 <i class="fab fa-whatsapp"></i>
               </button>
               <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}" 
-                 class="btn btn-outline-danger" title="Excluir"
+                 class="btn btn-outline-danger btn-sm" title="Excluir"
                  onclick="return confirm('Tem certeza que deseja excluir este produto?');">
                 <i class="fas fa-trash"></i>
               </a>
@@ -105,7 +106,7 @@
 <!-- Cards (mobile) -->
 <div class="card-list d-md-none">
   {% for produto in produtos %}
-  <div class="card-item">
+  <div class="card-item mb-3 p-2 border rounded shadow-sm">
     <h6>{{ produto.nome }}</h6>
     <small>SKU: {{ produto.sku }}</small><br>
     <small>Fornecedor: {{ produto.preco_fornecedor|currency }}</small><br>
@@ -115,7 +116,7 @@
       Lucro: {{ produto.lucro_liquido_real|currency }}
     </small>
 
-    <div class="card-actions">
+    <div class="d-flex justify-content-around mt-2">
       <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}" class="btn btn-sm btn-outline-info">
         <i class="fas fa-credit-card"></i>
       </a>
@@ -123,8 +124,10 @@
         <i class="fas fa-edit"></i>
       </a>
       <button type="button" 
-              class="btn btn-sm btn-outline-success btn-whatsapp" 
-              data-id="{{ produto.id }}">
+              class="btn btn-sm btn-outline-success btn-whatsapp"
+              data-nome="{{ produto.nome }}"
+              data-sku="{{ produto.sku }}"
+              data-preco="{{ produto.preco_a_vista|currency }}">
         <i class="fab fa-whatsapp"></i>
       </button>
       <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}" 
@@ -137,21 +140,35 @@
   {% endfor %}
 </div>
 
-<!-- Script para copiar WhatsApp -->
+<!-- Script WhatsApp + Copiar -->
 <script>
-document.addEventListener("click", async function(e) {
-  if (e.target.closest(".btn-whatsapp")) {
-    const btn = e.target.closest(".btn-whatsapp");
-    const produtoId = btn.getAttribute("data-id");
-    try {
-      const resp = await fetch(`/produto/whatsapp/${produtoId}`);
-      const data = await resp.json();
-      await navigator.clipboard.writeText(data.texto);
-      alert("✅ Texto copiado para o WhatsApp!");
-    } catch (err) {
-      console.error(err);
-      alert("❌ Erro ao copiar texto para WhatsApp");
-    }
+document.addEventListener("click", function(e) {
+  const btn = e.target.closest(".btn-whatsapp");
+  if (!btn) return;
+
+  const nome = btn.getAttribute("data-nome");
+  const sku = btn.getAttribute("data-sku");
+  const preco = btn.getAttribute("data-preco");
+
+  const texto = `🔫 ${nome}\n🔖 SKU: ${sku}\n💰 À vista: ${preco}\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio.`;
+
+  // Abrir direto no WhatsApp
+  const url = "https://wa.me/?text=" + encodeURIComponent(texto);
+  window.open(url, "_blank");
+
+  // Copiar fallback
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(texto);
+  } else {
+    let textArea = document.createElement("textarea");
+    textArea.value = texto;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try { document.execCommand("copy"); } catch (err) {}
+    document.body.removeChild(textArea);
   }
 });
 </script>
