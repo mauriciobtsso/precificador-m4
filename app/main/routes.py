@@ -77,44 +77,40 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
 
     incluir_pix = get_config("whatsapp_incluir_pix", "1") == "1"
     debito_percent = to_float(get_config("whatsapp_debito_percent", "1.09"), 1.09)
+    prefixo = get_config("whatsapp_prefixo", "")
 
     cab = []
+    if prefixo:
+        cab.append(prefixo)
+
     if produto:
         cab.append(f"🔫 {produto.nome}")
         cab.append(f"🔖 SKU: {produto.sku}")
-        if incluir_pix:
-            cab.append(f"💰 À vista (PIX): {br_money(base)}")
-        if debito_percent > 0:
-            j = debito_percent / 100.0
-            coef = max(1.0 - j, 1e-9)
-            total_debito = base / coef
-            cab.append(f"💳 Débito: {br_money(total_debito)}")
+        cab.append(f"💰 À vista: {br_money(base)}")
     else:
         cab.append("💳 Simulação de Parcelamento")
-        if incluir_pix:
-            cab.append(f"💰 À vista (PIX): {br_money(base)}")
-        if debito_percent > 0:
-            j = debito_percent / 100.0
-            coef = max(1.0 - j, 1e-9)
-            total_debito = base / coef
-            cab.append(f"💳 Débito: {br_money(total_debito)}")
+        cab.append(f"💰 À vista: {br_money(base)}")
 
     corpo = []
-    if linhas:
-        corpo.append("📌 Parcelamento no Cartão:")
-        for r in linhas:
-            if r["parcelas"] == 1:
-                corpo.append(f"{r['parcelas']}x {br_money(r['parcela'])}")
-            else:
-                corpo.append(f"{r['parcelas']}x {br_money(r['parcela'])} = {br_money(r['total'])}")
+    if incluir_pix:
+        corpo.append(f"PIX {br_money(base)} = {br_money(base)}")
 
-    txt = "\n".join(cab) + "\n\n" + "\n".join(corpo)
-    txt += "\n\n⚠️ *Os valores poderão sofrer alterações sem aviso prévio.*"
+    if debito_percent > 0:
+        j = debito_percent / 100.0
+        coef = max(1.0 - j, 1e-9)
+        total_debito = base / coef
+        corpo.append(f"Débito {br_money(total_debito)} = {br_money(total_debito)}")
+    else:
+        corpo.append(f"Débito {br_money(base)} = {br_money(base)}")
+
+    for r in linhas:
+        corpo.append(f"{r['rotulo']} {br_money(r['parcela'])} = {br_money(r['total'])}")
+
+    rodape = "\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio"
+
+    txt = "\n".join(cab) + "\n\n" + "💳 Opções de Parcelamento:\n" + "\n".join(corpo) + rodape
     return txt
 
-# =========================
-# Função auxiliar para importação
-# =========================
 def to_number(x):
     """
     Converte valores para float tratando formatos de CSV/XLSX (pt-BR e en-US).
@@ -135,7 +131,6 @@ def to_number(x):
         return 0.0
 
     s = s.replace("R$", "").replace(" ", "")
-
     if "," in s and "." in s:
         s = s.replace(".", "").replace(",", ".")
     elif "," in s:
@@ -147,7 +142,7 @@ def to_number(x):
         return 0.0
 
 # =========================
-# Rotas
+# Rotas principais
 # =========================
 @main.route("/")
 def index():
@@ -189,15 +184,18 @@ def produtos():
     preco_max = request.args.get("preco_max")
 
     query = Produto.query
+
     if termo:
         like = f"%{termo}%"
         query = query.filter(
             (Produto.nome.ilike(like)) | (Produto.sku.ilike(like))
         )
+
     if lucro == "positivo":
         query = query.filter(Produto.lucro_liquido_real >= 0)
     elif lucro == "negativo":
         query = query.filter(Produto.lucro_liquido_real < 0)
+
     if preco_min:
         try:
             query = query.filter(Produto.preco_a_vista >= float(preco_min))
@@ -249,19 +247,17 @@ def excluir_produto(produto_id):
     db.session.commit()
     flash("Produto excluído com sucesso!", "success")
     return redirect(url_for("main.produtos"))
+
 @main.route("/produto/whatsapp/<int:produto_id>")
 @login_required
 def produto_whatsapp(produto_id):
     produto = Produto.query.get_or_404(produto_id)
     taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
-
     valor_base = produto.preco_final or produto.preco_a_vista or 0.0
     taxas_planos = [t for t in taxas if (t.numero_parcelas or 0) >= 1]
     resultado = montar_parcelas(valor_base, taxas_planos, modo="coeficiente_total")
-
     texto_whats = compor_whatsapp(produto=produto, valor_base=valor_base, linhas=resultado)
     return {"texto": texto_whats}
-
 
 # --- Importação de Produtos ---
 @main.route("/produtos/importar", methods=["GET", "POST"])
@@ -311,7 +307,6 @@ def importar_produtos():
                 produto.ipi_tipo = row.get("ipi_tipo") or "%"
                 produto.difal = to_number(row.get("difal"))
                 produto.imposto_venda = to_number(row.get("imposto_venda"))
-
                 produto.calcular_precos()
 
             db.session.commit()
@@ -348,7 +343,6 @@ def gerenciar_taxa(taxa_id=None):
 
         numero_parcelas_raw = request.form.get("numero_parcelas")
         juros_raw = request.form.get("juros")
-
         taxa.numero_parcelas = int(numero_parcelas_raw or (taxa.numero_parcelas or 1))
         taxa.juros = to_float(juros_raw, default=(taxa.juros or 0))
 
@@ -379,13 +373,10 @@ def parcelamento_index():
 def parcelamento(produto_id):
     produto = Produto.query.get_or_404(produto_id)
     taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
-
     valor_base = produto.preco_final or produto.preco_a_vista or 0.0
     taxas_planos = [t for t in taxas if (t.numero_parcelas or 0) >= 1]
     resultado = montar_parcelas(valor_base, taxas_planos, modo="coeficiente_total")
-
     texto_whats = compor_whatsapp(produto=produto, valor_base=valor_base, linhas=resultado)
-
     return render_template("parcelamento.html", produto=produto, resultado=resultado, texto_whats=texto_whats)
 
 @main.route("/parcelamento/rapido", methods=["GET", "POST"])
@@ -394,7 +385,6 @@ def parcelamento_rapido():
     resultado = []
     preco_base = None
     texto_whats = ""
-
     if request.method == "POST":
         preco_base = to_float(request.form.get("preco_base"))
         taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
@@ -474,9 +464,4 @@ def gerenciar_usuario(user_id=None):
 
 @main.route("/usuario/excluir/<int:user_id>")
 @login_required
-def excluir_usuario(user_id):
-    user = User.query.get_or_404(user_id)
-    db.session.delete(user)
-    db.session.commit()
-    flash("Usuário excluído com sucesso!", "success")
-    return redirect(url_for("main.usuarios"))
+def
