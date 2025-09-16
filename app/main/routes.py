@@ -1,5 +1,6 @@
 from flask import render_template, request, redirect, url_for, flash, send_from_directory
 from flask_login import login_user, logout_user, login_required
+from app.models import Cliente, Venda
 from app import db
 from app.models import Produto, Taxa, User, Configuracao, Cliente, Venda, ItemVenda
 from app.main import main
@@ -614,6 +615,25 @@ def importar():
     return render_template("importar.html")
 
 # =========================
+# Clientes
+# =========================
+@main.route("/clientes")
+@login_required
+def clientes():
+    todos_clientes = Cliente.query.order_by(Cliente.nome.asc()).all()
+    return render_template("clientes.html", clientes=todos_clientes)
+
+
+# =========================
+# Vendas
+# =========================
+@main.route("/vendas")
+@login_required
+def vendas():
+    todas_vendas = Venda.query.order_by(Venda.data_abertura.desc()).all()
+    return render_template("vendas.html", vendas=todas_vendas)
+
+# =========================
 # Funções de Importação (openpyxl)
 # =========================
 def importar_clientes(file_storage):
@@ -766,3 +786,4 @@ def importar_vendas(file_storage):
             db.session.add(item)
 
     db.session.commit()
+
