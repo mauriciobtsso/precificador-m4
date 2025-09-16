@@ -536,3 +536,39 @@ body {
     gap: 6px;
   }
 }
+/* Ajustes mobile */
+@media (max-width: 768px) {
+  .card-list {
+    padding: 0 8px;
+  }
+
+  .card-item {
+    width: 100%;
+    margin: 0 auto 10px auto;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  .card-item h6 {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 5px;
+  }
+
+  .card-item small {
+    color: #555;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .card-actions {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+}
