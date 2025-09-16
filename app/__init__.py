@@ -4,11 +4,12 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 from jinja2.runtime import Undefined
 from config import Config
+from sqlalchemy import inspect
 
 # Configuração extra para estabilidade de conexão
 db = SQLAlchemy(engine_options={
     "pool_pre_ping": True,      # testa conexão antes de usar
-    "pool_recycle": 280,        # recicla conexões após 280s (antes do timeout padrão de 300s)
+    "pool_recycle": 280,        # recicla conexões após 280s
     "pool_size": 5,             # conexões simultâneas no pool
     "max_overflow": 10          # conexões extras se necessário
 })
@@ -52,73 +53,78 @@ def create_app():
     app.jinja_env.filters["currency"] = format_currency
 
     # -------------------------
-    # Seed inicial (apenas se vazio)
+    # Seed inicial (apenas se tabelas existirem)
     # -------------------------
     from app.models import User, Taxa, Produto, Configuracao  # import tardio
+
     with app.app_context():
-        # Usuário admin
-        if not User.query.filter_by(username="admin").first():
-            db.session.add(User(username="admin", password="admin"))
+        inspector = inspect(db.engine)
+        tabelas = inspector.get_table_names()
 
-        # Taxas de parcelamento
-        if not Taxa.query.first():
-            taxas = [
-                Taxa(numero_parcelas=1, juros=0.0),
-                Taxa(numero_parcelas=2, juros=3.5),
-                Taxa(numero_parcelas=3, juros=6.2),
-                Taxa(numero_parcelas=4, juros=8.5),
-                Taxa(numero_parcelas=5, juros=10.2),
-                Taxa(numero_parcelas=6, juros=12.5),
-                Taxa(numero_parcelas=7, juros=14.3),
-                Taxa(numero_parcelas=8, juros=15.8),
-                Taxa(numero_parcelas=9, juros=17.1),
-                Taxa(numero_parcelas=10, juros=18.6),
-                Taxa(numero_parcelas=11, juros=19.9),
-                Taxa(numero_parcelas=12, juros=21.5),
-            ]
-            db.session.add_all(taxas)
+        if "users" in tabelas and "taxas" in tabelas and "produtos" in tabelas and "configuracoes" in tabelas:
+            # Usuário admin
+            if not User.query.filter_by(username="admin").first():
+                db.session.add(User(username="admin", password="admin"))
 
-        # Produtos de exemplo
-        if not Produto.query.first():
-            produtos = [
-                Produto(
-                    sku="CBC8122",
-                    nome="Rifle CBC 8122 Bolt Action 23\" OXPP",
-                    preco_fornecedor=2500.00,
-                    desconto_fornecedor=0,
-                    margem=40,
-                    ipi=10,
-                    ipi_tipo="%",
-                    difal=5,
-                ),
-                Produto(
-                    sku="RT066INOX",
-                    nome="Revólver Taurus RT 066 357Mag 4\" Inox Fosco",
-                    preco_fornecedor=3500.00,
-                    desconto_fornecedor=0,
-                    margem=42,
-                    ipi=12,
-                    ipi_tipo="%",
-                    difal=5,
-                ),
-                Produto(
-                    sku="RT065OX",
-                    nome="Revólver Taurus RT 065 357Mag 4\" Oxidado",
-                    preco_fornecedor=3300.00,
-                    desconto_fornecedor=0,
-                    margem=40,
-                    ipi=12,
-                    ipi_tipo="%",
-                    difal=5,
-                ),
-            ]
-            for p in produtos:
-                p.calcular_precos()
-                db.session.add(p)
+            # Taxas de parcelamento
+            if not Taxa.query.first():
+                taxas = [
+                    Taxa(numero_parcelas=1, juros=0.0),
+                    Taxa(numero_parcelas=2, juros=3.5),
+                    Taxa(numero_parcelas=3, juros=6.2),
+                    Taxa(numero_parcelas=4, juros=8.5),
+                    Taxa(numero_parcelas=5, juros=10.2),
+                    Taxa(numero_parcelas=6, juros=12.5),
+                    Taxa(numero_parcelas=7, juros=14.3),
+                    Taxa(numero_parcelas=8, juros=15.8),
+                    Taxa(numero_parcelas=9, juros=17.1),
+                    Taxa(numero_parcelas=10, juros=18.6),
+                    Taxa(numero_parcelas=11, juros=19.9),
+                    Taxa(numero_parcelas=12, juros=21.5),
+                ]
+                db.session.add_all(taxas)
 
-        # Configurações padrão
-        Configuracao.seed_defaults()
+            # Produtos de exemplo
+            if not Produto.query.first():
+                produtos = [
+                    Produto(
+                        sku="CBC8122",
+                        nome="Rifle CBC 8122 Bolt Action 23\" OXPP",
+                        preco_fornecedor=2500.00,
+                        desconto_fornecedor=0,
+                        margem=40,
+                        ipi=10,
+                        ipi_tipo="%",
+                        difal=5,
+                    ),
+                    Produto(
+                        sku="RT066INOX",
+                        nome="Revólver Taurus RT 066 357Mag 4\" Inox Fosco",
+                        preco_fornecedor=3500.00,
+                        desconto_fornecedor=0,
+                        margem=42,
+                        ipi=12,
+                        ipi_tipo="%",
+                        difal=5,
+                    ),
+                    Produto(
+                        sku="RT065OX",
+                        nome="Revólver Taurus RT 065 357Mag 4\" Oxidado",
+                        preco_fornecedor=3300.00,
+                        desconto_fornecedor=0,
+                        margem=40,
+                        ipi=12,
+                        ipi_tipo="%",
+                        difal=5,
+                    ),
+                ]
+                for p in produtos:
+                    p.calcular_precos()
+                    db.session.add(p)
 
-        db.session.commit()
+            # Configurações padrão
+            Configuracao.seed_defaults()
+
+            db.session.commit()
 
     return app

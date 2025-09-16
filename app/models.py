@@ -13,6 +13,8 @@ def load_user(user_id):
 # Usuário
 # =========================
 class User(UserMixin, db.Model):
+    __tablename__ = "users"
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
@@ -22,6 +24,8 @@ class User(UserMixin, db.Model):
 # Produto
 # =========================
 class Produto(db.Model):
+    __tablename__ = "produtos"
+
     id = db.Column(db.Integer, primary_key=True)
     sku = db.Column(db.String(64), unique=True, nullable=False)
     nome = db.Column(db.String(128), nullable=False)
@@ -33,8 +37,8 @@ class Produto(db.Model):
 
     # Objetivos
     margem = db.Column(db.Float, default=0.0)          # margem em %
-    lucro_alvo = db.Column(db.Float, nullable=True)    # lucro em R$ (opcional, alvo de lucro LÍQUIDO)
-    preco_final = db.Column(db.Float, nullable=True)   # preço calculado (sempre sobrescrito)
+    lucro_alvo = db.Column(db.Float, nullable=True)    # lucro em R$
+    preco_final = db.Column(db.Float, nullable=True)   # preço calculado
 
     # Tributos
     ipi = db.Column(db.Float, default=0.0)
@@ -51,19 +55,11 @@ class Produto(db.Model):
     def calcular_precos(self):
         """
         Recalcula todos os valores do produto.
-
-        Regras adotadas:
-        - IPI **não** entra no custo total (apenas referência).
-        - Base do DIFAL **exclui** o IPI.
-        - DIFAL entra no custo total.
-        - Se houver lucro alvo em R$ → calcula preço líquido alvo.
-        - Senão, aplica margem % por COEFICIENTE: preço = custo / (1 - margem).
-        - O imposto sobre a venda (Simples) é calculado depois e abatido do lucro líquido.
         """
-        # 1) Base de compra com desconto do fornecedor
+        # 1) Base de compra com desconto
         base = (self.preco_fornecedor or 0.0) * (1 - (self.desconto_fornecedor or 0.0) / 100.0)
 
-        # 2) IPI (apenas referência)
+        # 2) IPI (referência)
         if (self.ipi_tipo or "%") == "%":
             self.valor_ipi = base * (self.ipi or 0.0) / 100.0
         else:
@@ -75,21 +71,18 @@ class Produto(db.Model):
         # 4) DIFAL entra no custo
         self.valor_difal = base_difal * (self.difal or 0.0) / 100.0
 
-        # 5) Custo total (base + DIFAL)
+        # 5) Custo total
         self.custo_total = base + self.valor_difal
 
         # 6) Definição do preço sugerido
         preco_sugerido = self.custo_total
         imposto = (self.imposto_venda or 0.0) / 100.0
 
-        # a) Lucro alvo em R$ (alvo LÍQUIDO)
         if (self.lucro_alvo is not None) and (self.lucro_alvo > 0):
             if 1.0 - imposto <= 0:
                 preco_sugerido = self.custo_total + (self.lucro_alvo or 0.0)
             else:
                 preco_sugerido = (self.custo_total + (self.lucro_alvo or 0.0)) / (1.0 - imposto)
-
-        # b) Margem % por COEFICIENTE
         elif (self.margem or 0.0) > 0:
             den_margem = 1.0 - (self.margem or 0.0) / 100.0
             if den_margem <= 0:
@@ -98,16 +91,13 @@ class Produto(db.Model):
                 venda_sem_imposto = self.custo_total / den_margem
             preco_sugerido = venda_sem_imposto
 
-        # 7) Preço final (sempre sobrescrito)
         self.preco_final = preco_sugerido
-
-        # 8) Preço à vista = preço final
         self.preco_a_vista = self.preco_final or 0.0
 
-        # 9) Imposto sobre a venda (Simples)
+        # Imposto sobre a venda
         imposto_sobre_venda = (self.preco_final or 0.0) * (self.imposto_venda or 0.0) / 100.0
 
-        # 10) Lucro líquido real (após imposto)
+        # Lucro líquido real
         self.lucro_liquido_real = (self.preco_final or 0.0) - self.custo_total - imposto_sobre_venda
 
 
@@ -115,15 +105,19 @@ class Produto(db.Model):
 # Taxa
 # =========================
 class Taxa(db.Model):
+    __tablename__ = "taxas"
+
     id = db.Column(db.Integer, primary_key=True)
-    numero_parcelas = db.Column(db.Integer, nullable=False)  # 1,2,3,...
-    juros = db.Column(db.Float, default=0.0)                 # em %
+    numero_parcelas = db.Column(db.Integer, nullable=False)
+    juros = db.Column(db.Float, default=0.0)  # em %
 
 
 # =========================
 # Configuração
 # =========================
 class Configuracao(db.Model):
+    __tablename__ = "configuracoes"
+
     id = db.Column(db.Integer, primary_key=True)
     chave = db.Column(db.String(64), unique=True, nullable=False)
     valor = db.Column(db.String(255), nullable=False)
@@ -133,12 +127,6 @@ class Configuracao(db.Model):
 
     @classmethod
     def seed_defaults(cls):
-        """
-        Cria chaves padrão se não existirem.
-        - incluir_pix: "true" | "false"
-        - debito_percent: "1.09"
-        - mensagem_whats_prefixo: ""
-        """
         defaults = {
             "incluir_pix": "true",
             "debito_percent": "1.09",
@@ -147,3 +135,99 @@ class Configuracao(db.Model):
         for k, v in defaults.items():
             if not cls.query.filter_by(chave=k).first():
                 db.session.add(cls(chave=k, valor=v))
+
+
+# =========================
+# Cliente
+# =========================
+class Cliente(db.Model):
+    __tablename__ = "clientes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(150), nullable=False)
+    razao_social = db.Column(db.String(150))
+    sexo = db.Column(db.String(10))
+    profissao = db.Column(db.String(100))
+
+    documento = db.Column(db.String(30), unique=True, nullable=True)  # CPF/CNPJ
+    rg = db.Column(db.String(30))
+    rg_emissor = db.Column(db.String(100))
+
+    email = db.Column(db.String(150))
+    telefone = db.Column(db.String(30))
+    celular = db.Column(db.String(30))
+
+    endereco = db.Column(db.String(255))
+    numero = db.Column(db.String(20))
+    complemento = db.Column(db.String(100))
+    bairro = db.Column(db.String(100))
+    cidade = db.Column(db.String(100))
+    estado = db.Column(db.String(50))
+    cep = db.Column(db.String(20))
+
+    cr = db.Column(db.String(30))
+    cr_emissor = db.Column(db.String(100))
+    sigma = db.Column(db.String(50))
+    sinarm = db.Column(db.String(50))
+
+    cac = db.Column(db.Boolean, default=False)
+    filiado = db.Column(db.Boolean, default=False)
+    policial = db.Column(db.Boolean, default=False)
+    bombeiro = db.Column(db.Boolean, default=False)
+    militar = db.Column(db.Boolean, default=False)
+    iat = db.Column(db.Boolean, default=False)
+    psicologo = db.Column(db.Boolean, default=False)
+
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(
+        db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp()
+    )
+
+    # Relacionamentos
+    vendas = db.relationship("Venda", backref="cliente", lazy=True)
+
+
+# =========================
+# Venda
+# =========================
+class Venda(db.Model):
+    __tablename__ = "vendas"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)
+
+    vendedor = db.Column(db.String(100))
+    status = db.Column(db.String(50))
+    status_financeiro = db.Column(db.String(50))
+    data_abertura = db.Column(db.DateTime)
+    data_fechamento = db.Column(db.DateTime)
+    data_quitacao = db.Column(db.DateTime)
+    valor_total = db.Column(db.Float, nullable=False)
+
+    nf_numero = db.Column(db.String(50))
+    nf_valor = db.Column(db.Float)
+    teve_devolucao = db.Column(db.Boolean, default=False)
+
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(
+        db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp()
+    )
+
+    # Relacionamento
+    itens = db.relationship("ItemVenda", backref="venda", lazy=True)
+
+
+# =========================
+# Item de Venda
+# =========================
+class ItemVenda(db.Model):
+    __tablename__ = "itens_venda"
+
+    id = db.Column(db.Integer, primary_key=True)
+    venda_id = db.Column(db.Integer, db.ForeignKey("vendas.id"), nullable=False)
+
+    produto_nome = db.Column(db.String(200), nullable=False)
+    categoria = db.Column(db.String(100))
+    quantidade = db.Column(db.Integer, default=1)
+    valor_unitario = db.Column(db.Float, nullable=False)
+    valor_total = db.Column(db.Float, nullable=False)
