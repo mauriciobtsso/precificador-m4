@@ -78,12 +78,12 @@
                  class="btn btn-outline-warning" title="Editar">
                 <i class="fas fa-edit"></i>
               </a>
-              <a href="javascript:void(0)" 
-                 class="btn btn-outline-success" 
-                 title="Copiar WhatsApp"
-                 onclick="copiarWhatsApp({{ produto.id }})">
-                 <i class="fab fa-whatsapp"></i>
-              </a>
+              <button type="button" 
+                      class="btn btn-outline-success btn-whatsapp" 
+                      data-id="{{ produto.id }}" 
+                      title="Copiar WhatsApp">
+                <i class="fab fa-whatsapp"></i>
+              </button>
               <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}" 
                  class="btn btn-outline-danger" title="Excluir"
                  onclick="return confirm('Tem certeza que deseja excluir este produto?');">
@@ -110,9 +110,7 @@
     <small>SKU: {{ produto.sku }}</small><br>
     <small>Fornecedor: {{ produto.preco_fornecedor|currency }}</small><br>
     <small>Custo: {{ produto.custo_total|currency }}</small><br>
-    <small><strong class="text-dark">À vista:</strong> 
-      <span class="badge bg-primary">{{ produto.preco_a_vista|currency }}</span>
-    </small><br>
+    <small class="fw-bold text-primary">À vista: {{ produto.preco_a_vista|currency }}</small><br>
     <small class="{% if produto.lucro_liquido_real >= 0 %}text-success{% else %}text-danger{% endif %}">
       Lucro: {{ produto.lucro_liquido_real|currency }}
     </small>
@@ -125,9 +123,8 @@
         <i class="fas fa-edit"></i>
       </a>
       <button type="button" 
-              class="btn btn-sm btn-outline-success"
-              onclick="copiarWhatsApp({{ produto.id }})"
-              title="Copiar WhatsApp">
+              class="btn btn-sm btn-outline-success btn-whatsapp" 
+              data-id="{{ produto.id }}">
         <i class="fab fa-whatsapp"></i>
       </button>
       <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}" 
@@ -142,15 +139,20 @@
 
 <!-- Script para copiar WhatsApp -->
 <script>
-async function copiarWhatsApp(produtoId) {
+document.addEventListener("click", async function(e) {
+  if (e.target.closest(".btn-whatsapp")) {
+    const btn = e.target.closest(".btn-whatsapp");
+    const produtoId = btn.getAttribute("data-id");
     try {
-        const resp = await fetch(`/produto/whatsapp/${produtoId}`);
-        const data = await resp.json();
-        await navigator.clipboard.writeText(data.texto);
-        alert("✅ Texto copiado para a área de transferência!");
-    } catch (e) {
-        alert("❌ Erro ao copiar texto do WhatsApp");
+      const resp = await fetch(`/produto/whatsapp/${produtoId}`);
+      const data = await resp.json();
+      await navigator.clipboard.writeText(data.texto);
+      alert("✅ Texto copiado para o WhatsApp!");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Erro ao copiar texto para WhatsApp");
     }
-}
+  }
+});
 </script>
 {% endblock %}
