@@ -464,4 +464,19 @@ def gerenciar_usuario(user_id=None):
 
 @main.route("/usuario/excluir/<int:user_id>")
 @login_required
-def
+def excluir_usuario(user_id):
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    flash("Usuário excluído com sucesso!", "success")
+    return redirect(url_for("main.usuarios"))
+
+# --- Health Check ---
+@main.route("/health")
+def health():
+    """Rota para UptimeRobot monitorar a aplicação e o banco"""
+    try:
+        db.session.execute("SELECT 1")
+        return {"status": "ok"}, 200
+    except Exception as e:
+        return {"status": "error", "msg": str(e)}, 500
