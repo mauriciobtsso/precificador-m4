@@ -572,3 +572,19 @@ body {
     gap: 6px;
   }
 }
+/* ----------- Ajustes mobile - Produtos ----------- */
+@media (max-width: 768px) {
+  .card-actions {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end; /* alinhado à direita */
+    gap: 4px;
+    flex-wrap: wrap; /* se faltar espaço, quebra linha */
+  }
+
+  .card-actions .btn {
+    flex: 0 0 auto;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+}
