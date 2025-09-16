@@ -32,9 +32,9 @@ class Produto(db.Model):
     custo_total = db.Column(db.Float, default=0.0)
 
     # Objetivos
-    margem = db.Column(db.Float, default=0.0)
-    lucro_alvo = db.Column(db.Float, nullable=True)
-    preco_final = db.Column(db.Float, nullable=True)
+    margem = db.Column(db.Float, default=0.0)          # margem em %
+    lucro_alvo = db.Column(db.Float, nullable=True)    # lucro em R$ (opcional, alvo de lucro LÍQUIDO)
+    preco_final = db.Column(db.Float, nullable=True)   # preço calculado (sempre sobrescrito)
 
     # Tributos
     ipi = db.Column(db.Float, default=0.0)
@@ -53,62 +53,61 @@ class Produto(db.Model):
         Recalcula todos os valores do produto.
 
         Regras adotadas:
-        - IPI **não** entra no custo total (apenas serve como referência e fica fora do custo).
-        - A base do DIFAL **exclui** o IPI (ou seja, DIFAL incide sobre a base sem IPI).
+        - IPI **não** entra no custo total (apenas referência).
+        - Base do DIFAL **exclui** o IPI.
         - DIFAL entra no custo total.
-        - Preço final pode ser definido manualmente; senão é sugerido por lucro alvo ou margem.
-        - Imposto sobre a venda (Simples) impacta no lucro líquido.
+        - Se houver lucro alvo em R$ → calcula preço líquido alvo.
+        - Senão, aplica margem % por COEFICIENTE: preço = custo / (1 - margem).
+        - O imposto sobre a venda (Simples) é calculado depois e abatido do lucro líquido.
         """
         # 1) Base de compra com desconto do fornecedor
         base = (self.preco_fornecedor or 0.0) * (1 - (self.desconto_fornecedor or 0.0) / 100.0)
 
-        # 2) IPI calculado (apenas para referência)
+        # 2) IPI (apenas referência)
         if (self.ipi_tipo or "%") == "%":
             self.valor_ipi = base * (self.ipi or 0.0) / 100.0
         else:
             self.valor_ipi = (self.ipi or 0.0)
 
-        # 3) Base do DIFAL **sem IPI**
+        # 3) Base do DIFAL sem IPI
         base_difal = max(base - (self.valor_ipi or 0.0), 0.0)
 
         # 4) DIFAL entra no custo
         self.valor_difal = base_difal * (self.difal or 0.0) / 100.0
 
-        # 5) Custo total (base + DIFAL; IPI não entra)
+        # 5) Custo total (base + DIFAL)
         self.custo_total = base + self.valor_difal
 
         # 6) Definição do preço sugerido
         preco_sugerido = self.custo_total
+        imposto = (self.imposto_venda or 0.0) / 100.0
 
-        # Se houver lucro alvo, prioriza
+        # a) Lucro alvo em R$ (alvo LÍQUIDO)
         if (self.lucro_alvo is not None) and (self.lucro_alvo > 0):
-            # preço final antes do imposto: custo + lucro
-            # depois ajusta para o imposto sobre a venda (Simples)
-            imposto = (self.imposto_venda or 0.0) / 100.0
             if 1.0 - imposto <= 0:
                 preco_sugerido = self.custo_total + (self.lucro_alvo or 0.0)
             else:
                 preco_sugerido = (self.custo_total + (self.lucro_alvo or 0.0)) / (1.0 - imposto)
 
-        # Senão, usa margem %
+        # b) Margem % por COEFICIENTE
         elif (self.margem or 0.0) > 0:
-            imposto = (self.imposto_venda or 0.0) / 100.0
-            venda_sem_imposto = self.custo_total * (1.0 + (self.margem or 0.0) / 100.0)
-            if 1.0 - imposto <= 0:
-                preco_sugerido = venda_sem_imposto
+            den_margem = 1.0 - (self.margem or 0.0) / 100.0
+            if den_margem <= 0:
+                venda_sem_imposto = self.custo_total
             else:
-                preco_sugerido = venda_sem_imposto / (1.0 - imposto)
+                venda_sem_imposto = self.custo_total / den_margem
+            preco_sugerido = venda_sem_imposto
 
-        # 7) Preço final (se não houver manual, usa sugerido)
-        self.preco_final = self.preco_final or preco_sugerido
+        # 7) Preço final (sempre sobrescrito)
+        self.preco_final = preco_sugerido
 
-        # 8) Preço à vista = preço final (neste sistema)
+        # 8) Preço à vista = preço final
         self.preco_a_vista = self.preco_final or 0.0
 
         # 9) Imposto sobre a venda (Simples)
         imposto_sobre_venda = (self.preco_final or 0.0) * (self.imposto_venda or 0.0) / 100.0
 
-        # 10) Lucro líquido real
+        # 10) Lucro líquido real (após imposto)
         self.lucro_liquido_real = (self.preco_final or 0.0) - self.custo_total - imposto_sobre_venda
 
 
@@ -117,8 +116,8 @@ class Produto(db.Model):
 # =========================
 class Taxa(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    numero_parcelas = db.Column(db.Integer, nullable=False)  # 1,2,3,... / 0 e negativos são inválidos
-    juros = db.Column(db.Float, default=0.0)                 # armazenado em %
+    numero_parcelas = db.Column(db.Integer, nullable=False)  # 1,2,3,...
+    juros = db.Column(db.Float, default=0.0)                 # em %
 
 
 # =========================
@@ -137,8 +136,8 @@ class Configuracao(db.Model):
         """
         Cria chaves padrão se não existirem.
         - incluir_pix: "true" | "false"
-        - debito_percent: "1.09" (padrão 1,09%)
-        - mensagem_whats_prefixo: texto opcional (ex.: "Oferta válida para hoje")
+        - debito_percent: "1.09"
+        - mensagem_whats_prefixo: ""
         """
         defaults = {
             "incluir_pix": "true",
