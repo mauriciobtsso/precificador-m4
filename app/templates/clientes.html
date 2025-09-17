@@ -7,33 +7,114 @@
     </a>
 </div>
 
-<table class="table table-hover table-bordered">
-    <thead class="table-dark">
-        <tr>
-            <th>Nome</th>
-            <th>Documento</th>
-            <th>Telefone</th>
-            <th>Cidade</th>
-            <th>Ações</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for c in clientes %}
-        <tr>
-            <td>{{ c.nome }}</td>
-            <td>{{ c.documento or "-" }}</td>
-            <td>{{ c.celular or c.telefone or "-" }}</td>
-            <td>{{ c.cidade or "-" }}</td>
-            <td>
-                <a href="#" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
-                <a href="#" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="5" class="text-center text-muted">Nenhum cliente cadastrado.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!-- Formulário de Pesquisa -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-4">
+                <input type="text" name="nome" value="{{ request.args.get('nome','') }}" 
+                       class="form-control" placeholder="Pesquisar por nome...">
+            </div>
+            <div class="col-md-3">
+                <input type="text" name="documento" value="{{ request.args.get('documento','') }}" 
+                       class="form-control" placeholder="Pesquisar por documento...">
+            </div>
+            <div class="col-md-5 text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+                <a href="{{ url_for('main.clientes') }}" class="btn btn-secondary">
+                    <i class="fas fa-eraser"></i> Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Versão desktop (tabela) -->
+<div class="d-none d-md-block">
+    <table class="table table-hover table-bordered align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th style="width: 40%;">Nome</th>
+                <th style="width: 15%;">Documento</th>
+                <th style="width: 15%;">Telefone</th>
+                <th style="width: 15%;">Cidade</th>
+                <th style="width: 15%;" class="text-center">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in clientes %}
+            <tr>
+                <td>{{ c.nome }}</td>
+                <td>{{ c.documento or "-" }}</td>
+                <td>{{ c.celular or c.telefone or "-" }}</td>
+                <td>{{ c.cidade or "-" }}</td>
+                <td class="text-center">
+                    <a href="{{ url_for('main.cliente_detalhe', cliente_id=c.id) }}" 
+                       class="btn btn-sm btn-info">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{{ url_for('main.gerenciar_cliente', cliente_id=c.id) }}" 
+                       class="btn btn-sm btn-warning">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{{ url_for('main.excluir_cliente', cliente_id=c.id) }}" 
+                       class="btn btn-sm btn-danger"
+                       onclick="return confirm('Deseja realmente excluir este cliente?');">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center text-muted py-4">
+                    Nenhum cliente cadastrado.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Versão mobile (cards) -->
+<div class="d-md-none">
+    {% for c in clientes %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <h5 class="card-title mb-1">
+                <i class="fas fa-user text-secondary"></i> {{ c.nome }}
+            </h5>
+            <p class="card-text small text-muted mb-2">
+                Documento: {{ c.documento or "-" }}
+            </p>
+            <p class="mb-1">
+                <i class="fas fa-phone text-secondary"></i> {{ c.celular or c.telefone or "-" }}
+            </p>
+            <p class="mb-1">
+                <i class="fas fa-map-marker-alt text-secondary"></i> {{ c.cidade or "-" }}
+            </p>
+            <div class="mt-3 d-flex justify-content-end gap-2">
+                <a href="{{ url_for('main.cliente_detalhe', cliente_id=c.id) }}" 
+                   class="btn btn-sm btn-info">
+                    <i class="fas fa-eye"></i>
+                </a>
+                <a href="{{ url_for('main.gerenciar_cliente', cliente_id=c.id) }}" 
+                   class="btn btn-sm btn-warning">
+                    <i class="fas fa-edit"></i>
+                </a>
+                <a href="{{ url_for('main.excluir_cliente', cliente_id=c.id) }}" 
+                   class="btn btn-sm btn-danger"
+                   onclick="return confirm('Deseja realmente excluir este cliente?');">
+                    <i class="fas fa-trash"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-secondary text-center">
+        Nenhum cliente cadastrado.
+    </div>
+    {% endfor %}
+</div>
 {% endblock %}

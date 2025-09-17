@@ -39,8 +39,18 @@
                 </li>
                 <!-- Novos itens -->
                 <li class="nav-item">
+                    <a class="nav-link text-white {% if request.endpoint == 'main.clientes' %}active border-start border-3 border-primary{% endif %}" href="{{ url_for('main.clientes') }}">
+                        <i class="fas fa-users"></i> <span>Clientes</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white {% if request.endpoint == 'main.vendas' %}active border-start border-3 border-primary{% endif %}" href="{{ url_for('main.vendas') }}">
+                        <i class="fas fa-shopping-cart"></i> <span>Vendas</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link text-white {% if request.endpoint == 'main.usuarios' %}active border-start border-3 border-primary{% endif %}" href="{{ url_for('main.usuarios') }}">
-                        <i class="fas fa-users"></i> <span>Usuários</span>
+                        <i class="fas fa-user-cog"></i> <span>Usuários</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -89,4 +99,3 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

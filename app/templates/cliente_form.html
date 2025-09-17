@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-user-edit"></i>
+        {{ 'Editar Cliente' if cliente else 'Novo Cliente' }}
+    </h2>
+    <a href="{{ url_for('main.clientes') }}" class="btn btn-sm btn-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="post">
+            <div class="row g-3">
+                <!-- Nome -->
+                <div class="col-md-6">
+                    <label class="form-label">Nome</label>
+                    <input type="text" name="nome" class="form-control" required
+                           value="{{ cliente.nome if cliente else '' }}">
+                </div>
+
+                <!-- Documento -->
+                <div class="col-md-6">
+                    <label class="form-label">Documento (CPF/CNPJ)</label>
+                    <input type="text" name="documento" class="form-control"
+                           value="{{ cliente.documento if cliente else '' }}">
+                </div>
+
+                <!-- Email -->
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control"
+                           value="{{ cliente.email if cliente else '' }}">
+                </div>
+
+                <!-- Telefone -->
+                <div class="col-md-3">
+                    <label class="form-label">Telefone</label>
+                    <input type="text" name="telefone" class="form-control"
+                           value="{{ cliente.telefone if cliente else '' }}">
+                </div>
+
+                <!-- Celular -->
+                <div class="col-md-3">
+                    <label class="form-label">Celular</label>
+                    <input type="text" name="celular" class="form-control"
+                           value="{{ cliente.celular if cliente else '' }}">
+                </div>
+
+                <!-- Cidade -->
+                <div class="col-md-6">
+                    <label class="form-label">Cidade</label>
+                    <input type="text" name="cidade" class="form-control"
+                           value="{{ cliente.cidade if cliente else '' }}">
+                </div>
+
+                <!-- Estado -->
+                <div class="col-md-2">
+                    <label class="form-label">Estado</label>
+                    <input type="text" name="estado" class="form-control" maxlength="2"
+                           value="{{ cliente.estado if cliente else '' }}">
+                </div>
+            </div>
+
+            <div class="mt-4 text-end">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+                <a href="{{ url_for('main.clientes') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-user-circle"></i> Detalhes do Cliente</h2>
+    <a href="{{ url_for('main.clientes') }}" class="btn btn-sm btn-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+</div>
+
+<!-- Card principal -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h4 class="card-title mb-3 text-primary">
+            <i class="fas fa-user"></i> {{ cliente.nome }}
+        </h4>
+        <p class="mb-1"><i class="fas fa-id-card text-secondary"></i> <strong>Documento:</strong> {{ cliente.documento or "-" }}</p>
+        <p class="mb-1"><i class="fas fa-envelope text-secondary"></i> <strong>Email:</strong> {{ cliente.email or "-" }}</p>
+        <p class="mb-1"><i class="fas fa-phone text-secondary"></i> <strong>Telefone:</strong> {{ cliente.celular or cliente.telefone or "-" }}</p>
+        <p class="mb-1"><i class="fas fa-map-marker-alt text-secondary"></i> 
+            <strong>Cidade:</strong> {{ cliente.cidade or "-" }} - {{ cliente.estado or "" }}
+        </p>
+    </div>
+</div>
+
+<!-- Informações adicionais -->
+<div class="row">
+    <!-- Coluna esquerda -->
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-light"><i class="fas fa-info-circle"></i> Dados Pessoais</div>
+            <div class="card-body">
+                <p><strong>Sexo:</strong> {{ cliente.sexo or "-" }}</p>
+                <p><strong>Profissão:</strong> {{ cliente.profissao or "-" }}</p>
+                <p><strong>RG:</strong> {{ cliente.rg or "-" }} {{ " - " + cliente.rg_emissor if cliente.rg_emissor else "" }}</p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-light"><i class="fas fa-home"></i> Endereço</div>
+            <div class="card-body">
+                <p>{{ cliente.endereco or "-" }}, {{ cliente.numero or "" }}</p>
+                <p>{{ cliente.complemento or "" }}</p>
+                <p>{{ cliente.bairro or "" }}</p>
+                <p>{{ cliente.cidade or "-" }} - {{ cliente.estado or "" }} | CEP: {{ cliente.cep or "-" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coluna direita -->
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-light"><i class="fas fa-id-badge"></i> Registro</div>
+            <div class="card-body">
+                <p><strong>CR:</strong> {{ cliente.cr or "-" }} {{ " - " + cliente.cr_emissor if cliente.cr_emissor else "" }}</p>
+                <p><strong>SIGMA:</strong> {{ cliente.sigma or "-" }}</p>
+                <p><strong>SINARM:</strong> {{ cliente.sinarm or "-" }}</p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-light"><i class="fas fa-star"></i> Status Especial</div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li>CAC: {{ "Sim" if cliente.cac else "Não" }}</li>
+                    <li>Filiado: {{ "Sim" if cliente.filiado else "Não" }}</li>
+                    <li>Policial: {{ "Sim" if cliente.policial else "Não" }}</li>
+                    <li>Bombeiro: {{ "Sim" if cliente.bombeiro else "Não" }}</li>
+                    <li>Militar: {{ "Sim" if cliente.militar else "Não" }}</li>
+                    <li>IAT: {{ "Sim" if cliente.iat else "Não" }}</li>
+                    <li>Psicólogo: {{ "Sim" if cliente.psicologo else "Não" }}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vendas do cliente -->
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-dark text-white">
+        <i class="fas fa-shopping-cart"></i> Vendas do Cliente
+    </div>
+    <div class="card-body">
+        {% if vendas %}
+        <!-- Tabela Desktop -->
+        <div class="d-none d-md-block">
+            <table class="table table-hover table-bordered align-middle">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>ID</th>
+                        <th>Data</th>
+                        <th>Status</th>
+                        <th>Valor Total</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vendas %}
+                    <tr>
+                        <td>#{{ v.id }}</td>
+                        <td>{{ v.data_abertura.strftime("%d/%m/%Y") if v.data_abertura else "-" }}</td>
+                        <td>{{ v.status or "-" }}</td>
+                        <td>{{ v.valor_total | currency }}</td>
+                        <td>
+                            <a href="{{ url_for('main.venda_detalhe', venda_id=v.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-eye"></i> Detalhes
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Cards Mobile -->
+        <div class="d-md-none">
+            {% for v in vendas %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="mb-2">
+                        <i class="fas fa-receipt text-primary"></i> Venda #{{ v.id }}
+                    </h6>
+                    <p class="mb-1"><strong>Data:</strong> {{ v.data_abertura.strftime("%d/%m/%Y") if v.data_abertura else "-" }}</p>
+                    <p class="mb-1"><strong>Status:</strong> {{ v.status or "-" }}</p>
+                    <p class="mb-1"><strong>Valor:</strong> {{ v.valor_total | currency }}</p>
+                    <div class="mt-2 text-end">
+                        <a href="{{ url_for('main.venda_detalhe', venda_id=v.id) }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye"></i> Ver Detalhes
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Nenhuma venda encontrada para este cliente.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

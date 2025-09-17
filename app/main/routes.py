@@ -10,9 +10,9 @@ import csv
 import os
 from datetime import datetime, timedelta
 
-# =========================
+# =====================================================
 # Helpers
-# =========================
+# =====================================================
 def get_config(chave, default=None):
     conf = Configuracao.query.filter_by(chave=chave).first()
     return conf.valor if conf else default
@@ -159,9 +159,9 @@ def _as_bool(val):
     s = str(val).strip().lower()
     return s in ("1", "sim", "true", "verdadeiro", "yes", "y")
 
-# =========================
-# Rotas
-# =========================
+# =====================================================
+# Rotas principais
+# =====================================================
 @main.route("/")
 def index():
     return redirect(url_for("main.dashboard"))
@@ -632,15 +632,63 @@ def importar():
 
     return render_template("importar.html")
 
-# =========================
+# =====================================================
 # Clientes
-# =========================
-@main.route("/clientes")
+# =====================================================
+@main.route("/clientes", methods=["GET", "POST"])
 @login_required
 def clientes():
-    todos_clientes = Cliente.query.order_by(Cliente.nome.asc()).all()
+    query = Cliente.query
+    nome = request.args.get("nome", "").strip()
+    documento = request.args.get("documento", "").strip()
+
+    if nome:
+        query = query.filter(Cliente.nome.ilike(f"%{nome}%"))
+    if documento:
+        query = query.filter(Cliente.documento.ilike(f"%{documento}%"))
+
+    todos_clientes = query.order_by(Cliente.nome.asc()).all()
     return render_template("clientes.html", clientes=todos_clientes)
 
+@main.route("/cliente/<int:cliente_id>")
+@login_required
+def cliente_detalhe(cliente_id):
+    cliente = Cliente.query.get_or_404(cliente_id)
+    vendas = Venda.query.filter_by(cliente_id=cliente.id).order_by(Venda.data_abertura.desc()).all()
+    return render_template("cliente_detalhe.html", cliente=cliente, vendas=vendas)
+
+@main.route("/cliente/novo", methods=["GET", "POST"])
+@main.route("/cliente/editar/<int:cliente_id>", methods=["GET", "POST"])
+@login_required
+def gerenciar_cliente(cliente_id=None):
+    cliente = Cliente.query.get(cliente_id) if cliente_id else None
+    if request.method == "POST":
+        if not cliente:
+            cliente = Cliente()
+            db.session.add(cliente)
+
+        cliente.nome = request.form.get("nome")
+        cliente.documento = request.form.get("documento")
+        cliente.email = request.form.get("email")
+        cliente.telefone = request.form.get("telefone")
+        cliente.celular = request.form.get("celular")
+        cliente.cidade = request.form.get("cidade")
+        cliente.estado = request.form.get("estado")
+
+        db.session.commit()
+        flash("Cliente salvo com sucesso!", "success")
+        return redirect(url_for("main.clientes"))
+
+    return render_template("cliente_form.html", cliente=cliente)
+
+@main.route("/cliente/excluir/<int:cliente_id>")
+@login_required
+def excluir_cliente(cliente_id):
+    cliente = Cliente.query.get_or_404(cliente_id)
+    db.session.delete(cliente)
+    db.session.commit()
+    flash("Cliente excluído com sucesso!", "success")
+    return redirect(url_for("main.clientes"))
 
 # =========================
 # Vendas
