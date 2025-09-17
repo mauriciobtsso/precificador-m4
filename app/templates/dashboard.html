@@ -6,170 +6,214 @@
 </div>
 
 <!-- Atalhos principais -->
-<div class="row mb-4 d-none d-md-flex">
-    <div class="col-md-3">
-        <a href="{{ url_for('main.gerenciar_produto') }}" class="card text-center shadow-sm text-decoration-none">
+<div class="row mb-4">
+    <div class="col-6 col-md-3 mb-3">
+        <a href="{{ url_for('main.gerenciar_produto') }}" class="card text-center shadow-sm text-decoration-none h-100">
             <div class="card-body">
                 <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
                 <h6 class="text-dark">Cadastrar Produto</h6>
             </div>
         </a>
     </div>
-    <div class="col-md-3">
-        <a href="{{ url_for('main.taxas') }}" class="card text-center shadow-sm text-decoration-none">
+    <div class="col-6 col-md-3 mb-3">
+        <a href="{{ url_for('main.taxas') }}" class="card text-center shadow-sm text-decoration-none h-100">
             <div class="card-body">
                 <i class="fas fa-percent fa-2x text-success mb-2"></i>
                 <h6 class="text-dark">Gerenciar Taxas</h6>
             </div>
         </a>
     </div>
-    <div class="col-md-3">
-        <a href="{{ url_for('main.produtos') }}" class="card text-center shadow-sm text-decoration-none">
+    <div class="col-6 col-md-3 mb-3">
+        <a href="{{ url_for('main.produtos') }}" class="card text-center shadow-sm text-decoration-none h-100">
             <div class="card-body">
-                <i class="fas fa-box fa-2x text-warning mb-2"></i>
+                <i class="fas fa-boxes fa-2x text-warning mb-2"></i>
                 <h6 class="text-dark">Lista de Produtos</h6>
             </div>
         </a>
     </div>
-    <div class="col-md-3">
-        <a href="{{ url_for('main.parcelamento_rapido') }}" class="card text-center shadow-sm text-decoration-none">
+    <div class="col-6 col-md-3 mb-3">
+        <a href="{{ url_for('main.parcelamento_rapido') }}" class="card text-center shadow-sm text-decoration-none h-100">
             <div class="card-body">
-                <i class="fas fa-credit-card fa-2x text-info mb-2"></i>
+                <i class="fas fa-calculator fa-2x text-info mb-2"></i>
                 <h6 class="text-dark">Simulação Rápida</h6>
             </div>
         </a>
     </div>
 </div>
 
-<!-- Atalhos principais (MOBILE) -->
-<div class="card-list d-md-none mb-4">
-    <div class="card-item">
-        <a href="{{ url_for('main.gerenciar_produto') }}" class="text-decoration-none">
-            <h6><i class="fas fa-plus-circle text-primary me-1"></i> Cadastrar Produto</h6>
-        </a>
-    </div>
-    <div class="card-item">
-        <a href="{{ url_for('main.taxas') }}" class="text-decoration-none">
-            <h6><i class="fas fa-percent text-success me-1"></i> Gerenciar Taxas</h6>
-        </a>
-    </div>
-    <div class="card-item">
-        <a href="{{ url_for('main.produtos') }}" class="text-decoration-none">
-            <h6><i class="fas fa-box text-warning me-1"></i> Lista de Produtos</h6>
-        </a>
-    </div>
-    <div class="card-item">
-        <a href="{{ url_for('main.parcelamento_rapido') }}" class="text-decoration-none">
-            <h6><i class="fas fa-credit-card text-info me-1"></i> Simulação Rápida</h6>
-        </a>
-    </div>
-</div>
-
-<!-- Resumo (DESKTOP) -->
-<div class="row mb-4 d-none d-md-flex">
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
+<!-- Indicadores -->
+<!-- Desktop: grid / Mobile: carrossel horizontal -->
+<div class="d-none d-md-flex row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm text-center h-100">
             <div class="card-body">
+                <i class="fas fa-cubes fa-2x text-primary mb-2"></i>
                 <h6>Total Produtos</h6>
-                <h4 class="text-primary">{{ produtos|length }}</h4>
+                <h5 class="text-primary">{{ produtos|length }}</h5>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm text-center h-100">
             <div class="card-body">
-                <h6>Maior Lucro</h6>
-                <h4 class="text-success">
-                    {% if produtos %}
-                        {{ (produtos|max(attribute="lucro_liquido_real")).lucro_liquido_real | currency }}
-                    {% else %}-{% endif %}
-                </h4>
+                <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                <h6>Vendas no mês</h6>
+                <h5 class="text-success">{{ "R$ {:,.2f}".format(total_vendas_mes).replace(",", "X").replace(".", ",").replace("X", ".") }}</h5>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm text-center h-100">
             <div class="card-body">
-                <h6>Menor Lucro</h6>
-                <h4 class="text-danger">
-                    {% if produtos %}
-                        {{ (produtos|min(attribute="lucro_liquido_real")).lucro_liquido_real | currency }}
-                    {% else %}-{% endif %}
-                </h4>
+                <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                <h6>Ticket Médio</h6>
+                <h5 class="text-info">{{ "R$ {:,.2f}".format(ticket_medio).replace(",", "X").replace(".", ",").replace("X", ".") }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-star fa-2x text-warning mb-2"></i>
+                <h6>Produto + vendido</h6>
+                {% if produto_mais_vendido %}
+                    <small class="d-block text-truncate">{{ produto_mais_vendido[0] }}</small>
+                {% else %}
+                    <small class="d-block text-muted">Sem vendas</small>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<!-- Resumo (MOBILE com badge colorida) -->
-<div class="card-list d-md-none mb-4">
-    <div class="card-item d-flex justify-content-between align-items-center">
-        <h6 class="mb-0">Total Produtos</h6>
-        <span class="badge bg-primary">{{ produtos|length }}</span>
-    </div>
-    <div class="card-item d-flex justify-content-between align-items-center">
-        <h6 class="mb-0">Maior Lucro</h6>
-        <span class="badge bg-success">
-            {% if produtos %}
-                {{ (produtos|max(attribute="lucro_liquido_real")).lucro_liquido_real | currency }}
-            {% else %}-{% endif %}
-        </span>
-    </div>
-    <div class="card-item d-flex justify-content-between align-items-center">
-        <h6 class="mb-0">Menor Lucro</h6>
-        <span class="badge bg-danger">
-            {% if produtos %}
-                {{ (produtos|min(attribute="lucro_liquido_real")).lucro_liquido_real | currency }}
-            {% else %}-{% endif %}
-        </span>
+<!-- Mobile: carrossel -->
+<div class="d-md-none mb-4">
+    <div class="d-flex flex-nowrap overflow-auto">
+        <div class="card shadow-sm text-center me-2" style="min-width: 200px;">
+            <div class="card-body">
+                <i class="fas fa-cubes fa-2x text-primary mb-2"></i>
+                <h6>Total Produtos</h6>
+                <h5 class="text-primary">{{ produtos|length }}</h5>
+            </div>
+        </div>
+        <div class="card shadow-sm text-center me-2" style="min-width: 200px;">
+            <div class="card-body">
+                <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                <h6>Vendas no mês</h6>
+                <h5 class="text-success">{{ "R$ {:,.2f}".format(total_vendas_mes).replace(",", "X").replace(".", ",").replace("X", ".") }}</h5>
+            </div>
+        </div>
+        <div class="card shadow-sm text-center me-2" style="min-width: 200px;">
+            <div class="card-body">
+                <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                <h6>Ticket Médio</h6>
+                <h5 class="text-info">{{ "R$ {:,.2f}".format(ticket_medio).replace(",", "X").replace(".", ",").replace("X", ".") }}</h5>
+            </div>
+        </div>
+        <div class="card shadow-sm text-center me-2" style="min-width: 200px;">
+            <div class="card-body">
+                <i class="fas fa-star fa-2x text-warning mb-2"></i>
+                <h6>Produto + vendido</h6>
+                {% if produto_mais_vendido %}
+                    <small class="d-block text-truncate">{{ produto_mais_vendido[0] }}</small>
+                {% else %}
+                    <small class="d-block text-muted">Sem vendas</small>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Últimos cadastrados -->
-<div class="card shadow-sm d-none d-md-block">
-    <div class="card-header d-flex justify-content-between align-items-center bg-light">
-        <div><i class="fas fa-clock"></i> Últimos Produtos</div>
-        <a href="{{ url_for('main.produtos') }}" class="btn btn-sm btn-primary">
-            <i class="fas fa-eye"></i> Ver todos
-        </a>
+<!-- Gráficos -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-chart-bar"></i> Vendas últimos 6 meses
+            </div>
+            <div class="card-body">
+                <canvas id="chartVendas"></canvas>
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-        {% if produtos %}
-            <ul class="list-group">
-                {% for p in produtos|sort(attribute="id", reverse=True) %}
-                    {% if loop.index <= 3 %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ p.nome }}
-                            <span class="badge bg-primary">{{ p.preco_a_vista|currency }}</span>
-                        </li>
-                    {% endif %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-users"></i> Top 5 Clientes
+            </div>
+            <div class="card-body">
+                <canvas id="chartClientes"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela Top Clientes -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <i class="fas fa-crown"></i> Top 5 Clientes
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cliente, total in top_clientes %}
+                <tr>
+                    <td>{{ cliente }}</td>
+                    <td>{{ "R$ {:,.2f}".format(total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2" class="text-center text-muted">Sem vendas</td>
+                </tr>
                 {% endfor %}
-            </ul>
-        {% else %}
-            <p class="text-muted">Nenhum produto cadastrado.</p>
-        {% endif %}
+            </tbody>
+        </table>
     </div>
 </div>
 
-<!-- Últimos cadastrados (MOBILE) -->
-<div class="card-list d-md-none">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="mb-0"><i class="fas fa-clock"></i> Últimos Produtos</h6>
-        <a href="{{ url_for('main.produtos') }}" class="btn btn-sm btn-primary">
-            <i class="fas fa-eye"></i>
-        </a>
-    </div>
-    {% if produtos %}
-        {% for p in produtos|sort(attribute="id", reverse=True) %}
-            {% if loop.index <= 3 %}
-                <div class="card-item d-flex justify-content-between align-items-center">
-                    <span>{{ p.nome }}</span>
-                    <span class="badge bg-primary">{{ p.preco_a_vista|currency }}</span>
-                </div>
-            {% endif %}
-        {% endfor %}
-    {% else %}
-        <p class="text-muted">Nenhum produto cadastrado.</p>
-    {% endif %}
-</div>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Gráfico de vendas
+    new Chart(document.getElementById('chartVendas').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: {{ meses|tojson }},
+            datasets: [{
+                label: 'Vendas (R$)',
+                data: {{ totais|tojson }},
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // Gráfico de clientes
+    new Chart(document.getElementById('chartClientes').getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: [{% for cliente, total in top_clientes %}"{{ cliente }}",{% endfor %}],
+            datasets: [{
+                data: [{% for cliente, total in top_clientes %}{{ total }},{% endfor %}],
+                backgroundColor: ['#007bff','#28a745','#ffc107','#17a2b8','#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+</script>
 {% endblock %}

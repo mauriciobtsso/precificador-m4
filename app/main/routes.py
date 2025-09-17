@@ -1,10 +1,9 @@
 from flask import render_template, request, redirect, url_for, flash, send_from_directory
 from flask_login import login_user, logout_user, login_required
-from app.models import Cliente, Venda
 from app import db
 from app.models import Produto, Taxa, User, Configuracao, Cliente, Venda, ItemVenda
 from app.main import main
-from sqlalchemy import text
+from sqlalchemy import text, func, extract
 from openpyxl import load_workbook
 from io import TextIOWrapper
 import csv
@@ -15,7 +14,6 @@ from datetime import datetime, timedelta
 # Helpers
 # =========================
 def get_config(chave, default=None):
-    """Busca configuração no banco, retorna default se não existir"""
     conf = Configuracao.query.filter_by(chave=chave).first()
     return conf.valor if conf else default
 
@@ -32,18 +30,12 @@ def br_money(v: float) -> str:
     return f"R$ {s}"
 
 def montar_parcelas(valor_base, taxas, modo="coeficiente_total"):
-    """
-    Gera opções de parcelamento a partir das taxas cadastradas.
-    - modo="coeficiente_total": interpreta juros como acréscimo total (%) do plano
-    - modo="juros_mensal": interpreta 'juros' como taxa mensal (Price).
-    """
     resultado = []
     base = float(valor_base or 0)
 
     for taxa in taxas:
         n = int(taxa.numero_parcelas or 1)
         j = max(to_float(taxa.juros), 0.0) / 100.0
-
         if n <= 0:
             continue
 
@@ -74,9 +66,6 @@ def montar_parcelas(valor_base, taxas, modo="coeficiente_total"):
     return resultado
 
 def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
-    """
-    Monta o texto do WhatsApp usando as configurações do sistema.
-    """
     base = float(valor_base or 0)
     linhas = linhas or []
 
@@ -97,7 +86,6 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
         cab.append(f"💰 À vista: {br_money(base)}")
 
     corpo = []
-
     if incluir_pix:
         corpo.append(f"PIX {br_money(base)} = {br_money(base)}")
 
@@ -117,49 +105,34 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
     return txt
 
 def to_number(x):
-    """
-    Converte valores para float tratando formatos de CSV/XLSX (pt-BR e en-US).
-    """
     if isinstance(x, (int, float)):
         return float(x)
-
     if x is None:
         return 0.0
-
     s = str(x).strip()
     if not s:
         return 0.0
-
     s = s.replace("R$", "").replace(" ", "")
     if "," in s and "." in s:
         s = s.replace(".", "").replace(",", ".")
     elif "," in s:
         s = s.replace(",", ".")
-
     try:
         return float(s)
     except:
         return 0.0
 
 def parse_data(value):
-    """
-    Tenta converter diferentes formatos vindos do Excel:
-    - datetime já nativo
-    - serial Excel (número)
-    - strings em formatos comuns
-    """
     if value is None or str(value).strip() == "":
         return None
     if isinstance(value, datetime):
         return value
-    # Excel serial date (aprox)
     if isinstance(value, (int, float)):
         try:
-            base = datetime(1899, 12, 30)  # base do Excel
+            base = datetime(1899, 12, 30)
             return base + timedelta(days=float(value))
         except Exception:
             pass
-    # Strings comuns: "dd/mm/YYYY HH:MM", "dd/mm/YYYY", "YYYY-mm-dd HH:MM:SS"
     for fmt in ("%d/%m/%Y %H:%M", "%d/%m/%Y", "%Y-%m-%d %H:%M:%S"):
         try:
             return datetime.strptime(str(value), fmt)
@@ -168,18 +141,12 @@ def parse_data(value):
     return None
 
 def _headers_lower(ws):
-    """Lê header da primeira linha da planilha e devolve em lower/stripped."""
     return [str(c.value).strip().lower() if c.value is not None else "" for c in ws[1]]
 
 def _row_as_dict(headers_lower, row_values):
-    """Monta dict {header_lower: value} para a linha."""
     return {h: v for h, v in zip(headers_lower, row_values) if h}
 
 def _get(d, *names, default=None):
-    """
-    Busca um valor por múltiplos nomes de coluna (case-insensitive),
-    retornando o primeiro encontrado.
-    """
     for name in names:
         key = str(name).strip().lower()
         if key in d and d[key] not in (None, ""):
@@ -223,7 +190,58 @@ def logout():
 @login_required
 def dashboard():
     produtos = Produto.query.all()
-    return render_template("dashboard.html", produtos=produtos)
+    hoje = datetime.today()
+
+    total_vendas_mes = db.session.query(func.sum(Venda.valor_total))\
+        .filter(extract("year", Venda.data_abertura) == hoje.year)\
+        .filter(extract("month", Venda.data_abertura) == hoje.month)\
+        .scalar() or 0
+
+    top_clientes = db.session.query(
+        Cliente.nome,
+        func.sum(Venda.valor_total).label("total")
+    ).join(Venda, Cliente.id == Venda.cliente_id)\
+     .group_by(Cliente.id)\
+     .order_by(func.sum(Venda.valor_total).desc())\
+     .limit(5).all()
+
+    produto_mais_vendido = db.session.query(
+        ItemVenda.produto_nome,
+        func.sum(ItemVenda.quantidade).label("qtd")
+    ).group_by(ItemVenda.produto_nome)\
+     .order_by(func.sum(ItemVenda.quantidade).desc())\
+     .first()
+
+    ticket_medio = db.session.query(
+        (func.sum(Venda.valor_total) / func.count(Venda.id))
+    ).scalar() or 0
+
+    # Vendas últimos 6 meses
+    vendas_por_mes = db.session.query(
+        extract("month", Venda.data_abertura).label("mes"),
+        func.sum(Venda.valor_total).label("total")
+    ).filter(Venda.data_abertura >= hoje - timedelta(days=180))\
+     .group_by(extract("month", Venda.data_abertura))\
+     .order_by(extract("month", Venda.data_abertura))\
+     .all()
+
+    mapa_meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+                  "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+
+    meses_nomes = [mapa_meses[int(m) - 1] for m, _ in vendas_por_mes]
+    totais = [float(total) for _, total in vendas_por_mes]
+
+    return render_template(
+        "dashboard.html",
+        produtos=produtos,
+        total_vendas_mes=total_vendas_mes,
+        top_clientes=top_clientes,
+        produto_mais_vendido=produto_mais_vendido,
+        ticket_medio=ticket_medio,
+        meses=meses_nomes,
+        totais=totais
+    )
+
 
 # --- Produtos ---
 @main.route("/produtos")
@@ -627,11 +645,62 @@ def clientes():
 # =========================
 # Vendas
 # =========================
-@main.route("/vendas")
+@main.route("/vendas", methods=["GET", "POST"])
 @login_required
 def vendas():
-    todas_vendas = Venda.query.order_by(Venda.data_abertura.desc()).all()
+    query = Venda.query.join(Cliente, isouter=True)
+
+    # --- Filtros ---
+    cliente_nome = request.args.get("cliente", "").strip()
+    status = request.args.get("status", "").strip()
+    periodo = request.args.get("periodo", "").strip()
+    data_inicio = request.args.get("data_inicio")
+    data_fim = request.args.get("data_fim")
+
+    if cliente_nome:
+        query = query.filter(Cliente.nome.ilike(f"%{cliente_nome}%"))
+
+    if status:
+        query = query.filter(Venda.status.ilike(f"%{status}%"))
+
+    hoje = datetime.today()
+
+    if periodo == "7d":
+        query = query.filter(Venda.data_abertura >= hoje - timedelta(days=7))
+    elif periodo == "mes":
+        query = query.filter(
+            extract("year", Venda.data_abertura) == hoje.year,
+            extract("month", Venda.data_abertura) == hoje.month
+        )
+    elif periodo == "personalizado" and data_inicio and data_fim:
+        try:
+            inicio = datetime.strptime(data_inicio, "%Y-%m-%d")
+            fim = datetime.strptime(data_fim, "%Y-%m-%d") + timedelta(days=1)
+            query = query.filter(Venda.data_abertura >= inicio, Venda.data_abertura < fim)
+        except Exception:
+            flash("Datas inválidas para filtro.", "warning")
+
+    todas_vendas = query.order_by(Venda.data_abertura.desc()).all()
+
     return render_template("vendas.html", vendas=todas_vendas)
+
+# =========================
+# Detalhe de Venda
+# =========================
+@main.route("/venda/<int:venda_id>")
+@login_required
+def venda_detalhe(venda_id):
+    venda = Venda.query.get_or_404(venda_id)
+    cliente = Cliente.query.get(venda.cliente_id)
+    itens = ItemVenda.query.filter_by(venda_id=venda.id).all()
+
+    return render_template(
+        "venda_detalhe.html",
+        venda=venda,
+        cliente=cliente,
+        itens=itens
+    )
+
 
 # =========================
 # Funções de Importação (openpyxl)
