@@ -651,6 +651,63 @@ body {
     text-align: center;
   }
 }
+/* === Pedidos - Cards no mobile === */
+.card {
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.card .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #0d6efd; /* azul Bootstrap */
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.card .card-title::before {
+    content: "\f15c"; /* ícone Font Awesome - file-invoice */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    color: #0d6efd;
+}
+
+.card .card-text {
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.card .card-text strong {
+    color: #333;
+}
+
+.card .btn {
+    border-radius: 8px;
+    font-size: 0.85rem;
+    padding: 6px;
+}
+
+.card .btn i {
+    font-size: 1rem;
+}
+
+/* Deixar os botões alinhados em tela pequena */
+@media (max-width: 768px) {
+    .card .d-flex.gap-2 {
+        gap: 8px;
+    }
+    .card .btn {
+        flex: 1;
+    }
+}
 
 
 
