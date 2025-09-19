@@ -1,7 +1,8 @@
 from flask import render_template, request, redirect, url_for, flash, send_from_directory
 from flask_login import login_user, logout_user, login_required
 from app import db
-from app.models import Produto, Taxa, User, Configuracao, Cliente, Venda, ItemVenda
+from app.models import PedidoCompra, ItemPedido, Cliente
+from app.models import Produto, Taxa, User, Configuracao, Cliente, Venda, ItemVenda, PedidoCompra, ItemPedido
 from app.main import main
 from sqlalchemy import text, func, extract
 from openpyxl import load_workbook
@@ -9,6 +10,8 @@ from io import TextIOWrapper
 import csv
 import os
 from datetime import datetime, timedelta
+from flask import current_app, send_file
+from app.utils.gerar_pedidos import gerar_pedido_m4
 
 # =====================================================
 # Helpers
@@ -904,3 +907,255 @@ def importar_vendas(file_storage):
 
     db.session.commit()
 
+# ---------------------------------------------------
+# Funções auxiliares
+# ---------------------------------------------------
+def parse_brl(s) -> float:
+    if s is None:
+        return 0.0
+    s = str(s).strip()
+    if not s:
+        return 0.0
+    s = s.replace("R$", "").replace("r$", "").strip()
+    s = s.replace(".", "")
+    s = s.replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+def parse_pct(s) -> float:
+    if s is None:
+        return 0.0
+    s = str(s).strip().replace("%", "").replace(",", ".")
+    if not s:
+        return 0.0
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+# ---------------------------------------------------
+# LISTAR PEDIDOS (com filtros)
+# ---------------------------------------------------
+@main.route("/pedidos")
+@login_required
+def listar_pedidos():
+    query = PedidoCompra.query.join(PedidoCompra.fornecedor)
+
+    numero = request.args.get("numero", "").strip()
+    fornecedor_nome = request.args.get("fornecedor", "").strip()
+    data_inicio = request.args.get("data_inicio", "").strip()
+    data_fim = request.args.get("data_fim", "").strip()
+    valor_min = request.args.get("valor_min", "").strip()
+    valor_max = request.args.get("valor_max", "").strip()
+
+    # filtro por número
+    if numero:
+        query = query.filter(PedidoCompra.numero.ilike(f"%{numero}%"))
+
+    # filtro por fornecedor (nome, não id!)
+    if fornecedor_nome:
+        query = query.filter(Cliente.nome.ilike(f"%{fornecedor_nome}%"))
+
+    # filtro por período
+    if data_inicio:
+        try:
+            di = datetime.strptime(data_inicio, "%Y-%m-%d").date()
+            query = query.filter(PedidoCompra.data_pedido >= di)
+        except ValueError:
+            pass
+    if data_fim:
+        try:
+            df = datetime.strptime(data_fim, "%Y-%m-%d").date()
+            query = query.filter(PedidoCompra.data_pedido <= df)
+        except ValueError:
+            pass
+
+    # filtro por valores
+    if valor_min or valor_max:
+        # calcular total no backend
+        from sqlalchemy import func
+        subq = (
+            db.session.query(
+                ItemPedido.pedido_id,
+                func.sum(ItemPedido.quantidade * ItemPedido.valor_unitario).label("subtotal")
+            )
+            .group_by(ItemPedido.pedido_id)
+            .subquery()
+        )
+        query = query.join(subq, PedidoCompra.id == subq.c.pedido_id)
+        if valor_min:
+            query = query.filter(subq.c.subtotal >= float(valor_min))
+        if valor_max:
+            query = query.filter(subq.c.subtotal <= float(valor_max))
+
+    pedidos = query.order_by(PedidoCompra.id.desc()).all()
+    return render_template("pedidos/listar.html", pedidos=pedidos)
+
+
+# ---------------------------------------------------
+# NOVO PEDIDO
+# ---------------------------------------------------
+@main.route("/pedidos/novo", methods=["GET", "POST"])
+@login_required
+def novo_pedido():
+    if request.method == "POST":
+        fornecedor_id = request.form.get("fornecedor")
+        cond_pagto = request.form.get("cond_pagto")
+        modo = request.form.get("modo_desconto")
+
+        perc_armas = parse_pct(request.form.get("percentual_armas"))
+        perc_municoes = parse_pct(request.form.get("percentual_municoes"))
+        perc_unico = parse_pct(request.form.get("percentual_unico"))
+
+        numero = datetime.now().strftime("%Y%m%d%H%M%S")
+
+        pedido = PedidoCompra(
+            numero=numero,
+            data_pedido=datetime.now().date(),
+            cond_pagto=cond_pagto,
+            modo_desconto=modo,
+            percentual_armas=perc_armas,
+            percentual_municoes=perc_municoes,
+            percentual_unico=perc_unico,
+            fornecedor_id=int(fornecedor_id) if fornecedor_id else None,
+        )
+        db.session.add(pedido)
+        db.session.flush()
+
+        codigos = request.form.getlist("codigo[]")
+        descricoes = request.form.getlist("descricao[]")
+        quantidades = request.form.getlist("quantidade[]")
+        valores = request.form.getlist("valor_unitario[]")
+
+        for codigo, desc, qtd, val in zip(codigos, descricoes, quantidades, valores):
+            desc = (desc or "").strip()
+            if not desc:
+                continue
+            q = int(qtd or 0)
+            v = parse_brl(val)
+            if q <= 0 or v <= 0:
+                continue
+            item = ItemPedido(
+                pedido_id=pedido.id,
+                codigo=codigo,
+                descricao=desc,
+                quantidade=q,
+                valor_unitario=v,
+            )
+            db.session.add(item)
+
+        db.session.commit()
+        flash("Pedido criado com sucesso!", "success")
+        return redirect(url_for("main.listar_pedidos"))
+
+    fornecedores = [c for c in Cliente.query.all() if getattr(c, "documento", None) and "/" in c.documento]
+    return render_template("pedidos/novo.html", fornecedores=fornecedores)
+
+
+# ---------------------------------------------------
+# EDITAR PEDIDO
+# ---------------------------------------------------
+@main.route("/pedidos/<int:id>/editar", methods=["GET", "POST"])
+@login_required
+def editar_pedido(id):
+    pedido = PedidoCompra.query.get_or_404(id)
+
+    if request.method == "POST":
+        pedido.cond_pagto = request.form.get("cond_pagto")
+        pedido.modo_desconto = request.form.get("modo_desconto")
+        pedido.percentual_armas = float(request.form.get("percentual_armas") or 0)
+        pedido.percentual_municoes = float(request.form.get("percentual_municoes") or 0)
+        pedido.percentual_unico = float(request.form.get("percentual_unico") or 0)
+
+        for it in list(pedido.itens):
+            db.session.delete(it)
+
+        codigos = request.form.getlist("codigo[]")
+        descricoes = request.form.getlist("descricao[]")
+        quantidades = request.form.getlist("quantidade[]")
+        valores = request.form.getlist("valor_unitario[]")
+
+        for codigo, desc, qtd, val in zip(codigos, descricoes, quantidades, valores):
+            if not desc.strip():
+                continue
+            q = int(qtd or 0)
+            v = parse_brl(val)
+            if q <= 0 or v <= 0:
+                continue
+            item = ItemPedido(
+                pedido_id=pedido.id,
+                codigo=codigo,
+                descricao=desc.strip(),
+                quantidade=q,
+                valor_unitario=v,
+            )
+            db.session.add(item)
+
+        db.session.commit()
+        flash("Pedido atualizado com sucesso!", "success")
+        return redirect(url_for("main.listar_pedidos"))
+
+    fornecedores = Cliente.query.all()
+    return render_template("pedidos/novo.html", pedido=pedido, fornecedores=fornecedores)
+
+# ---------------------------------------------------
+# PDF DO PEDIDO
+# ---------------------------------------------------
+@main.route("/pedidos/<int:id>/pdf")
+@login_required
+def pedido_pdf(id):
+    pedido = PedidoCompra.query.get_or_404(id)
+
+    # Monta lista de itens no formato esperado pelo gerar_pedido_m4
+    itens = []
+    for i in pedido.itens:
+        itens.append((i.codigo, i.descricao, i.quantidade, i.valor_unitario))
+
+    # Nome do arquivo e diretório de saída
+    filename = f"pedido_{pedido.numero}.pdf"
+    folder = os.path.join(current_app.root_path, "static", "pdf")
+    filepath = os.path.join(folder, filename)
+    os.makedirs(folder, exist_ok=True)
+
+    # Dados do fornecedor (Cliente vinculado ao PedidoCompra)
+    fornecedor = pedido.fornecedor
+    fornecedor_nome = fornecedor.nome or ""
+    fornecedor_cnpj = fornecedor.documento or ""
+    fornecedor_endereco = f"{(fornecedor.endereco or '')}, {(fornecedor.numero or '')} - {(fornecedor.cidade or '')}/{(fornecedor.estado or '')}"
+    fornecedor_cr = f"CR {fornecedor.cr or ''}"
+
+    # Gera PDF com os dados reais
+    gerar_pedido_m4(
+        itens=itens,
+        cond_pagto=pedido.cond_pagto,
+        perc_armas=pedido.percentual_armas,
+        perc_municoes=pedido.percentual_municoes,
+        perc_unico=pedido.percentual_unico,
+        modo=pedido.modo_desconto,
+        numero_pedido=pedido.numero,
+        data_pedido=pedido.data_pedido.strftime("%d/%m/%Y") if pedido.data_pedido else None,
+        fornecedor_nome=fornecedor_nome,
+        fornecedor_cnpj=fornecedor_cnpj,
+        fornecedor_endereco=fornecedor_endereco,
+        fornecedor_cr=fornecedor_cr,
+    )
+
+    # Move o PDF gerado para a pasta correta
+    if os.path.exists("pedido_m4.pdf"):
+        os.replace("pedido_m4.pdf", filepath)
+
+    return send_file(filepath, as_attachment=False)
+
+# ---------------------------------------------------
+# EXCLUIR PEDIDO
+# ---------------------------------------------------
+@main.route("/pedidos/<int:id>/excluir", methods=["POST", "GET"])
+@login_required
+def excluir_pedido(id):
+    pedido = PedidoCompra.query.get_or_404(id)
+    db.session.delete(pedido)
+    db.session.commit()
+    flash("Pedido excluído com sucesso!", "success")
+    return redirect(url_for("main.listar_pedidos"))

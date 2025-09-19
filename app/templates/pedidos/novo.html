@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-plus"></i> {{ 'Editar Pedido de Compra' if pedido else 'Novo Pedido de Compra' }}</h2>
+    <a href="{{ url_for('main.listar_pedidos') }}" class="btn btn-secondary">Voltar</a>
+</div>
+
+<form method="POST">
+    <!-- Fornecedor -->
+    <div class="mb-3">
+        <label for="fornecedor" class="form-label">Fornecedor</label>
+        <select class="form-control" id="fornecedor" name="fornecedor" required>
+            {% for f in fornecedores %}
+                <option value="{{ f.id }}"
+                    {% if pedido and pedido.fornecedor_id == f.id %}selected{% endif %}>
+                    {{ f.nome }} - {{ f.documento }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Condição de pagamento -->
+    <div class="mb-3">
+        <label for="cond_pagto" class="form-label">Condição de Pagamento</label>
+        <input type="text" class="form-control" id="cond_pagto" name="cond_pagto"
+               value="{{ pedido.cond_pagto if pedido else '' }}"
+               placeholder="Ex: À vista, À prazo 28/35/42" required>
+    </div>
+
+    <!-- Modo de desconto -->
+    <div class="mb-3">
+        <label class="form-label d-block">Modo de desconto</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="modo_desconto" id="modo_tipo" value="por_tipo"
+                   {% if not pedido or pedido.modo_desconto == 'por_tipo' %}checked{% endif %}>
+            <label class="form-check-label" for="modo_tipo">Por tipo (Armas/Munições)</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="modo_desconto" id="modo_unico" value="unico"
+                   {% if pedido and pedido.modo_desconto == 'unico' %}checked{% endif %}>
+            <label class="form-check-label" for="modo_unico">Único percentual</label>
+        </div>
+    </div>
+
+    <!-- Percentuais -->
+    <div id="grupo_por_tipo" class="row g-3 mb-3 {% if pedido and pedido.modo_desconto == 'unico' %}d-none{% endif %}">
+        <div class="col-md-6">
+            <label for="percentual_armas" class="form-label">Desconto/Acréscimo Armas (%)</label>
+            <input type="number" step="0.01" class="form-control" id="percentual_armas" name="percentual_armas"
+                   value="{{ pedido.percentual_armas if pedido else -5.0 }}">
+        </div>
+        <div class="col-md-6">
+            <label for="percentual_municoes" class="form-label">Desconto/Acréscimo Munições (%)</label>
+            <input type="number" step="0.01" class="form-control" id="percentual_municoes" name="percentual_municoes"
+                   value="{{ pedido.percentual_municoes if pedido else -3.0 }}">
+        </div>
+    </div>
+
+    <div id="grupo_unico" class="row g-3 mb-3 {% if not pedido or pedido.modo_desconto != 'unico' %}d-none{% endif %}">
+        <div class="col-md-6">
+            <label for="percentual_unico" class="form-label">Desconto/Acréscimo Único (%)</label>
+            <input type="number" step="0.01" class="form-control" id="percentual_unico" name="percentual_unico"
+                   value="{{ pedido.percentual_unico if pedido else 0 }}">
+        </div>
+    </div>
+
+    <!-- Itens do pedido -->
+    <h4 class="mt-4">Itens do Pedido</h4>
+    <table class="table table-bordered" id="tabela-itens">
+        <thead class="table-light">
+            <tr>
+                <th>Código</th>
+                <th>Descrição</th>
+                <th>Qtd</th>
+                <th>Valor Unitário (R$)</th>
+                <th>Valor Total (R$)</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if pedido %}
+                {% for item in pedido.itens %}
+                <tr>
+                    <td><input type="text" name="codigo[]" class="form-control" value="{{ item.codigo }}"></td>
+                    <td><input type="text" name="descricao[]" class="form-control" value="{{ item.descricao }}"></td>
+                    <td><input type="number" name="quantidade[]" class="form-control qtd" step="1" min="1" value="{{ item.quantidade }}"></td>
+
+                    <!-- IMPORTANTE: valor com vírgula para o IMask (radix=',') -->
+                    <td><input type="text" name="valor_unitario[]" class="form-control unit"
+                               value="{{ ('%.2f' % (item.valor_unitario or 0))|replace('.', ',') }}"></td>
+
+                    <td><input type="text" class="form-control total-item" readonly></td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-danger btn-sm remover-linha">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td><input type="text" name="codigo[]" class="form-control" required></td>
+                    <td><input type="text" name="descricao[]" class="form-control" required></td>
+                    <td><input type="number" name="quantidade[]" class="form-control qtd" step="1" min="1" required></td>
+                    <td><input type="text" name="valor_unitario[]" class="form-control unit" required></td>
+                    <td><input type="text" class="form-control total-item" readonly></td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-danger btn-sm remover-linha">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    <button type="button" class="btn btn-outline-primary mb-3" id="adicionar-linha">
+        <i class="fas fa-plus"></i> Adicionar Item
+    </button>
+
+    <!-- Total do Pedido -->
+    <div class="d-flex justify-content-end">
+        <h4>Total do Pedido: <span id="total-pedido">R$ 0,00</span></h4>
+    </div>
+
+    <!-- Botão salvar -->
+    <div class="mt-4">
+        <button type="submit" class="btn btn-success">Salvar Pedido</button>
+    </div>
+</form>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/imask"></script>
+<script>
+/* Alterna grupos de percentuais */
+document.querySelectorAll('input[name="modo_desconto"]').forEach(r => {
+  r.addEventListener('change', () => {
+    const unico = document.getElementById('modo_unico').checked;
+    document.getElementById('grupo_unico').classList.toggle('d-none', !unico);
+    document.getElementById('grupo_por_tipo').classList.toggle('d-none', unico);
+    atualizarTotais();
+  });
+});
+
+/* Adicionar nova linha de item */
+document.getElementById('adicionar-linha').addEventListener('click', () => {
+    const tbody = document.querySelector('#tabela-itens tbody');
+    const linha = document.createElement('tr');
+    linha.innerHTML = `
+        <td><input type="text" name="codigo[]" class="form-control" required></td>
+        <td><input type="text" name="descricao[]" class="form-control" required></td>
+        <td><input type="number" name="quantidade[]" class="form-control qtd" step="1" min="1" required></td>
+        <td><input type="text" name="valor_unitario[]" class="form-control unit" required></td>
+        <td><input type="text" class="form-control total-item" readonly></td>
+        <td class="text-center">
+            <button type="button" class="btn btn-danger btn-sm remover-linha">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    `;
+    tbody.appendChild(linha);
+    aplicarMascara();
+});
+
+/* Remover linha de item */
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.remover-linha')) {
+        e.target.closest('tr').remove();
+        atualizarTotais();
+    }
+});
+
+/* Classifica tipo do item pela descrição */
+function classificarTipo(desc) {
+    const d = desc.toLowerCase();
+    if (d.includes("rifl") || d.includes("rifle") || d.includes("pist") || d.includes("rev") || d.includes("carabina") || d.includes("esp")) {
+        return "armas";
+    } else if (d.includes("mun") || d.includes("cart") || d.includes("espol") || d.includes("esto") || d.includes("polv")) {
+        return "municoes";
+    }
+    return "outros";
+}
+
+/* Atualizar totais em tempo real (com desconto/acréscimo) */
+function atualizarTotais() {
+    let totalPedido = 0;
+
+    const percArmas = parseFloat(document.getElementById("percentual_armas")?.value.replace(",", ".") || 0);
+    const percMunicoes = parseFloat(document.getElementById("percentual_municoes")?.value.replace(",", ".") || 0);
+    const percUnico = parseFloat(document.getElementById("percentual_unico")?.value.replace(",", ".") || 0);
+    const modoUnico = document.getElementById("modo_unico").checked;
+
+    document.querySelectorAll("#tabela-itens tbody tr").forEach(tr => {
+        const qtd = parseFloat(tr.querySelector(".qtd")?.value.replace(",", ".") || 0);
+        const desc = tr.querySelector("input[name='descricao[]']")?.value || "";
+        let unitStr = tr.querySelector(".unit")?.value || "0";
+        unitStr = unitStr.replace(/\s/g, '').replace('R$', '').replace(/\./g, '').replace(',', '.');
+        const unit = parseFloat(unitStr) || 0;
+
+        let pct = 0;
+        if (modoUnico) {
+            pct = percUnico;
+        } else {
+            const tipo = classificarTipo(desc);
+            pct = tipo === "armas" ? percArmas : (tipo === "municoes" ? percMunicoes : 0);
+        }
+
+        const precoFinal = unit * (1 + pct / 100);
+        const total = qtd * precoFinal;
+
+        tr.querySelector(".total-item").value = total > 0
+            ? total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+            : "";
+
+        totalPedido += total;
+    });
+
+    document.getElementById("total-pedido").textContent = totalPedido.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+    });
+}
+
+document.addEventListener("input", (e) => {
+    if (e.target.classList.contains("qtd") || e.target.classList.contains("unit") || 
+        e.target.id === "percentual_armas" || e.target.id === "percentual_municoes" || 
+        e.target.id === "percentual_unico" || e.target.name === "modo_desconto" || 
+        e.target.name === "descricao[]") {
+        atualizarTotais();
+    }
+});
+
+/* Aplica máscara nos campos de valor unitário */
+function aplicarMascara() {
+    document.querySelectorAll('input.unit').forEach(el => {
+        if (!el._imask) {
+            IMask(el, {
+                mask: 'R$ num',
+                blocks: {
+                    num: {
+                        mask: Number,
+                        scale: 2,
+                        thousandsSeparator: '.',
+                        padFractionalZeros: true,
+                        radix: ','
+                    }
+                }
+            });
+        }
+    });
+}
+aplicarMascara();
+atualizarTotais();
+</script>
+{% endblock %}

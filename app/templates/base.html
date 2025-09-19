@@ -18,43 +18,59 @@
             </div>
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'main.dashboard' %}active border-start border-3 border-primary{% endif %}" href="{{ url_for('main.dashboard') }}">
+                    <a class="nav-link text-white {% if request.endpoint == 'main.dashboard' %}active border-start border-3 border-primary{% endif %}" 
+                       href="{{ url_for('main.dashboard') }}">
                         <i class="fas fa-chart-line"></i> <span>Dashboard</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'main.produtos' %}active border-start border-3 border-primary{% endif %}" href="{{ url_for('main.produtos') }}">
+                    <a class="nav-link text-white {% if request.endpoint == 'main.produtos' %}active border-start border-3 border-primary{% endif %}" 
+                       href="{{ url_for('main.produtos') }}">
                         <i class="fas fa-box"></i> <span>Produtos</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'main.taxas' %}active border-start border-3 border-primary{% endif %}" href="{{ url_for('main.taxas') }}">
+                    <a class="nav-link text-white {% if request.endpoint == 'main.taxas' %}active border-start border-3 border-primary{% endif %}" 
+                       href="{{ url_for('main.taxas') }}">
                         <i class="fas fa-percent"></i> <span>Taxas</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'main.parcelamento_index' %}active border-start border-3 border-primary{% endif %}" href="{{ url_for('main.parcelamento_index') }}">
+                    <a class="nav-link text-white {% if request.endpoint == 'main.parcelamento_index' %}active border-start border-3 border-primary{% endif %}" 
+                       href="{{ url_for('main.parcelamento_index') }}">
                         <i class="fas fa-credit-card"></i> <span>Parcelamento</span>
                     </a>
                 </li>
                 <!-- Novos itens -->
                 <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'main.clientes' %}active border-start border-3 border-primary{% endif %}" href="{{ url_for('main.clientes') }}">
+                    <a class="nav-link text-white {% if request.endpoint == 'main.clientes' %}active border-start border-3 border-primary{% endif %}" 
+                       href="{{ url_for('main.clientes') }}">
                         <i class="fas fa-users"></i> <span>Clientes</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'main.vendas' %}active border-start border-3 border-primary{% endif %}" href="{{ url_for('main.vendas') }}">
+                    <a class="nav-link text-white {% if request.endpoint == 'main.vendas' %}active border-start border-3 border-primary{% endif %}" 
+                       href="{{ url_for('main.vendas') }}">
                         <i class="fas fa-shopping-cart"></i> <span>Vendas</span>
                     </a>
                 </li>
+                <!-- Novo menu Pedidos -->
                 <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'main.usuarios' %}active border-start border-3 border-primary{% endif %}" href="{{ url_for('main.usuarios') }}">
+                    <a class="nav-link text-white 
+                        {% if request.endpoint and 'pedido' in request.endpoint %}active border-start border-3 border-primary{% endif %}" 
+                        href="{{ url_for('main.listar_pedidos') }}">
+                        <i class="fas fa-file-invoice"></i> <span>Pedidos de Compra</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white {% if request.endpoint == 'main.usuarios' %}active border-start border-3 border-primary{% endif %}" 
+                       href="{{ url_for('main.usuarios') }}">
                         <i class="fas fa-user-cog"></i> <span>Usuários</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'main.configuracoes' %}active border-start border-3 border-primary{% endif %}" href="{{ url_for('main.configuracoes') }}">
+                    <a class="nav-link text-white {% if request.endpoint == 'main.configuracoes' %}active border-start border-3 border-primary{% endif %}" 
+                       href="{{ url_for('main.configuracoes') }}">
                         <i class="fas fa-cogs"></i> <span>Configurações</span>
                     </a>
                 </li>

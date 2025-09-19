@@ -231,3 +231,36 @@ class ItemVenda(db.Model):
     quantidade = db.Column(db.Integer, default=1)
     valor_unitario = db.Column(db.Float, nullable=False)
     valor_total = db.Column(db.Float, nullable=False)
+
+# =========================
+# Pedido de Compra
+# =========================
+class PedidoCompra(db.Model):
+    __tablename__ = "pedido_compra"
+
+    id = db.Column(db.Integer, primary_key=True)
+    numero = db.Column(db.String(20), unique=True, nullable=False)
+    data_pedido = db.Column(db.Date, nullable=False)
+    cond_pagto = db.Column(db.String(100))
+
+    modo_desconto = db.Column(db.String(20), default="por_tipo")
+    percentual_armas = db.Column(db.Float, default=0.0)
+    percentual_municoes = db.Column(db.Float, default=0.0)
+    percentual_unico = db.Column(db.Float, default=0.0)
+
+    # 👇 Aqui estava o problema: faltava apontar para a tabela de clientes
+    fornecedor_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)
+    fornecedor = db.relationship("Cliente", backref="pedidos")
+
+    itens = db.relationship("ItemPedido", backref="pedido", cascade="all, delete-orphan")
+
+
+class ItemPedido(db.Model):
+    __tablename__ = "item_pedido"
+
+    id = db.Column(db.Integer, primary_key=True)
+    pedido_id = db.Column(db.Integer, db.ForeignKey("pedido_compra.id"), nullable=False)
+    codigo = db.Column(db.String(50))
+    descricao = db.Column(db.String(200))
+    quantidade = db.Column(db.Integer)
+    valor_unitario = db.Column(db.Float)
