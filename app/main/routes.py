@@ -279,26 +279,29 @@ def produtos():
 # ---------------------------------------------------
 # API: TEXTO WHATSAPP COM PARCELAMENTO
 # ---------------------------------------------------
-@main.route("/api/produto/<int:produto_id>/whatsapp")
+@main.route("/api/produto/<int:id>/whatsapp")
 @login_required
-def produto_whatsapp(produto_id):
-    from flask import jsonify
-    from app.models import Produto, Taxa
-    from app.utils.parcelamento import gerar_linhas_parcelas
+def produto_whatsapp(id):
+    try:
+        from app.utils.parcelamento import gerar_linhas_parcelas
 
-    prod = Produto.query.get_or_404(produto_id)
+        produto = Produto.query.get_or_404(id)
 
-    # Busca as taxas no banco (inclua 1x com juros configurado, ex 3.48%)
-    taxas = Taxa.query.order_by(Taxa.numero_parcelas.asc()).all()
+        # gera as linhas de parcelamento (até 12x, juros 0.0 por enquanto)
+        linhas = gerar_linhas_parcelas(produto.preco_a_vista, max_parcelas=12, juros=0.0)
 
-    # Gera linhas por coeficiente
-    linhas = gerar_linhas_parcelas(prod.preco_a_vista, taxas)
+        # compõe o texto final
+        texto = compor_whatsapp(produto=produto, valor_base=produto.preco_a_vista, linhas=linhas)
 
-    # Monta o texto final (PIX + Débito por coeficiente + linhas)
-    texto = compor_whatsapp(produto=prod, valor_base=prod.preco_a_vista, linhas=linhas)
+        return jsonify({"texto": texto})
 
-    return jsonify({"texto": texto})
+    except Exception as e:
+        # loga no servidor para depuração
+        import traceback
+        traceback.print_exc()
 
+        # retorna erro amigável ao front
+        return jsonify({"erro": f"Falha ao gerar simulação: {str(e)}"}), 400
 @main.route("/produto/novo", methods=["GET", "POST"])
 @main.route("/produto/editar/<int:produto_id>", methods=["GET", "POST"])
 @login_required
