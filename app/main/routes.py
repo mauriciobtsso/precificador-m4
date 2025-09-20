@@ -277,28 +277,24 @@ def produtos():
     return render_template("produtos.html", produtos=produtos)
 
 # ---------------------------------------------------
-# API - Texto para WhatsApp
+# API - WhatsApp Produto
 # ---------------------------------------------------
 @main.route("/api/produto/<int:id>/whatsapp")
 @login_required
 def produto_whatsapp(id):
+    from app.utils.parcelamento import gerar_linhas_parcelas
+
+    produto = Produto.query.get_or_404(id)
+
     try:
-        from app.utils.parcelamento import gerar_linhas_parcelas
+        # Busca taxas cadastradas
+        taxas = Taxa.query.order_by(Taxa.numero_parcelas.asc()).all()
 
-        produto = Produto.query.get_or_404(id)
-
-        # Busca taxas cadastradas no banco
-        taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
-
-        # Gera as linhas de parcelamento com base nas taxas
+        # Gera linhas de parcelamento pelo coeficiente
         linhas = gerar_linhas_parcelas(produto.preco_a_vista, taxas)
 
-        # Usa a função existente para montar o texto
-        texto = compor_whatsapp(
-            produto=produto,
-            valor_base=produto.preco_a_vista,
-            linhas=linhas
-        )
+        # Monta texto para WhatsApp (já inclui à vista, débito e parcelamento)
+        texto = compor_whatsapp(produto=produto, valor_base=produto.preco_a_vista, linhas=linhas)
 
         return jsonify({"texto": texto})
 
