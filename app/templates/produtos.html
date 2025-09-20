@@ -140,44 +140,41 @@
 
 <!-- Script WhatsApp + Copiar -->
 <script>
-document.querySelectorAll(".btn-whatsapp").forEach(btn => {
-  btn.addEventListener("click", async function() {
-    const id = this.getAttribute("data-id");
+document.addEventListener("click", async function(e) {
+  const btn = e.target.closest(".btn-whatsapp");
+  if (!btn) return;
 
-    try {
-      const resp = await fetch(`/api/produto/${id}/whatsapp`);
-      const data = await resp.json();
+  const id = btn.getAttribute("data-id");
 
-      if (resp.ok && data.texto) {
-        // Copiar compatível iPhone
-        try {
-          await navigator.clipboard.writeText(data.texto);
-        } catch (err) {
-          let textArea = document.createElement("textarea");
-          textArea.value = data.texto;
-          document.body.appendChild(textArea);
-          textArea.select();
-          document.execCommand("copy");
-          document.body.removeChild(textArea);
-        }
+  try {
+    const resp = await fetch(`/api/produto/${id}/whatsapp`);
+    const data = await resp.json();
 
-        // Toast
-        const toastEl = document.getElementById("toastCopia");
-        if (toastEl) {
-          const toast = new bootstrap.Toast(toastEl);
-          toast.show();
-        } else {
-          alert("Simulação copiada para área de transferência!");
-        }
+    if (resp.ok && data.texto) {
+      const texto = data.texto;
 
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(texto);
       } else {
-        alert("Erro ao gerar simulação.");
+        let textArea = document.createElement("textarea");
+        textArea.value = texto;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
       }
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao gerar simulação.");
+
+      alert("Simulação copiada para área de transferência!");
+    } else {
+      alert(data.erro || "Erro ao gerar simulação.");
     }
-  });
+  } catch (err) {
+    console.error("Erro ao buscar simulação:", err);
+    alert("Erro ao gerar simulação.");
+  }
 });
 </script>
 {% endblock %}

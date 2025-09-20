@@ -277,30 +277,29 @@ def produtos():
     return render_template("produtos.html", produtos=produtos)
 
 # ---------------------------------------------------
-# API - WhatsApp Produto
+# API para gerar texto do WhatsApp
 # ---------------------------------------------------
 @main.route("/api/produto/<int:id>/whatsapp")
 @login_required
 def produto_whatsapp(id):
     from app.utils.parcelamento import gerar_linhas_parcelas
 
-    produto = Produto.query.get_or_404(id)
-
     try:
-        # Busca taxas cadastradas
-        taxas = Taxa.query.order_by(Taxa.numero_parcelas.asc()).all()
+        produto = Produto.query.get_or_404(id)
 
-        # Gera linhas de parcelamento pelo coeficiente
+        # Busca taxas de parcelamento configuradas
+        taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+
+        # Gera as linhas de parcelamento
         linhas = gerar_linhas_parcelas(produto.preco_a_vista, taxas)
 
-        # Monta texto para WhatsApp (já inclui à vista, débito e parcelamento)
+        # Compoe texto final
         texto = compor_whatsapp(produto=produto, valor_base=produto.preco_a_vista, linhas=linhas)
 
+        # Retorna JSON já pronto para uso no JS
         return jsonify({"texto": texto})
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         return jsonify({"erro": f"Falha ao gerar simulação: {str(e)}"}), 400
 
 @main.route("/produto/novo", methods=["GET", "POST"])
