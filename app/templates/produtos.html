@@ -138,36 +138,56 @@
   {% endfor %}
 </div>
 
-<!-- Script Copiar WhatsApp -->
+<!-- Toast de Confirmação -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1055">
+  <div id="toastCopia" class="toast align-items-center text-bg-success border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body">
+        ✅ Simulação copiada para a área de transferência!
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Script WhatsApp + Copiar -->
 <script>
 document.addEventListener("click", async function(e) {
   const btn = e.target.closest(".btn-whatsapp");
   if (!btn) return;
 
-  const produtoId = btn.getAttribute("data-id");
+  const id = btn.getAttribute("data-id");
 
   try {
-    const resp = await fetch(`/api/produto/${produtoId}/whatsapp`);
+    const resp = await fetch(`/api/produto/${id}/whatsapp`);
     const data = await resp.json();
-    const texto = data.texto;
 
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(texto);
-      alert("Simulação copiada para a área de transferência!");
+    if (resp.ok && data.texto) {
+      // Copia para área de transferência
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(data.texto);
+      } else {
+        let textArea = document.createElement("textarea");
+        textArea.value = data.texto;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+
+      // Mostra Toast
+      const toastEl = document.getElementById("toastCopia");
+      const toast = new bootstrap.Toast(toastEl);
+      toast.show();
+
     } else {
-      let textArea = document.createElement("textarea");
-      textArea.value = texto;
-      textArea.style.position = "fixed";
-      textArea.style.left = "-9999px";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
-      alert("Simulação copiada para a área de transferência!");
+      alert("Erro ao gerar simulação.");
     }
   } catch (err) {
-    console.error("Erro ao gerar simulação:", err);
+    console.error(err);
     alert("Erro ao gerar simulação.");
   }
 });
