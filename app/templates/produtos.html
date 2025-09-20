@@ -138,72 +138,46 @@
   {% endfor %}
 </div>
 
-<!-- Toast para feedback -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-  <div id="toastCopia" class="toast align-items-center text-bg-success border-0" role="alert">
-    <div class="d-flex">
-      <div class="toast-body">Texto copiado para a área de transferência!</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-    </div>
-  </div>
-</div>
-
 <!-- Script WhatsApp + Copiar -->
 <script>
-document.addEventListener("click", function(e) {
-  const btn = e.target.closest(".btn-whatsapp");
-  if (!btn) return;
+document.querySelectorAll(".btn-whatsapp").forEach(btn => {
+  btn.addEventListener("click", async function() {
+    const id = this.getAttribute("data-id");
 
-  const id = btn.getAttribute("data-id");
-  if (!id) {
-    alert("Produto sem ID.");
-    return;
-  }
+    try {
+      const resp = await fetch(`/api/produto/${id}/whatsapp`);
+      const data = await resp.json();
 
-  fetch(`/api/produto/${id}/whatsapp`)
-    .then(r => r.json())
-    .then(data => {
-      if (!data.texto) throw new Error("Sem texto retornado");
-      const texto = data.texto;
+      if (resp.ok && data.texto) {
+        // Copiar compatível iPhone
+        try {
+          await navigator.clipboard.writeText(data.texto);
+        } catch (err) {
+          let textArea = document.createElement("textarea");
+          textArea.value = data.texto;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textArea);
+        }
 
-      // Copiar para área de transferência
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(texto).then(() => mostrarToast()).catch(() => fallbackCopy(texto));
+        // Toast
+        const toastEl = document.getElementById("toastCopia");
+        if (toastEl) {
+          const toast = new bootstrap.Toast(toastEl);
+          toast.show();
+        } else {
+          alert("Simulação copiada para área de transferência!");
+        }
+
       } else {
-        fallbackCopy(texto);
+        alert("Erro ao gerar simulação.");
       }
-    })
-    .catch(err => {
+    } catch (err) {
       console.error(err);
       alert("Erro ao gerar simulação.");
-    });
+    }
+  });
 });
-
-function fallbackCopy(texto) {
-  let textArea = document.createElement("textarea");
-  textArea.value = texto;
-  textArea.style.position = "fixed";
-  textArea.style.left = "-9999px";
-  document.body.appendChild(textArea);
-  textArea.focus();
-  textArea.select();
-  try {
-    document.execCommand("copy");
-    mostrarToast();
-  } catch (err) {
-    alert("Falha ao copiar.");
-  }
-  document.body.removeChild(textArea);
-}
-
-function mostrarToast() {
-  const toastEl = document.getElementById("toastCopia");
-  if (toastEl) {
-    const toast = new bootstrap.Toast(toastEl);
-    toast.show();
-  } else {
-    alert("Texto copiado!");
-  }
-}
 </script>
 {% endblock %}
