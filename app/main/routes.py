@@ -12,6 +12,8 @@ import os
 from datetime import datetime, timedelta
 from flask import current_app, send_file
 from app.utils.gerar_pedidos import gerar_pedido_m4
+from math import pow
+
 
 # =====================================================
 # Helpers
@@ -73,7 +75,6 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
     linhas = linhas or []
 
     incluir_pix = get_config("whatsapp_incluir_pix", "1") == "1"
-    debito_percent = to_float(get_config("whatsapp_debito_percent", "1.09"), 1.09)
     prefixo = get_config("whatsapp_prefixo", "")
 
     cab = []
@@ -90,22 +91,19 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
 
     corpo = []
     if incluir_pix:
-        corpo.append(f"PIX {br_money(base)} = {br_money(base)}")
-
-    if debito_percent > 0:
-        j = debito_percent / 100.0
-        coef = max(1.0 - j, 1e-9)
-        total_debito = base / coef
-        corpo.append(f"Débito {br_money(total_debito)} = {br_money(total_debito)}")
-    else:
-        corpo.append(f"Débito {br_money(base)} = {br_money(base)}")
+        corpo.append(f"PIX {br_money(base)}")
 
     for r in linhas:
-        corpo.append(f"{r['rotulo']} {br_money(r['parcela'])} = {br_money(r['total'])}")
+        # Débito e 1x mostram só o valor da parcela
+        if r["rotulo"] in ["Débito", "1x"]:
+            corpo.append(f"{r['rotulo']} {br_money(r['parcela'])}")
+        else:
+            corpo.append(f"{r['rotulo']} {br_money(r['parcela'])} = {br_money(r['total'])}")
 
     txt = "\n".join(cab) + "\n\n" + "💳 Opções de Parcelamento:\n" + "\n".join(corpo)
     txt += "\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio."
     return txt
+
 
 def to_number(x):
     if isinstance(x, (int, float)):
@@ -246,7 +244,9 @@ def dashboard():
     )
 
 
-# --- Produtos ---
+# ---------------------------------------------------
+# LISTAR PRODUTOS
+# ---------------------------------------------------
 @main.route("/produtos")
 @login_required
 def produtos():
@@ -258,9 +258,9 @@ def produtos():
     query = Produto.query
 
     if termo:
-        like = f"%{termo}%"
+        like_term = f"%{termo}%"
         query = query.filter(
-            (Produto.nome.ilike(like)) | (Produto.sku.ilike(like))
+            (Produto.nome.ilike(like_term)) | (Produto.sku.ilike(like_term))
         )
 
     if lucro == "positivo":
@@ -269,18 +269,35 @@ def produtos():
         query = query.filter(Produto.lucro_liquido_real < 0)
 
     if preco_min:
-        try:
-            query = query.filter(Produto.preco_a_vista >= float(preco_min))
-        except:
-            pass
+        query = query.filter(Produto.preco_a_vista >= float(preco_min))
     if preco_max:
-        try:
-            query = query.filter(Produto.preco_a_vista <= float(preco_max))
-        except:
-            pass
+        query = query.filter(Produto.preco_a_vista <= float(preco_max))
 
-    produtos = query.all()
+    produtos = query.order_by(Produto.nome.asc()).all()
     return render_template("produtos.html", produtos=produtos)
+
+# ---------------------------------------------------
+# API: TEXTO WHATSAPP COM PARCELAMENTO
+# ---------------------------------------------------
+@main.route("/api/produto/<int:produto_id>/whatsapp")
+@login_required
+def produto_whatsapp(produto_id):
+    from flask import jsonify
+    from app.models import Produto, Taxa
+    from app.utils.parcelamento import gerar_linhas_parcelas
+
+    prod = Produto.query.get_or_404(produto_id)
+
+    # Busca as taxas no banco (inclua 1x com juros configurado, ex 3.48%)
+    taxas = Taxa.query.order_by(Taxa.numero_parcelas.asc()).all()
+
+    # Gera linhas por coeficiente
+    linhas = gerar_linhas_parcelas(prod.preco_a_vista, taxas)
+
+    # Monta o texto final (PIX + Débito por coeficiente + linhas)
+    texto = compor_whatsapp(produto=prod, valor_base=prod.preco_a_vista, linhas=linhas)
+
+    return jsonify({"texto": texto})
 
 @main.route("/produto/novo", methods=["GET", "POST"])
 @main.route("/produto/editar/<int:produto_id>", methods=["GET", "POST"])

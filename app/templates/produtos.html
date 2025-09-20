@@ -77,9 +77,7 @@
                 <i class="fas fa-edit"></i>
               </a>
               <button type="button" class="btn btn-outline-success btn-sm btn-whatsapp"
-                      data-nome="{{ produto.nome }}"
-                      data-sku="{{ produto.sku }}"
-                      data-preco="{{ produto.preco_a_vista|currency }}">
+                      data-id="{{ produto.id }}">
                 <i class="fab fa-whatsapp"></i>
               </button>
               <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}"
@@ -124,9 +122,7 @@
           <i class="fas fa-edit"></i>
         </a>
         <button type="button" class="btn btn-sm btn-outline-success btn-whatsapp"
-                data-nome="{{ produto.nome }}"
-                data-sku="{{ produto.sku }}"
-                data-preco="{{ produto.preco_a_vista|currency }}">
+                data-id="{{ produto.id }}">
           <i class="fab fa-whatsapp"></i>
         </button>
         <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}"
@@ -142,33 +138,37 @@
   {% endfor %}
 </div>
 
-<!-- Script WhatsApp + Copiar -->
+<!-- Script Copiar WhatsApp -->
 <script>
-document.addEventListener("click", function(e) {
+document.addEventListener("click", async function(e) {
   const btn = e.target.closest(".btn-whatsapp");
   if (!btn) return;
 
-  const nome = btn.getAttribute("data-nome");
-  const sku = btn.getAttribute("data-sku");
-  const preco = btn.getAttribute("data-preco");
+  const produtoId = btn.getAttribute("data-id");
 
-  const texto = `🔫 ${nome}\n🔖 SKU: ${sku}\n💰 À vista: ${preco}\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio.`;
+  try {
+    const resp = await fetch(`/api/produto/${produtoId}/whatsapp`);
+    const data = await resp.json();
+    const texto = data.texto;
 
-  const url = "https://wa.me/?text=" + encodeURIComponent(texto);
-  window.open(url, "_blank");
-
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(texto);
-  } else {
-    let textArea = document.createElement("textarea");
-    textArea.value = texto;
-    textArea.style.position = "fixed";
-    textArea.style.left = "-9999px";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    try { document.execCommand("copy"); } catch (err) {}
-    document.body.removeChild(textArea);
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(texto);
+      alert("Simulação copiada para a área de transferência!");
+    } else {
+      let textArea = document.createElement("textarea");
+      textArea.value = texto;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      alert("Simulação copiada para a área de transferência!");
+    }
+  } catch (err) {
+    console.error("Erro ao gerar simulação:", err);
+    alert("Erro ao gerar simulação.");
   }
 });
 </script>
