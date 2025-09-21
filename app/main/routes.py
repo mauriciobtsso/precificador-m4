@@ -70,6 +70,9 @@ def montar_parcelas(valor_base, taxas, modo="coeficiente_total"):
 
     return resultado
 
+# =========================
+# Função para compor texto WhatsApp
+# =========================
 def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
     base = float(valor_base or 0)
     linhas = linhas or []
@@ -94,9 +97,9 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
         corpo.append(f"PIX {br_money(base)}")
 
     for r in linhas:
-        # Débito e 1x mostram só o valor da parcela
+        # Formatação especial: Débito e 1x sem " = total"
         if r["rotulo"] in ["Débito", "1x"]:
-            corpo.append(f"{r['rotulo']} {br_money(r['parcela'])}")
+            corpo.append(f"{r['rotulo']} {br_money(r['total'])}")
         else:
             corpo.append(f"{r['rotulo']} {br_money(r['parcela'])} = {br_money(r['total'])}")
 
@@ -279,26 +282,24 @@ def produtos():
 
 
 # ---------------------------------------------------
-# API: Texto WhatsApp do Produto
+# API - TEXTO WHATSAPP PRODUTO
 # ---------------------------------------------------
-@main.route("/api/produto/<int:id>/whatsapp")
+@main.route("/api/produto/<int:produto_id>/whatsapp")
 @login_required
-def produto_whatsapp(id):
-    from app.utils.parcelamento import gerar_linhas_parcelas
+def produto_whatsapp(produto_id):
+    produto = Produto.query.get_or_404(produto_id)
+    valor_base = produto.preco_final or produto.preco_a_vista
 
-    produto = Produto.query.get_or_404(id)
+    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+    linhas = gerar_linhas_parcelas(valor_base, taxas)
 
-    try:
-        # Buscar taxas cadastradas no sistema
-        taxas = Taxa.query.all()
+    texto = compor_whatsapp(
+        produto=produto,
+        valor_base=valor_base,
+        linhas=linhas
+    )
 
-        # Gera as linhas de parcelamento
-        linhas = gerar_linhas_parcelas(produto.preco_a_vista, taxas)
-
-        # Monta o texto final
-        texto = compor_whatsapp(produto=produto, valor_base=produto.preco_a_vista, linhas=linhas)
-
-        return jsonify({"texto": texto})
+    return jsonify({"texto": texto})
 
     except Exception as e:
         current_app.logger.error(f"Erro ao gerar WhatsApp para produto {id}: {e}")
@@ -503,35 +504,33 @@ def parcelamento_index():
     produtos = Produto.query.order_by(Produto.nome).all()
     return render_template("parcelamento_index.html", produtos=produtos)
 
+# ---------------------------------------------------
+# PARCELAMENTO DO PRODUTO
+# ---------------------------------------------------
 @main.route("/parcelamento/<int:produto_id>")
 @login_required
 def parcelamento(produto_id):
     produto = Produto.query.get_or_404(produto_id)
+
+    valor_base = produto.preco_final or produto.preco_a_vista
+
+    # Busca todas as taxas, incluindo a 0x (Débito)
     taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+    resultado = gerar_linhas_parcelas(valor_base, taxas)
 
-    valor_base = produto.preco_final or produto.preco_a_vista or 0.0
-    taxas_planos = [t for t in taxas if (t.numero_parcelas or 0) >= 1]
-    resultado = montar_parcelas(valor_base, taxas_planos, modo="coeficiente_total")
+    # Monta o texto para WhatsApp com PIX + taxas
+    texto_whats = compor_whatsapp(
+        produto=produto,
+        valor_base=valor_base,
+        linhas=resultado
+    )
 
-    texto_whats = compor_whatsapp(produto=produto, valor_base=valor_base, linhas=resultado)
-
-    return render_template("parcelamento.html", produto=produto, resultado=resultado, texto_whats=texto_whats)
-
-@main.route("/parcelamento/rapido", methods=["GET", "POST"])
-@login_required
-def parcelamento_rapido():
-    resultado = []
-    preco_base = None
-    texto_whats = ""
-
-    if request.method == "POST":
-        preco_base = to_float(request.form.get("preco_base"))
-        taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
-        taxas_planos = [t for t in taxas if (t.numero_parcelas or 0) >= 1]
-        resultado = montar_parcelas(preco_base, taxas_planos, modo="coeficiente_total")
-        texto_whats = compor_whatsapp(produto=None, valor_base=preco_base, linhas=resultado)
-
-    return render_template("parcelamento_rapido.html", resultado=resultado, preco_base=preco_base, texto_whats=texto_whats)
+    return render_template(
+        "parcelamento.html",
+        produto=produto,
+        resultado=resultado,
+        texto_whats=texto_whats
+    )
 
 # --- Configurações ---
 @main.route("/configuracoes")
