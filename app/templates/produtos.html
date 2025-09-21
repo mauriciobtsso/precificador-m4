@@ -76,10 +76,6 @@
               <a href="{{ url_for('main.gerenciar_produto', produto_id=produto.id) }}" class="btn btn-outline-warning btn-sm" title="Editar">
                 <i class="fas fa-edit"></i>
               </a>
-              <button type="button" class="btn btn-outline-success btn-sm btn-whatsapp"
-                      data-id="{{ produto.id }}">
-                <i class="fab fa-whatsapp"></i>
-              </button>
               <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}"
                  class="btn btn-outline-danger btn-sm"
                  onclick="return confirm('Tem certeza que deseja excluir este produto?');">
@@ -121,10 +117,6 @@
         <a href="{{ url_for('main.gerenciar_produto', produto_id=produto.id) }}" class="btn btn-sm btn-outline-warning">
           <i class="fas fa-edit"></i>
         </a>
-        <button type="button" class="btn btn-sm btn-outline-success btn-whatsapp"
-                data-id="{{ produto.id }}">
-          <i class="fab fa-whatsapp"></i>
-        </button>
         <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}"
            class="btn btn-sm btn-outline-danger"
            onclick="return confirm('Excluir este produto?');">
@@ -137,57 +129,4 @@
   <p class="text-center text-muted">Nenhum produto encontrado.</p>
   {% endfor %}
 </div>
-
-<!-- Toast para feedback -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-  <div id="toastCopia" class="toast align-items-center text-bg-success border-0" role="alert">
-    <div class="d-flex">
-      <div class="toast-body">Texto copiado para a área de transferência!</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-    </div>
-  </div>
-</div>
-
-<!-- Script WhatsApp + Copiar -->
-<script>
-document.addEventListener("click", async function(e) {
-  const btn = e.target.closest(".btn-whatsapp");
-  if (!btn) return;
-
-  const id = btn.getAttribute("data-id");
-  if (!id) return;
-
-  try {
-    const resp = await fetch(`/api/produto/${id}/whatsapp`);
-    const data = await resp.json();
-
-    if (resp.ok && data.texto) {
-      // Copiar para área de transferência
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(data.texto);
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = data.texto;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-      }
-
-      // Toast de sucesso
-      const toastEl = document.getElementById("toastCopia");
-      if (toastEl) new bootstrap.Toast(toastEl).show();
-
-    } else {
-      alert("Erro ao gerar simulação.");
-    }
-  } catch (err) {
-    console.error("Erro:", err);
-    alert("Erro ao gerar simulação.");
-  }
-});
-</script>
 {% endblock %}
