@@ -277,6 +277,7 @@ def produtos():
     produtos = query.order_by(Produto.nome.asc()).all()
     return render_template("produtos.html", produtos=produtos)
 
+
 # ---------------------------------------------------
 # API – TEXTO WHATSAPP PRODUTO
 # ---------------------------------------------------
