@@ -280,6 +280,49 @@ def produtos():
     produtos = query.order_by(Produto.nome.asc()).all()
     return render_template("produtos.html", produtos=produtos)
 
+# =========================
+# Parcelamento rápido
+# =========================
+@main.route("/parcelamento_rapido")
+@login_required
+def parcelamento_index():
+    produtos = Produto.query.all()
+    return render_template("parcelamento_index.html", produtos=produtos)
+
+@main.route("/parcelamento/<int:produto_id>")
+@login_required
+def parcelamento(produto_id):
+    produto = Produto.query.get_or_404(produto_id)
+    valor_base = produto.preco_final or produto.preco_a_vista
+
+    # taxas cadastradas
+    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+    resultado = gerar_linhas_parcelas(valor_base, taxas)
+
+    # texto whatsapp
+    linhas_txt = []
+    for r in resultado:
+        if r["rotulo"] in ["Débito", "PIX"]:
+            linhas_txt.append(f"{r['rotulo']} {br_money(r['total'])}")
+        else:
+            linhas_txt.append(f"{r['rotulo']} {br_money(r['parcela'])} = {br_money(r['total'])}")
+
+    texto_whats = (
+        f"🔫 {produto.nome}\n"
+        f"🔖 SKU: {produto.sku}\n"
+        f"💰 À vista: {br_money(valor_base)}\n\n"
+        "💳 Opções de Parcelamento:\n" +
+        "\n".join(linhas_txt) +
+        "\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio."
+    )
+
+    return render_template(
+        "parcelamento.html",
+        produto=produto,
+        resultado=resultado,
+        texto_whats=texto_whats
+    )
+
 
 # ---------------------------------------------------
 # API - TEXTO WHATSAPP PRODUTO
