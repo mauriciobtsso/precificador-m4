@@ -258,9 +258,10 @@ def produtos():
     query = Produto.query
 
     if termo:
-        like_term = f"%{termo}%"
+        termo_like = f"%{termo}%"
         query = query.filter(
-            (Produto.nome.ilike(like_term)) | (Produto.sku.ilike(like_term))
+            (Produto.nome.ilike(termo_like)) |
+            (Produto.sku.ilike(termo_like))
         )
 
     if lucro == "positivo":
@@ -277,29 +278,32 @@ def produtos():
     return render_template("produtos.html", produtos=produtos)
 
 # ---------------------------------------------------
-# API para gerar texto do WhatsApp
+# API – TEXTO WHATSAPP PRODUTO
 # ---------------------------------------------------
 @main.route("/api/produto/<int:id>/whatsapp")
 @login_required
 def produto_whatsapp(id):
-    from app.utils.parcelamento import gerar_linhas_parcelas
-
     try:
         produto = Produto.query.get_or_404(id)
 
-        # Busca taxas de parcelamento configuradas
-        taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+        from app.utils.parcelamento import gerar_linhas_parcelas
 
-        # Gera as linhas de parcelamento
+        # Busca taxas cadastradas
+        taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
         linhas = gerar_linhas_parcelas(produto.preco_a_vista, taxas)
 
-        # Compoe texto final
-        texto = compor_whatsapp(produto=produto, valor_base=produto.preco_a_vista, linhas=linhas)
+        # Monta o texto completo
+        texto = compor_whatsapp(
+            produto=produto,
+            valor_base=produto.preco_a_vista,
+            linhas=linhas
+        )
 
-        # Retorna JSON já pronto para uso no JS
         return jsonify({"texto": texto})
 
     except Exception as e:
+        import traceback
+        print("Erro produto_whatsapp:", traceback.format_exc())
         return jsonify({"erro": f"Falha ao gerar simulação: {str(e)}"}), 400
 
 @main.route("/produto/novo", methods=["GET", "POST"])
