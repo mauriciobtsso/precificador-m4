@@ -145,36 +145,55 @@ document.addEventListener("click", async function(e) {
   if (!btn) return;
 
   const id = btn.getAttribute("data-id");
+  if (!id) {
+    alert("Produto sem ID.");
+    return;
+  }
 
   try {
     const resp = await fetch(`/api/produto/${id}/whatsapp`);
+    if (!resp.ok) throw new Error("Erro HTTP " + resp.status);
+
     const data = await resp.json();
+    console.log("Resposta API:", data); // debug
 
-    if (resp.ok && data.texto) {
-      const texto = data.texto;
+    // aqui garantimos que texto vem mesmo
+    const texto = data.texto || data.Texto || null;
+    if (!texto) throw new Error("Nenhum texto retornado");
 
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(texto);
-      } else {
-        let textArea = document.createElement("textarea");
-        textArea.value = texto;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-      }
-
-      alert("Simulação copiada para área de transferência!");
+    // copiar para clipboard
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(texto);
     } else {
-      alert(data.erro || "Erro ao gerar simulação.");
+      let textArea = document.createElement("textarea");
+      textArea.value = texto;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
     }
+
+    // mostra toast
+    mostrarToast();
+
   } catch (err) {
-    console.error("Erro ao buscar simulação:", err);
+    console.error("Falha ao copiar:", err);
     alert("Erro ao gerar simulação.");
   }
 });
+
+function mostrarToast() {
+  const toastEl = document.getElementById("toastCopia");
+  if (toastEl) {
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+  } else {
+    alert("Texto copiado!");
+  }
+}
 </script>
+
 {% endblock %}
