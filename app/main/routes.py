@@ -279,33 +279,30 @@ def produtos():
 
 
 # ---------------------------------------------------
-# API – TEXTO WHATSAPP PRODUTO
+# API: Texto WhatsApp do Produto
 # ---------------------------------------------------
 @main.route("/api/produto/<int:id>/whatsapp")
 @login_required
 def produto_whatsapp(id):
+    from app.utils.parcelamento import gerar_linhas_parcelas
+
+    produto = Produto.query.get_or_404(id)
+
     try:
-        produto = Produto.query.get_or_404(id)
+        # Buscar taxas cadastradas no sistema
+        taxas = Taxa.query.all()
 
-        from app.utils.parcelamento import gerar_linhas_parcelas
-
-        # Busca taxas cadastradas
-        taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+        # Gera as linhas de parcelamento
         linhas = gerar_linhas_parcelas(produto.preco_a_vista, taxas)
 
-        # Monta o texto completo
-        texto = compor_whatsapp(
-            produto=produto,
-            valor_base=produto.preco_a_vista,
-            linhas=linhas
-        )
+        # Monta o texto final
+        texto = compor_whatsapp(produto=produto, valor_base=produto.preco_a_vista, linhas=linhas)
 
         return jsonify({"texto": texto})
 
     except Exception as e:
-        import traceback
-        print("Erro produto_whatsapp:", traceback.format_exc())
-        return jsonify({"erro": f"Falha ao gerar simulação: {str(e)}"}), 400
+        current_app.logger.error(f"Erro ao gerar WhatsApp para produto {id}: {e}")
+        return jsonify({"erro": "Falha ao gerar simulação"}), 500
 
 @main.route("/produto/novo", methods=["GET", "POST"])
 @main.route("/produto/editar/<int:produto_id>", methods=["GET", "POST"])
