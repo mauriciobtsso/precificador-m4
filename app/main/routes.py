@@ -12,8 +12,6 @@ import os
 from datetime import datetime, timedelta
 from flask import current_app, send_file
 from app.utils.gerar_pedidos import gerar_pedido_m4
-from math import pow
-from flask import jsonify
 
 # =====================================================
 # Helpers
@@ -70,14 +68,12 @@ def montar_parcelas(valor_base, taxas, modo="coeficiente_total"):
 
     return resultado
 
-# =========================
-# Função para compor texto WhatsApp
-# =========================
 def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
     base = float(valor_base or 0)
     linhas = linhas or []
 
     incluir_pix = get_config("whatsapp_incluir_pix", "1") == "1"
+    debito_percent = to_float(get_config("whatsapp_debito_percent", "1.09"), 1.09)
     prefixo = get_config("whatsapp_prefixo", "")
 
     cab = []
@@ -94,19 +90,22 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
 
     corpo = []
     if incluir_pix:
-        corpo.append(f"PIX {br_money(base)}")
+        corpo.append(f"PIX {br_money(base)} = {br_money(base)}")
+
+    if debito_percent > 0:
+        j = debito_percent / 100.0
+        coef = max(1.0 - j, 1e-9)
+        total_debito = base / coef
+        corpo.append(f"Débito {br_money(total_debito)} = {br_money(total_debito)}")
+    else:
+        corpo.append(f"Débito {br_money(base)} = {br_money(base)}")
 
     for r in linhas:
-        # Formatação especial: Débito e 1x sem " = total"
-        if r["rotulo"] in ["Débito", "1x"]:
-            corpo.append(f"{r['rotulo']} {br_money(r['total'])}")
-        else:
-            corpo.append(f"{r['rotulo']} {br_money(r['parcela'])} = {br_money(r['total'])}")
+        corpo.append(f"{r['rotulo']} {br_money(r['parcela'])} = {br_money(r['total'])}")
 
     txt = "\n".join(cab) + "\n\n" + "💳 Opções de Parcelamento:\n" + "\n".join(corpo)
     txt += "\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio."
     return txt
-
 
 def to_number(x):
     if isinstance(x, (int, float)):
@@ -247,9 +246,7 @@ def dashboard():
     )
 
 
-# ---------------------------------------------------
-# LISTAR PRODUTOS
-# ---------------------------------------------------
+# --- Produtos ---
 @main.route("/produtos")
 @login_required
 def produtos():
@@ -261,10 +258,9 @@ def produtos():
     query = Produto.query
 
     if termo:
-        termo_like = f"%{termo}%"
+        like = f"%{termo}%"
         query = query.filter(
-            (Produto.nome.ilike(termo_like)) |
-            (Produto.sku.ilike(termo_like))
+            (Produto.nome.ilike(like)) | (Produto.sku.ilike(like))
         )
 
     if lucro == "positivo":
@@ -273,77 +269,18 @@ def produtos():
         query = query.filter(Produto.lucro_liquido_real < 0)
 
     if preco_min:
-        query = query.filter(Produto.preco_a_vista >= float(preco_min))
+        try:
+            query = query.filter(Produto.preco_a_vista >= float(preco_min))
+        except:
+            pass
     if preco_max:
-        query = query.filter(Produto.preco_a_vista <= float(preco_max))
+        try:
+            query = query.filter(Produto.preco_a_vista <= float(preco_max))
+        except:
+            pass
 
-    produtos = query.order_by(Produto.nome.asc()).all()
+    produtos = query.all()
     return render_template("produtos.html", produtos=produtos)
-
-# =========================
-# Parcelamento rápido
-# =========================
-@main.route("/parcelamento_rapido")
-@login_required
-def parcelamento_index():
-    produtos = Produto.query.all()
-    return render_template("parcelamento_index.html", produtos=produtos)
-
-@main.route("/parcelamento/<int:produto_id>")
-@login_required
-def parcelamento(produto_id):
-    produto = Produto.query.get_or_404(produto_id)
-    valor_base = produto.preco_final or produto.preco_a_vista
-
-    # taxas cadastradas
-    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
-    resultado = gerar_linhas_parcelas(valor_base, taxas)
-
-    # texto whatsapp
-    linhas_txt = []
-    for r in resultado:
-        if r["rotulo"] in ["Débito", "PIX"]:
-            linhas_txt.append(f"{r['rotulo']} {br_money(r['total'])}")
-        else:
-            linhas_txt.append(f"{r['rotulo']} {br_money(r['parcela'])} = {br_money(r['total'])}")
-
-    texto_whats = (
-        f"🔫 {produto.nome}\n"
-        f"🔖 SKU: {produto.sku}\n"
-        f"💰 À vista: {br_money(valor_base)}\n\n"
-        "💳 Opções de Parcelamento:\n" +
-        "\n".join(linhas_txt) +
-        "\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio."
-    )
-
-    return render_template(
-        "parcelamento.html",
-        produto=produto,
-        resultado=resultado,
-        texto_whats=texto_whats
-    )
-
-
-# ---------------------------------------------------
-# API - TEXTO WHATSAPP PRODUTO
-# ---------------------------------------------------
-@main.route("/api/produto/<int:id>/whatsapp")
-@login_required
-def produto_whatsapp(id):
-    try:
-        produto = Produto.query.get_or_404(id)
-
-        from app.utils.parcelamento import gerar_linhas_parcelas
-        linhas = gerar_linhas_parcelas(
-            produto.preco_a_vista,
-            taxas=Taxa.query.all()
-        )
-
-        texto = compor_whatsapp(produto=produto, valor_base=produto.preco_a_vista, linhas=linhas)
-        return jsonify({"texto": texto})
-
-    except Exception as e:
-        return jsonify({"erro": f"Falha ao gerar simulação: {str(e)}"}), 400
 
 @main.route("/produto/novo", methods=["GET", "POST"])
 @main.route("/produto/editar/<int:produto_id>", methods=["GET", "POST"])
@@ -544,33 +481,35 @@ def parcelamento_index():
     produtos = Produto.query.order_by(Produto.nome).all()
     return render_template("parcelamento_index.html", produtos=produtos)
 
-# ---------------------------------------------------
-# PARCELAMENTO DO PRODUTO
-# ---------------------------------------------------
 @main.route("/parcelamento/<int:produto_id>")
 @login_required
 def parcelamento(produto_id):
     produto = Produto.query.get_or_404(produto_id)
-
-    valor_base = produto.preco_final or produto.preco_a_vista
-
-    # Busca todas as taxas, incluindo a 0x (Débito)
     taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
-    resultado = gerar_linhas_parcelas(valor_base, taxas)
 
-    # Monta o texto para WhatsApp com PIX + taxas
-    texto_whats = compor_whatsapp(
-        produto=produto,
-        valor_base=valor_base,
-        linhas=resultado
-    )
+    valor_base = produto.preco_final or produto.preco_a_vista or 0.0
+    taxas_planos = [t for t in taxas if (t.numero_parcelas or 0) >= 1]
+    resultado = montar_parcelas(valor_base, taxas_planos, modo="coeficiente_total")
 
-    return render_template(
-        "parcelamento.html",
-        produto=produto,
-        resultado=resultado,
-        texto_whats=texto_whats
-    )
+    texto_whats = compor_whatsapp(produto=produto, valor_base=valor_base, linhas=resultado)
+
+    return render_template("parcelamento.html", produto=produto, resultado=resultado, texto_whats=texto_whats)
+
+@main.route("/parcelamento/rapido", methods=["GET", "POST"])
+@login_required
+def parcelamento_rapido():
+    resultado = []
+    preco_base = None
+    texto_whats = ""
+
+    if request.method == "POST":
+        preco_base = to_float(request.form.get("preco_base"))
+        taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+        taxas_planos = [t for t in taxas if (t.numero_parcelas or 0) >= 1]
+        resultado = montar_parcelas(preco_base, taxas_planos, modo="coeficiente_total")
+        texto_whats = compor_whatsapp(produto=None, valor_base=preco_base, linhas=resultado)
+
+    return render_template("parcelamento_rapido.html", resultado=resultado, preco_base=preco_base, texto_whats=texto_whats)
 
 # --- Configurações ---
 @main.route("/configuracoes")

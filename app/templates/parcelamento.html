@@ -20,18 +20,37 @@
 
 <!-- Tabela de Parcelamento em Cards -->
 <div class="row g-3">
+  <!-- PIX -->
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm h-100 text-center card-parcela">
+      <div class="card-body">
+        <span class="badge bg-success mb-2">PIX</span>
+        <h5 class="fw-bold">{{ (produto.preco_final or produto.preco_a_vista)|currency }}</h5>
+        <small class="text-muted">Total: {{ (produto.preco_final or produto.preco_a_vista)|currency }}</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Débito -->
+  {% set debito_total = (produto.preco_final or produto.preco_a_vista) / (1 - 0.0109) %}
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm h-100 text-center card-parcela">
+      <div class="card-body">
+        <span class="badge bg-info mb-2">Débito</span>
+        <h5 class="fw-bold">{{ debito_total|currency }}</h5>
+        <small class="text-muted">Total: {{ debito_total|currency }}</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Demais planos -->
   {% for r in resultado %}
   <div class="col-12 col-md-4">
     <div class="card shadow-sm h-100 text-center card-parcela">
       <div class="card-body">
         <span class="badge bg-secondary mb-2">{{ r.rotulo }}</span>
-        {% if r.rotulo in ["Débito", "PIX"] %}
-          <h5 class="fw-bold">{{ r.total|currency }}</h5>
-          <small class="text-muted">Total: {{ r.total|currency }}</small>
-        {% else %}
-          <h5 class="fw-bold">{{ r.parcela|currency }}</h5>
-          <small class="text-muted">Total: {{ r.total|currency }}</small>
-        {% endif %}
+        <h5 class="fw-bold">{{ r.parcela|currency }}</h5>
+        <small class="text-muted">Total: {{ r.total|currency }}</small>
       </div>
     </div>
   </div>
