@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 from flask import current_app, send_file
 from app.utils.gerar_pedidos import gerar_pedido_m4
 from flask import jsonify
+from app.utils.parcelamento import gerar_linhas_parcelas
+
 
 # =====================================================
 # Helpers
@@ -69,12 +71,13 @@ def montar_parcelas(valor_base, taxas, modo="coeficiente_total"):
 
     return resultado
 
+# =========================
+# Função compor_whatsapp
+# =========================
 def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
     base = float(valor_base or 0)
     linhas = linhas or []
 
-    incluir_pix = get_config("whatsapp_incluir_pix", "1") == "1"
-    debito_percent = to_float(get_config("whatsapp_debito_percent", "1.09"), 1.09)
     prefixo = get_config("whatsapp_prefixo", "")
 
     cab = []
@@ -90,19 +93,22 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
         cab.append(f"💰 À vista: {br_money(base)}")
 
     corpo = []
-    if incluir_pix:
-        corpo.append(f"PIX {br_money(base)} = {br_money(base)}")
 
-    if debito_percent > 0:
-        j = debito_percent / 100.0
-        coef = max(1.0 - j, 1e-9)
-        total_debito = base / coef
-        corpo.append(f"Débito {br_money(total_debito)} = {br_money(total_debito)}")
-    else:
-        corpo.append(f"Débito {br_money(base)} = {br_money(base)}")
+    # ✅ PIX sempre fixo
+    corpo.append(f"PIX {br_money(base)}")
 
+    # ✅ percorre as linhas das taxas, mas ignora Pix duplicado
     for r in linhas:
-        corpo.append(f"{r['rotulo']} {br_money(r['parcela'])} = {br_money(r['total'])}")
+        rotulo = r["rotulo"]
+
+        if rotulo.lower() == "pix":
+            continue  # já adicionamos acima
+
+        if rotulo.lower() == "débito":
+            # Débito mostra só o total (sem repetir =)
+            corpo.append(f"Débito {br_money(r['total'])}")
+        else:
+            corpo.append(f"{rotulo} {br_money(r['parcela'])} = {br_money(r['total'])}")
 
     txt = "\n".join(cab) + "\n\n" + "💳 Opções de Parcelamento:\n" + "\n".join(corpo)
     txt += "\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio."
@@ -1161,28 +1167,28 @@ def excluir_pedido(id):
     flash("Pedido excluído com sucesso!", "success")
     return redirect(url_for("main.listar_pedidos"))
 
+# =========================
+# API WhatsApp (Produto)
+# =========================
 @main.route("/api/produto/<int:produto_id>/whatsapp")
 @login_required
 def api_produto_whatsapp(produto_id):
-    """
-    Endpoint da API que retorna o texto completo da simulação para o WhatsApp.
-    """
     try:
         produto = Produto.query.get_or_404(produto_id)
         taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
 
         valor_base = produto.preco_final or produto.preco_a_vista or 0.0
-        # Gera parcelamento com base nas taxas cadastradas
-        resultado = montar_parcelas(valor_base, taxas, modo="coeficiente_total")
 
-        # Usa a função já existente para compor a mensagem
+        # ✅ gera linhas do parcelamento (Débito = 0x, 1x, 2x...)
+        linhas = gerar_linhas_parcelas(valor_base, taxas)
+
+        # ✅ monta a mensagem formatada
         texto_whats = compor_whatsapp(
             produto=produto,
             valor_base=valor_base,
-            linhas=resultado
+            linhas=linhas
         )
 
         return jsonify({"texto_completo": texto_whats})
-
     except Exception as e:
         return jsonify({"erro": f"Falha ao gerar simulação: {str(e)}"}), 400

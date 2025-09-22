@@ -33,7 +33,7 @@ def gerar_linhas_parcelas(valor_base: float, taxas: Iterable) -> List[Dict[str, 
         #   1x = Crédito à vista
         #   2x ou mais = normal
         if n == 0:
-            rotulo = "Débito"
+            rotulo = "Débito" if n == 0 else f"{n}x"
         elif n == 1:
             rotulo = "1x"
         else:
