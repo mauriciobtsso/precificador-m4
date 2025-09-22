@@ -80,11 +80,9 @@
               </a>
               <button type="button" 
                       class="btn btn-outline-success btn-sm btn-whatsapp" 
-                      data-produto-id="{{ produto.id }}"
                       data-nome="{{ produto.nome }}"
                       data-sku="{{ produto.sku }}"
-                      data-preco="{{ produto.preco_a_vista|currency }}"
-                      title="Gerar simulação e copiar">
+                      data-preco="{{ produto.preco_a_vista|currency }}">
                 <i class="fab fa-whatsapp"></i>
               </button>
               <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}" 
@@ -110,14 +108,10 @@
   {% for produto in produtos %}
   <div class="card-item mb-3 p-2 border rounded shadow-sm">
     <h6>{{ produto.nome }}</h6>
-    <small>SKU: {{ produto.sku }}</small>  
-
-    <small>Fornecedor: {{ produto.preco_fornecedor|currency }}</small>  
-
-    <small>Custo: {{ produto.custo_total|currency }}</small>  
-
-    <small class="fw-bold text-primary">À vista: {{ produto.preco_a_vista|currency }}</small>  
-
+    <small>SKU: {{ produto.sku }}</small><br>
+    <small>Fornecedor: {{ produto.preco_fornecedor|currency }}</small><br>
+    <small>Custo: {{ produto.custo_total|currency }}</small><br>
+    <small class="fw-bold text-primary">À vista: {{ produto.preco_a_vista|currency }}</small><br>
     <small class="{% if produto.lucro_liquido_real >= 0 %}text-success{% else %}text-danger{% endif %}">
       Lucro: {{ produto.lucro_liquido_real|currency }}
     </small>
@@ -131,11 +125,9 @@
       </a>
       <button type="button" 
               class="btn btn-sm btn-outline-success btn-whatsapp"
-              data-produto-id="{{ produto.id }}"
               data-nome="{{ produto.nome }}"
               data-sku="{{ produto.sku }}"
-              data-preco="{{ produto.preco_a_vista|currency }}"
-              title="Gerar simulação e copiar">
+              data-preco="{{ produto.preco_a_vista|currency }}">
         <i class="fab fa-whatsapp"></i>
       </button>
       <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}" 
@@ -148,85 +140,36 @@
   {% endfor %}
 </div>
 
-<!-- Script WhatsApp + Copiar (Corrigido para iOS/Safari) -->
+<!-- Script WhatsApp + Copiar -->
 <script>
-document.addEventListener("click", async function(e) {
-    // Garante que o alvo é o botão ou um ícone dentro dele
-    const btn = e.target.closest(".btn-whatsapp");
-    if (!btn) return;
+document.addEventListener("click", function(e) {
+  const btn = e.target.closest(".btn-whatsapp");
+  if (!btn) return;
 
-    e.preventDefault(); // Impede qualquer comportamento padrão do botão
+  const nome = btn.getAttribute("data-nome");
+  const sku = btn.getAttribute("data-sku");
+  const preco = btn.getAttribute("data-preco");
 
-    const textoJaCarregado = btn.getAttribute("data-texto-completo");
+  const texto = `🔫 ${nome}\n🔖 SKU: ${sku}\n💰 À vista: ${preco}\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio.`;
 
-    // --- ETAPA 2: O texto já foi buscado. Agora vamos copiar. ---
-    if (textoJaCarregado) {
-        try {
-            // Tenta copiar para a área de transferência
-            await navigator.clipboard.writeText(textoJaCarregado);
-            
-            // Feedback visual de sucesso
-            const originalIconHTML = '<i class="fab fa-whatsapp"></i>'; // Guarda o ícone original
-            btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
-            btn.classList.remove("btn-outline-success");
-            btn.classList.add("btn-success");
+  // Abrir direto no WhatsApp
+  const url = "https://wa.me/?text=" + encodeURIComponent(texto);
+  window.open(url, "_blank");
 
-            // Abre o WhatsApp em uma nova aba
-            const url = "https://wa.me/?text=" + encodeURIComponent(textoJaCarregado );
-            window.open(url, "_blank");
-
-            // Reseta o botão após 2.5 segundos
-            setTimeout(() => {
-                btn.innerHTML = originalIconHTML;
-                btn.classList.remove("btn-success");
-                btn.classList.add("btn-outline-success");
-                btn.removeAttribute("data-texto-completo");
-                btn.removeAttribute("data-loading");
-                btn.title = "Gerar simulação e copiar";
-            }, 2500);
-
-        } catch (err) {
-            console.error("Falha ao copiar no segundo clique:", err);
-            alert("Erro ao copiar. A permissão pode ter sido negada.");
-            // Reseta o botão em caso de falha
-            btn.removeAttribute("data-texto-completo");
-            btn.removeAttribute("data-loading");
-        }
-        return; // Finaliza a função aqui
-    }
-
-    // --- ETAPA 1: Primeiro clique. Busca o texto da simulação via API. ---
-    if (!btn.hasAttribute("data-loading")) {
-        btn.setAttribute("data-loading", "true");
-        const produtoId = btn.getAttribute("data-produto-id");
-        const originalIconHTML = btn.innerHTML;
-
-        // Feedback de carregamento
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        btn.title = "Gerando simulação...";
-
-        try {
-            const response = await fetch(`/api/produto/${produtoId}/whatsapp`);
-            if (!response.ok) {
-                throw new Error(`Erro na API: ${response.statusText}`);
-            }
-            const data = await response.json();
-            const textoParaCopiar = data.texto_completo;
-
-            // Armazena o texto completo no próprio botão
-            btn.setAttribute("data-texto-completo", textoParaCopiar);
-            
-            // Atualiza o botão para a próxima ação (copiar)
-            btn.innerHTML = '<i class="fas fa-copy"></i> Toque para Copiar';
-            btn.title = "Toque novamente para copiar e abrir o WhatsApp";
-
-        } catch (error) {
-            console.error("Erro ao buscar simulação:", error);
-            alert("Erro ao gerar simulação. Verifique o console para mais detalhes.");
-            btn.innerHTML = originalIconHTML; // Restaura em caso de erro
-            btn.removeAttribute("data-loading");
-        }
-    }
+  // Copiar fallback
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(texto);
+  } else {
+    let textArea = document.createElement("textarea");
+    textArea.value = texto;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try { document.execCommand("copy"); } catch (err) {}
+    document.body.removeChild(textArea);
+  }
 });
 </script>
 {% endblock %}

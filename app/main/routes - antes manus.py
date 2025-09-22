@@ -12,7 +12,6 @@ import os
 from datetime import datetime, timedelta
 from flask import current_app, send_file
 from app.utils.gerar_pedidos import gerar_pedido_m4
-from flask import jsonify
 
 # =====================================================
 # Helpers
@@ -1160,29 +1159,3 @@ def excluir_pedido(id):
     db.session.commit()
     flash("Pedido excluído com sucesso!", "success")
     return redirect(url_for("main.listar_pedidos"))
-
-@main.route("/api/produto/<int:produto_id>/whatsapp")
-@login_required
-def api_produto_whatsapp(produto_id):
-    """
-    Endpoint da API que retorna o texto completo da simulação para o WhatsApp.
-    """
-    try:
-        produto = Produto.query.get_or_404(produto_id)
-        taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
-
-        valor_base = produto.preco_final or produto.preco_a_vista or 0.0
-        # Gera parcelamento com base nas taxas cadastradas
-        resultado = montar_parcelas(valor_base, taxas, modo="coeficiente_total")
-
-        # Usa a função já existente para compor a mensagem
-        texto_whats = compor_whatsapp(
-            produto=produto,
-            valor_base=valor_base,
-            linhas=resultado
-        )
-
-        return jsonify({"texto_completo": texto_whats})
-
-    except Exception as e:
-        return jsonify({"erro": f"Falha ao gerar simulação: {str(e)}"}), 400
