@@ -148,60 +148,46 @@
   {% endfor %}
 </div>
 
-<!-- Script WhatsApp + Copiar (Corrigido para iOS/Safari) -->
+<!-- Script WhatsApp + Copiar com Toast -->
 <script>
 document.addEventListener("click", async function(e) {
-    // Garante que o alvo é o botão ou um ícone dentro dele
     const btn = e.target.closest(".btn-whatsapp");
     if (!btn) return;
 
-    e.preventDefault(); // Impede qualquer comportamento padrão do botão
+    e.preventDefault();
 
     const textoJaCarregado = btn.getAttribute("data-texto-completo");
 
     // --- ETAPA 2: O texto já foi buscado. Agora vamos copiar. ---
     if (textoJaCarregado) {
         try {
-            // Tenta copiar para a área de transferência
             await navigator.clipboard.writeText(textoJaCarregado);
-            
-            // Feedback visual de sucesso
-            const originalIconHTML = '<i class="fab fa-whatsapp"></i>'; // Guarda o ícone original
-            btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
-            btn.classList.remove("btn-outline-success");
-            btn.classList.add("btn-success");
 
-            // Abre o WhatsApp em uma nova aba
-            const url = "https://wa.me/?text=" + encodeURIComponent(textoJaCarregado );
-            window.open(url, "_blank");
+            // Mostra o toast de sucesso
+            const toastEl = document.getElementById("toast-copy");
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
 
-            // Reseta o botão após 2.5 segundos
-            setTimeout(() => {
-                btn.innerHTML = originalIconHTML;
-                btn.classList.remove("btn-success");
-                btn.classList.add("btn-outline-success");
-                btn.removeAttribute("data-texto-completo");
-                btn.removeAttribute("data-loading");
-                btn.title = "Gerar simulação e copiar";
-            }, 2500);
+            // Reseta o botão para permitir nova busca
+            btn.removeAttribute("data-texto-completo");
+            btn.removeAttribute("data-loading");
+            btn.title = "Gerar simulação e copiar";
 
         } catch (err) {
-            console.error("Falha ao copiar no segundo clique:", err);
+            console.error("Falha ao copiar:", err);
             alert("Erro ao copiar. A permissão pode ter sido negada.");
-            // Reseta o botão em caso de falha
             btn.removeAttribute("data-texto-completo");
             btn.removeAttribute("data-loading");
         }
-        return; // Finaliza a função aqui
+        return;
     }
 
-    // --- ETAPA 1: Primeiro clique. Busca o texto da simulação via API. ---
+    // --- ETAPA 1: Busca do texto ---
     if (!btn.hasAttribute("data-loading")) {
         btn.setAttribute("data-loading", "true");
         const produtoId = btn.getAttribute("data-produto-id");
         const originalIconHTML = btn.innerHTML;
 
-        // Feedback de carregamento
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         btn.title = "Gerando simulação...";
 
@@ -213,17 +199,14 @@ document.addEventListener("click", async function(e) {
             const data = await response.json();
             const textoParaCopiar = data.texto_completo;
 
-            // Armazena o texto completo no próprio botão
             btn.setAttribute("data-texto-completo", textoParaCopiar);
-            
-            // Atualiza o botão para a próxima ação (copiar)
             btn.innerHTML = '<i class="fas fa-copy"></i> Toque para Copiar';
-            btn.title = "Toque novamente para copiar e abrir o WhatsApp";
+            btn.title = "Toque novamente para copiar o texto";
 
         } catch (error) {
             console.error("Erro ao buscar simulação:", error);
-            alert("Erro ao gerar simulação. Verifique o console para mais detalhes.");
-            btn.innerHTML = originalIconHTML; // Restaura em caso de erro
+            alert("Erro ao gerar simulação.");
+            btn.innerHTML = originalIconHTML;
             btn.removeAttribute("data-loading");
         }
     }
