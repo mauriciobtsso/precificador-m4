@@ -106,46 +106,50 @@
 </div>
 
 <!-- Cards (mobile) -->
-<div class="card-list d-md-none">
-  {% for produto in produtos %}
-  <div class="card-item mb-3 p-2 border rounded shadow-sm">
-    <h6>{{ produto.nome }}</h6>
-    <small>SKU: {{ produto.sku }}</small>  
+<div class="d-block d-md-none">
+  <div class="row g-3">
+    {% for produto in produtos %}
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">{{ produto.nome }}</h5>
+          <p class="card-text mb-1"><strong>SKU:</strong> {{ produto.sku }}</p>
+          <p class="card-text mb-1"><strong>Fornecedor:</strong> {{ produto.preco_fornecedor|currency }}</p>
+          <p class="card-text mb-1"><strong>Custo:</strong> {{ produto.custo_total|currency }}</p>
+          <p class="card-text mb-1 text-primary"><strong>À vista:</strong> {{ produto.preco_a_vista|currency }}</p>
+          <p class="card-text mb-2 {% if produto.lucro_liquido_real >= 0 %}text-success{% else %}text-danger{% endif %}">
+            <strong>Lucro:</strong> {{ produto.lucro_liquido_real|currency }}
+          </p>
 
-    <small>Fornecedor: {{ produto.preco_fornecedor|currency }}</small>  
-
-    <small>Custo: {{ produto.custo_total|currency }}</small>  
-
-    <small class="fw-bold text-primary">À vista: {{ produto.preco_a_vista|currency }}</small>  
-
-    <small class="{% if produto.lucro_liquido_real >= 0 %}text-success{% else %}text-danger{% endif %}">
-      Lucro: {{ produto.lucro_liquido_real|currency }}
-    </small>
-
-    <div class="d-flex justify-content-around mt-2">
-      <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}" class="btn btn-sm btn-outline-info">
-        <i class="fas fa-credit-card"></i>
-      </a>
-      <a href="{{ url_for('main.gerenciar_produto', produto_id=produto.id) }}" class="btn btn-sm btn-outline-warning">
-        <i class="fas fa-edit"></i>
-      </a>
-      <button type="button" 
-              class="btn btn-sm btn-outline-success btn-whatsapp"
-              data-produto-id="{{ produto.id }}"
-              data-nome="{{ produto.nome }}"
-              data-sku="{{ produto.sku }}"
-              data-preco="{{ produto.preco_a_vista|currency }}"
-              title="Gerar simulação e copiar">
-        <i class="fab fa-whatsapp"></i>
-      </button>
-      <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}" 
-         class="btn btn-sm btn-outline-danger"
-         onclick="return confirm('Excluir este produto?');">
-        <i class="fas fa-trash"></i>
-      </a>
+          <div class="d-flex gap-2">
+            <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}" 
+               class="btn btn-sm btn-info flex-fill">
+              <i class="fas fa-credit-card"></i>
+            </a>
+            <a href="{{ url_for('main.gerenciar_produto', produto_id=produto.id) }}" 
+               class="btn btn-sm btn-warning flex-fill">
+              <i class="fas fa-edit"></i>
+            </a>
+            <button type="button" 
+                    class="btn btn-sm btn-success flex-fill btn-whatsapp"
+                    data-produto-id="{{ produto.id }}"
+                    data-nome="{{ produto.nome }}"
+                    data-sku="{{ produto.sku }}"
+                    data-preco="{{ produto.preco_a_vista|currency }}"
+                    title="Gerar simulação e copiar">
+              <i class="fab fa-whatsapp"></i>
+            </button>
+            <a href="{{ url_for('main.excluir_produto', produto_id=produto.id) }}" 
+               class="btn btn-sm btn-danger flex-fill"
+               onclick="return confirm('Excluir este produto?');">
+              <i class="fas fa-trash"></i>
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
+    {% endfor %}
   </div>
-  {% endfor %}
 </div>
 
 <!-- Script WhatsApp + Copiar com Toast -->
