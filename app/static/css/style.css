@@ -709,5 +709,14 @@ body {
     }
 }
 
+/* ===== Carrossel Mobile - Indicadores ===== */
+.d-md-none .d-flex.flex-nowrap {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+}
+
+.d-md-none .d-flex.flex-nowrap .card {
+    scroll-snap-align: start;
+}
 
 
