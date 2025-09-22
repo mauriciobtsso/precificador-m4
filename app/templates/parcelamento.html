@@ -65,10 +65,24 @@
 
 <script>
   const textoWhats = {{ texto_whats|tojson|safe }};
+
   document.getElementById('btnCopy').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(textoWhats);
-      alert('Texto copiado! Abra o WhatsApp e cole a mensagem.');
+
+      // feedback visual simples
+      const btn = document.getElementById('btnCopy');
+      const original = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+      btn.classList.remove('btn-success');
+      btn.classList.add('btn-primary');
+
+      setTimeout(() => {
+        btn.innerHTML = original;
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-success');
+      }, 2000);
+
     } catch (e) {
       console.error(e);
       alert('Não foi possível copiar. Tente novamente.');

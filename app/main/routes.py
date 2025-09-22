@@ -13,7 +13,8 @@ from datetime import datetime, timedelta
 from flask import current_app, send_file
 from app.utils.gerar_pedidos import gerar_pedido_m4
 from flask import jsonify
-from app.utils.parcelamento import gerar_linhas_parcelas
+import app.utils.parcelamento as parc
+from app.utils.whatsapp import gerar_mensagem_whatsapp
 
 
 # =====================================================
@@ -495,12 +496,16 @@ def parcelamento(produto_id):
     taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
 
     valor_base = produto.preco_final or produto.preco_a_vista or 0.0
-    taxas_planos = [t for t in taxas if (t.numero_parcelas or 0) >= 1]
-    resultado = montar_parcelas(valor_base, taxas_planos, modo="coeficiente_total")
+    linhas = parc.gerar_linhas_parcelas(valor_base, taxas)
 
-    texto_whats = compor_whatsapp(produto=produto, valor_base=valor_base, linhas=resultado)
+    texto_whats = gerar_mensagem_whatsapp(produto, valor_base, linhas)
 
-    return render_template("parcelamento.html", produto=produto, resultado=resultado, texto_whats=texto_whats)
+    return render_template(
+        "parcelamento.html",
+        produto=produto,
+        resultado=linhas,
+        texto_whats=texto_whats
+    )
 
 @main.route("/parcelamento/rapido", methods=["GET", "POST"])
 @login_required
@@ -512,11 +517,16 @@ def parcelamento_rapido():
     if request.method == "POST":
         preco_base = to_float(request.form.get("preco_base"))
         taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
-        taxas_planos = [t for t in taxas if (t.numero_parcelas or 0) >= 1]
-        resultado = montar_parcelas(preco_base, taxas_planos, modo="coeficiente_total")
-        texto_whats = compor_whatsapp(produto=None, valor_base=preco_base, linhas=resultado)
 
-    return render_template("parcelamento_rapido.html", resultado=resultado, preco_base=preco_base, texto_whats=texto_whats)
+        resultado = parc.gerar_linhas_parcelas(preco_base, taxas)
+        texto_whats = gerar_mensagem_whatsapp(None, preco_base, resultado)
+
+    return render_template(
+        "parcelamento_rapido.html",
+        resultado=resultado,
+        preco_base=preco_base,
+        texto_whats=texto_whats
+    )
 
 # --- Configurações ---
 @main.route("/configuracoes")
@@ -1173,22 +1183,12 @@ def excluir_pedido(id):
 @main.route("/api/produto/<int:produto_id>/whatsapp")
 @login_required
 def api_produto_whatsapp(produto_id):
-    try:
-        produto = Produto.query.get_or_404(produto_id)
-        taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+    produto = Produto.query.get_or_404(produto_id)
+    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
 
-        valor_base = produto.preco_final or produto.preco_a_vista or 0.0
+    valor_base = produto.preco_final or produto.preco_a_vista or 0.0
+    linhas = parc.gerar_linhas_parcelas(valor_base, taxas)
 
-        # ✅ gera linhas do parcelamento (Débito = 0x, 1x, 2x...)
-        linhas = gerar_linhas_parcelas(valor_base, taxas)
+    texto_whats = gerar_mensagem_whatsapp(produto, valor_base, linhas)
 
-        # ✅ monta a mensagem formatada
-        texto_whats = compor_whatsapp(
-            produto=produto,
-            valor_base=valor_base,
-            linhas=linhas
-        )
-
-        return jsonify({"texto_completo": texto_whats})
-    except Exception as e:
-        return jsonify({"erro": f"Falha ao gerar simulação: {str(e)}"}), 400
+    return jsonify({"texto_completo": texto_whats})

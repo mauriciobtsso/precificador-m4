@@ -11,6 +11,13 @@ def gerar_linhas_parcelas(valor_base: float, taxas: Iterable) -> List[Dict[str, 
     base = float(valor_base or 0.0)
     linhas: List[Dict[str, float]] = []
 
+    # --- PIX fixo (sempre o valor à vista) ---
+    linhas.append({
+        "rotulo": "PIX",
+        "parcela": base,
+        "total": base
+    })
+
     # Ordena pelas parcelas
     taxas_ordenadas = sorted(
         list(taxas),
@@ -28,12 +35,9 @@ def gerar_linhas_parcelas(valor_base: float, taxas: Iterable) -> List[Dict[str, 
         total = base / coef
         parcela = total / (n if n > 0 else 1)
 
-        # Rótulo:
-        #   0x = Débito
-        #   1x = Crédito à vista
-        #   2x ou mais = normal
+        # Rótulos
         if n == 0:
-            rotulo = "Débito" if n == 0 else f"{n}x"
+            rotulo = "Débito"
         elif n == 1:
             rotulo = "1x"
         else:
