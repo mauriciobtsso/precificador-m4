@@ -45,7 +45,7 @@ class Produto(db.Model):
 
     # Tributos
     ipi = db.Column(db.Float, default=0.0)
-    ipi_tipo = db.Column(db.String(2), default="%")  # "%" ou "R$"
+    ipi_tipo = db.Column(db.String(15), default="%_dentro")  # "%_dentro", "%", "R$"
     difal = db.Column(db.Float, default=0.0)
     imposto_venda = db.Column(db.Float, default=0.0)  # Simples Nacional (%)
 
@@ -60,25 +60,34 @@ class Produto(db.Model):
     # Método de cálculo
     # =========================
     def calcular_precos(self):
-        base = (self.preco_fornecedor or 0.0) * (1 - (self.desconto_fornecedor or 0.0) / 100.0)
+        preco_compra = self.preco_fornecedor or 0.0
+        desconto = (self.desconto_fornecedor or 0.0) / 100.0
+        base = preco_compra * (1 - desconto)
 
-        # IPI
-        if (self.ipi_tipo or "%") == "%":
+        # ===== IPI =====
+        if self.ipi_tipo == "%_dentro":
+            base_sem_ipi = base / (1 + (self.ipi or 0.0) / 100.0)
+            self.valor_ipi = base - base_sem_ipi
+        elif self.ipi_tipo == "%":
             self.valor_ipi = base * (self.ipi or 0.0) / 100.0
-        else:
-            self.valor_ipi = (self.ipi or 0.0)
+        else:  # "R$"
+            self.valor_ipi = self.ipi or 0.0
 
-        base_difal = max(base - (self.valor_ipi or 0.0), 0.0)
+        # ===== DIFAL =====
+        frete_valor = float(self.frete) if self.frete else 0.0
+        base_difal = max(base - (self.valor_ipi or 0.0) + frete_valor, 0.0)
         self.valor_difal = base_difal * (self.difal or 0.0) / 100.0
 
-        # 🔹 Inclui o frete no custo
-        frete_valor = float(self.frete) if self.frete else 0.0
+        # ===== Custo total =====
         self.custo_total = base + self.valor_difal + frete_valor
 
         preco_sugerido = self.custo_total
         imposto = (self.imposto_venda or 0.0) / 100.0
 
-        if (self.lucro_alvo is not None) and (self.lucro_alvo > 0):
+        # ===== Objetivos =====
+        if (self.preco_final is not None) and (self.preco_final > 0):
+            preco_sugerido = self.preco_final
+        elif (self.lucro_alvo is not None) and (self.lucro_alvo > 0):
             if 1.0 - imposto <= 0:
                 preco_sugerido = self.custo_total + (self.lucro_alvo or 0.0)
             else:

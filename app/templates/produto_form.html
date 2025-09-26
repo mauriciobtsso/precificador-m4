@@ -56,31 +56,39 @@
     </div>
   </div>
 
-  <!-- Desconto fornecedor (%) -->
-  <div class="col-md-4">
-    <label class="form-label">Desconto fornecedor (%)</label>
-    <div class="input-group">
-      <span class="input-group-text"><i class="fas fa-percent"></i></span>
-      <input
-        type="number" name="desconto_fornecedor" id="in_desconto"
-        class="form-control" step="0.01" min="0" placeholder="0,00"
-        value="{{ produto.desconto_fornecedor if produto else '' }}">
-    </div>
+<!-- Desconto fornecedor (%) -->
+<div class="col-md-4">
+  <label class="form-label">Desconto fornecedor (%)</label>
+  <div class="input-group">
+    <span class="input-group-text"><i class="fas fa-percent"></i></span>
+    <input
+      type="number" name="desconto_fornecedor" id="in_desconto"
+      class="form-control" step="0.01" min="0" placeholder="0,00"
+      value="{{ produto.desconto_fornecedor if produto else '' }}">
   </div>
+ <div class="form-text text-muted">
+  Atual: <span id="out_desconto">
+    {% if produto %}
+      {{ (produto.preco_fornecedor or 0) * (1 - (produto.desconto_fornecedor or 0)/100) | currency }}
+    {% else %}
+      R$ 0,00
+    {% endif %}
+  </span>
+</div>
+</div>
 
-  <!-- Frete (R$) -->
-  <div class="col-md-4">
-    <label class="form-label">Frete (R$)</label>
-    <div class="input-group">
-      <span class="input-group-text"><i class="fas fa-truck"></i></span>
-      <input
-        type="text" name="frete" id="in_frete"
-        class="form-control" inputmode="decimal"
-        value="{{ produto.frete if produto else '' }}">
-    </div>
-    <div class="form-text text-muted">
-      Digitado: <span id="out_frete">{{ produto.frete|currency if produto else 'R$ 0,00' }}</span>
-    </div>
+<!-- Frete (R$) -->
+<div class="col-md-4">
+  <label class="form-label">Frete (R$)</label>
+  <div class="input-group">
+    <span class="input-group-text"><i class="fas fa-truck"></i></span>
+    <input
+      type="text" name="frete" id="in_frete"
+      class="form-control"
+      value="{{ produto.frete if produto else '' }}">
+  </div>
+  <div class="form-text text-muted">
+    Atual: <span id="out_frete">{{ produto.frete|currency if produto else 'R$ 0,00' }}</span>
   </div>
 </div>
 	  <!-- OBJETIVOS -->
@@ -137,23 +145,33 @@
   <div class="card-body">
     <div class="row g-3">
 
-      <!-- IPI -->
-      <div class="col-md-3">
-        <label class="form-label">IPI (valor)</label>
-        <div class="input-group">
-          <select name="ipi_tipo" id="in_ipi_tipo" class="form-select" style="max-width: 80px;">
-            <option value="%" {% if produto and produto.ipi_tipo == "%" %}selected{% endif %}>%</option>
-            <option value="R$" {% if produto and produto.ipi_tipo == "R$" %}selected{% endif %}>R$</option>
-          </select>
-          <input
-            type="number" step="0.01" name="ipi" id="in_ipi"
-            class="form-control"
-            value="{{ produto.ipi if produto else '' }}">
-        </div>
-        <div class="form-text text-muted">
-          Atual: <span id="out_ipi">{{ produto.valor_ipi|currency if produto else 'R$ 0,00' }}</span>
-        </div>
-      </div>
+    <!-- IPI -->
+<div class="col-md-3">
+  <label class="form-label">IPI (valor)</label>
+  <div class="input-group">
+    <select name="ipi_tipo" id="in_ipi_tipo" class="form-select" style="max-width: 190px;"> <!-- 🔹 largura maior -->
+      <option value="%_dentro"
+        {% if (produto and produto.ipi_tipo == "%_dentro") or not produto %}selected{% endif %}>
+        % (embutido)
+      </option>
+      <option value="%"
+        {% if produto and produto.ipi_tipo == "%" %}selected{% endif %}>
+        % (por fora)
+      </option>
+      <option value="R$"
+        {% if produto and produto.ipi_tipo == "R$" %}selected{% endif %}>
+        R$ (fixo)
+      </option>
+    </select>
+    <input
+      type="number" step="0.01" name="ipi" id="in_ipi"
+      class="form-control"
+      value="{{ produto.ipi if produto else '' }}">
+  </div>
+  <div class="form-text text-muted">
+    Atual: <span id="out_ipi">{{ produto.valor_ipi|currency if produto else 'R$ 0,00' }}</span>
+  </div>
+</div>
 
       <!-- DIFAL -->
       <div class="col-md-3">
@@ -273,22 +291,37 @@
     const difal         = num('in_difal');
     const ipiValor      = num('in_ipi');
     const ipiTipo       = el('in_ipi_tipo').value;
-    const frete         = getAN(anFrete); // 🔹 novo
+    const frete         = getAN(anFrete);
 
     const lucroAlvo     = getAN(anLucroAlvo);
     let   precoFinal    = getAN(anPrecoFinal);
 
+    // Valor final após aplicar desconto sobre o preço fornecedor
+    const valorComDesconto = precoCompra * (1 - (descFornecedor/100));
+
+    // Atualiza os campos "Atual" em tempo real
+    if (el('out_desconto')) el('out_desconto').textContent = (descFornecedor || 0).toFixed(2) + '%';
+    if (el('out_frete')) el('out_frete').textContent = brl.format(frete);
+
     // 1) Base com desconto
     const base = precoCompra * (1 - (descFornecedor/100));
 
-    // 2) IPI
-    const valorIPI = (ipiTipo === 'R$') ? ipiValor : (base * (ipiValor/100));
+    // 2) IPI (3 modos: %_dentro, %, R$)
+    let valorIPI = 0;
+    if (ipiTipo === '%_dentro') {
+      const baseSemIPI = base / (1 + (ipiValor/100));
+      valorIPI = base - baseSemIPI;
+    } else if (ipiTipo === '%') {
+      valorIPI = base * (ipiValor/100);
+    } else {
+      valorIPI = ipiValor;
+    }
 
     // 3) DIFAL
-    const baseDifal  = Math.max(base - valorIPI + frete, 0); // 🔹 inclui frete
+    const baseDifal  = Math.max(base - valorIPI + frete, 0);
     const valorDifal = baseDifal * (difal/100);
 
-    // 4) Custo total
+    // 4) Custo total (inclui frete)
     const custoTotal = base + valorDifal + frete;
 
     // 5) Preço sugerido
