@@ -1,37 +1,27 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from flask_migrate import Migrate
 from jinja2.runtime import Undefined
-from config import Config
 from sqlalchemy import inspect
+from config import Config
 
-# Configuração extra para estabilidade de conexão
-db = SQLAlchemy(engine_options={
-    "pool_pre_ping": True,      # testa conexão antes de usar
-    "pool_recycle": 280,        # recicla conexões após 280s
-    "pool_size": 5,             # conexões simultâneas no pool
-    "max_overflow": 10          # conexões extras se necessário
-})
-
-login_manager = LoginManager()
-migrate = Migrate()
-
+# Importa extensões
+from app.extensions import db, login_manager, migrate
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # Inicializa extensões
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "main.login"
     migrate.init_app(app, db)
 
-    # -------------------------
-    # Registrar blueprint
-    # -------------------------
+    # Registrar blueprints
     from app.main import main
     app.register_blueprint(main)
+
+    from app.clientes.routes import clientes_bp
+    app.register_blueprint(clientes_bp, url_prefix="/clientes")
 
     # -------------------------
     # Filtro customizado: currency
@@ -55,7 +45,7 @@ def create_app():
     # -------------------------
     # Seed inicial (apenas se tabelas existirem)
     # -------------------------
-    from app.models import User, Taxa, Produto, Configuracao  # import tardio
+    from app.models import User, Taxa, Produto, Configuracao
 
     with app.app_context():
         inspector = inspect(db.engine)

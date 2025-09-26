@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Detalhes do Cliente</h2>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <!-- Identificação -->
+            <h5 class="card-title">Identificação</h5>
+            <p><strong>Nome:</strong> {{ cliente.nome }}</p>
+            <p><strong>Razão Social:</strong> {{ cliente.razao_social or '-' }}</p>
+            <p><strong>Sexo:</strong> 
+                {% if cliente.sexo == 'M' %} Masculino 
+                {% elif cliente.sexo == 'F' %} Feminino 
+                {% else %} - {% endif %}
+            </p>
+            <p><strong>Profissão:</strong> {{ cliente.profissao or '-' }}</p>
+            <p><strong>Documento (CPF/CNPJ):</strong> {{ cliente.documento or '-' }}</p>
+            <p><strong>RG:</strong> {{ cliente.rg or '-' }} ({{ cliente.rg_emissor or '-' }})</p>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <!-- Contato -->
+            <h5 class="card-title">Contato</h5>
+            <p><strong>Email:</strong> {{ cliente.email or '-' }}</p>
+            <p><strong>Telefone:</strong> {{ cliente.telefone or '-' }}</p>
+            <p><strong>Celular:</strong> {{ cliente.celular or '-' }}</p>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <!-- Endereço -->
+            <h5 class="card-title">Endereço</h5>
+            <p><strong>Rua:</strong> {{ cliente.endereco or '-' }}, nº {{ cliente.numero or '-' }}</p>
+            <p><strong>Complemento:</strong> {{ cliente.complemento or '-' }}</p>
+            <p><strong>Bairro:</strong> {{ cliente.bairro or '-' }}</p>
+            <p><strong>Cidade:</strong> {{ cliente.cidade or '-' }} - {{ cliente.estado or '-' }}</p>
+            <p><strong>CEP:</strong> {{ cliente.cep or '-' }}</p>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <!-- Registros -->
+            <h5 class="card-title">Registros</h5>
+            <p><strong>CR:</strong> {{ cliente.cr or '-' }} ({{ cliente.cr_emissor or '-' }})</p>
+            <p><strong>SIGMA:</strong> {{ cliente.sigma or '-' }}</p>
+            <p><strong>SINARM:</strong> {{ cliente.sinarm or '-' }}</p>
+        </div>
+    </div>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">Perfis</h5>
+        <div class="d-flex flex-wrap gap-2">
+            <span class="badge {{ 'bg-success' if cliente.cac else 'bg-secondary' }}">CAC</span>
+            <span class="badge {{ 'bg-success' if cliente.filiado else 'bg-secondary' }}">Filiado</span>
+            <span class="badge {{ 'bg-success' if cliente.policial else 'bg-secondary' }}">Policial</span>
+            <span class="badge {{ 'bg-success' if cliente.bombeiro else 'bg-secondary' }}">Bombeiro</span>
+            <span class="badge {{ 'bg-success' if cliente.militar else 'bg-secondary' }}">Militar</span>
+            <span class="badge {{ 'bg-success' if cliente.iat else 'bg-secondary' }}">IAT</span>
+            <span class="badge {{ 'bg-success' if cliente.psicologo else 'bg-secondary' }}">Psicólogo</span>
+            <span class="badge {{ 'bg-success' if cliente.sinarm else 'bg-secondary' }}">SINARM</span>
+        </div>
+    </div>
+</div>
+    <!-- Histórico de Vendas -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Histórico de Vendas</h5>
+            {% if vendas %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Data</th>
+                            <th>Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for venda in vendas %}
+                        <tr>
+                            <td>{{ venda.id }}</td>
+                            <td>{{ venda.data_abertura.strftime('%d/%m/%Y') }}</td>
+                            <td>R$ {{ '%.2f'|format(venda.valor_total) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted">Nenhuma venda registrada para este cliente.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+ <hr>
+
+<div class="d-flex justify-content-between">
+    <!-- Botão voltar -->
+    <a href="{{ url_for('clientes.lista') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+
+    <div>
+        <a href="{{ url_for('clientes.gerenciar', cliente_id=cliente.id) }}" class="btn btn-primary">
+            <i class="fas fa-edit"></i> Editar
+        </a>
+        <form action="{{ url_for('clientes.excluir', cliente_id=cliente.id) }}" method="POST" class="d-inline"
+              onsubmit="return confirm('Tem certeza que deseja excluir este cliente?');">
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Excluir
+            </button>
+        </form>
+    </div>
+</div>
+<h5>Documentos</h5>
+<form action="{{ url_for('clientes.upload_documento', cliente_id=cliente.id) }}" method="POST" enctype="multipart/form-data">
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <select name="tipo" class="form-select">
+                <option value="RG">RG</option>
+                <option value="CNH">CNH</option>
+                <option value="CR">CR</option>
+                <option value="Laudo">Laudo</option>
+                <option value="Outro">Outro</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <input type="file" name="arquivo" class="form-control" required>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary">Enviar</button>
+        </div>
+    </div>
+</form>
+
+<ul class="list-group">
+    {% for doc in cliente.documentos %}
+        <li class="list-group-item">
+            {{ doc.tipo }} - 
+            <a href="{{ doc.url }}" target="_blank">Ver documento</a>
+        </li>
+    {% else %}
+        <li class="list-group-item">Nenhum documento enviado.</li>
+    {% endfor %}
+</ul>
+<hr>
+<h5>Documentos</h5>
+{% if cliente.documentos %}
+    <ul class="list-group">
+        {% for doc in cliente.documentos %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{{ doc.caminho_arquivo }}" target="_blank">{{ doc.nome_original }}</a>
+            <form method="POST" action="{{ url_for('clientes.excluir_documento', doc_id=doc.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p class="text-muted">Nenhum documento enviado.</p>
+{% endif %}
+
+
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="fas fa-user"></i> Cliente #{{ cliente.id }}</h2>
+
+    <div class="mb-3">
+        <p><strong>Nome:</strong> {{ cliente.nome }}</p>
+        <p><strong>CPF:</strong> {{ cliente.cpf }}</p>
+        <p><strong>Data de Nascimento:</strong> {{ cliente.data_nascimento }}</p>
+    </div>
+
+    <!-- Botão de ação (corrigido para rota existente) -->
+    <a href="{{ url_for('clientes.detalhe_cliente', cliente_id=cliente.id) }}" class="btn btn-primary mb-3">
+        Atualizar Detalhes
+    </a>
+
+    <!-- Abas -->
+    <ul class="nav nav-tabs" id="clienteTabs" role="tablist">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#visao">Visão Geral</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#info">Informações</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#docs">Documentos</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#armas">Armas</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#com">Comunicações</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#proc">Processos</a></li>
+    </ul>
+
+    <div class="tab-content border p-3">
+        <div class="tab-pane fade show active" id="visao">
+            {% include "clientes/abas/visao_geral.html" %}
+        </div>
+        <div class="tab-pane fade" id="info">
+            {% include "clientes/abas/informacoes.html" %}
+        </div>
+        <div class="tab-pane fade" id="docs">
+            {% include "clientes/abas/documentos.html" %}
+        </div>
+        <div class="tab-pane fade" id="armas">
+            {% include "clientes/abas/armas.html" %}
+        </div>
+        <div class="tab-pane fade" id="com">
+            {% include "clientes/abas/comunicacoes.html" %}
+        </div>
+        <div class="tab-pane fade" id="proc">
+            {% include "clientes/abas/processos.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}

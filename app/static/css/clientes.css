@@ -1,0 +1,86 @@
+/* =========================
+   Estilos específicos para Clientes
+   ========================= */
+
+/* Espaço entre seções */
+.cliente-section {
+    margin-bottom: 2rem;
+}
+
+/* Títulos de seção */
+.cliente-section h4 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+/* Inputs mais "compactos" */
+form .form-label {
+    font-weight: 500;
+    color: #34495e;
+}
+
+form .form-control,
+form .form-select {
+    border-radius: 8px;
+    padding: 0.45rem 0.75rem;
+}
+
+/* Tabela de clientes */
+.table-clientes th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.table-clientes td {
+    vertical-align: middle;
+}
+
+.table-clientes td a.btn {
+    margin-right: 3px;
+}
+
+/* Tabela de documentos */
+.table-documentos {
+    font-size: 0.9rem;
+}
+
+.table-documentos th {
+    background: #f1f3f4;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.table-documentos td {
+    vertical-align: middle;
+}
+
+/* Botões */
+.btn-primary, .btn-success {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+}
+
+/* Upload de documentos */
+form[action*="documentos/upload"] {
+    background: #fafafa;
+    padding: 1rem;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+}
+
+form[action*="documentos/upload"] .form-label {
+    font-size: 0.9rem;
+}
+
+/* Mensagem de vazio */
+.text-muted {
+    font-style: italic;
+}

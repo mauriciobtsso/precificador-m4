@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="fas fa-user-plus"></i> Novo Cliente</h2>
+
+    <form method="POST">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Nome completo</label>
+                <input type="text" class="form-control" name="nome" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">CPF/CNPJ</label>
+                <input type="text" class="form-control" name="documento" required>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Sexo</label>
+                <select class="form-select" name="sexo">
+                    <option value="">Selecione</option>
+                    <option value="M">Masculino</option>
+                    <option value="F">Feminino</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Data de Nascimento</label>
+                <input type="date" class="form-control" name="data_nascimento">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Estado Civil</label>
+                <input type="text" class="form-control" name="estado_civil">
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Nome do Pai</label>
+                <input type="text" class="form-control" name="nome_pai">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Nome da Mãe</label>
+                <input type="text" class="form-control" name="nome_mae">
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Apelido</label>
+                <input type="text" class="form-control" name="apelido">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Naturalidade</label>
+                <input type="text" class="form-control" name="naturalidade">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Profissão</label>
+                <input type="text" class="form-control" name="profissao">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Escolaridade</label>
+                <input type="text" class="form-control" name="escolaridade">
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{{ url_for('clientes.lista') }}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

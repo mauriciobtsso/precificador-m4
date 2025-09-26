@@ -1,6 +1,19 @@
 import os
+from dotenv import load_dotenv
+
+# Carrega variáveis do .env
+load_dotenv()
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "m4-tatica-secret")
-    SQLALCHEMY_DATABASE_URI = "postgresql://neondb_owner:npg_qXEJL5vYs7Zz@ep-young-cake-ad2mlkly-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    # Segurança
+    SECRET_KEY = os.getenv("SECRET_KEY", "m4-tatica-secret")
+
+    # Banco
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Cloudflare R2
+    R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL")
+    R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
+    R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
+    R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")

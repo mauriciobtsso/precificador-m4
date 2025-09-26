@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ 'Editar Cliente' if cliente else 'Novo Cliente' }}</h2>
+    <form method="POST" action="">
+        <div class="row">
+            <!-- Identificação -->
+            <h5>Identificação</h5>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Documento (CPF/CNPJ)</label>
+                <input type="text" id="documento" name="documento" class="form-control"
+                       value="{{ cliente.documento or '' }}" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Nome</label>
+                <input type="text" name="nome" id="nome" class="form-control"
+                       value="{{ cliente.nome or '' }}" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Razão Social</label>
+                <input type="text" name="razao_social" id="razao_social" class="form-control"
+                       value="{{ cliente.razao_social or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Sexo</label>
+                <select name="sexo" class="form-select">
+                    <option value="">Selecione</option>
+                    <option value="M" {% if cliente and cliente.sexo == 'M' %}selected{% endif %}>Masculino</option>
+                    <option value="F" {% if cliente and cliente.sexo == 'F' %}selected{% endif %}>Feminino</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Profissão</label>
+                <input type="text" name="profissao" class="form-control" value="{{ cliente.profissao or '' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">RG</label>
+                <input type="text" name="rg" class="form-control" value="{{ cliente.rg or '' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Órgão Emissor</label>
+                <input type="text" name="rg_emissor" class="form-control" value="{{ cliente.rg_emissor or '' }}">
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- Contato -->
+        <h5>Contato</h5>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">E-mail</label>
+                <input type="email" name="email" id="email" class="form-control" value="{{ cliente.email or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Telefone</label>
+                <input type="text" id="telefone" name="telefone" class="form-control" value="{{ cliente.telefone or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Celular</label>
+                <input type="text" id="celular" name="celular" class="form-control" value="{{ cliente.celular or '' }}">
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- Endereço -->
+        <h5>Endereço</h5>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">CEP</label>
+                <input type="text" id="cep" name="cep" class="form-control" value="{{ cliente.cep or '' }}">
+            </div>
+            <div class="col-md-8 mb-3">
+                <label class="form-label">Rua/Logradouro</label>
+                <input type="text" name="endereco" id="endereco" class="form-control" value="{{ cliente.endereco or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Número</label>
+                <input type="text" name="numero" id="numero" class="form-control" value="{{ cliente.numero or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Complemento</label>
+                <input type="text" name="complemento" class="form-control" value="{{ cliente.complemento or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Bairro</label>
+                <input type="text" name="bairro" id="bairro" class="form-control" value="{{ cliente.bairro or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Cidade</label>
+                <input type="text" name="cidade" id="cidade" class="form-control" value="{{ cliente.cidade or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Estado</label>
+                <input type="text" name="estado" id="estado" class="form-control" value="{{ cliente.estado or '' }}">
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- Registros -->
+        <h5>Registros</h5>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">CR</label>
+                <input type="text" name="cr" class="form-control" value="{{ cliente.cr or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Órgão Emissor CR</label>
+                <input type="text" name="cr_emissor" class="form-control" value="{{ cliente.cr_emissor or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">SIGMA</label>
+                <input type="text" name="sigma" class="form-control" value="{{ cliente.sigma or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">SINARM</label>
+                <input type="text" name="sinarm" class="form-control" value="{{ cliente.sinarm or '' }}">
+            </div>
+        </div>
+
+     <hr>
+
+<!-- Perfis -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-body">
+    <h5 class="card-title">Perfis</h5>
+    <div class="row">
+      <div class="col-md-6">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="cac" name="cac" value="1" {% if cliente and cliente.cac %}checked{% endif %}>
+          <label class="form-check-label" for="cac">CAC</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="filiado" name="filiado" value="1" {% if cliente and cliente.filiado %}checked{% endif %}>
+          <label class="form-check-label" for="filiado">Filiado</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="policial" name="policial" value="1" {% if cliente and cliente.policial %}checked{% endif %}>
+          <label class="form-check-label" for="policial">Policial</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="bombeiro" name="bombeiro" value="1" {% if cliente and cliente.bombeiro %}checked{% endif %}>
+          <label class="form-check-label" for="bombeiro">Bombeiro</label>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="militar" name="militar" value="1" {% if cliente and cliente.militar %}checked{% endif %}>
+          <label class="form-check-label" for="militar">Militar</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="iat" name="iat" value="1" {% if cliente and cliente.iat %}checked{% endif %}>
+          <label class="form-check-label" for="iat">IAT</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="psicologo" name="psicologo" value="1" {% if cliente and cliente.psicologo %}checked{% endif %}>
+          <label class="form-check-label" for="psicologo">Psicólogo</label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        <hr>
+
+        <!-- Botões -->
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('clientes.lista') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Salvar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/inputmask@5.0.9/dist/inputmask.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const onlyDigits = (s) => (s || "").replace(/\D/g, "");
+
+    // Máscaras
+    if (window.Inputmask) {
+        try { Inputmask({ mask: ["999.999.999-99", "99.999.999/9999-99"], keepStatic: true }).mask("#documento"); } catch(e) {}
+        try { Inputmask({ mask: ["(99) 9999-9999", "(99) 9 9999-9999"], keepStatic: true }).mask("#telefone"); } catch(e) {}
+        try { Inputmask({ mask: ["(99) 9999-9999", "(99) 9 9999-9999"], keepStatic: true }).mask("#celular"); } catch(e) {}
+        try { Inputmask("99999-999").mask("#cep"); } catch(e) {}
+    }
+
+    // CEP
+    const cepInput = document.querySelector("#cep");
+    if (cepInput) {
+        cepInput.addEventListener("blur", function () {
+            const raw = onlyDigits(this.value);
+            if (raw.length !== 8) return;
+            fetch(`https://viacep.com.br/ws/${raw}/json/`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.erro) {
+                        document.querySelector("#endereco").value = data.logradouro || "";
+                        document.querySelector("#bairro").value   = data.bairro || "";
+                        document.querySelector("#cidade").value   = data.localidade || "";
+                        document.querySelector("#estado").value   = data.uf || "";
+                    }
+                });
+        });
+    }
+
+    // CNPJ
+    const docInput = document.querySelector("#documento");
+    if (docInput) {
+        docInput.addEventListener("blur", function () {
+            const raw = onlyDigits(this.value);
+            if (raw.length !== 14) return;
+            fetch(`{{ url_for('clientes.api_cnpj', cnpj='') }}${raw}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.status !== "ERROR") {
+                        document.querySelector("#razao_social").value = (data.nome || "").trim();
+                        document.querySelector("#nome").value = (data.fantasia || data.nome || "").trim();
+                        if (data.telefone && !document.querySelector("#telefone").value)
+                            document.querySelector("#telefone").value = data.telefone;
+                        if (data.email && !document.querySelector("#email").value)
+                            document.querySelector("#email").value = data.email;
+                    }
+                });
+        });
+    }
+});
+</script>
+{% endblock %}
