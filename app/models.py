@@ -1,5 +1,8 @@
-from app import db, login_manager
+from datetime import datetime
 from flask_login import UserMixin
+
+# Importa extensões centralizadas
+from app.extensions import db, login_manager
 
 # =========================
 # Login loader
@@ -47,34 +50,31 @@ class Produto(db.Model):
     imposto_venda = db.Column(db.Float, default=0.0)  # Simples Nacional (%)
 
     # Valores calculados
+    frete = db.Column(db.Numeric(10, 2), default=0.00)
     valor_ipi = db.Column(db.Float, default=0.0)
     valor_difal = db.Column(db.Float, default=0.0)
     preco_a_vista = db.Column(db.Float, default=0.0)
     lucro_liquido_real = db.Column(db.Float, default=0.0)
 
+    # =========================
+    # Método de cálculo
+    # =========================
     def calcular_precos(self):
-        """
-        Recalcula todos os valores do produto.
-        """
-        # 1) Base de compra com desconto
         base = (self.preco_fornecedor or 0.0) * (1 - (self.desconto_fornecedor or 0.0) / 100.0)
 
-        # 2) IPI (referência)
+        # IPI
         if (self.ipi_tipo or "%") == "%":
             self.valor_ipi = base * (self.ipi or 0.0) / 100.0
         else:
             self.valor_ipi = (self.ipi or 0.0)
 
-        # 3) Base do DIFAL sem IPI
         base_difal = max(base - (self.valor_ipi or 0.0), 0.0)
-
-        # 4) DIFAL entra no custo
         self.valor_difal = base_difal * (self.difal or 0.0) / 100.0
 
-        # 5) Custo total
-        self.custo_total = base + self.valor_difal
+        # 🔹 Inclui o frete no custo
+        frete_valor = float(self.frete) if self.frete else 0.0
+        self.custo_total = base + self.valor_difal + frete_valor
 
-        # 6) Definição do preço sugerido
         preco_sugerido = self.custo_total
         imposto = (self.imposto_venda or 0.0) / 100.0
 
@@ -94,10 +94,7 @@ class Produto(db.Model):
         self.preco_final = preco_sugerido
         self.preco_a_vista = self.preco_final or 0.0
 
-        # Imposto sobre a venda
         imposto_sobre_venda = (self.preco_final or 0.0) * (self.imposto_venda or 0.0) / 100.0
-
-        # Lucro líquido real
         self.lucro_liquido_real = (self.preco_final or 0.0) - self.custo_total - imposto_sobre_venda
 
 
@@ -146,17 +143,30 @@ class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(150), nullable=False)
     razao_social = db.Column(db.String(150))
-    sexo = db.Column(db.String(10))
-    profissao = db.Column(db.String(100))
 
+    # Dados pessoais
+    sexo = db.Column(db.String(10))
+    data_nascimento = db.Column(db.Date)
+    nome_pai = db.Column(db.String(150))
+    nome_mae = db.Column(db.String(150))
+    apelido = db.Column(db.String(100))
+    estado_civil = db.Column(db.String(50))
+    profissao = db.Column(db.String(100))
+    escolaridade = db.Column(db.String(100))
+    naturalidade = db.Column(db.String(100))
+
+    # Documentos
     documento = db.Column(db.String(30), unique=True, nullable=True)  # CPF/CNPJ
     rg = db.Column(db.String(30))
     rg_emissor = db.Column(db.String(100))
+    cnh = db.Column(db.String(30))
 
+    # Contatos
     email = db.Column(db.String(150))
     telefone = db.Column(db.String(30))
     celular = db.Column(db.String(30))
 
+    # Endereço
     endereco = db.Column(db.String(255))
     numero = db.Column(db.String(20))
     complemento = db.Column(db.String(100))
@@ -165,11 +175,13 @@ class Cliente(db.Model):
     estado = db.Column(db.String(50))
     cep = db.Column(db.String(20))
 
+    # Registros
     cr = db.Column(db.String(30))
     cr_emissor = db.Column(db.String(100))
     sigma = db.Column(db.String(50))
     sinarm = db.Column(db.String(50))
 
+    # Flags
     cac = db.Column(db.Boolean, default=False)
     filiado = db.Column(db.Boolean, default=False)
     policial = db.Column(db.Boolean, default=False)
@@ -185,6 +197,31 @@ class Cliente(db.Model):
 
     # Relacionamentos
     vendas = db.relationship("Venda", backref="cliente", lazy=True)
+    documentos = db.relationship("Documento", back_populates="cliente", cascade="all, delete-orphan")
+    pedidos = db.relationship("PedidoCompra", back_populates="fornecedor", lazy=True)
+
+
+# =========================
+# Documento
+# =========================
+class Documento(db.Model):
+    __tablename__ = "documentos"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"))
+    tipo = db.Column(db.String(50), nullable=False)  # RG, CPF, CR, CRAF, NF etc.
+    nome_original = db.Column(db.Text)
+    caminho_arquivo = db.Column(db.Text, nullable=False)  # URL no R2
+    mime_type = db.Column(db.String(100))
+    data_upload = db.Column(db.DateTime, default=datetime.utcnow)
+
+    usuario_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+
+    # Relacionamento
+    cliente = db.relationship("Cliente", back_populates="documentos")
+
+    def __repr__(self):
+        return f"<Documento {self.tipo} - Cliente {self.cliente_id}>"
 
 
 # =========================
@@ -232,6 +269,7 @@ class ItemVenda(db.Model):
     valor_unitario = db.Column(db.Float, nullable=False)
     valor_total = db.Column(db.Float, nullable=False)
 
+
 # =========================
 # Pedido de Compra
 # =========================
@@ -248,9 +286,8 @@ class PedidoCompra(db.Model):
     percentual_municoes = db.Column(db.Float, default=0.0)
     percentual_unico = db.Column(db.Float, default=0.0)
 
-    # 👇 Aqui estava o problema: faltava apontar para a tabela de clientes
     fornecedor_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)
-    fornecedor = db.relationship("Cliente", backref="pedidos")
+    fornecedor = db.relationship("Cliente", back_populates="pedidos")
 
     itens = db.relationship("ItemPedido", backref="pedido", cascade="all, delete-orphan")
 
@@ -264,3 +301,31 @@ class ItemPedido(db.Model):
     descricao = db.Column(db.String(200))
     quantidade = db.Column(db.Integer)
     valor_unitario = db.Column(db.Float)
+
+
+# =========================
+# Arma
+# =========================
+class Arma(db.Model):
+    __tablename__ = "armas"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
+
+    marca = db.Column(db.String(100))
+    modelo = db.Column(db.String(100))
+    calibre = db.Column(db.String(50))
+    numero_serie = db.Column(db.String(100), unique=True)
+    craf = db.Column(db.String(50))
+    data_aquisicao = db.Column(db.Date)
+    data_validade_craf = db.Column(db.Date)
+    caminho_craf = db.Column(db.Text)  # URL do arquivo no R2
+
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    # Relacionamento reverso
+    cliente = db.relationship("Cliente", backref=db.backref("armas", cascade="all, delete-orphan", lazy=True))
+
+    def __repr__(self):
+        return f"<Arma {self.modelo} - {self.numero_serie}>"

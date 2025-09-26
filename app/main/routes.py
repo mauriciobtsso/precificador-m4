@@ -1,7 +1,6 @@
 from flask import render_template, request, redirect, url_for, flash, send_from_directory
 from flask_login import login_user, logout_user, login_required
-from app import db
-from app.models import PedidoCompra, ItemPedido, Cliente
+from app.extensions import db  # <-- ajustado: agora vem de app.extensions
 from app.models import Produto, Taxa, User, Configuracao, Cliente, Venda, ItemVenda, PedidoCompra, ItemPedido
 from app.main import main
 from sqlalchemy import text, func, extract
@@ -310,12 +309,17 @@ def gerenciar_produto(produto_id=None):
         produto.lucro_alvo = (to_float(request.form.get("lucro_alvo")) or None)
         produto.preco_final = (to_float(request.form.get("preco_final")) or None)
 
+        # 🔹 Novo campo frete
+        produto.frete = to_float(request.form.get("frete"))
+
         produto.ipi = to_float(request.form.get("ipi"))
         produto.ipi_tipo = request.form.get("ipi_tipo", "%")
         produto.difal = to_float(request.form.get("difal"))
         produto.imposto_venda = to_float(request.form.get("imposto_venda"))
 
+        # 🔹 Calcula preços com frete incluído
         produto.calcular_precos()
+
         db.session.commit()
         flash("Produto salvo com sucesso!", "success")
         return redirect(url_for("main.produtos"))
@@ -652,63 +656,6 @@ def importar():
 
     return render_template("importar.html")
 
-# =====================================================
-# Clientes
-# =====================================================
-@main.route("/clientes", methods=["GET", "POST"])
-@login_required
-def clientes():
-    query = Cliente.query
-    nome = request.args.get("nome", "").strip()
-    documento = request.args.get("documento", "").strip()
-
-    if nome:
-        query = query.filter(Cliente.nome.ilike(f"%{nome}%"))
-    if documento:
-        query = query.filter(Cliente.documento.ilike(f"%{documento}%"))
-
-    todos_clientes = query.order_by(Cliente.nome.asc()).all()
-    return render_template("clientes.html", clientes=todos_clientes)
-
-@main.route("/cliente/<int:cliente_id>")
-@login_required
-def cliente_detalhe(cliente_id):
-    cliente = Cliente.query.get_or_404(cliente_id)
-    vendas = Venda.query.filter_by(cliente_id=cliente.id).order_by(Venda.data_abertura.desc()).all()
-    return render_template("cliente_detalhe.html", cliente=cliente, vendas=vendas)
-
-@main.route("/cliente/novo", methods=["GET", "POST"])
-@main.route("/cliente/editar/<int:cliente_id>", methods=["GET", "POST"])
-@login_required
-def gerenciar_cliente(cliente_id=None):
-    cliente = Cliente.query.get(cliente_id) if cliente_id else None
-    if request.method == "POST":
-        if not cliente:
-            cliente = Cliente()
-            db.session.add(cliente)
-
-        cliente.nome = request.form.get("nome")
-        cliente.documento = request.form.get("documento")
-        cliente.email = request.form.get("email")
-        cliente.telefone = request.form.get("telefone")
-        cliente.celular = request.form.get("celular")
-        cliente.cidade = request.form.get("cidade")
-        cliente.estado = request.form.get("estado")
-
-        db.session.commit()
-        flash("Cliente salvo com sucesso!", "success")
-        return redirect(url_for("main.clientes"))
-
-    return render_template("cliente_form.html", cliente=cliente)
-
-@main.route("/cliente/excluir/<int:cliente_id>")
-@login_required
-def excluir_cliente(cliente_id):
-    cliente = Cliente.query.get_or_404(cliente_id)
-    db.session.delete(cliente)
-    db.session.commit()
-    flash("Cliente excluído com sucesso!", "success")
-    return redirect(url_for("main.clientes"))
 
 # =========================
 # Vendas

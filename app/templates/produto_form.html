@@ -15,62 +15,75 @@
       <i class="fas fa-info-circle me-1"></i>Dados gerais
     </div>
     <div class="card-body">
-      <div class="row g-3">
-        <!-- SKU -->
-        <div class="col-md-4">
-          <label class="form-label">SKU</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-barcode"></i></span>
-            <input
-              type="text" name="sku" id="sku"
-              class="form-control" placeholder="Ex.: ABC123"
-              style="text-transform: uppercase;"
-              value="{{ produto.sku if produto else '' }}" required>
-          </div>
-        </div>
-
-        <!-- Nome -->
-        <div class="col-md-8">
-          <label class="form-label">Nome</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-tag"></i></span>
-            <input
-              type="text" name="nome" id="nome"
-              class="form-control" placeholder="Nome do produto"
-              value="{{ produto.nome if produto else '' }}" required>
-          </div>
-        </div>
-
-        <!-- Preço fornecedor (R$) -->
-        <div class="col-md-4">
-          <label class="form-label">Preço do fornecedor (R$)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-money-bill-wave"></i></span>
-            <input
-              type="text" name="preco_fornecedor" id="in_preco_fornecedor"
-              class="form-control" inputmode="decimal">
-          </div>
-          <div class="form-text text-muted">
-            Atual: {{ produto.preco_fornecedor|currency if produto else 'R$ 0,00' }}
-          </div>
-        </div>
-
-        <!-- Desconto fornecedor (%) -->
-        <div class="col-md-4">
-          <label class="form-label">Desconto fornecedor (%)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-percent"></i></span>
-            <input
-              type="number" name="desconto_fornecedor" id="in_desconto"
-              class="form-control" step="0.01" min="0" placeholder="0,00"
-              value="{{ produto.desconto_fornecedor if produto else '' }}">
-          </div>
-        </div>
-      </div>
+<div class="row g-3">
+  <!-- SKU -->
+  <div class="col-md-4">
+    <label class="form-label">SKU</label>
+    <div class="input-group">
+      <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+      <input
+        type="text" name="sku" id="sku"
+        class="form-control" placeholder="Ex.: ABC123"
+        style="text-transform: uppercase;"
+        value="{{ produto.sku if produto else '' }}" required>
     </div>
   </div>
 
-  <!-- OBJETIVOS -->
+  <!-- Nome -->
+  <div class="col-md-8">
+    <label class="form-label">Nome</label>
+    <div class="input-group">
+      <span class="input-group-text"><i class="fas fa-tag"></i></span>
+      <input
+        type="text" name="nome" id="nome"
+        class="form-control" placeholder="Nome do produto"
+        value="{{ produto.nome if produto else '' }}" required>
+    </div>
+  </div>
+
+  <!-- Preço fornecedor (R$) -->
+  <div class="col-md-4">
+    <label class="form-label">Preço do fornecedor (R$)</label>
+    <div class="input-group">
+      <span class="input-group-text"><i class="fas fa-money-bill-wave"></i></span>
+      <input
+        type="text" name="preco_fornecedor" id="in_preco_fornecedor"
+        class="form-control" inputmode="decimal"
+        value="{{ produto.preco_fornecedor if produto else '' }}">
+    </div>
+    <div class="form-text text-muted">
+      Atual: {{ produto.preco_fornecedor|currency if produto else 'R$ 0,00' }}
+    </div>
+  </div>
+
+  <!-- Desconto fornecedor (%) -->
+  <div class="col-md-4">
+    <label class="form-label">Desconto fornecedor (%)</label>
+    <div class="input-group">
+      <span class="input-group-text"><i class="fas fa-percent"></i></span>
+      <input
+        type="number" name="desconto_fornecedor" id="in_desconto"
+        class="form-control" step="0.01" min="0" placeholder="0,00"
+        value="{{ produto.desconto_fornecedor if produto else '' }}">
+    </div>
+  </div>
+
+  <!-- Frete (R$) -->
+  <div class="col-md-4">
+    <label class="form-label">Frete (R$)</label>
+    <div class="input-group">
+      <span class="input-group-text"><i class="fas fa-truck"></i></span>
+      <input
+        type="text" name="frete" id="in_frete"
+        class="form-control" inputmode="decimal"
+        value="{{ produto.frete if produto else '' }}">
+    </div>
+    <div class="form-text text-muted">
+      Digitado: <span id="out_frete">{{ produto.frete|currency if produto else 'R$ 0,00' }}</span>
+    </div>
+  </div>
+</div>
+	  <!-- OBJETIVOS -->
   <div class="card shadow-sm mb-3">
     <div class="card-header bg-light fw-semibold">
       <i class="fas fa-bullseye me-1"></i>Objetivos (opcionais)
@@ -116,63 +129,67 @@
     </div>
   </div>
 
-  <!-- TRIBUTOS -->
-  <div class="card shadow-sm mb-3">
-    <div class="card-header bg-light fw-semibold">
-      <i class="fas fa-file-invoice-dollar me-1"></i>Tributos
-    </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <!-- IPI Tipo -->
-        <div class="col-md-3">
-          <label class="form-label">IPI - tipo</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-receipt"></i></span>
-            <select name="ipi_tipo" id="in_ipi_tipo" class="form-select">
-              {% set tipo = (produto.ipi_tipo if produto else '%') %}
-              <option value="%" {{ 'selected' if tipo == '%' else '' }}>%</option>
-              <option value="R$" {{ 'selected' if tipo == 'R$' else '' }}>R$</option>
-            </select>
-          </div>
-        </div>
+<!-- TRIBUTOS -->
+<div class="card shadow-sm mb-3">
+  <div class="card-header bg-light fw-semibold">
+    <i class="fas fa-balance-scale"></i> Tributos
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
 
-        <!-- IPI valor -->
-        <div class="col-md-3">
-          <label class="form-label">IPI (valor)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-percentage"></i></span>
-            <input
-              type="number" name="ipi" id="in_ipi"
-              class="form-control" step="0.01" min="0" placeholder="0,00"
-              value="{{ produto.ipi if produto else '' }}">
-          </div>
-          <div class="form-text">Se tipo = %, informe percentual; se R$, informe valor fixo.</div>
+      <!-- IPI -->
+      <div class="col-md-3">
+        <label class="form-label">IPI (valor)</label>
+        <div class="input-group">
+          <select name="ipi_tipo" id="in_ipi_tipo" class="form-select" style="max-width: 80px;">
+            <option value="%" {% if produto and produto.ipi_tipo == "%" %}selected{% endif %}>%</option>
+            <option value="R$" {% if produto and produto.ipi_tipo == "R$" %}selected{% endif %}>R$</option>
+          </select>
+          <input
+            type="number" step="0.01" name="ipi" id="in_ipi"
+            class="form-control"
+            value="{{ produto.ipi if produto else '' }}">
         </div>
-
-        <!-- DIFAL -->
-        <div class="col-md-3">
-          <label class="form-label">DIFAL (%)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-exchange-alt"></i></span>
-            <input
-              type="number" name="difal" id="in_difal"
-              class="form-control" step="0.01" min="0" placeholder="0,00"
-              value="{{ produto.difal if produto else '' }}">
-          </div>
-        </div>
-
-        <!-- Imposto sobre a venda -->
-        <div class="col-md-3">
-          <label class="form-label">Imposto sobre a venda (%)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-balance-scale"></i></span>
-            <input
-              type="number" name="imposto_venda" id="in_imposto_venda"
-              class="form-control" step="0.01" min="0" placeholder="0,00"
-              value="{{ produto.imposto_venda if produto else '' }}">
-          </div>
+        <div class="form-text text-muted">
+          Atual: <span id="out_ipi">{{ produto.valor_ipi|currency if produto else 'R$ 0,00' }}</span>
         </div>
       </div>
+
+      <!-- DIFAL -->
+      <div class="col-md-3">
+        <label class="form-label">DIFAL (%)</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-exchange-alt"></i></span>
+          <input
+            type="number" step="0.01" name="difal" id="in_difal"
+            class="form-control"
+            value="{{ produto.difal if produto else '' }}">
+        </div>
+        <div class="form-text text-muted">
+          Atual: <span id="out_difal">{{ produto.valor_difal|currency if produto else 'R$ 0,00' }}</span>
+        </div>
+      </div>
+
+      <!-- Imposto sobre a venda -->
+      <div class="col-md-3">
+        <label class="form-label">Imposto sobre a venda (%)</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-balance-scale"></i></span>
+          <input
+            type="number" step="0.01" name="imposto_venda" id="in_imposto_venda"
+            class="form-control"
+            value="{{ produto.imposto_venda if produto else '' }}">
+        </div>
+        <div class="form-text text-muted">
+          Atual: <span id="out_imposto">
+            {{ ((produto.preco_final or 0) * (produto.imposto_venda or 0) / 100)|currency if produto else 'R$ 0,00' }}
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
       <div class="row g-3 mt-3">
         <!-- Custo total -->
@@ -234,11 +251,13 @@
   const anFornecedor = new AutoNumeric('#in_preco_fornecedor', anOpts);
   const anLucroAlvo   = new AutoNumeric('#in_lucro_alvo',   anOpts);
   const anPrecoFinal  = new AutoNumeric('#in_preco_final',  anOpts);
+  const anFrete       = new AutoNumeric('#in_frete',        anOpts); // 🔹 novo
 
   {% if produto %}
     if (!isNaN({{ produto.preco_fornecedor or 0 }})) anFornecedor.set({{ produto.preco_fornecedor or 0 }});
     if (!isNaN({{ produto.lucro_alvo or 0 }}))       anLucroAlvo.set({{ produto.lucro_alvo or 0 }});
     if (!isNaN({{ produto.preco_final or 0 }}))      anPrecoFinal.set({{ produto.preco_final or 0 }});
+    if (!isNaN({{ produto.frete or 0 }}))            anFrete.set({{ produto.frete or 0 }}); // 🔹 novo
   {% endif %}
 
   const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -254,6 +273,7 @@
     const difal         = num('in_difal');
     const ipiValor      = num('in_ipi');
     const ipiTipo       = el('in_ipi_tipo').value;
+    const frete         = getAN(anFrete); // 🔹 novo
 
     const lucroAlvo     = getAN(anLucroAlvo);
     let   precoFinal    = getAN(anPrecoFinal);
@@ -261,24 +281,22 @@
     // 1) Base com desconto
     const base = precoCompra * (1 - (descFornecedor/100));
 
-    // 2) IPI (referência)
+    // 2) IPI
     const valorIPI = (ipiTipo === 'R$') ? ipiValor : (base * (ipiValor/100));
 
     // 3) DIFAL
-    const baseDifal  = Math.max(base - valorIPI, 0);
+    const baseDifal  = Math.max(base - valorIPI + frete, 0); // 🔹 inclui frete
     const valorDifal = baseDifal * (difal/100);
 
     // 4) Custo total
-    const custoTotal = base + valorDifal;
+    const custoTotal = base + valorDifal + frete;
 
     // 5) Preço sugerido
     if (!(precoFinal > 0)) {
       if (lucroAlvo > 0) {
         precoFinal = (custoTotal + lucroAlvo) / (1 - (impostoVenda/100));
       } else if (margem > 0) {
-        // CORRIGIDO: usa coeficiente (custo / (1 - margem))
-        const vendaSemImposto = custoTotal / (1 - (margem/100));
-        precoFinal = vendaSemImposto;
+        precoFinal = custoTotal / (1 - (margem/100));
       } else {
         precoFinal = custoTotal;
       }
@@ -288,21 +306,28 @@
     const impostoVendaValor = precoFinal * (impostoVenda/100);
     const lucroLiquido      = precoFinal - custoTotal - impostoVendaValor;
 
-    // 7) Saídas
+    // 7) Saídas principais
     el('out_custo_total').value = brl.format(custoTotal);
     el('out_preco_a_vista').value = brl.format(precoFinal);
     el('out_lucro_liquido').value = brl.format(lucroLiquido);
+
+    // 8) Saídas detalhadas (IPI, DIFAL, Imposto)
+    if (el('out_ipi'))      el('out_ipi').textContent      = brl.format(valorIPI);
+    if (el('out_difal'))    el('out_difal').textContent    = brl.format(valorDifal);
+    if (el('out_imposto'))  el('out_imposto').textContent  = brl.format(impostoVendaValor);
   }
 
+  // Eventos
   ['in_desconto','in_margem','in_imposto_venda','in_difal','in_ipi','in_ipi_tipo']
     .forEach(id => el(id).addEventListener('input', recalcular));
 
   document.addEventListener('autoNumeric:rawValueModified', (e) => {
-    if (['in_preco_fornecedor','in_lucro_alvo','in_preco_final'].includes(e.target.id)) {
+    if (['in_preco_fornecedor','in_lucro_alvo','in_preco_final','in_frete'].includes(e.target.id)) {
       recalcular();
     }
   });
 
+  // Chamada inicial
   recalcular();
 </script>
 
