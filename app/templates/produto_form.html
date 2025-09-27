@@ -269,13 +269,13 @@
   const anFornecedor = new AutoNumeric('#in_preco_fornecedor', anOpts);
   const anLucroAlvo   = new AutoNumeric('#in_lucro_alvo',   anOpts);
   const anPrecoFinal  = new AutoNumeric('#in_preco_final',  anOpts);
-  const anFrete       = new AutoNumeric('#in_frete',        anOpts); // 🔹 novo
+  const anFrete       = new AutoNumeric('#in_frete',        anOpts);
 
   {% if produto %}
     if (!isNaN({{ produto.preco_fornecedor or 0 }})) anFornecedor.set({{ produto.preco_fornecedor or 0 }});
     if (!isNaN({{ produto.lucro_alvo or 0 }}))       anLucroAlvo.set({{ produto.lucro_alvo or 0 }});
     if (!isNaN({{ produto.preco_final or 0 }}))      anPrecoFinal.set({{ produto.preco_final or 0 }});
-    if (!isNaN({{ produto.frete or 0 }}))            anFrete.set({{ produto.frete or 0 }}); // 🔹 novo
+    if (!isNaN({{ produto.frete or 0 }}))            anFrete.set({{ produto.frete or 0 }});
   {% endif %}
 
   const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -296,17 +296,14 @@
     const lucroAlvo     = getAN(anLucroAlvo);
     let   precoFinal    = getAN(anPrecoFinal);
 
-    // Valor final após aplicar desconto sobre o preço fornecedor
-    const valorComDesconto = precoCompra * (1 - (descFornecedor/100));
-
-    // Atualiza os campos "Atual" em tempo real
-    if (el('out_desconto')) el('out_desconto').textContent = (descFornecedor || 0).toFixed(2) + '%';
-    if (el('out_frete')) el('out_frete').textContent = brl.format(frete);
-
     // 1) Base com desconto
     const base = precoCompra * (1 - (descFornecedor/100));
 
-    // 2) IPI (3 modos: %_dentro, %, R$)
+    // 🔹 Atualiza os campos "Atual" em tempo real
+    if (el('out_desconto')) el('out_desconto').textContent = brl.format(base);
+    if (el('out_frete'))    el('out_frete').textContent    = brl.format(frete);
+
+    // 2) IPI
     let valorIPI = 0;
     if (ipiTipo === '%_dentro') {
       const baseSemIPI = base / (1 + (ipiValor/100));
@@ -340,14 +337,14 @@
     const lucroLiquido      = precoFinal - custoTotal - impostoVendaValor;
 
     // 7) Saídas principais
-    el('out_custo_total').value = brl.format(custoTotal);
+    el('out_custo_total').value   = brl.format(custoTotal);
     el('out_preco_a_vista').value = brl.format(precoFinal);
     el('out_lucro_liquido').value = brl.format(lucroLiquido);
 
-    // 8) Saídas detalhadas (IPI, DIFAL, Imposto)
-    if (el('out_ipi'))      el('out_ipi').textContent      = brl.format(valorIPI);
-    if (el('out_difal'))    el('out_difal').textContent    = brl.format(valorDifal);
-    if (el('out_imposto'))  el('out_imposto').textContent  = brl.format(impostoVendaValor);
+    // 8) Saídas detalhadas
+    if (el('out_ipi'))     el('out_ipi').textContent     = brl.format(valorIPI);
+    if (el('out_difal'))   el('out_difal').textContent   = brl.format(valorDifal);
+    if (el('out_imposto')) el('out_imposto').textContent = brl.format(impostoVendaValor);
   }
 
   // Eventos
