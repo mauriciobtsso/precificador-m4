@@ -52,7 +52,7 @@
         value="{{ produto.preco_fornecedor if produto else '' }}">
     </div>
     <div class="form-text text-muted">
-      Atual: {{ produto.preco_fornecedor|currency if produto else 'R$ 0,00' }}
+      Atual: {{ (produto.preco_fornecedor|float)|currency if produto else 'R$ 0,00' }}
     </div>
   </div>
 
@@ -66,15 +66,15 @@
       class="form-control" step="0.01" min="0" placeholder="0,00"
       value="{{ produto.desconto_fornecedor if produto else '' }}">
   </div>
- <div class="form-text text-muted">
-  Atual: <span id="out_desconto">
-    {% if produto %}
-      {{ (produto.preco_fornecedor or 0) * (1 - (produto.desconto_fornecedor or 0)/100) | currency }}
-    {% else %}
-      R$ 0,00
-    {% endif %}
-  </span>
-</div>
+  <div class="form-text text-muted">
+    Atual: <span id="out_desconto">
+      {% if produto %}
+        {{ ((produto.preco_fornecedor|float) * (1 - (produto.desconto_fornecedor|float)/100)) | currency }}
+      {% else %}
+        R$ 0,00
+      {% endif %}
+    </span>
+  </div>
 </div>
 
 <!-- Frete (R$) -->
@@ -88,9 +88,10 @@
       value="{{ produto.frete if produto else '' }}">
   </div>
   <div class="form-text text-muted">
-    Atual: <span id="out_frete">{{ produto.frete|currency if produto else 'R$ 0,00' }}</span>
+    Atual: <span id="out_frete">{{ (produto.frete|float)|currency if produto else 'R$ 0,00' }}</span>
   </div>
 </div>
+
 	  <!-- OBJETIVOS -->
   <div class="card shadow-sm mb-3">
     <div class="card-header bg-light fw-semibold">
@@ -269,13 +270,13 @@
   const anFornecedor = new AutoNumeric('#in_preco_fornecedor', anOpts);
   const anLucroAlvo   = new AutoNumeric('#in_lucro_alvo',   anOpts);
   const anPrecoFinal  = new AutoNumeric('#in_preco_final',  anOpts);
-  const anFrete       = new AutoNumeric('#in_frete',        anOpts);
+  const anFrete       = new AutoNumeric('#in_frete',        anOpts); // 🔹 novo
 
   {% if produto %}
     if (!isNaN({{ produto.preco_fornecedor or 0 }})) anFornecedor.set({{ produto.preco_fornecedor or 0 }});
     if (!isNaN({{ produto.lucro_alvo or 0 }}))       anLucroAlvo.set({{ produto.lucro_alvo or 0 }});
     if (!isNaN({{ produto.preco_final or 0 }}))      anPrecoFinal.set({{ produto.preco_final or 0 }});
-    if (!isNaN({{ produto.frete or 0 }}))            anFrete.set({{ produto.frete or 0 }});
+    if (!isNaN({{ produto.frete or 0 }}))            anFrete.set({{ produto.frete or 0 }}); // 🔹 novo
   {% endif %}
 
   const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -296,14 +297,17 @@
     const lucroAlvo     = getAN(anLucroAlvo);
     let   precoFinal    = getAN(anPrecoFinal);
 
+    // Valor final após aplicar desconto sobre o preço fornecedor
+    const valorComDesconto = precoCompra * (1 - (descFornecedor/100));
+
+    // Atualiza os campos "Atual" em tempo real
+    if (el('out_desconto')) el('out_desconto').textContent = brl.format(valorComDesconto);
+    if (el('out_frete')) el('out_frete').textContent = brl.format(frete);
+
     // 1) Base com desconto
-    const base = precoCompra * (1 - (descFornecedor/100));
+    const base = valorComDesconto;
 
-    // 🔹 Atualiza os campos "Atual" em tempo real
-    if (el('out_desconto')) el('out_desconto').textContent = brl.format(base);
-    if (el('out_frete'))    el('out_frete').textContent    = brl.format(frete);
-
-    // 2) IPI
+    // 2) IPI (3 modos: %_dentro, %, R$)
     let valorIPI = 0;
     if (ipiTipo === '%_dentro') {
       const baseSemIPI = base / (1 + (ipiValor/100));
@@ -337,14 +341,14 @@
     const lucroLiquido      = precoFinal - custoTotal - impostoVendaValor;
 
     // 7) Saídas principais
-    el('out_custo_total').value   = brl.format(custoTotal);
+    el('out_custo_total').value = brl.format(custoTotal);
     el('out_preco_a_vista').value = brl.format(precoFinal);
     el('out_lucro_liquido').value = brl.format(lucroLiquido);
 
-    // 8) Saídas detalhadas
-    if (el('out_ipi'))     el('out_ipi').textContent     = brl.format(valorIPI);
-    if (el('out_difal'))   el('out_difal').textContent   = brl.format(valorDifal);
-    if (el('out_imposto')) el('out_imposto').textContent = brl.format(impostoVendaValor);
+    // 8) Saídas detalhadas (IPI, DIFAL, Imposto)
+    if (el('out_ipi'))      el('out_ipi').textContent      = brl.format(valorIPI);
+    if (el('out_difal'))    el('out_difal').textContent    = brl.format(valorDifal);
+    if (el('out_imposto'))  el('out_imposto').textContent  = brl.format(impostoVendaValor);
   }
 
   // Eventos
@@ -366,4 +370,6 @@
   .input-group-text i { font-size: .9rem; }
   .form-label { font-weight: 500; }
 </style>
+
+
 {% endblock %}
