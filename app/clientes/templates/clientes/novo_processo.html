@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>
+    <i class="fas fa-plus-circle"></i>
+    Novo Processo — Cliente #{{ cliente.id }} | {{ cliente.nome }}
+  </h2>
+  <hr>
+
+  <form method="POST" action="{{ url_for('clientes.novo_processo', cliente_id=cliente.id) }}">
+    <div class="row">
+      <!-- Tipo -->
+      <div class="col-md-4 mb-3">
+        <label for="tipo" class="form-label">Tipo</label>
+        <input type="text" class="form-control" id="tipo" name="tipo"
+               placeholder="Ex: Aquisição de arma" required>
+      </div>
+
+      <!-- Status -->
+      <div class="col-md-4 mb-3">
+        <label for="status" class="form-label">Status</label>
+        <select class="form-select" id="status" name="status" required>
+          <option value="">-- Selecione --</option>
+          <option value="Em andamento">Em andamento</option>
+          <option value="Concluído">Concluído</option>
+          <option value="Cancelado">Cancelado</option>
+        </select>
+      </div>
+
+      <!-- Data (apenas visualização) -->
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Data</label>
+        <input type="text" class="form-control"
+               value="{{ now.strftime('%d/%m/%Y %H:%M') }}" disabled>
+      </div>
+    </div>
+
+    <!-- Descrição -->
+    <div class="mb-3">
+      <label for="descricao" class="form-label">Descrição</label>
+      <textarea class="form-control" id="descricao" name="descricao"
+                rows="4" placeholder="Detalhe o processo..."></textarea>
+    </div>
+
+    <!-- Botões -->
+    <div class="mt-3">
+      <button type="submit" class="btn btn-success">
+        <i class="fas fa-save"></i> Salvar
+      </button>
+      <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" class="btn btn-secondary">
+        <i class="fas fa-times"></i> Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -13,12 +13,27 @@
     <tbody>
         {% for doc in cliente.documentos %}
         <tr>
-            <td>{{ doc.tipo }}</td>
-            <td><a href="{{ doc.caminho_arquivo }}" target="_blank">{{ doc.nome_original }}</a></td>
-            <td>{{ doc.data_upload.strftime("%d/%m/%Y %H:%M") }}</td>
+            <td>{{ doc.tipo or '-' }}</td>
+            <td>
+                {% if doc.caminho_arquivo %}
+                    <a href="{{ doc.caminho_arquivo }}" target="_blank">{{ doc.nome_original or 'arquivo' }}</a>
+                {% else %}
+                    <span class="text-muted">Arquivo não disponível</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if doc.data_upload %}
+                    {{ doc.data_upload.strftime("%d/%m/%Y %H:%M") }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
             <td>
                 <form method="POST" action="{{ url_for('clientes.deletar_documento', cliente_id=cliente.id, doc_id=doc.id) }}" style="display:inline;">
-                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Deseja realmente excluir este documento?')">Excluir</button>
+                    <button type="submit" class="btn btn-sm btn-danger"
+                        onclick="return confirm('Deseja realmente excluir este documento?')">
+                        Excluir
+                    </button>
                 </form>
             </td>
         </tr>

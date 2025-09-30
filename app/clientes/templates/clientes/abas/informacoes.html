@@ -1,208 +1,222 @@
-<form method="POST" action="{{ url_for('clientes.cliente_informacoes', cliente_id=cliente.id) }}">
-  <div class="row">
-    <!-- Nome e Razão Social -->
-    <div class="col-md-6 mb-3">
-      <label for="nome" class="form-label">Nome</label>
-      <input type="text" class="form-control" id="nome" name="nome" value="{{ cliente.nome or '' }}">
-    </div>
-    <div class="col-md-6 mb-3">
-      <label for="apelido" class="form-label">Apelido</label>
-      <input type="text" class="form-control" id="apelido" name="apelido" value="{{ cliente.apelido or '' }}">
+<!-- ====================== -->
+<!-- ABA: INFORMAÇÕES -->
+<!-- ====================== -->
+
+<div class="row">
+  <!-- Endereços -->
+  <div class="col-md-6 mb-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-map-marker-alt"></i> Endereços</span>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addEnderecoModal">
+          <i class="fas fa-plus"></i> Adicionar
+        </button>
+      </div>
+      <div class="card-body">
+        {% if enderecos %}
+          <ul class="list-group">
+            {% for e in enderecos %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ e.tipo|capitalize }}</strong><br>
+                {{ e.logradouro }}, {{ e.numero }}{% if e.complemento %} - {{ e.complemento }}{% endif %}<br>
+                {{ e.bairro }} - {{ e.cidade }}/{{ e.estado }}<br>
+                CEP: {{ e.cep }}
+              </div>
+              <div>
+                <a href="{{ url_for('clientes.editar_endereco', cliente_id=cliente.id, endereco_id=e.id) }}" class="btn btn-sm btn-warning">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <form method="POST" action="{{ url_for('clientes.deletar_endereco', cliente_id=cliente.id, endereco_id=e.id) }}" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Excluir este endereço?')">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">Nenhum endereço cadastrado.</p>
+        {% endif %}
+      </div>
     </div>
   </div>
 
-  <div class="row">
-    <!-- Razão social, sexo, nascimento -->
-    <div class="col-md-4 mb-3">
-      <label for="razao_social" class="form-label">Razão Social</label>
-      <input type="text" class="form-control" id="razao_social" name="razao_social" value="{{ cliente.razao_social or '' }}">
-    </div>
-    <div class="col-md-4 mb-3">
-      <label for="sexo" class="form-label">Sexo</label>
-      <select class="form-select" id="sexo" name="sexo">
-        <option value="">--</option>
-        <option value="Masculino" {% if cliente.sexo == 'Masculino' %}selected{% endif %}>Masculino</option>
-        <option value="Feminino" {% if cliente.sexo == 'Feminino' %}selected{% endif %}>Feminino</option>
-      </select>
-    </div>
-    <div class="col-md-4 mb-3">
-      <label for="data_nascimento" class="form-label">Data de Nascimento</label>
-      <input type="date" class="form-control" id="data_nascimento" name="data_nascimento" value="{{ cliente.data_nascimento or '' }}">
-    </div>
-  </div>
-
-  <div class="row">
-    <!-- Estado civil, escolaridade -->
-    <div class="col-md-6 mb-3">
-      <label for="estado_civil" class="form-label">Estado Civil</label>
-      <input type="text" class="form-control" id="estado_civil" name="estado_civil" value="{{ cliente.estado_civil or '' }}">
-    </div>
-    <div class="col-md-6 mb-3">
-      <label for="escolaridade" class="form-label">Escolaridade</label>
-      <input type="text" class="form-control" id="escolaridade" name="escolaridade" value="{{ cliente.escolaridade or '' }}">
-    </div>
-  </div>
-
-  <div class="row">
-    <!-- Nome dos pais -->
-    <div class="col-md-6 mb-3">
-      <label for="nome_pai" class="form-label">Nome do Pai</label>
-      <input type="text" class="form-control" id="nome_pai" name="nome_pai" value="{{ cliente.nome_pai or '' }}">
-    </div>
-    <div class="col-md-6 mb-3">
-      <label for="nome_mae" class="form-label">Nome da Mãe</label>
-      <input type="text" class="form-control" id="nome_mae" name="nome_mae" value="{{ cliente.nome_mae or '' }}">
-    </div>
-  </div>
-
-  <div class="row">
-    <!-- Documentos -->
-    <div class="col-md-3 mb-3">
-      <label for="documento" class="form-label">CPF / CNPJ</label>
-      <input type="text" class="form-control" id="documento" name="documento" value="{{ cliente.documento or '' }}">
-    </div>
-    <div class="col-md-3 mb-3">
-      <label for="rg" class="form-label">RG</label>
-      <input type="text" class="form-control" id="rg" name="rg" value="{{ cliente.rg or '' }}">
-    </div>
-    <div class="col-md-3 mb-3">
-      <label for="rg_emissor" class="form-label">Órgão Emissor RG</label>
-      <input type="text" class="form-control" id="rg_emissor" name="rg_emissor" value="{{ cliente.rg_emissor or '' }}">
-    </div>
-    <div class="col-md-3 mb-3">
-      <label for="cnh" class="form-label">CNH</label>
-      <input type="text" class="form-control" id="cnh" name="cnh" value="{{ cliente.cnh or '' }}">
-    </div>
-  </div>
-
-  <div class="row">
-    <!-- Contatos -->
-    <div class="col-md-4 mb-3">
-      <label for="email" class="form-label">E-mail</label>
-      <input type="email" class="form-control" id="email" name="email" value="{{ cliente.email or '' }}">
-    </div>
-    <div class="col-md-4 mb-3">
-      <label for="telefone" class="form-label">Telefone</label>
-      <input type="text" class="form-control" id="telefone" name="telefone" value="{{ cliente.telefone or '' }}">
-    </div>
-    <div class="col-md-4 mb-3">
-      <label for="celular" class="form-label">Celular</label>
-      <input type="text" class="form-control" id="celular" name="celular" value="{{ cliente.celular or '' }}">
-    </div>
-  </div>
-
-  <div class="row">
-    <!-- Endereço -->
-    <div class="col-md-6 mb-3">
-      <label for="endereco" class="form-label">Endereço</label>
-      <input type="text" class="form-control" id="endereco" name="endereco" value="{{ cliente.endereco or '' }}">
-    </div>
-    <div class="col-md-2 mb-3">
-      <label for="numero" class="form-label">Número</label>
-      <input type="text" class="form-control" id="numero" name="numero" value="{{ cliente.numero or '' }}">
-    </div>
-    <div class="col-md-4 mb-3">
-      <label for="complemento" class="form-label">Complemento</label>
-      <input type="text" class="form-control" id="complemento" name="complemento" value="{{ cliente.complemento or '' }}">
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-md-4 mb-3">
-      <label for="bairro" class="form-label">Bairro</label>
-      <input type="text" class="form-control" id="bairro" name="bairro" value="{{ cliente.bairro or '' }}">
-    </div>
-    <div class="col-md-4 mb-3">
-      <label for="cidade" class="form-label">Cidade</label>
-      <input type="text" class="form-control" id="cidade" name="cidade" value="{{ cliente.cidade or '' }}">
-    </div>
-    <div class="col-md-2 mb-3">
-      <label for="estado" class="form-label">Estado</label>
-      <input type="text" class="form-control" id="estado" name="estado" value="{{ cliente.estado or '' }}">
-    </div>
-    <div class="col-md-2 mb-3">
-      <label for="cep" class="form-label">CEP</label>
-      <input type="text" class="form-control" id="cep" name="cep" value="{{ cliente.cep or '' }}">
-    </div>
-  </div>
-
-  <div class="row">
-    <!-- Registros -->
-    <div class="col-md-3 mb-3">
-      <label for="cr" class="form-label">CR</label>
-      <input type="text" class="form-control" id="cr" name="cr" value="{{ cliente.cr or '' }}">
-    </div>
-    <div class="col-md-3 mb-3">
-      <label for="cr_emissor" class="form-label">Órgão Emissor CR</label>
-      <input type="text" class="form-control" id="cr_emissor" name="cr_emissor" value="{{ cliente.cr_emissor or '' }}">
-    </div>
-    <div class="col-md-3 mb-3">
-      <label for="sigma" class="form-label">SIGMA</label>
-      <input type="text" class="form-control" id="sigma" name="sigma" value="{{ cliente.sigma or '' }}">
-    </div>
-    <div class="col-md-3 mb-3">
-      <label for="sinarm" class="form-label">SINARM</label>
-      <input type="text" class="form-control" id="sinarm" name="sinarm" value="{{ cliente.sinarm or '' }}">
-    </div>
-  </div>
-
-<!-- Flags (categorias) -->
-<div class="row mb-3">
-  <div class="col-md-12">
-    <label class="form-label">Categorias</label><br>
-
-    <div class="form-check form-check-inline">
-      <input class="form-check-input" type="checkbox" id="cac" name="cac" {% if cliente.cac %}checked{% endif %}>
-      <label class="form-check-label" for="cac">Cac</label>
-    </div>
-
-    <div class="form-check form-check-inline">
-      <input class="form-check-input" type="checkbox" id="filiado" name="filiado" {% if cliente.filiado %}checked{% endif %}>
-      <label class="form-check-label" for="filiado">Filiado</label>
-    </div>
-
-    <div class="form-check form-check-inline">
-      <input class="form-check-input" type="checkbox" id="policial" name="policial" {% if cliente.policial %}checked{% endif %}>
-      <label class="form-check-label" for="policial">Policial</label>
-    </div>
-
-    <div class="form-check form-check-inline">
-      <input class="form-check-input" type="checkbox" id="bombeiro" name="bombeiro" {% if cliente.bombeiro %}checked{% endif %}>
-      <label class="form-check-label" for="bombeiro">Bombeiro</label>
-    </div>
-
-    <div class="form-check form-check-inline">
-      <input class="form-check-input" type="checkbox" id="militar" name="militar" {% if cliente.militar %}checked{% endif %}>
-      <label class="form-check-label" for="militar">Militar</label>
-    </div>
-
-    <div class="form-check form-check-inline">
-      <input class="form-check-input" type="checkbox" id="iat" name="iat" {% if cliente.iat %}checked{% endif %}>
-      <label class="form-check-label" for="iat">Iat</label>
-    </div>
-
-    <div class="form-check form-check-inline">
-      <input class="form-check-input" type="checkbox" id="psicologo" name="psicologo" {% if cliente.psicologo %}checked{% endif %}>
-      <label class="form-check-label" for="psicologo">Psicólogo</label>
+  <!-- Contatos -->
+  <div class="col-md-6 mb-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-address-book"></i> Contatos</span>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addContatoModal">
+          <i class="fas fa-plus"></i> Adicionar
+        </button>
+      </div>
+      <div class="card-body">
+        {% if contatos %}
+          <ul class="list-group">
+            {% for c in contatos %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ c.tipo|capitalize }}:</strong> {{ c.valor }}
+              </div>
+              <div>
+                <a href="{{ url_for('clientes.editar_contato', cliente_id=cliente.id, contato_id=c.id) }}" class="btn btn-sm btn-warning">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <form method="POST" action="{{ url_for('clientes.deletar_contato', cliente_id=cliente.id, contato_id=c.id) }}" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Excluir este contato?')">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">Nenhum contato cadastrado.</p>
+        {% endif %}
+      </div>
     </div>
   </div>
 </div>
 
+<!-- ====================== -->
+<!-- MODAL: Adicionar Endereço -->
+<!-- ====================== -->
+<div class="modal fade" id="addEnderecoModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('clientes.adicionar_endereco', cliente_id=cliente.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Adicionar Endereço</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="cep" class="form-label">CEP</label>
+            <input type="text" class="form-control" id="cep" name="cep" required>
+          </div>
+          <div class="mb-3">
+            <label for="tipo" class="form-label">Tipo</label>
+            <select class="form-select" id="tipo" name="tipo" required>
+              <option value="residencial">Residencial</option>
+              <option value="comercial">Comercial</option>
+              <option value="2º Endereço CR">2º Endereço CR</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="logradouro" class="form-label">Logradouro</label>
+            <input type="text" class="form-control" id="logradouro" name="logradouro" required>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="numero" class="form-label">Número</label>
+              <input type="text" class="form-control" id="numero" name="numero">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="complemento" class="form-label">Complemento</label>
+              <input type="text" class="form-control" id="complemento" name="complemento">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="bairro" class="form-label">Bairro</label>
+              <input type="text" class="form-control" id="bairro" name="bairro" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="cidade" class="form-label">Cidade</label>
+              <input type="text" class="form-control" id="cidade" name="cidade" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="estado" class="form-label">Estado</label>
+            <input type="text" class="form-control" id="estado" name="estado" maxlength="2" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
-  <button type="submit" class="btn btn-primary">Salvar</button>
-</form>
+<!-- ====================== -->
+<!-- MODAL: Adicionar Contato -->
+<!-- ====================== -->
+<div class="modal fade" id="addContatoModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('clientes.adicionar_contato', cliente_id=cliente.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Adicionar Contato</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="tipo" class="form-label">Tipo</label>
+            <select class="form-select" id="tipo" name="tipo" required>
+              <option value="telefone">Telefone</option>
+              <option value="celular">Celular</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="email">E-mail</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="valor" class="form-label">Valor</label>
+            <input type="text" class="form-control" id="valor" name="valor" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
-<!-- Inputmask -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.8/jquery.inputmask.min.js"></script>
+<!-- ====================== -->
+<!-- JS: CEP Mask + ViaCEP -->
+<!-- ====================== -->
 <script>
-  $(document).ready(function(){
-    $("#documento").inputmask({
-      mask: ["999.999.999-99", "99.999.999/9999-99"],
-      keepStatic: true
+document.addEventListener("DOMContentLoaded", function () {
+  function limpaCep() {
+    document.getElementById("logradouro").value = "";
+    document.getElementById("bairro").value = "";
+    document.getElementById("cidade").value = "";
+    document.getElementById("estado").value = "";
+  }
+
+  const cepInput = document.getElementById("cep");
+  if (cepInput) {
+    cepInput.addEventListener("blur", function () {
+      let cep = this.value.replace(/\D/g, "");
+      if (cep.length === 8) {
+        fetch("https://viacep.com.br/ws/" + cep + "/json/")
+          .then(response => response.json())
+          .then(data => {
+            if (!("erro" in data)) {
+              document.getElementById("logradouro").value = data.logradouro;
+              document.getElementById("bairro").value = data.bairro;
+              document.getElementById("cidade").value = data.localidade;
+              document.getElementById("estado").value = data.uf;
+            } else {
+              limpaCep();
+              alert("CEP não encontrado.");
+            }
+          })
+          .catch(() => {
+            limpaCep();
+            alert("Erro ao buscar CEP.");
+          });
+      } else {
+        limpaCep();
+      }
     });
-    $("#telefone").inputmask("(99) 9999-9999");
-    $("#celular").inputmask("(99) 99999-9999");
-    $("#cep").inputmask("99999-999");
-  });
+  }
+});
 </script>

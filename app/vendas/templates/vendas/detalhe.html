@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-receipt"></i> Detalhe da Venda #{{ venda.id }}</h2>
+    <a href="{{ url_for('vendas.vendas') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Informações da Venda</h5>
+        <p><strong>Cliente:</strong> {{ cliente.nome if cliente else "Não identificado" }}</p>
+        <p><strong>Data abertura:</strong> {{ venda.data_abertura.strftime("%d/%m/%Y %H:%M") if venda.data_abertura else "-" }}</p>
+        <p><strong>Status:</strong> {{ venda.status or "-" }}</p>
+        <p><strong>Valor total:</strong> {{ venda.valor_total|currency }}</p>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">Itens da Venda</h5>
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Produto</th>
+                    <th style="width: 120px;">Qtd</th>
+                    <th style="width: 160px;">Preço unitário</th>
+                    <th style="width: 160px;">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in itens %}
+                <tr>
+                    <td>{{ item.produto_nome }}</td>
+                    <td>{{ item.quantidade }}</td>
+                    <td>{{ item.preco_unitario|currency }}</td>
+                    <td>{{ (item.quantidade * item.preco_unitario)|currency }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">
+                        Nenhum item nesta venda.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

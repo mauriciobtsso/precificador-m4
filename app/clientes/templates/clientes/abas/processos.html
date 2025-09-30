@@ -1,14 +1,62 @@
 <h5>Processos</h5>
 
-<table class="table">
-    <thead>
-        <tr><th>Tipo</th><th>Status</th><th>Descrição</th></tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>Aquisição de arma</td>
-            <td><span class="badge bg-info">Em andamento</span></td>
-            <td>Protocolo enviado à 10ª RM</td>
-        </tr>
-    </tbody>
+<!-- Botão para adicionar -->
+<div class="mb-3">
+  <a href="{{ url_for('clientes.novo_processo', cliente_id=cliente.id) }}" class="btn btn-success">
+    <i class="fas fa-plus"></i> Adicionar Processo
+  </a>
+</div>
+
+<!-- Lista -->
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Tipo</th>
+      <th>Status</th>
+      <th>Descrição</th>
+      <th>Data</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for proc in cliente.processos %}
+    <tr>
+      <td>{{ proc.tipo }}</td>
+      <td>
+        {% if proc.status == "Concluído" %}
+          <span class="badge bg-success">{{ proc.status }}</span>
+        {% elif proc.status == "Em andamento" %}
+          <span class="badge bg-info text-dark">{{ proc.status }}</span>
+        {% elif proc.status == "Cancelado" %}
+          <span class="badge bg-danger">{{ proc.status }}</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ proc.status }}</span>
+        {% endif %}
+      </td>
+      <td>{{ proc.descricao or "-" }}</td>
+      <td>{{ proc.data.strftime("%d/%m/%Y %H:%M") if proc.data else "-" }}</td>
+      <td>
+        <!-- Editar -->
+        <a href="{{ url_for('clientes.editar_processo', cliente_id=cliente.id, proc_id=proc.id) }}"
+           class="btn btn-sm btn-warning">
+          <i class="fas fa-edit"></i> Editar
+        </a>
+
+        <!-- Excluir -->
+        <form method="POST"
+              action="{{ url_for('clientes.deletar_processo', cliente_id=cliente.id, proc_id=proc.id) }}"
+              style="display:inline;">
+          <button type="submit" class="btn btn-sm btn-danger"
+                  onclick="return confirm('Deseja realmente excluir este processo?')">
+            <i class="fas fa-trash"></i> Excluir
+          </button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="5" class="text-center text-muted">Nenhum processo registrado.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
 </table>

@@ -3,8 +3,9 @@ from jinja2.runtime import Undefined
 from sqlalchemy import inspect
 from config import Config
 
-# Importa extensões
+# Importa extensões centralizadas
 from app.extensions import db, login_manager, migrate
+
 
 def create_app():
     app = Flask(__name__)
@@ -22,6 +23,9 @@ def create_app():
 
     from app.clientes.routes import clientes_bp
     app.register_blueprint(clientes_bp, url_prefix="/clientes")
+
+    from app.vendas import vendas_bp
+    app.register_blueprint(vendas_bp, url_prefix="/vendas")
 
     # -------------------------
     # Filtro customizado: currency
@@ -49,12 +53,14 @@ def create_app():
 
     with app.app_context():
         inspector = inspect(db.engine)
-        tabelas = inspector.get_table_names()
+        tabelas = set(inspector.get_table_names())
 
-        if "users" in tabelas and "taxas" in tabelas and "produtos" in tabelas and "configuracoes" in tabelas:
-            # Usuário admin
+        if {"users", "taxas", "produtos", "configuracoes"}.issubset(tabelas):
+            # Usuário admin (agora usando hash de senha)
             if not User.query.filter_by(username="admin").first():
-                db.session.add(User(username="admin", password="admin"))
+                admin = User(username="admin")
+                admin.set_password("admin")  # <- armazena hash seguro
+                db.session.add(admin)
 
             # Taxas de parcelamento
             if not Taxa.query.first():

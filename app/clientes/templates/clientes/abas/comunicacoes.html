@@ -1,11 +1,37 @@
 <h5>Comunicações</h5>
-<ul class="list-group">
+
+<!-- Lista de comunicações -->
+<ul class="list-group mb-3">
+    {% for com in cliente.comunicacoes %}
     <li class="list-group-item">
-        <strong>WhatsApp</strong> — Mensagem enviada em 10/09/2025<br>
-        "Seu CR está prestes a vencer."
+        <strong>{{ com.tipo|capitalize }}</strong> — 
+        Mensagem enviada em {{ com.data.strftime("%d/%m/%Y %H:%M") if com.data else "-" }}<br>
+        "{{ com.mensagem }}"
     </li>
-    <li class="list-group-item">
-        <strong>Email</strong> — Mensagem enviada em 01/09/2025<br>
-        "Segue orçamento solicitado."
+    {% else %}
+    <li class="list-group-item text-muted text-center">
+        Nenhuma comunicação registrada.
     </li>
+    {% endfor %}
 </ul>
+
+<hr>
+
+<!-- Enviar nova comunicação -->
+<form method="POST" action="{{ url_for('clientes.nova_comunicacao', cliente_id=cliente.id) }}">
+    <div class="row g-2">
+        <div class="col-md-2">
+            <select name="tipo" class="form-select" required>
+                <option value="">Canal</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="email">Email</option>
+            </select>
+        </div>
+        <div class="col-md-8">
+            <input type="text" name="mensagem" class="form-control" placeholder="Digite a mensagem..." required>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-success w-100">Enviar</button>
+        </div>
+    </div>
+</form>

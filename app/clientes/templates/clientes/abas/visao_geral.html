@@ -1,21 +1,100 @@
 <h5>Visão Geral</h5>
 <div class="row">
+    <!-- Dados básicos -->
     <div class="col-md-6">
         <div class="card mb-3">
             <div class="card-body">
                 <h6>Dados Básicos</h6>
-                <p><strong>Nome:</strong> Cliente Exemplo</p>
-                <p><strong>CPF:</strong> 000.000.000-00</p>
-                <p><strong>Data Nascimento:</strong> 01/01/1990</p>
+                <p><strong>CPF/CNPJ:</strong> {{ cliente.documento }}</p>
+                <p><strong>Nome:</strong> {{ cliente.nome }}</p>
+                <p><strong>Apelido:</strong> {{ cliente.apelido or '-' }}</p>
+                <p><strong>Data Nascimento:</strong>
+                    {{ cliente.data_nascimento.strftime('%d/%m/%Y') if cliente.data_nascimento else '-' }}
+                </p>
+                <p><strong>Sexo:</strong> {{ cliente.sexo or '-' }}</p>
+                <p><strong>Profissão:</strong> {{ cliente.profissao or '-' }}</p>
+                <p><strong>Estado Civil:</strong> {{ cliente.estado_civil or '-' }}</p>
+                <p><strong>Escolaridade:</strong> {{ cliente.escolaridade or '-' }}</p>
             </div>
         </div>
     </div>
+
+    <!-- Registros -->
     <div class="col-md-6">
         <div class="card mb-3">
             <div class="card-body">
                 <h6>Status de Registros</h6>
-                <p><span class="badge bg-success">CR Ativo</span></p>
-                <p><span class="badge bg-secondary">SINARM não informado</span></p>
+                <p>
+                    {% if cliente.cr %}
+                        <span class="badge bg-success">CR: {{ cliente.cr }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">CR não informado</span>
+                    {% endif %}
+                </p>
+                <p>
+                    {% if cliente.sigma %}
+                        <span class="badge bg-success">SIGMA: {{ cliente.sigma }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">SIGMA não informado</span>
+                    {% endif %}
+                </p>
+                <p>
+                    {% if cliente.sinarm %}
+                        <span class="badge bg-success">SINARM: {{ cliente.sinarm }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">SINARM não informado</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Contato -->
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6>Contato</h6>
+                <p><strong>E-mail:</strong> {{ cliente.email or '-' }}</p>
+                <p><strong>Telefone:</strong> {{ cliente.telefone or '-' }}</p>
+                <p><strong>Celular:</strong> {{ cliente.celular or '-' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Endereço -->
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6>Endereço</h6>
+                <p><strong>CEP:</strong> {{ cliente.cep or '-' }}</p>
+                <p><strong>Endereço:</strong> {{ cliente.endereco or '-' }}, {{ cliente.numero or '' }}</p>
+                <p><strong>Complemento:</strong> {{ cliente.complemento or '-' }}</p>
+                <p><strong>Bairro:</strong> {{ cliente.bairro or '-' }}</p>
+                <p><strong>Cidade/UF:</strong> {{ cliente.cidade or '-' }} / {{ cliente.estado or '-' }}</p>
+                <p><strong>Naturalidade:</strong> {{ cliente.naturalidade or '-' }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Flags / Categorias -->
+    <div class="col-md-12">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6>Categorias</h6>
+                {% if cliente.cac %}<span class="badge bg-primary">CAC</span> {% endif %}
+                {% if cliente.filiado %}<span class="badge bg-primary">Filiado</span> {% endif %}
+                {% if cliente.policial %}<span class="badge bg-primary">Policial</span> {% endif %}
+                {% if cliente.bombeiro %}<span class="badge bg-primary">Bombeiro</span> {% endif %}
+                {% if cliente.militar %}<span class="badge bg-primary">Militar</span> {% endif %}
+                {% if cliente.iat %}<span class="badge bg-primary">IAT</span> {% endif %}
+                {% if cliente.psicologo %}<span class="badge bg-primary">Psicólogo</span> {% endif %}
+                {% if not (cliente.cac or cliente.filiado or cliente.policial or cliente.bombeiro or cliente.militar or cliente.iat or cliente.psicologo) %}
+                    <span class="text-muted">Nenhuma categoria atribuída</span>
+                {% endif %}
             </div>
         </div>
     </div>

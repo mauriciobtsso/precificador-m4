@@ -45,13 +45,13 @@
                 <!-- Novos itens -->
                 <li class="nav-item">
                     <a class="nav-link text-white {% if request.endpoint == 'clientes.lista' %}active border-start border-3 border-primary{% endif %}" 
-                       href="{{ url_for('clientes.lista') }}">
+                       href="{{ url_for('clientes.index') }}">
                         <i class="fas fa-users"></i> <span>Clientes</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-white {% if request.endpoint == 'main.vendas' %}active border-start border-3 border-primary{% endif %}" 
-                       href="{{ url_for('main.vendas') }}">
+                       href="{{ url_for('vendas.vendas') }}">
                         <i class="fas fa-shopping-cart"></i> <span>Vendas</span>
                     </a>
                 </li>

@@ -803,3 +803,52 @@ body {
     padding-left: 0 !important;
 }
 
+/* =========================
+   Timeline - Estilo vertical
+   ========================= */
+.timeline {
+    position: relative;
+    padding-left: 25px;
+    margin: 0;
+    list-style: none;
+}
+
+.timeline::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6; /* cor da linha */
+}
+
+.timeline li {
+    position: relative;
+    margin-bottom: 20px;
+    padding-left: 15px;
+}
+
+.timeline li::before {
+    content: "";
+    position: absolute;
+    left: -3px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    background: #0d6efd; /* cor padrão da bolinha */
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #dee2e6; /* borda externa */
+}
+
+/* Ajuste do texto */
+.timeline li small {
+    display: block;
+    color: #6c757d;
+    margin-bottom: 2px;
+}
+
+.timeline li strong {
+    color: #212529;
+}

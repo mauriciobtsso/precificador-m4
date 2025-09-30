@@ -25,14 +25,15 @@
       <td>{{ arma.data_validade_craf.strftime("%d/%m/%Y") if arma.data_validade_craf else "-" }}</td>
       <td>
         {% if arma.caminho_craf %}
-        <a href="{{ url_for('clientes.abrir_craf', arma_id=arma.id) }}" target="_blank" class="btn btn-sm btn-outline-primary">Abrir</a>
+          <a href="{{ url_for('clientes.abrir_craf', arma_id=arma.id) }}" target="_blank" class="btn btn-sm btn-outline-primary">Abrir</a>
         {% else %}
-        -
+          <span class="text-muted">Não enviado</span>
         {% endif %}
       </td>
       <td>
         <form method="POST" action="{{ url_for('clientes.deletar_arma', cliente_id=cliente.id, arma_id=arma.id) }}" style="display:inline;">
-          <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Deseja realmente excluir esta arma?')">Excluir</button>
+          <button type="submit" class="btn btn-sm btn-danger"
+                  onclick="return confirm('Deseja realmente excluir esta arma?')">Excluir</button>
         </form>
       </td>
     </tr>
@@ -87,7 +88,7 @@
           </div>
           <div class="mb-3">
             <label>Validade CRAF</label>
-            <input type="text" name="data_validade_craf" id="crafValidade" class="form-control">
+            <input type="date" name="data_validade_craf" id="crafValidade" class="form-control">
           </div>
           <input type="hidden" name="caminho_craf" id="crafCaminho">
         </div>
@@ -102,12 +103,12 @@
 
 <script>
 function abrirPreverCraf(dados) {
-  document.getElementById("crafMarca").value = dados.marca;
-  document.getElementById("crafModelo").value = dados.modelo;
-  document.getElementById("crafCalibre").value = dados.calibre;
-  document.getElementById("crafNumeroSerie").value = dados.numero_serie;
-  document.getElementById("crafValidade").value = dados.data_validade_craf;
-  document.getElementById("crafCaminho").value = dados.caminho_craf;
+  document.getElementById("crafMarca").value = dados.marca || '';
+  document.getElementById("crafModelo").value = dados.modelo || '';
+  document.getElementById("crafCalibre").value = dados.calibre || '';
+  document.getElementById("crafNumeroSerie").value = dados.numero_serie || '';
+  document.getElementById("crafValidade").value = dados.data_validade_craf || '';
+  document.getElementById("crafCaminho").value = dados.caminho_craf || '';
 
   var modal = new bootstrap.Modal(document.getElementById('preverCrafModal'));
   modal.show();

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>
+    <i class="fas fa-edit"></i>
+    Editar Processo — Cliente #{{ cliente.id }} | {{ cliente.nome }}
+  </h2>
+  <hr>
+
+  <form method="POST" action="{{ url_for('clientes.editar_processo', cliente_id=cliente.id, proc_id=processo.id) }}">
+    <div class="row">
+      <!-- Tipo -->
+      <div class="col-md-4 mb-3">
+        <label for="tipo" class="form-label">Tipo</label>
+        <input type="text" class="form-control" id="tipo" name="tipo"
+               value="{{ processo.tipo }}" required>
+      </div>
+
+      <!-- Status -->
+      <div class="col-md-4 mb-3">
+        <label for="status" class="form-label">Status</label>
+        <select class="form-select" id="status" name="status" required>
+          <option value="">-- Selecione --</option>
+          <option value="Em andamento" {% if processo.status == "Em andamento" %}selected{% endif %}>Em andamento</option>
+          <option value="Concluído" {% if processo.status == "Concluído" %}selected{% endif %}>Concluído</option>
+          <option value="Cancelado" {% if processo.status == "Cancelado" %}selected{% endif %}>Cancelado</option>
+        </select>
+      </div>
+
+      <!-- Data (somente visualização) -->
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Data</label>
+        <input type="text" class="form-control"
+               value="{{ processo.data.strftime('%d/%m/%Y %H:%M') if processo.data else '-' }}" disabled>
+      </div>
+    </div>
+
+    <!-- Descrição -->
+    <div class="mb-3">
+      <label for="descricao" class="form-label">Descrição</label>
+      <textarea class="form-control" id="descricao" name="descricao" rows="4">{{ processo.descricao }}</textarea>
+    </div>
+
+    <!-- Botões -->
+    <div class="mt-3">
+      <button type="submit" class="btn btn-success">
+        <i class="fas fa-save"></i> Salvar Alterações
+      </button>
+      <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" class="btn btn-secondary">
+        <i class="fas fa-times"></i> Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

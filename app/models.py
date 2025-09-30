@@ -1,8 +1,10 @@
 from datetime import datetime
 from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Importa extensões centralizadas
 from app.extensions import db, login_manager
+
 
 # =========================
 # Login loader
@@ -15,12 +17,21 @@ def load_user(user_id):
 # =========================
 # Usuário
 # =========================
-class User(UserMixin, db.Model):
+class User(UserMixin, db.Model):  # <- herda UserMixin para Flask-Login
     __tablename__ = "users"
-
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
-    password = db.Column(db.String(128), nullable=False)
+    # mantenha 512 (ou 256 se preferir) para suportar hashes longos (pbkdf2/scrypt)
+    password_hash = db.Column(db.String(512), nullable=False)
+
+    def set_password(self, password: str) -> None:
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self) -> str:
+        return f"<User {self.username}>"
 
 
 # =========================
@@ -56,9 +67,6 @@ class Produto(db.Model):
     preco_a_vista = db.Column(db.Float, default=0.0)
     lucro_liquido_real = db.Column(db.Float, default=0.0)
 
-    # =========================
-    # Método de cálculo
-    # =========================
     def calcular_precos(self):
         preco_compra = self.preco_fornecedor or 0.0
         desconto = (self.desconto_fornecedor or 0.0) / 100.0
@@ -140,97 +148,7 @@ class Configuracao(db.Model):
         }
         for k, v in defaults.items():
             if not cls.query.filter_by(chave=k).first():
-                db.session.add(cls(chave=k, valor=v))
-
-
-# =========================
-# Cliente
-# =========================
-class Cliente(db.Model):
-    __tablename__ = "clientes"
-
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(150), nullable=False)
-    razao_social = db.Column(db.String(150))
-
-    # Dados pessoais
-    sexo = db.Column(db.String(10))
-    data_nascimento = db.Column(db.Date)
-    nome_pai = db.Column(db.String(150))
-    nome_mae = db.Column(db.String(150))
-    apelido = db.Column(db.String(100))
-    estado_civil = db.Column(db.String(50))
-    profissao = db.Column(db.String(100))
-    escolaridade = db.Column(db.String(100))
-    naturalidade = db.Column(db.String(100))
-
-    # Documentos
-    documento = db.Column(db.String(30), unique=True, nullable=True)  # CPF/CNPJ
-    rg = db.Column(db.String(30))
-    rg_emissor = db.Column(db.String(100))
-    cnh = db.Column(db.String(30))
-
-    # Contatos
-    email = db.Column(db.String(150))
-    telefone = db.Column(db.String(30))
-    celular = db.Column(db.String(30))
-
-    # Endereço
-    endereco = db.Column(db.String(255))
-    numero = db.Column(db.String(20))
-    complemento = db.Column(db.String(100))
-    bairro = db.Column(db.String(100))
-    cidade = db.Column(db.String(100))
-    estado = db.Column(db.String(50))
-    cep = db.Column(db.String(20))
-
-    # Registros
-    cr = db.Column(db.String(30))
-    cr_emissor = db.Column(db.String(100))
-    sigma = db.Column(db.String(50))
-    sinarm = db.Column(db.String(50))
-
-    # Flags
-    cac = db.Column(db.Boolean, default=False)
-    filiado = db.Column(db.Boolean, default=False)
-    policial = db.Column(db.Boolean, default=False)
-    bombeiro = db.Column(db.Boolean, default=False)
-    militar = db.Column(db.Boolean, default=False)
-    iat = db.Column(db.Boolean, default=False)
-    psicologo = db.Column(db.Boolean, default=False)
-
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    updated_at = db.Column(
-        db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp()
-    )
-
-    # Relacionamentos
-    vendas = db.relationship("Venda", backref="cliente", lazy=True)
-    documentos = db.relationship("Documento", back_populates="cliente", cascade="all, delete-orphan")
-    pedidos = db.relationship("PedidoCompra", back_populates="fornecedor", lazy=True)
-
-
-# =========================
-# Documento
-# =========================
-class Documento(db.Model):
-    __tablename__ = "documentos"
-
-    id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"))
-    tipo = db.Column(db.String(50), nullable=False)  # RG, CPF, CR, CRAF, NF etc.
-    nome_original = db.Column(db.Text)
-    caminho_arquivo = db.Column(db.Text, nullable=False)  # URL no R2
-    mime_type = db.Column(db.String(100))
-    data_upload = db.Column(db.DateTime, default=datetime.utcnow)
-
-    usuario_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-
-    # Relacionamento
-    cliente = db.relationship("Cliente", back_populates="documentos")
-
-    def __repr__(self):
-        return f"<Documento {self.tipo} - Cliente {self.cliente_id}>"
+                db.session.add(cls(chave=k), valor=v)
 
 
 # =========================
@@ -259,8 +177,12 @@ class Venda(db.Model):
         db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp()
     )
 
-    # Relacionamento
-    itens = db.relationship("ItemVenda", backref="venda", lazy=True)
+    # Relacionamentos
+    itens = db.relationship("ItemVenda", backref="venda", lazy=True, cascade="all, delete-orphan")
+    cliente = db.relationship("Cliente", back_populates="vendas")
+
+    def __repr__(self):
+        return f"<Venda {self.id} - Cliente {self.cliente_id}>"
 
 
 # =========================
@@ -270,13 +192,16 @@ class ItemVenda(db.Model):
     __tablename__ = "itens_venda"
 
     id = db.Column(db.Integer, primary_key=True)
-    venda_id = db.Column(db.Integer, db.ForeignKey("vendas.id"), nullable=False)
+    venda_id = db.Column(db.Integer, db.ForeignKey("vendas.id", ondelete="CASCADE"), nullable=False)
 
     produto_nome = db.Column(db.String(200), nullable=False)
     categoria = db.Column(db.String(100))
     quantidade = db.Column(db.Integer, default=1)
     valor_unitario = db.Column(db.Float, nullable=False)
     valor_total = db.Column(db.Float, nullable=False)
+
+    def __repr__(self):
+        return f"<ItemVenda {self.id} - {self.produto_nome}>"
 
 
 # =========================
@@ -296,7 +221,9 @@ class PedidoCompra(db.Model):
     percentual_unico = db.Column(db.Float, default=0.0)
 
     fornecedor_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)
-    fornecedor = db.relationship("Cliente", back_populates="pedidos")
+
+    # Relacionamento com Cliente atuando como fornecedor
+    fornecedor = db.relationship("Cliente", backref="pedidos_compra", foreign_keys=[fornecedor_id])
 
     itens = db.relationship("ItemPedido", backref="pedido", cascade="all, delete-orphan")
 
@@ -310,31 +237,3 @@ class ItemPedido(db.Model):
     descricao = db.Column(db.String(200))
     quantidade = db.Column(db.Integer)
     valor_unitario = db.Column(db.Float)
-
-
-# =========================
-# Arma
-# =========================
-class Arma(db.Model):
-    __tablename__ = "armas"
-
-    id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
-
-    marca = db.Column(db.String(100))
-    modelo = db.Column(db.String(100))
-    calibre = db.Column(db.String(50))
-    numero_serie = db.Column(db.String(100), unique=True)
-    craf = db.Column(db.String(50))
-    data_aquisicao = db.Column(db.Date)
-    data_validade_craf = db.Column(db.Date)
-    caminho_craf = db.Column(db.Text)  # URL do arquivo no R2
-
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
-
-    # Relacionamento reverso
-    cliente = db.relationship("Cliente", backref=db.backref("armas", cascade="all, delete-orphan", lazy=True))
-
-    def __repr__(self):
-        return f"<Arma {self.modelo} - {self.numero_serie}>"

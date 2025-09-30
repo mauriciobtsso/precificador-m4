@@ -1,17 +1,53 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <h2><i class="fas fa-user"></i> Cliente #{{ cliente.id }}</h2>
-
-    <div class="mb-3">
-        <p><strong>Nome:</strong> {{ cliente.nome }}</p>
-        <p><strong>CPF:</strong> {{ cliente.cpf }}</p>
-        <p><strong>Data de Nascimento:</strong> {{ cliente.data_nascimento }}</p>
+    <!-- Cabeçalho com avatar e infos -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body d-flex align-items-center">
+            <div class="me-3">
+                <img src="{{ url_for('static', filename='img/avatar.png') }}" alt="avatar" class="rounded-circle border" width="80" height="80">
+            </div>
+            <div>
+                <h4 class="mb-1">{{ cliente.nome }}</h4>
+                <p class="text-muted mb-1">{{ cliente.razao_social or '' }}</p>
+                <p class="mb-1">
+                    <strong>CPF/CNPJ:</strong> {{ cliente.documento or 'não possui' }}
+                    {% if cliente.cr %} / <strong>CR:</strong> {{ cliente.cr }}{% endif %}
+                    {% if cliente.rg %} / <strong>RG:</strong> {{ cliente.rg }}{% endif %}
+                    {% if cliente.matricula %} / <strong>Matrícula:</strong> {{ cliente.matricula }}{% else %} / <strong>Matrícula:</strong> não possui{% endif %}
+                </p>
+                <p class="mb-1">
+                    <strong>Data de Nascimento:</strong>
+                    {{ cliente.data_nascimento.strftime('%d/%m/%Y') if cliente.data_nascimento else 'não informado' }}
+                </p>
+                <!-- Contatos principais -->
+                <p class="mb-1">
+                  {% if cliente.contatos %}
+                    {% for c in cliente.contatos %}
+                      {% if c.tipo|lower == 'telefone' %}
+                        <strong>Tel:</strong> {{ c.valor }}
+                      {% elif c.tipo|lower == 'celular' %}
+                        <i class="fas fa-mobile-alt"></i> {{ c.valor }}
+                      {% elif c.tipo|lower in ['whatsapp', 'zap'] %}
+                        <i class="fab fa-whatsapp text-success"></i> {{ c.valor }}
+                      {% elif c.tipo|lower == 'email' %}
+                        <strong>E-mail:</strong> {{ c.valor }}
+                      {% else %}
+                        <strong>{{ c.tipo|capitalize }}:</strong> {{ c.valor }}
+                      {% endif %}
+                      {% if not loop.last %} / {% endif %}
+                    {% endfor %}
+                  {% else %}
+                    <span class="text-muted">nenhum contato cadastrado</span>
+                  {% endif %}
+                </p>
+            </div>
+        </div>
     </div>
 
-    <!-- Botão de ação (corrigido para rota existente) -->
-    <a href="{{ url_for('clientes.detalhe_cliente', cliente_id=cliente.id) }}" class="btn btn-primary mb-3">
-        Atualizar Detalhes
+    <!-- Botão de ação -->
+    <a href="{{ url_for('clientes.index') }}" class="btn btn-secondary mb-3">
+        Voltar
     </a>
 
     <!-- Abas -->
@@ -25,21 +61,107 @@
     </ul>
 
     <div class="tab-content border p-3">
+        <!-- ====================== -->
+        <!-- VISÃO GERAL - DASHBOARD -->
+        <!-- ====================== -->
         <div class="tab-pane fade show active" id="visao">
-            {% include "clientes/abas/visao_geral.html" %}
+            
+            <!-- Cards de Resumo -->
+            <div class="row text-center mb-4">
+                <div class="col-6 col-md-3 mb-3">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+                            <i class="fas fa-file-alt fa-2x text-primary mb-2"></i>
+                            <h5 class="card-title">Documentos</h5>
+                            <p class="display-6">{{ resumo.documentos }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+                            <i class="fas fa-gun fa-2x text-success mb-2"></i>
+                            <h5 class="card-title">Armas</h5>
+                            <p class="display-6">{{ resumo.armas }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+                            <i class="fas fa-comments fa-2x text-info mb-2"></i>
+                            <h5 class="card-title">Comunicações</h5>
+                            <p class="display-6">{{ resumo.comunicacoes }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+                            <i class="fas fa-tasks fa-2x text-warning mb-2"></i>
+                            <h5 class="card-title">Processos</h5>
+                            <p class="display-6">{{ resumo.processos }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alertas Inteligentes -->
+            {% if alertas %}
+            <div class="alert alert-danger">
+                <h6><i class="fas fa-exclamation-triangle"></i> Alertas</h6>
+                <ul class="mb-0">
+                    {% for alerta in alertas %}
+                    <li>{{ alerta }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Mini Timeline -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-light">
+                    <strong><i class="fas fa-stream"></i> Últimos Eventos</strong>
+                </div>
+                <div class="card-body">
+                    {% if timeline %}
+                        <ul class="timeline list-unstyled mb-0">
+                            {% for evento in timeline %}
+                            <li class="mb-3">
+                                <small class="text-muted">{{ evento.data.strftime('%d/%m/%Y %H:%M') }}</small><br>
+                                <strong>{{ evento.tipo }}</strong> — {{ evento.descricao }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">Nenhum evento recente.</p>
+                    {% endif %}
+                </div>
+            </div>
+
         </div>
+
+        <!-- INFORMAÇÕES -->
         <div class="tab-pane fade" id="info">
             {% include "clientes/abas/informacoes.html" %}
         </div>
+
+        <!-- DOCUMENTOS -->
         <div class="tab-pane fade" id="docs">
             {% include "clientes/abas/documentos.html" %}
         </div>
+
+        <!-- ARMAS -->
         <div class="tab-pane fade" id="armas">
             {% include "clientes/abas/armas.html" %}
         </div>
+
+        <!-- COMUNICAÇÕES -->
         <div class="tab-pane fade" id="com">
             {% include "clientes/abas/comunicacoes.html" %}
         </div>
+
+        <!-- PROCESSOS -->
         <div class="tab-pane fade" id="proc">
             {% include "clientes/abas/processos.html" %}
         </div>

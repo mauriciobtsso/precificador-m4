@@ -1,7 +1,8 @@
-from flask import render_template, request, redirect, url_for, flash, send_from_directory
+from flask import render_template, request, redirect, url_for, flash, send_from_directory, current_app, send_file, jsonify
 from flask_login import login_user, logout_user, login_required
-from app.extensions import db  # <-- ajustado: agora vem de app.extensions
-from app.models import Produto, Taxa, User, Configuracao, Cliente, Venda, ItemVenda, PedidoCompra, ItemPedido
+from app.extensions import db
+from app.models import Produto, Taxa, User, Configuracao, Venda, ItemVenda, PedidoCompra, ItemPedido
+from app.clientes.models import Cliente
 from app.main import main
 from sqlalchemy import text, func, extract
 from openpyxl import load_workbook
@@ -9,9 +10,7 @@ from io import TextIOWrapper
 import csv
 import os
 from datetime import datetime, timedelta
-from flask import current_app, send_file
 from app.utils.gerar_pedidos import gerar_pedido_m4
-from flask import jsonify
 import app.utils.parcelamento as parc
 from app.utils.whatsapp import gerar_mensagem_whatsapp
 
@@ -176,25 +175,35 @@ def _as_bool(val):
 def index():
     return redirect(url_for("main.dashboard"))
 
-# --- Login/Logout ---
+# --- Login ---
 @main.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        user = User.query.filter_by(username=username, password=password).first()
-        if user:
+
+        # Busca o usuário pelo username
+        user = User.query.filter_by(username=username).first()
+
+        # Valida senha usando check_password
+        if user and user.check_password(password):
             login_user(user)
-            return redirect(url_for("main.dashboard"))
+            flash("Login realizado com sucesso!", "success")
+            # Redireciona para a página que o usuário tentou acessar ou dashboard
+            next_page = request.args.get("next")
+            return redirect(next_page or url_for("main.dashboard"))
         else:
             flash("Usuário ou senha inválidos", "danger")
+
     return render_template("login.html")
 
+# --- Logout ---
 @main.route("/logout")
+@login_required
 def logout():
     logout_user()
+    flash("Logout realizado com sucesso.", "info")
     return redirect(url_for("main.login"))
-
 # --- Dashboard ---
 @main.route("/dashboard")
 @login_required
@@ -202,41 +211,62 @@ def dashboard():
     produtos = Produto.query.all()
     hoje = datetime.today()
 
-    total_vendas_mes = db.session.query(func.sum(Venda.valor_total))\
-        .filter(extract("year", Venda.data_abertura) == hoje.year)\
-        .filter(extract("month", Venda.data_abertura) == hoje.month)\
-        .scalar() or 0
+    # Total de vendas no mês atual
+    total_vendas_mes = (
+        db.session.query(func.sum(Venda.valor_total))
+        .filter(extract("year", Venda.data_abertura) == hoje.year)
+        .filter(extract("month", Venda.data_abertura) == hoje.month)
+        .scalar()
+        or 0
+    )
 
-    top_clientes = db.session.query(
-        Cliente.nome,
-        func.sum(Venda.valor_total).label("total")
-    ).join(Venda, Cliente.id == Venda.cliente_id)\
-     .group_by(Cliente.id)\
-     .order_by(func.sum(Venda.valor_total).desc())\
-     .limit(5).all()
+    # Top 5 clientes por valor de compras
+    top_clientes = (
+        db.session.query(
+            Cliente.nome,
+            func.sum(Venda.valor_total).label("total")
+        )
+        .join(Venda, Cliente.id == Venda.cliente_id)
+        .group_by(Cliente.id)
+        .order_by(func.sum(Venda.valor_total).desc())
+        .limit(5)
+        .all()
+    )
 
-    produto_mais_vendido = db.session.query(
-        ItemVenda.produto_nome,
-        func.sum(ItemVenda.quantidade).label("qtd")
-    ).group_by(ItemVenda.produto_nome)\
-     .order_by(func.sum(ItemVenda.quantidade).desc())\
-     .first()
+    # Produto mais vendido (quantidade)
+    produto_mais_vendido = (
+        db.session.query(
+            ItemVenda.produto_nome,
+            func.sum(ItemVenda.quantidade).label("qtd")
+        )
+        .group_by(ItemVenda.produto_nome)
+        .order_by(func.sum(ItemVenda.quantidade).desc())
+        .first()
+    )
 
-    ticket_medio = db.session.query(
-        (func.sum(Venda.valor_total) / func.count(Venda.id))
-    ).scalar() or 0
+    # Ticket médio
+    ticket_medio = (
+        db.session.query(func.sum(Venda.valor_total) / func.count(Venda.id))
+        .scalar()
+        or 0
+    )
 
-    # Vendas últimos 6 meses
-    vendas_por_mes = db.session.query(
-        extract("month", Venda.data_abertura).label("mes"),
-        func.sum(Venda.valor_total).label("total")
-    ).filter(Venda.data_abertura >= hoje - timedelta(days=180))\
-     .group_by(extract("month", Venda.data_abertura))\
-     .order_by(extract("month", Venda.data_abertura))\
-     .all()
+    # Vendas nos últimos 6 meses
+    vendas_por_mes = (
+        db.session.query(
+            extract("month", Venda.data_abertura).label("mes"),
+            func.sum(Venda.valor_total).label("total")
+        )
+        .filter(Venda.data_abertura >= hoje - timedelta(days=180))
+        .group_by(extract("month", Venda.data_abertura))
+        .order_by(extract("month", Venda.data_abertura))
+        .all()
+    )
 
-    mapa_meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-                  "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+    mapa_meses = [
+        "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+        "Jul", "Ago", "Set", "Out", "Nov", "Dez"
+    ]
 
     meses_nomes = [mapa_meses[int(m) - 1] for m, _ in vendas_por_mes]
     totais = [float(total) for _, total in vendas_por_mes]
@@ -249,7 +279,7 @@ def dashboard():
         produto_mais_vendido=produto_mais_vendido,
         ticket_medio=ticket_medio,
         meses=meses_nomes,
-        totais=totais
+        totais=totais,
     )
 
 
@@ -656,67 +686,6 @@ def importar():
 
     return render_template("importar.html")
 
-
-# =========================
-# Vendas
-# =========================
-@main.route("/vendas", methods=["GET", "POST"])
-@login_required
-def vendas():
-    query = Venda.query.join(Cliente, isouter=True)
-
-    # --- Filtros ---
-    cliente_nome = request.args.get("cliente", "").strip()
-    status = request.args.get("status", "").strip()
-    periodo = request.args.get("periodo", "").strip()
-    data_inicio = request.args.get("data_inicio")
-    data_fim = request.args.get("data_fim")
-
-    if cliente_nome:
-        query = query.filter(Cliente.nome.ilike(f"%{cliente_nome}%"))
-
-    if status:
-        query = query.filter(Venda.status.ilike(f"%{status}%"))
-
-    hoje = datetime.today()
-
-    if periodo == "7d":
-        query = query.filter(Venda.data_abertura >= hoje - timedelta(days=7))
-    elif periodo == "mes":
-        query = query.filter(
-            extract("year", Venda.data_abertura) == hoje.year,
-            extract("month", Venda.data_abertura) == hoje.month
-        )
-    elif periodo == "personalizado" and data_inicio and data_fim:
-        try:
-            inicio = datetime.strptime(data_inicio, "%Y-%m-%d")
-            fim = datetime.strptime(data_fim, "%Y-%m-%d") + timedelta(days=1)
-            query = query.filter(Venda.data_abertura >= inicio, Venda.data_abertura < fim)
-        except Exception:
-            flash("Datas inválidas para filtro.", "warning")
-
-    todas_vendas = query.order_by(Venda.data_abertura.desc()).all()
-
-    return render_template("vendas.html", vendas=todas_vendas)
-
-# =========================
-# Detalhe de Venda
-# =========================
-@main.route("/venda/<int:venda_id>")
-@login_required
-def venda_detalhe(venda_id):
-    venda = Venda.query.get_or_404(venda_id)
-    cliente = Cliente.query.get(venda.cliente_id)
-    itens = ItemVenda.query.filter_by(venda_id=venda.id).all()
-
-    return render_template(
-        "venda_detalhe.html",
-        venda=venda,
-        cliente=cliente,
-        itens=itens
-    )
-
-
 # =========================
 # Funções de Importação (openpyxl)
 # =========================
@@ -918,7 +887,7 @@ def listar_pedidos():
     if numero:
         query = query.filter(PedidoCompra.numero.ilike(f"%{numero}%"))
 
-    # filtro por fornecedor (nome, não id!)
+    # filtro por fornecedor (nome)
     if fornecedor_nome:
         query = query.filter(Cliente.nome.ilike(f"%{fornecedor_nome}%"))
 
@@ -928,17 +897,16 @@ def listar_pedidos():
             di = datetime.strptime(data_inicio, "%Y-%m-%d").date()
             query = query.filter(PedidoCompra.data_pedido >= di)
         except ValueError:
-            pass
+            flash("Data inicial inválida.", "warning")
     if data_fim:
         try:
             df = datetime.strptime(data_fim, "%Y-%m-%d").date()
             query = query.filter(PedidoCompra.data_pedido <= df)
         except ValueError:
-            pass
+            flash("Data final inválida.", "warning")
 
     # filtro por valores
     if valor_min or valor_max:
-        # calcular total no backend
         from sqlalchemy import func
         subq = (
             db.session.query(

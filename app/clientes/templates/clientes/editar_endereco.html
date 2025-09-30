@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><i class="fas fa-map-marker-alt"></i> Editar Endereço</h3>
+        <a href="{{ url_for('clientes.detalhe', cliente_id=cliente_id) }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <!-- Mensagens flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Formulário de edição -->
+    <form method="POST" action="{{ url_for('clientes.editar_endereco', cliente_id=cliente_id, endereco_id=endereco.id) }}">
+        
+        <!-- CEP primeiro -->
+        <div class="mb-3">
+            <label for="cep" class="form-label">CEP</label>
+            <input type="text" class="form-control" id="cep" name="cep"
+                   value="{{ endereco.cep }}" required>
+        </div>
+
+        <!-- Tipo logo após -->
+        <div class="mb-3">
+            <label for="tipo" class="form-label">Tipo</label>
+            <select class="form-select" id="tipo" name="tipo" required>
+                <option value="residencial" {{ 'selected' if endereco.tipo == 'residencial' }}>Residencial</option>
+                <option value="comercial" {{ 'selected' if endereco.tipo == 'comercial' }}>Comercial</option>
+                <option value="2º Endereço CR" {{ 'selected' if endereco.tipo == '2º Endereço CR' }}>2º Endereço CR</option>
+            </select>
+        </div>
+
+        <!-- Restante do endereço -->
+        <div class="mb-3">
+            <label for="logradouro" class="form-label">Logradouro</label>
+            <input type="text" class="form-control" id="logradouro" name="logradouro"
+                   value="{{ endereco.logradouro }}" required>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="numero" class="form-label">Número</label>
+                <input type="text" class="form-control" id="numero" name="numero"
+                       value="{{ endereco.numero }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="complemento" class="form-label">Complemento</label>
+                <input type="text" class="form-control" id="complemento" name="complemento"
+                       value="{{ endereco.complemento }}">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="bairro" class="form-label">Bairro</label>
+                <input type="text" class="form-control" id="bairro" name="bairro"
+                       value="{{ endereco.bairro }}" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="cidade" class="form-label">Cidade</label>
+                <input type="text" class="form-control" id="cidade" name="cidade"
+                       value="{{ endereco.cidade }}" required>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="estado" class="form-label">Estado</label>
+            <input type="text" class="form-control" id="estado" name="estado"
+                   value="{{ endereco.estado }}" maxlength="2" required>
+        </div>
+
+        <!-- Botões -->
+        <div class="d-flex justify-content-between">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Salvar Alterações
+            </button>
+            <a href="{{ url_for('clientes.detalhe', cliente_id=cliente_id) }}" class="btn btn-outline-secondary">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- ====================== -->
+<!-- JS: CEP Mask + ViaCEP -->
+<!-- ====================== -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  function limpaCep() {
+    document.getElementById("logradouro").value = "";
+    document.getElementById("bairro").value = "";
+    document.getElementById("cidade").value = "";
+    document.getElementById("estado").value = "";
+  }
+
+  const cepInput = document.getElementById("cep");
+  if (cepInput) {
+    // máscara simples: 00000-000
+    cepInput.addEventListener("input", function () {
+      this.value = this.value.replace(/\D/g, "").replace(/^(\d{5})(\d)/, "$1-$2").substr(0, 9);
+    });
+
+    // busca no blur
+    cepInput.addEventListener("blur", function () {
+      let cep = this.value.replace(/\D/g, "");
+      if (cep.length === 8) {
+        fetch("https://viacep.com.br/ws/" + cep + "/json/")
+          .then(response => response.json())
+          .then(data => {
+            if (!("erro" in data)) {
+              document.getElementById("logradouro").value = data.logradouro;
+              document.getElementById("bairro").value = data.bairro;
+              document.getElementById("cidade").value = data.localidade;
+              document.getElementById("estado").value = data.uf;
+            } else {
+              limpaCep();
+              alert("CEP não encontrado.");
+            }
+          })
+          .catch(() => {
+            limpaCep();
+            alert("Erro ao buscar CEP.");
+          });
+      } else {
+        limpaCep();
+      }
+    });
+  }
+});
+</script>
+{% endblock %}
