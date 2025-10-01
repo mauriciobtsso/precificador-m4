@@ -3,6 +3,7 @@ import re
 import mimetypes
 from io import BytesIO
 from datetime import datetime
+from sqlalchemy import or_, func
 
 from flask import (
     render_template, request, redirect, url_for,
@@ -61,9 +62,35 @@ def gerar_link_craf(caminho_craf):
 # ======================
 @clientes_bp.route("/")
 def index():
-    clientes = db.session.query(Cliente).all()
-    return render_template("clientes/index.html", clientes=clientes)
+    q = request.args.get("q", "").strip()
+    query = db.session.query(Cliente)
 
+    if q:
+        # termo "limpo" (sem pontos, traços, barras, espaços)
+        q_normalizado = q.replace(".", "").replace("-", "").replace("/", "").replace(" ", "")
+        search_nome = f"%{q}%"
+        search_doc = f"%{q_normalizado}%"
+
+        query = query.filter(
+            or_(
+                Cliente.nome.ilike(search_nome),
+                Cliente.apelido.ilike(search_nome),
+                Cliente.razao_social.ilike(search_nome),
+                # remove ., -, / e espaços do documento no banco antes de comparar
+                func.replace(
+                    func.replace(
+                        func.replace(
+                            func.replace(Cliente.documento, ".", ""), "-", ""
+                        ),
+                        "/", ""
+                    ),
+                    " ", ""
+                ).ilike(search_doc)
+            )
+        )
+
+    clientes = query.all()
+    return render_template("clientes/index.html", clientes=clientes, q=q)
 
 @clientes_bp.route("/novo", methods=["GET", "POST"])
 def novo_cliente():

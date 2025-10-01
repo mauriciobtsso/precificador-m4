@@ -6,7 +6,9 @@
     <!-- Busca -->
     <form class="row g-2 mb-3" method="GET" action="{{ url_for('clientes.index') }}">
         <div class="col-md-4">
-            <input type="text" class="form-control" name="q" placeholder="Buscar por nome ou CPF/CNPJ">
+            <input type="text" class="form-control" name="q"
+                   placeholder="Buscar por nome ou CPF/CNPJ"
+                   value="{{ q }}">
         </div>
         <div class="col-md-2">
             <button class="btn btn-primary w-100">Buscar</button>
