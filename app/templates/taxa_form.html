@@ -7,7 +7,7 @@
   </h2>
 </div>
 
-<form method="POST" action="">
+<form method="POST" action="{{ url_for('taxas.gerenciar', taxa_id=taxa.id if taxa else None) }}">
   <div class="card shadow-sm mb-3">
     <div class="card-body">
       <div class="row g-3">
@@ -42,7 +42,7 @@
     <button type="submit" class="btn btn-success">
       <i class="fas fa-check"></i> Salvar
     </button>
-    <a href="{{ url_for('main.taxas') }}" class="btn btn-outline-secondary">
+    <a href="{{ url_for('taxas.listar') }}" class="btn btn-outline-secondary">
       <i class="fas fa-arrow-left"></i> Cancelar
     </a>
   </div>

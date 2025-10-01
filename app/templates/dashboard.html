@@ -8,7 +8,7 @@
 <!-- Atalhos principais -->
 <div class="row mb-4 g-2">
     <div class="col-12 col-sm-6 col-md-3">
-        <a href="{{ url_for('main.gerenciar_produto') }}" class="card text-center shadow-sm text-decoration-none h-100">
+        <a href="{{ url_for('produtos.gerenciar_produto') }}" class="card text-center shadow-sm text-decoration-none h-100">
             <div class="card-body p-3">
                 <i class="fas fa-plus-circle fa-lg d-inline d-md-none text-primary mb-2"></i>
                 <i class="fas fa-plus-circle fa-2x d-none d-md-inline text-primary mb-2"></i>
@@ -17,7 +17,7 @@
         </a>
     </div>
     <div class="col-12 col-sm-6 col-md-3">
-        <a href="{{ url_for('main.taxas') }}" class="card text-center shadow-sm text-decoration-none h-100">
+        <a href="{{ url_for('taxas.listar') }}" class="card text-center shadow-sm text-decoration-none h-100">
             <div class="card-body p-3">
                 <i class="fas fa-percent fa-lg d-inline d-md-none text-success mb-2"></i>
                 <i class="fas fa-percent fa-2x d-none d-md-inline text-success mb-2"></i>
@@ -26,7 +26,7 @@
         </a>
     </div>
     <div class="col-12 col-sm-6 col-md-3">
-        <a href="{{ url_for('main.produtos') }}" class="card text-center shadow-sm text-decoration-none h-100">
+        <a href="{{ url_for('produtos.produtos') }}" class="card text-center shadow-sm text-decoration-none h-100">
             <div class="card-body p-3">
                 <i class="fas fa-boxes fa-lg d-inline d-md-none text-warning mb-2"></i>
                 <i class="fas fa-boxes fa-2x d-none d-md-inline text-warning mb-2"></i>

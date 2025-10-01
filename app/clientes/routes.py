@@ -9,7 +9,10 @@ from flask import (
     flash, jsonify, Blueprint, current_app
 )
 
+from app import db
+from app.clientes.models import Cliente, EnderecoCliente, ContatoCliente
 from app.extensions import db
+from app.utils.db_helpers import get_or_404
 from app.clientes.models import (
     Cliente, Documento, Arma, Comunicacao, Processo,
     EnderecoCliente, ContatoCliente
@@ -26,9 +29,6 @@ import pdfplumber
 # Blueprint
 # =========================
 clientes_bp = Blueprint("clientes", __name__, template_folder="templates")
-
-# Forçar caminho do executável Tesseract no Windows
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # ======================
 # Config R2
@@ -61,7 +61,7 @@ def gerar_link_craf(caminho_craf):
 # ======================
 @clientes_bp.route("/")
 def index():
-    clientes = Cliente.query.all()
+    clientes = db.session.query(Cliente).all()
     return render_template("clientes/index.html", clientes=clientes)
 
 
@@ -108,7 +108,7 @@ def novo_cliente():
 # =========================
 @clientes_bp.route("/<int:cliente_id>")
 def detalhe(cliente_id):
-    cliente = Cliente.query.get_or_404(cliente_id)
+    cliente = get_or_404(Cliente, cliente_id)
 
     resumo = {
         "documentos": len(cliente.documentos),
@@ -200,7 +200,7 @@ def detalhe(cliente_id):
 # =========================
 @clientes_bp.route("/<int:cliente_id>/informacoes", methods=["POST"])
 def cliente_informacoes(cliente_id):
-    cliente = Cliente.query.get_or_404(cliente_id)
+    cliente = get_or_404(Cliente, cliente_id)
     try:
         cliente.nome = request.form.get("nome")
         cliente.apelido = request.form.get("apelido")
@@ -244,7 +244,7 @@ def cliente_informacoes(cliente_id):
 # ======================
 @clientes_bp.route("/<int:cliente_id>/enderecos/adicionar", methods=["POST"])
 def adicionar_endereco(cliente_id):
-    cliente = Cliente.query.get_or_404(cliente_id)
+    cliente = get_or_404(Cliente, cliente_id)
     try:
         endereco = EnderecoCliente(
             cliente_id=cliente.id,
@@ -269,7 +269,7 @@ def adicionar_endereco(cliente_id):
 
 @clientes_bp.route("/<int:cliente_id>/enderecos/<int:endereco_id>/editar", methods=["GET", "POST"])
 def editar_endereco(cliente_id, endereco_id):
-    endereco = EnderecoCliente.query.get_or_404(endereco_id)
+    endereco = get_or_404(EnderecoCliente, endereco_id)
 
     if request.method == "POST":
         try:
@@ -293,7 +293,7 @@ def editar_endereco(cliente_id, endereco_id):
 
 @clientes_bp.route("/<int:cliente_id>/enderecos/<int:endereco_id>/delete", methods=["POST"])
 def deletar_endereco(cliente_id, endereco_id):
-    endereco = EnderecoCliente.query.get_or_404(endereco_id)
+    endereco = get_or_404(EnderecoCliente, endereco_id)
     try:
         db.session.delete(endereco)
         db.session.commit()
@@ -309,7 +309,7 @@ def deletar_endereco(cliente_id, endereco_id):
 # ======================
 @clientes_bp.route("/<int:cliente_id>/contatos/adicionar", methods=["POST"])
 def adicionar_contato(cliente_id):
-    cliente = Cliente.query.get_or_404(cliente_id)
+    cliente = get_or_404(Cliente, cliente_id)
     try:
         contato = ContatoCliente(
             cliente_id=cliente.id,
@@ -328,7 +328,7 @@ def adicionar_contato(cliente_id):
 
 @clientes_bp.route("/<int:cliente_id>/contatos/<int:contato_id>/editar", methods=["GET", "POST"])
 def editar_contato(cliente_id, contato_id):
-    contato = ContatoCliente.query.get_or_404(contato_id)
+    contato = get_or_404(ContatoCliente, contato_id)
 
     if request.method == "POST":
         try:
@@ -346,7 +346,7 @@ def editar_contato(cliente_id, contato_id):
 
 @clientes_bp.route("/<int:cliente_id>/contatos/<int:contato_id>/delete", methods=["POST"])
 def deletar_contato(cliente_id, contato_id):
-    contato = ContatoCliente.query.get_or_404(contato_id)
+    contato = get_or_404(ContatoCliente, contato_id)
     try:
         db.session.delete(contato)
         db.session.commit()
@@ -362,13 +362,13 @@ def deletar_contato(cliente_id, contato_id):
 # ======================
 @clientes_bp.route("/<int:cliente_id>/documentos")
 def cliente_documentos(cliente_id):
-    cliente = Cliente.query.get_or_404(cliente_id)
+    cliente = get_or_404(Cliente, cliente_id)
     return render_template("clientes/abas/documentos.html", cliente=cliente)
 
 
 @clientes_bp.route("/<int:cliente_id>/documentos/upload", methods=["POST"])
 def upload_documento(cliente_id):
-    cliente = Cliente.query.get_or_404(cliente_id)
+    cliente = get_or_404(Cliente, cliente_id)
     file = request.files.get("arquivo")
     tipo = request.form.get("tipo")
 
@@ -441,6 +441,9 @@ def upload_craf(cliente_id):
         with pdfplumber.open(BytesIO(file_bytes)) as pdf:
             texto = "\n".join(page.extract_text() or "" for page in pdf.pages)
     else:
+        # 👇 define o caminho do executável Tesseract via config
+        pytesseract.pytesseract.tesseract_cmd = current_app.config["TESSERACT_CMD"]
+
         img = Image.open(BytesIO(file_bytes))
         texto = pytesseract.image_to_string(img, lang="por")
 
@@ -500,7 +503,6 @@ def abrir_craf(arma_id):
 
     url = gerar_link_craf(arma.caminho_craf)
     return redirect(url)
-
 
 # ======================
 # COMUNICAÇÕES

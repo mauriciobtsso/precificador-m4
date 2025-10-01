@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, url_for, flash, send_from_directory, current_app, send_file, jsonify
 from flask_login import login_user, logout_user, login_required
 from app.extensions import db
-from app.models import Produto, Taxa, User, Configuracao, Venda, ItemVenda, PedidoCompra, ItemPedido
+from app.models import Produto, User, Configuracao, Venda, ItemVenda, PedidoCompra, ItemPedido, Taxa
 from app.clientes.models import Cliente
 from app.main import main
 from sqlalchemy import text, func, extract
@@ -11,9 +11,11 @@ import csv
 import os
 from datetime import datetime, timedelta
 from app.utils.gerar_pedidos import gerar_pedido_m4
-import app.utils.parcelamento as parc
-from app.utils.whatsapp import gerar_mensagem_whatsapp
-
+from app.services.parcelamento import (
+    gerar_linhas_por_valor,
+    gerar_linhas_por_produto,
+    gerar_texto_whatsapp,
+)
 
 # =====================================================
 # Helpers
@@ -283,240 +285,41 @@ def dashboard():
     )
 
 
-# --- Produtos ---
+###########################
+# Wrappers de compatibilidade para Produtos
+###########################
+
 @main.route("/produtos")
 @login_required
-def produtos():
-    termo = request.args.get("termo", "").strip()
-    lucro = request.args.get("lucro")
-    preco_min = request.args.get("preco_min")
-    preco_max = request.args.get("preco_max")
-
-    query = Produto.query
-
-    if termo:
-        like = f"%{termo}%"
-        query = query.filter(
-            (Produto.nome.ilike(like)) | (Produto.sku.ilike(like))
-        )
-
-    if lucro == "positivo":
-        query = query.filter(Produto.lucro_liquido_real >= 0)
-    elif lucro == "negativo":
-        query = query.filter(Produto.lucro_liquido_real < 0)
-
-    if preco_min:
-        try:
-            query = query.filter(Produto.preco_a_vista >= float(preco_min))
-        except:
-            pass
-    if preco_max:
-        try:
-            query = query.filter(Produto.preco_a_vista <= float(preco_max))
-        except:
-            pass
-
-    produtos = query.all()
-    return render_template("produtos.html", produtos=produtos)
+def produtos_legacy():
+    return redirect(url_for("produtos.produtos"), code=308)
 
 @main.route("/produto/novo", methods=["GET", "POST"])
 @main.route("/produto/editar/<int:produto_id>", methods=["GET", "POST"])
 @login_required
-def gerenciar_produto(produto_id=None):
-    produto = Produto.query.get(produto_id) if produto_id else None
-    if request.method == "POST":
-        if not produto:
-            produto = Produto()
-            db.session.add(produto)
-
-        produto.sku = request.form.get("sku", "").upper()
-        produto.nome = request.form["nome"]
-
-        produto.preco_fornecedor = to_float(request.form.get("preco_fornecedor"))
-        produto.desconto_fornecedor = to_float(request.form.get("desconto_fornecedor"))
-
-        produto.margem = to_float(request.form.get("margem"))
-        produto.lucro_alvo = (to_float(request.form.get("lucro_alvo")) or None)
-        produto.preco_final = (to_float(request.form.get("preco_final")) or None)
-
-        # 🔹 Novo campo frete
-        produto.frete = to_float(request.form.get("frete"))
-
-        produto.ipi = to_float(request.form.get("ipi"))
-        produto.ipi_tipo = request.form.get("ipi_tipo", "%")
-        produto.difal = to_float(request.form.get("difal"))
-        produto.imposto_venda = to_float(request.form.get("imposto_venda"))
-
-        # 🔹 Calcula preços com frete incluído
-        produto.calcular_precos()
-
-        db.session.commit()
-        flash("Produto salvo com sucesso!", "success")
-        return redirect(url_for("main.produtos"))
-
-    return render_template("produto_form.html", produto=produto)
+def gerenciar_produto_legacy(produto_id=None):
+    if produto_id:
+        return redirect(url_for("produtos.gerenciar_produto", produto_id=produto_id), code=308)
+    return redirect(url_for("produtos.gerenciar_produto"), code=308)
 
 @main.route("/produto/excluir/<int:produto_id>")
 @login_required
-def excluir_produto(produto_id):
-    produto = Produto.query.get_or_404(produto_id)
-    db.session.delete(produto)
-    db.session.commit()
-    flash("Produto excluído com sucesso!", "success")
-    return redirect(url_for("main.produtos"))
+def excluir_produto_legacy(produto_id):
+    return redirect(url_for("produtos.excluir_produto", produto_id=produto_id), code=308)
 
-# --- Importação de Produtos (sem pandas) ---
 @main.route("/produtos/importar", methods=["GET", "POST"])
 @login_required
-def importar_produtos():
-    if request.method == "POST":
-        file = request.files.get("arquivo")
-        if not file or file.filename == "":
-            flash("Nenhum arquivo selecionado.", "warning")
-            return redirect(url_for("main.importar_produtos"))
-
-        filename = file.filename.lower()
-
-        try:
-            criados, atualizados = 0, 0
-
-            if filename.endswith(".xlsx"):
-                wb = load_workbook(file, data_only=True)
-                ws = wb.active
-                headers = _headers_lower(ws)
-
-                for row in ws.iter_rows(min_row=2, values_only=True):
-                    data = _row_as_dict(headers, row)
-
-                    sku = (str(_get(data, "sku") or "").strip().upper())
-                    if not sku:
-                        continue
-
-                    produto = Produto.query.filter_by(sku=sku).first()
-                    if not produto:
-                        produto = Produto(sku=sku)
-                        db.session.add(produto)
-                        criados += 1
-                    else:
-                        atualizados += 1
-
-                    produto.nome = _get(data, "nome", default=produto.nome)
-                    produto.preco_fornecedor = to_number(_get(data, "preco_fornecedor"))
-                    produto.desconto_fornecedor = to_number(_get(data, "desconto_fornecedor"))
-                    produto.margem = to_number(_get(data, "margem"))
-                    produto.lucro_alvo = to_number(_get(data, "lucro_alvo")) or None
-                    produto.preco_final = to_number(_get(data, "preco_final")) or None
-
-                    produto.ipi = to_number(_get(data, "ipi"))
-                    produto.ipi_tipo = _get(data, "ipi_tipo", default="%") or "%"
-                    produto.difal = to_number(_get(data, "difal"))
-                    produto.imposto_venda = to_number(_get(data, "imposto_venda"))
-
-                    produto.calcular_precos()
-
-            elif filename.endswith(".csv"):
-                # Detectar encoding/delimitador e ler linhas
-                text = TextIOWrapper(file.stream, encoding="utf-8-sig", newline="")
-                try:
-                    sniffer = csv.Sniffer()
-                    sample = text.read(2048)
-                    text.seek(0)
-                    dialect = sniffer.sniff(sample)
-                except Exception:
-                    text.seek(0)
-                    dialect = csv.excel
-
-                reader = csv.DictReader(text, dialect=dialect)
-                # normalizar headers para lower
-                field_map = {h: h.strip().lower() for h in reader.fieldnames or []}
-
-                for row in reader:
-                    data = {field_map.get(k, k).lower(): v for k, v in row.items()}
-
-                    sku = (str(data.get("sku") or "").strip().upper())
-                    if not sku:
-                        continue
-
-                    produto = Produto.query.filter_by(sku=sku).first()
-                    if not produto:
-                        produto = Produto(sku=sku)
-                        db.session.add(produto)
-                        criados += 1
-                    else:
-                        atualizados += 1
-
-                    produto.nome = data.get("nome", produto.nome)
-                    produto.preco_fornecedor = to_number(data.get("preco_fornecedor"))
-                    produto.desconto_fornecedor = to_number(data.get("desconto_fornecedor"))
-                    produto.margem = to_number(data.get("margem"))
-                    produto.lucro_alvo = to_number(data.get("lucro_alvo")) or None
-                    produto.preco_final = to_number(data.get("preco_final")) or None
-
-                    produto.ipi = to_number(data.get("ipi"))
-                    produto.ipi_tipo = data.get("ipi_tipo") or "%"
-                    produto.difal = to_number(data.get("difal"))
-                    produto.imposto_venda = to_number(data.get("imposto_venda"))
-
-                    produto.calcular_precos()
-            else:
-                flash("Formato de arquivo não suportado. Use .csv ou .xlsx", "danger")
-                return redirect(url_for("main.importar_produtos"))
-
-            db.session.commit()
-            flash(f"Importação concluída! {criados} criados, {atualizados} atualizados.", "success")
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Erro ao importar: {e}", "danger")
-
-        return redirect(url_for("main.produtos"))
-
-    return render_template("produtos_importar.html")
+def importar_produtos_legacy():
+    return redirect(url_for("produtos.importar_produtos"), code=308)
 
 @main.route("/produtos/exemplo-csv")
 @login_required
-def exemplo_csv():
-    pasta = os.path.join(os.path.dirname(__file__), "..", "static")
-    return send_from_directory(pasta, "exemplo_produtos.csv", as_attachment=True)
+def exemplo_csv_legacy():
+    return redirect(url_for("produtos.exemplo_csv"), code=308)
 
-# --- Taxas ---
-@main.route("/taxas")
-@login_required
-def taxas():
-    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
-    return render_template("taxas.html", taxas=taxas)
-
-@main.route("/taxa/nova", methods=["GET", "POST"])
-@main.route("/taxa/editar/<int:taxa_id>", methods=["GET", "POST"])
-@login_required
-def gerenciar_taxa(taxa_id=None):
-    taxa = Taxa.query.get(taxa_id) if taxa_id else None
-    if request.method == "POST":
-        if not taxa:
-            taxa = Taxa()
-            db.session.add(taxa)
-
-        numero_parcelas_raw = request.form.get("numero_parcelas")
-        juros_raw = request.form.get("juros")
-
-        taxa.numero_parcelas = int(numero_parcelas_raw or (taxa.numero_parcelas or 1))
-        taxa.juros = to_float(juros_raw, default=(taxa.juros or 0))
-
-        db.session.commit()
-        flash("Taxa salva com sucesso!", "success")
-        return redirect(url_for("main.taxas"))
-
-    return render_template("taxa_form.html", taxa=taxa)
-
-@main.route("/taxa/excluir/<int:taxa_id>")
-@login_required
-def excluir_taxa(taxa_id):
-    taxa = Taxa.query.get_or_404(taxa_id)
-    db.session.delete(taxa)
-    db.session.commit()
-    flash("Taxa excluída com sucesso!", "success")
-    return redirect(url_for("main.taxas"))
-
+#######################
 # --- Parcelamento ---
+#######################
 @main.route("/parcelamento")
 @login_required
 def parcelamento_index():
@@ -527,12 +330,10 @@ def parcelamento_index():
 @login_required
 def parcelamento(produto_id):
     produto = Produto.query.get_or_404(produto_id)
-    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
 
-    valor_base = produto.preco_final or produto.preco_a_vista or 0.0
-    linhas = parc.gerar_linhas_parcelas(valor_base, taxas)
-
-    texto_whats = gerar_mensagem_whatsapp(produto, valor_base, linhas)
+    # Serviço já cuida de buscar taxas e gerar linhas
+    valor_base, linhas = gerar_linhas_por_produto(produto)
+    texto_whats = gerar_texto_whatsapp(produto, valor_base, linhas)
 
     return render_template(
         "parcelamento.html",
@@ -552,8 +353,8 @@ def parcelamento_rapido():
         preco_base = to_float(request.form.get("preco_base"))
         taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
 
-        resultado = parc.gerar_linhas_parcelas(preco_base, taxas)
-        texto_whats = gerar_mensagem_whatsapp(None, preco_base, resultado)
+        resultado = gerar_linhas_por_valor(preco_base)
+        texto_whats = gerar_texto_whatsapp(None, preco_base, resultado)
 
     return render_template(
         "parcelamento_rapido.html",
@@ -1099,11 +900,9 @@ def excluir_pedido(id):
 @login_required
 def api_produto_whatsapp(produto_id):
     produto = Produto.query.get_or_404(produto_id)
-    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
 
-    valor_base = produto.preco_final or produto.preco_a_vista or 0.0
-    linhas = parc.gerar_linhas_parcelas(valor_base, taxas)
-
-    texto_whats = gerar_mensagem_whatsapp(produto, valor_base, linhas)
+    # Serviço já cuida de buscar taxas e gerar linhas
+    valor_base, linhas = gerar_linhas_por_produto(produto)
+    texto_whats = gerar_texto_whatsapp(produto, valor_base, linhas)
 
     return jsonify({"texto_completo": texto_whats})

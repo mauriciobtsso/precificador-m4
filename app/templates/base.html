@@ -26,13 +26,13 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-white {% if request.endpoint == 'main.produtos' %}active border-start border-3 border-primary{% endif %}" 
-                       href="{{ url_for('main.produtos') }}">
+                       href="{{ url_for('produtos.produtos') }}">
                         <i class="fas fa-box"></i> <span>Produtos</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-white {% if request.endpoint == 'main.taxas' %}active border-start border-3 border-primary{% endif %}" 
-                       href="{{ url_for('main.taxas') }}">
+                       href="{{ url_for('taxas.listar') }}">
                         <i class="fas fa-percent"></i> <span>Taxas</span>
                     </a>
                 </li>

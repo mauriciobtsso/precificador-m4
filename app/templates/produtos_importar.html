@@ -2,7 +2,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-file-upload"></i> Importar Produtos</h2>
-    <a href="{{ url_for('main.produtos') }}" class="btn btn-outline-secondary">
+    <a href="{{ url_for('produtos.produtos') }}" class="btn btn-outline-secondary">
         <i class="fas fa-arrow-left"></i> Voltar
     </a>
 </div>
@@ -19,7 +19,7 @@
                 <i class="fas fa-upload"></i> Importar
             </button>
 
-            <a href="{{ url_for('main.exemplo_csv') }}" class="btn btn-outline-info ms-2">
+            <a href="{{ url_for('produtos.exemplo_csv') }}" class="btn btn-outline-info ms-2">
                 <i class="fas fa-download"></i> Baixar modelo CSV
             </a>
         </form>
