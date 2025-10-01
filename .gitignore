@@ -86,3 +86,7 @@ test_dashboard.py
 
 # Logs locais
 logs/
+
+# PDFs gerados pelo sistema
+*.pdf
+

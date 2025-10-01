@@ -59,7 +59,7 @@
                 <li class="nav-item">
                     <a class="nav-link text-white 
                         {% if request.endpoint and 'pedido' in request.endpoint %}active border-start border-3 border-primary{% endif %}" 
-                        href="{{ url_for('main.listar_pedidos') }}">
+                        href="{{ url_for('pedidos.listar_pedidos') }}">
                         <i class="fas fa-file-invoice"></i> <span>Compras</span>
                     </a>
                 </li>

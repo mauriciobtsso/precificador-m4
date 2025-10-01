@@ -1,174 +1,31 @@
-from flask import render_template, request, redirect, url_for, flash, send_from_directory, current_app, send_file, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, current_app, send_file, jsonify
 from flask_login import login_user, logout_user, login_required
+from app.services.importacao import importar_clientes, importar_vendas
 from app.extensions import db
 from app.models import Produto, User, Configuracao, Venda, ItemVenda, PedidoCompra, ItemPedido, Taxa
 from app.clientes.models import Cliente
 from app.main import main
+from app.config import get_config
 from sqlalchemy import text, func, extract
 from openpyxl import load_workbook
 from io import TextIOWrapper
 import csv
 import os
 from datetime import datetime, timedelta
-from app.utils.gerar_pedidos import gerar_pedido_m4
+
+# =========================
+# Imports de utils
+# =========================
+from app.utils.pdf_helpers import gerar_pdf_pedido
+from app.utils.whatsapp_helpers import gerar_texto_whatsapp
+from app.utils.number_helpers import to_float, parse_brl, parse_pct
+from app.utils.parcelamento_helpers import montar_parcelas
+from app.utils.excel_helpers import _headers_lower, _row_as_dict, _get, _as_bool
+from app.utils.date_helpers import parse_data
 from app.services.parcelamento import (
     gerar_linhas_por_valor,
     gerar_linhas_por_produto,
-    gerar_texto_whatsapp,
 )
-
-# =====================================================
-# Helpers
-# =====================================================
-def get_config(chave, default=None):
-    conf = Configuracao.query.filter_by(chave=chave).first()
-    return conf.valor if conf else default
-
-def to_float(value, default=0.0):
-    try:
-        if value is None or str(value).strip() == "":
-            return default
-        return float(str(value).replace(",", "."))
-    except (TypeError, ValueError):
-        return default
-
-def br_money(v: float) -> str:
-    s = f"{float(v):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"R$ {s}"
-
-def montar_parcelas(valor_base, taxas, modo="coeficiente_total"):
-    resultado = []
-    base = float(valor_base or 0)
-
-    for taxa in taxas:
-        n = int(taxa.numero_parcelas or 1)
-        j = max(to_float(taxa.juros), 0.0) / 100.0
-        if n <= 0:
-            continue
-
-        if n == 1 and modo == "coeficiente_total":
-            coef = max(1.0 - j, 1e-9)
-            total = base / coef
-            parcela = total
-        else:
-            if modo == "juros_mensal":
-                if j > 0:
-                    parcela = base * (j / (1 - (1 + j) ** (-n)))
-                else:
-                    parcela = base / n
-                total = parcela * n
-            else:
-                coef = max(1.0 - j, 1e-9)
-                total = base / coef
-                parcela = total / n
-
-        resultado.append({
-            "parcelas": n,
-            "parcela": parcela,
-            "total": total,
-            "diferenca": total - base,
-            "rotulo": f"{n}x",
-        })
-
-    return resultado
-
-# =========================
-# Função compor_whatsapp
-# =========================
-def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
-    base = float(valor_base or 0)
-    linhas = linhas or []
-
-    prefixo = get_config("whatsapp_prefixo", "")
-
-    cab = []
-    if prefixo:
-        cab.append(prefixo)
-
-    if produto:
-        cab.append(f"🔫 {produto.nome}")
-        cab.append(f"🔖 SKU: {produto.sku}")
-        cab.append(f"💰 À vista: {br_money(base)}")
-    else:
-        cab.append("💳 Simulação de Parcelamento")
-        cab.append(f"💰 À vista: {br_money(base)}")
-
-    corpo = []
-
-    # ✅ PIX sempre fixo
-    corpo.append(f"PIX {br_money(base)}")
-
-    # ✅ percorre as linhas das taxas, mas ignora Pix duplicado
-    for r in linhas:
-        rotulo = r["rotulo"]
-
-        if rotulo.lower() == "pix":
-            continue  # já adicionamos acima
-
-        if rotulo.lower() == "débito":
-            # Débito mostra só o total (sem repetir =)
-            corpo.append(f"Débito {br_money(r['total'])}")
-        else:
-            corpo.append(f"{rotulo} {br_money(r['parcela'])} = {br_money(r['total'])}")
-
-    txt = "\n".join(cab) + "\n\n" + "💳 Opções de Parcelamento:\n" + "\n".join(corpo)
-    txt += "\n\n⚠️ Os valores poderão sofrer alterações sem aviso prévio."
-    return txt
-
-def to_number(x):
-    if isinstance(x, (int, float)):
-        return float(x)
-    if x is None:
-        return 0.0
-    s = str(x).strip()
-    if not s:
-        return 0.0
-    s = s.replace("R$", "").replace(" ", "")
-    if "," in s and "." in s:
-        s = s.replace(".", "").replace(",", ".")
-    elif "," in s:
-        s = s.replace(",", ".")
-    try:
-        return float(s)
-    except:
-        return 0.0
-
-def parse_data(value):
-    if value is None or str(value).strip() == "":
-        return None
-    if isinstance(value, datetime):
-        return value
-    if isinstance(value, (int, float)):
-        try:
-            base = datetime(1899, 12, 30)
-            return base + timedelta(days=float(value))
-        except Exception:
-            pass
-    for fmt in ("%d/%m/%Y %H:%M", "%d/%m/%Y", "%Y-%m-%d %H:%M:%S"):
-        try:
-            return datetime.strptime(str(value), fmt)
-        except Exception:
-            continue
-    return None
-
-def _headers_lower(ws):
-    return [str(c.value).strip().lower() if c.value is not None else "" for c in ws[1]]
-
-def _row_as_dict(headers_lower, row_values):
-    return {h: v for h, v in zip(headers_lower, row_values) if h}
-
-def _get(d, *names, default=None):
-    for name in names:
-        key = str(name).strip().lower()
-        if key in d and d[key] not in (None, ""):
-            return d[key]
-    return default
-
-def _as_bool(val):
-    if val is None:
-        return False
-    s = str(val).strip().lower()
-    return s in ("1", "sim", "true", "verdadeiro", "yes", "y")
 
 # =====================================================
 # Rotas principais
@@ -191,7 +48,6 @@ def login():
         if user and user.check_password(password):
             login_user(user)
             flash("Login realizado com sucesso!", "success")
-            # Redireciona para a página que o usuário tentou acessar ou dashboard
             next_page = request.args.get("next")
             return redirect(next_page or url_for("main.dashboard"))
         else:
@@ -206,6 +62,7 @@ def logout():
     logout_user()
     flash("Logout realizado com sucesso.", "info")
     return redirect(url_for("main.login"))
+
 # --- Dashboard ---
 @main.route("/dashboard")
 @login_required
@@ -213,7 +70,6 @@ def dashboard():
     produtos = Produto.query.all()
     hoje = datetime.today()
 
-    # Total de vendas no mês atual
     total_vendas_mes = (
         db.session.query(func.sum(Venda.valor_total))
         .filter(extract("year", Venda.data_abertura) == hoje.year)
@@ -222,7 +78,6 @@ def dashboard():
         or 0
     )
 
-    # Top 5 clientes por valor de compras
     top_clientes = (
         db.session.query(
             Cliente.nome,
@@ -235,7 +90,6 @@ def dashboard():
         .all()
     )
 
-    # Produto mais vendido (quantidade)
     produto_mais_vendido = (
         db.session.query(
             ItemVenda.produto_nome,
@@ -246,14 +100,12 @@ def dashboard():
         .first()
     )
 
-    # Ticket médio
     ticket_medio = (
         db.session.query(func.sum(Venda.valor_total) / func.count(Venda.id))
         .scalar()
         or 0
     )
 
-    # Vendas nos últimos 6 meses
     vendas_por_mes = (
         db.session.query(
             extract("month", Venda.data_abertura).label("mes"),
@@ -284,11 +136,9 @@ def dashboard():
         totais=totais,
     )
 
-
 ###########################
 # Wrappers de compatibilidade para Produtos
 ###########################
-
 @main.route("/produtos")
 @login_required
 def produtos_legacy():
@@ -331,7 +181,6 @@ def parcelamento_index():
 def parcelamento(produto_id):
     produto = Produto.query.get_or_404(produto_id)
 
-    # Serviço já cuida de buscar taxas e gerar linhas
     valor_base, linhas = gerar_linhas_por_produto(produto)
     texto_whats = gerar_texto_whatsapp(produto, valor_base, linhas)
 
@@ -443,7 +292,6 @@ def excluir_usuario(user_id):
 # --- Health Check ---
 @main.route("/health", methods=["GET", "HEAD"])
 def health():
-    """Rota para UptimeRobot monitorar a aplicação e o banco"""
     try:
         db.session.execute(text("SELECT 1"))
         return {"status": "ok"}, 200
@@ -454,11 +302,6 @@ def health():
 @main.route("/importar", methods=["GET", "POST"])
 @login_required
 def importar():
-    """
-    Página para importar:
-      - Clientes: .xlsx com cabeçalhos do relatório 'lista-de-pessoas'
-      - Vendas:   .xlsx com cabeçalhos do relatório 'vendas gerais'
-    """
     if request.method == "POST":
         file = request.files.get("file")
         tipo = request.form.get("tipo")
@@ -487,352 +330,6 @@ def importar():
 
     return render_template("importar.html")
 
-# =========================
-# Funções de Importação (openpyxl)
-# =========================
-def importar_clientes(file_storage):
-    """
-    Importa clientes de um .xlsx (primeira aba).
-    Colunas esperadas (varia conforme relatório, mas cobrimos aliases):
-      - Nome Razão Social / Nome
-      - Documento (CPF / CNPJ)
-      - E-mail, Telefone, Celular
-      - Endereço, Número, Complemento, Bairro, Cidade, Estado, CEP
-      - RG, RG emissor
-      - Profissão, Sexo
-      - CR, CR Emissor, SIGMA, SINARM
-      - CAC, FILIADO, POLICIAL, BOMBEIRO, MILITAR, IAT, PSICOLOGO
-    """
-    wb = load_workbook(file_storage, data_only=True)
-    ws = wb.active
-    headers = _headers_lower(ws)
-
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        data = _row_as_dict(headers, row)
-
-        nome = _get(data, "nome razão social", "nome")
-        if not nome:
-            continue
-
-        doc = str(_get(data, "documento (cpf / cnpj)", "documento") or "").strip()
-        if not doc:
-            doc = None  # permite NULL no banco, não conflita com UNIQUE
-
-        cliente = Cliente.query.filter_by(documento=doc).first() if doc else None
-        if not cliente:
-            cliente = Cliente(nome=nome, documento=doc)
-            db.session.add(cliente)
-
-        cliente.nome = nome
-        cliente.razao_social = _get(data, "razão social", "razao social", default="")
-        cliente.sexo = _get(data, "sexo", default="")
-        cliente.profissao = _get(data, "profissão", "profissao", default="")
-        cliente.rg = _get(data, "rg", default="")
-        cliente.rg_emissor = _get(data, "rg emissor", default="")
-        cliente.email = _get(data, "e-mail", "email", default="")
-        cliente.telefone = _get(data, "telefone", default="")
-        cliente.celular = _get(data, "celular", default="")
-        cliente.endereco = _get(data, "endereço", "endereco", default="")
-        cliente.numero = str(_get(data, "número", "numero", default="") or "")
-        cliente.complemento = _get(data, "complemento", default="")
-        cliente.bairro = _get(data, "bairro", default="")
-        cliente.cidade = _get(data, "cidade", default="")
-        cliente.estado = _get(data, "estado", default="")
-        cliente.cep = _get(data, "cep", default="")
-        cliente.cr = _get(data, "cr", default="")
-        cliente.cr_emissor = _get(data, "cr emissor", default="")
-        cliente.sigma = _get(data, "sigma", default="")
-        cliente.sinarm = _get(data, "sinarm", default="")
-        cliente.cac = _as_bool(_get(data, "cac"))
-        cliente.filiado = _as_bool(_get(data, "filiado"))
-        cliente.policial = _as_bool(_get(data, "policial"))
-        cliente.bombeiro = _as_bool(_get(data, "bombeiro"))
-        cliente.militar = _as_bool(_get(data, "militar"))
-        cliente.iat = _as_bool(_get(data, "iat"))
-        cliente.psicologo = _as_bool(_get(data, "psicologo"))
-
-    db.session.commit()
-
-def importar_vendas(file_storage):
-    """
-    Importa vendas de um .xlsx (primeira aba).
-    O relatório costuma vir "em blocos":
-      - Linha com informações da venda (tem 'Consumidor')
-      - Linhas subsequentes com itens (sem 'Consumidor', mas com 'Produto')
-    Este parser cria a venda quando encontra 'Consumidor' e associa itens até a próxima venda.
-    """
-    wb = load_workbook(file_storage, data_only=True)
-    ws = wb.active
-    headers = _headers_lower(ws)
-
-    current_venda = None
-
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        data = _row_as_dict(headers, row)
-
-        consumidor = _get(data, "consumidor")
-        documento = str(_get(data, "documento") or "").strip()
-        if documento == "":
-            documento = None
-
-        # Se a linha tem 'Consumidor', abre uma nova venda
-        if consumidor:
-            # garantir cliente
-            if documento:
-                cliente = Cliente.query.filter_by(documento=documento).first()
-                if not cliente:
-                    cliente = Cliente(nome=consumidor or "", documento=documento)
-                    db.session.add(cliente)
-                    db.session.flush()
-            else:
-                # Reutiliza/Cria cliente genérico sem documento
-                cliente = Cliente.query.filter_by(documento=None, nome="Consumidor não identificado").first()
-                if not cliente:
-                    cliente = Cliente(nome="Consumidor não identificado", documento=None)
-                    db.session.add(cliente)
-                    db.session.flush()
-
-            current_venda = Venda(
-                cliente_id=cliente.id,
-                vendedor=_get(data, "vendedor"),
-                status=_get(data, "status"),
-                status_financeiro=_get(data, "status financeiro"),
-                data_abertura=parse_data(_get(data, "abertura")),
-                data_fechamento=parse_data(_get(data, "fechamento")),
-                data_quitacao=parse_data(_get(data, "quitação", "quitacao")),
-                valor_total=to_number(_get(data, "valor total")),
-                nf_numero=str(_get(data, "nf - nº", "nf-nº", "nf nº", default="") or ""),
-                nf_valor=to_number(_get(data, "nf - valor", "nf valor")),
-                teve_devolucao=_as_bool(_get(data, "teve devoluções", "teve devolucoes")),
-            )
-            db.session.add(current_venda)
-            db.session.flush()
-
-            # Se a própria linha já tiver produto, cria item
-            produto_nome = _get(data, "produto")
-            if produto_nome:
-                qtd = int(to_number(_get(data, "itens - qtd", "qtd", default=1)) or 1)
-                valor = to_number(_get(data, "valor"))
-                item = ItemVenda(
-                    venda_id=current_venda.id,
-                    produto_nome=produto_nome,
-                    categoria=_get(data, "tipo do produto", "categoria", default=""),
-                    quantidade=qtd,
-                    valor_unitario=valor,
-                    valor_total=valor * qtd,
-                )
-                db.session.add(item)
-
-            continue  # próxima linha
-
-        # Se NÃO tem consumidor, mas tem produto -> é item da venda atual
-        if current_venda and _get(data, "produto"):
-            qtd = int(to_number(_get(data, "itens - qtd", "qtd", default=1)) or 1)
-            valor = to_number(_get(data, "valor"))
-            item = ItemVenda(
-                venda_id=current_venda.id,
-                produto_nome=_get(data, "produto", default=""),
-                categoria=_get(data, "tipo do produto", "categoria", default=""),
-                quantidade=qtd,
-                valor_unitario=valor,
-                valor_total=valor * qtd,
-            )
-            db.session.add(item)
-
-    db.session.commit()
-
-# ---------------------------------------------------
-# Funções auxiliares
-# ---------------------------------------------------
-def parse_brl(s) -> float:
-    if s is None:
-        return 0.0
-    s = str(s).strip()
-    if not s:
-        return 0.0
-    s = s.replace("R$", "").replace("r$", "").strip()
-    s = s.replace(".", "")
-    s = s.replace(",", ".")
-    try:
-        return float(s)
-    except ValueError:
-        return 0.0
-
-def parse_pct(s) -> float:
-    if s is None:
-        return 0.0
-    s = str(s).strip().replace("%", "").replace(",", ".")
-    if not s:
-        return 0.0
-    try:
-        return float(s)
-    except ValueError:
-        return 0.0
-
-# ---------------------------------------------------
-# LISTAR PEDIDOS (com filtros)
-# ---------------------------------------------------
-@main.route("/pedidos")
-@login_required
-def listar_pedidos():
-    query = PedidoCompra.query.join(PedidoCompra.fornecedor)
-
-    numero = request.args.get("numero", "").strip()
-    fornecedor_nome = request.args.get("fornecedor", "").strip()
-    data_inicio = request.args.get("data_inicio", "").strip()
-    data_fim = request.args.get("data_fim", "").strip()
-    valor_min = request.args.get("valor_min", "").strip()
-    valor_max = request.args.get("valor_max", "").strip()
-
-    # filtro por número
-    if numero:
-        query = query.filter(PedidoCompra.numero.ilike(f"%{numero}%"))
-
-    # filtro por fornecedor (nome)
-    if fornecedor_nome:
-        query = query.filter(Cliente.nome.ilike(f"%{fornecedor_nome}%"))
-
-    # filtro por período
-    if data_inicio:
-        try:
-            di = datetime.strptime(data_inicio, "%Y-%m-%d").date()
-            query = query.filter(PedidoCompra.data_pedido >= di)
-        except ValueError:
-            flash("Data inicial inválida.", "warning")
-    if data_fim:
-        try:
-            df = datetime.strptime(data_fim, "%Y-%m-%d").date()
-            query = query.filter(PedidoCompra.data_pedido <= df)
-        except ValueError:
-            flash("Data final inválida.", "warning")
-
-    # filtro por valores
-    if valor_min or valor_max:
-        from sqlalchemy import func
-        subq = (
-            db.session.query(
-                ItemPedido.pedido_id,
-                func.sum(ItemPedido.quantidade * ItemPedido.valor_unitario).label("subtotal")
-            )
-            .group_by(ItemPedido.pedido_id)
-            .subquery()
-        )
-        query = query.join(subq, PedidoCompra.id == subq.c.pedido_id)
-        if valor_min:
-            query = query.filter(subq.c.subtotal >= float(valor_min))
-        if valor_max:
-            query = query.filter(subq.c.subtotal <= float(valor_max))
-
-    pedidos = query.order_by(PedidoCompra.id.desc()).all()
-    return render_template("pedidos/listar.html", pedidos=pedidos)
-
-
-# ---------------------------------------------------
-# NOVO PEDIDO
-# ---------------------------------------------------
-@main.route("/pedidos/novo", methods=["GET", "POST"])
-@login_required
-def novo_pedido():
-    if request.method == "POST":
-        fornecedor_id = request.form.get("fornecedor")
-        cond_pagto = request.form.get("cond_pagto")
-        modo = request.form.get("modo_desconto")
-
-        perc_armas = parse_pct(request.form.get("percentual_armas"))
-        perc_municoes = parse_pct(request.form.get("percentual_municoes"))
-        perc_unico = parse_pct(request.form.get("percentual_unico"))
-
-        numero = datetime.now().strftime("%Y%m%d%H%M%S")
-
-        pedido = PedidoCompra(
-            numero=numero,
-            data_pedido=datetime.now().date(),
-            cond_pagto=cond_pagto,
-            modo_desconto=modo,
-            percentual_armas=perc_armas,
-            percentual_municoes=perc_municoes,
-            percentual_unico=perc_unico,
-            fornecedor_id=int(fornecedor_id) if fornecedor_id else None,
-        )
-        db.session.add(pedido)
-        db.session.flush()
-
-        codigos = request.form.getlist("codigo[]")
-        descricoes = request.form.getlist("descricao[]")
-        quantidades = request.form.getlist("quantidade[]")
-        valores = request.form.getlist("valor_unitario[]")
-
-        for codigo, desc, qtd, val in zip(codigos, descricoes, quantidades, valores):
-            desc = (desc or "").strip()
-            if not desc:
-                continue
-            q = int(qtd or 0)
-            v = parse_brl(val)
-            if q <= 0 or v <= 0:
-                continue
-            item = ItemPedido(
-                pedido_id=pedido.id,
-                codigo=codigo,
-                descricao=desc,
-                quantidade=q,
-                valor_unitario=v,
-            )
-            db.session.add(item)
-
-        db.session.commit()
-        flash("Pedido criado com sucesso!", "success")
-        return redirect(url_for("main.listar_pedidos"))
-
-    fornecedores = [c for c in Cliente.query.all() if getattr(c, "documento", None) and "/" in c.documento]
-    return render_template("pedidos/novo.html", fornecedores=fornecedores)
-
-
-# ---------------------------------------------------
-# EDITAR PEDIDO
-# ---------------------------------------------------
-@main.route("/pedidos/<int:id>/editar", methods=["GET", "POST"])
-@login_required
-def editar_pedido(id):
-    pedido = PedidoCompra.query.get_or_404(id)
-
-    if request.method == "POST":
-        pedido.cond_pagto = request.form.get("cond_pagto")
-        pedido.modo_desconto = request.form.get("modo_desconto")
-        pedido.percentual_armas = float(request.form.get("percentual_armas") or 0)
-        pedido.percentual_municoes = float(request.form.get("percentual_municoes") or 0)
-        pedido.percentual_unico = float(request.form.get("percentual_unico") or 0)
-
-        for it in list(pedido.itens):
-            db.session.delete(it)
-
-        codigos = request.form.getlist("codigo[]")
-        descricoes = request.form.getlist("descricao[]")
-        quantidades = request.form.getlist("quantidade[]")
-        valores = request.form.getlist("valor_unitario[]")
-
-        for codigo, desc, qtd, val in zip(codigos, descricoes, quantidades, valores):
-            if not desc.strip():
-                continue
-            q = int(qtd or 0)
-            v = parse_brl(val)
-            if q <= 0 or v <= 0:
-                continue
-            item = ItemPedido(
-                pedido_id=pedido.id,
-                codigo=codigo,
-                descricao=desc.strip(),
-                quantidade=q,
-                valor_unitario=v,
-            )
-            db.session.add(item)
-
-        db.session.commit()
-        flash("Pedido atualizado com sucesso!", "success")
-        return redirect(url_for("main.listar_pedidos"))
-
-    fornecedores = Cliente.query.all()
-    return render_template("pedidos/novo.html", pedido=pedido, fornecedores=fornecedores)
-
 # ---------------------------------------------------
 # PDF DO PEDIDO
 # ---------------------------------------------------
@@ -840,68 +337,17 @@ def editar_pedido(id):
 @login_required
 def pedido_pdf(id):
     pedido = PedidoCompra.query.get_or_404(id)
-
-    # Monta lista de itens no formato esperado pelo gerar_pedido_m4
-    itens = []
-    for i in pedido.itens:
-        itens.append((i.codigo, i.descricao, i.quantidade, i.valor_unitario))
-
-    # Nome do arquivo e diretório de saída
-    filename = f"pedido_{pedido.numero}.pdf"
-    folder = os.path.join(current_app.root_path, "static", "pdf")
-    filepath = os.path.join(folder, filename)
-    os.makedirs(folder, exist_ok=True)
-
-    # Dados do fornecedor (Cliente vinculado ao PedidoCompra)
-    fornecedor = pedido.fornecedor
-    fornecedor_nome = fornecedor.nome or ""
-    fornecedor_cnpj = fornecedor.documento or ""
-    fornecedor_endereco = f"{(fornecedor.endereco or '')}, {(fornecedor.numero or '')} - {(fornecedor.cidade or '')}/{(fornecedor.estado or '')}"
-    fornecedor_cr = f"CR {fornecedor.cr or ''}"
-
-    # Gera PDF com os dados reais
-    gerar_pedido_m4(
-        itens=itens,
-        cond_pagto=pedido.cond_pagto,
-        perc_armas=pedido.percentual_armas,
-        perc_municoes=pedido.percentual_municoes,
-        perc_unico=pedido.percentual_unico,
-        modo=pedido.modo_desconto,
-        numero_pedido=pedido.numero,
-        data_pedido=pedido.data_pedido.strftime("%d/%m/%Y") if pedido.data_pedido else None,
-        fornecedor_nome=fornecedor_nome,
-        fornecedor_cnpj=fornecedor_cnpj,
-        fornecedor_endereco=fornecedor_endereco,
-        fornecedor_cr=fornecedor_cr,
-    )
-
-    # Move o PDF gerado para a pasta correta
-    if os.path.exists("pedido_m4.pdf"):
-        os.replace("pedido_m4.pdf", filepath)
-
+    filepath = gerar_pdf_pedido(pedido)
     return send_file(filepath, as_attachment=False)
 
 # ---------------------------------------------------
-# EXCLUIR PEDIDO
-# ---------------------------------------------------
-@main.route("/pedidos/<int:id>/excluir", methods=["POST", "GET"])
-@login_required
-def excluir_pedido(id):
-    pedido = PedidoCompra.query.get_or_404(id)
-    db.session.delete(pedido)
-    db.session.commit()
-    flash("Pedido excluído com sucesso!", "success")
-    return redirect(url_for("main.listar_pedidos"))
-
-# =========================
 # API WhatsApp (Produto)
-# =========================
+# ---------------------------------------------------
 @main.route("/api/produto/<int:produto_id>/whatsapp")
 @login_required
 def api_produto_whatsapp(produto_id):
     produto = Produto.query.get_or_404(produto_id)
 
-    # Serviço já cuida de buscar taxas e gerar linhas
     valor_base, linhas = gerar_linhas_por_produto(produto)
     texto_whats = gerar_texto_whatsapp(produto, valor_base, linhas)
 

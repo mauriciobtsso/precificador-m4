@@ -69,12 +69,14 @@ def create_app():
     from app.vendas import vendas_bp
     from app.produtos import produtos_bp
     from app.taxas.routes import taxas_bp
+    from app.pedidos import pedidos_bp   # 👈 novo módulo de pedidos
 
     app.register_blueprint(main)
     app.register_blueprint(clientes_bp, url_prefix="/clientes")
     app.register_blueprint(vendas_bp, url_prefix="/vendas")
     app.register_blueprint(produtos_bp, url_prefix="/produtos")
     app.register_blueprint(taxas_bp)
+    app.register_blueprint(pedidos_bp, url_prefix="/pedidos")  # 👈 registra pedidos
 
     # -------------------------
     # Filtro customizado: currency
@@ -102,7 +104,7 @@ def create_app():
             tabelas = set(inspector.get_table_names())
 
             if {"users", "taxas", "produtos", "configuracoes"}.issubset(tabelas):
-                # Usuário admin (agora usando hash de senha)
+                # Usuário admin
                 if not User.query.filter_by(username="admin").first():
                     admin = User(username="admin")
                     admin.set_password("admin")

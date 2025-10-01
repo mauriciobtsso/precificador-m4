@@ -13,16 +13,15 @@ import os
 # ---------------------------
 def format_brl(value: float) -> str:
     """Formata número no padrão brasileiro de moeda (R$ 1.234,56)."""
+    if value is None:
+        value = 0.0
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 # ---------------------------
 # Função auxiliar: carrega logo sem distorcer
 # ---------------------------
 def logo_flowable(path, max_w=140, max_h=48):
-    """
-    Carrega a imagem e redimensiona para caber no box (max_w x max_h),
-    preservando a proporção.
-    """
+    """Carrega a imagem e redimensiona para caber no box (max_w x max_h)."""
     try:
         ir = ImageReader(path)
         iw, ih = ir.getSize()
@@ -39,20 +38,14 @@ def logo_flowable(path, max_w=140, max_h=48):
 # Palavras-chave para classificar itens
 # ---------------------------
 MAPA_TIPOS = {
-    "armas": [
-        "rifl", "rifle", "pist", "pistola",
-        "rev", "revolver", "car", "carabina",
-        "esp", "espingarda"
-    ],
-    "municoes": [
-        "mun", "munição", "cart", "cartucho",
-        "espol", "espoleta", "esto", "estojo",
-        "polv", "pólvora"
-    ],
+    "armas": ["rifl", "rifle", "pist", "pistola", "rev", "revolver", "car", "carabina", "esp", "espingarda"],
+    "municoes": ["mun", "munição", "cart", "cartucho", "espol", "espoleta", "esto", "estojo", "polv", "pólvora"],
 }
 
 def identificar_tipo(descricao: str) -> str:
     """Classifica item em armas, munições ou outros, com base na descrição."""
+    if not descricao:
+        return "outros"
     d = descricao.lower()
     for tipo, chaves in MAPA_TIPOS.items():
         if any(ch in d for ch in chaves):
@@ -63,25 +56,24 @@ def identificar_tipo(descricao: str) -> str:
 # Função principal: gerar Pedido PDF
 # ---------------------------
 def gerar_pedido_m4(
-    itens,                          # lista de tuplas: (codigo, descricao, qtd, unitario)
+    itens,
     cond_pagto="À vista",
     perc_armas=-5.0,
     perc_municoes=-3.0,
     perc_unico=0.0,
-    modo="por_tipo",                 # "por_tipo" ou "unico"
+    modo="por_tipo",
     numero_pedido=None,
     data_pedido=None,
     fornecedor_nome="Fornecedor não informado",
     fornecedor_cnpj="-",
     fornecedor_endereco="-",
-    fornecedor_cr="-"
+    fornecedor_cr="-",
+    fornecedor_contato="-"
 ):
     """
     Gera o PDF do pedido de compra (pedido_m4.pdf).
     Espera `itens` no formato [(codigo, descricao, quantidade, valor_unitario), ...].
     """
-
-    # Configuração do documento
     doc = SimpleDocTemplate(
         "pedido_m4.pdf",
         pagesize=A4,
@@ -92,7 +84,7 @@ def gerar_pedido_m4(
     story = []
 
     # =======================
-    # Cabeçalho (logo + dados da loja lado a lado)
+    # Cabeçalho (logo + dados da loja)
     # =======================
     logo_path = os.path.join("app", "static", "img", "logo_pedido.png")
     logo = logo_flowable(logo_path, max_w=140, max_h=48)
@@ -121,10 +113,17 @@ def gerar_pedido_m4(
     numero_pedido = numero_pedido or datetime.now().strftime("%Y%m%d%H%M")
     data_pedido = data_pedido or datetime.now().strftime("%d/%m/%Y")
 
+    fornecedor_nome = fornecedor_nome or "-"
+    fornecedor_cnpj = fornecedor_cnpj or "-"
+    fornecedor_endereco = fornecedor_endereco or "-"
+    fornecedor_cr = fornecedor_cr or "-"
+    fornecedor_contato = fornecedor_contato or "-"
+
     bloco1 = [
         Paragraph(f"<b>Fornecedor:</b> {fornecedor_nome}", styles['Normal']),
         Paragraph(f"CNPJ: {fornecedor_cnpj}  -  {fornecedor_cr}", styles['Normal']),
         Paragraph(f"Endereço: {fornecedor_endereco}", styles['Normal']),
+        Paragraph(f"Contato: {fornecedor_contato}", styles['Normal']),
     ]
 
     bloco2 = [
@@ -153,16 +152,20 @@ def gerar_pedido_m4(
     total_desc = 0.0
 
     for cod, desc, qtd, unit in itens:
+        cod = cod or "-"
+        desc = desc or "-"
+        qtd = qtd or 0
+        unit = unit or 0.0
+
         if modo == "unico":
-            pct = perc_unico
+            pct = perc_unico or 0.0
         else:
             tipo = identificar_tipo(desc)
             pct = perc_armas if tipo == "armas" else (perc_municoes if tipo == "municoes" else 0.0)
 
-        # Fórmula corrigida: aplica coeficiente
         coef = 1 + (pct / 100.0)
         unit_final = unit * coef
-        desc_unit = unit_final - unit  # diferença aplicada (pode ser negativa)
+        desc_unit = unit_final - unit
         total_item = unit_final * qtd
 
         total_bruto += unit * qtd
