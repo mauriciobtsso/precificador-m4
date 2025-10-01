@@ -74,3 +74,15 @@ instance/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Variáveis de ambiente
+.env
+
+# Scripts auxiliares locais
+auditoria_enderecos.py
+fix_enderecos.py
+migrate_passwords.py
+test_dashboard.py
+
+# Logs locais
+logs/
