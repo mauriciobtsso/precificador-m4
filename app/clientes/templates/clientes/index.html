@@ -3,23 +3,16 @@
 <div class="container mt-4">
     <h2><i class="fas fa-users"></i> Clientes</h2>
 
-    <!-- 🔍 Busca + Botões -->
+    <!-- 🔍 Busca -->
     <form class="row g-2 mb-3 align-items-center" method="GET" action="{{ url_for('clientes.index') }}">
-        <!-- Campo de busca -->
         <div class="col-12 col-md-6">
             <input type="text" class="form-control" name="q"
                    placeholder="Buscar por nome ou CPF/CNPJ"
                    value="{{ q }}">
         </div>
-
-        <!-- Botão Buscar -->
         <div class="col-6 col-md-2">
-            <button class="btn btn-primary w-100">
-                <i class="fas fa-search"></i> Buscar
-            </button>
+            <button class="btn btn-primary w-100"><i class="fas fa-search"></i> Buscar</button>
         </div>
-
-        <!-- Botão Cadastrar -->
         <div class="col-6 col-md-2">
             <a href="{{ url_for('clientes.novo_cliente') }}" class="btn btn-success w-100">
                 <i class="fas fa-plus"></i> Cadastrar
@@ -43,15 +36,9 @@
                 {% for cliente in clientes %}
                 <tr>
                     <td>{{ cliente.nome }}</td>
-                    <td class="text-truncate" style="max-width: 150px;">
-                        {{ cliente.documento or '—' }}
-                    </td>
-                    <td class="text-truncate" style="max-width: 150px;">
-                        {{ cliente.telefone_principal or '—' }}
-                    </td>
-                    <td class="text-truncate" style="max-width: 200px;">
-                        {{ cliente.email_principal or '—' }}
-                    </td>
+                    <td>{{ cliente.documento or "—" }}</td>
+                    <td>{{ cliente.telefone_principal or "—" }}</td>
+                    <td>{{ cliente.email_principal or "—" }}</td>
                     <td class="text-center">
                         <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" 
                            class="btn btn-sm btn-info">
@@ -68,27 +55,23 @@
         </table>
     </div>
 
-    <!-- 📱 Lista (Mobile) -->
+    <!-- 📱 Cards (Mobile) -->
     <div class="d-block d-md-none">
         <div class="list-group list-group-flush">
             {% for cliente in clientes %}
-            <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-1 border-0 border-bottom">
-                <div class="flex-grow-1">
-                    <div class="fw-bold text-primary small mb-1">
-                        <i class="fas fa-id-card fa-sm me-1"></i> {{ cliente.nome }}
-                    </div>
-                    <small class="text-muted d-block">{{ cliente.documento or '---' }}</small>
-                    <small class="d-block">
-                        <i class="fas fa-phone fa-xs me-1"></i> {{ cliente.telefone_principal or 'sem telefone' }}
-                    </small>
-                    <small class="d-block">
-                        <i class="fas fa-envelope fa-xs me-1"></i> {{ cliente.email_principal or 'sem e-mail' }}
-                    </small>
+            <div class="list-group-item py-2 px-1 border-0 border-bottom">
+                <div class="fw-bold text-primary small mb-1">
+                    <i class="fas fa-id-card me-1"></i> {{ cliente.nome }}
                 </div>
-                <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" 
-                   class="btn btn-link text-primary p-0 ms-2" title="Detalhes">
-                    <i class="fas fa-eye fa-lg"></i>
-                </a>
+                <small class="text-muted d-block">{{ cliente.documento or "—" }}</small>
+                <small class="d-block"><i class="fas fa-phone me-1"></i> {{ cliente.telefone_principal or "sem telefone" }}</small>
+                <small class="d-block"><i class="fas fa-envelope me-1"></i> {{ cliente.email_principal or "sem e-mail" }}</small>
+                <div class="mt-1">
+                    <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" 
+                       class="btn btn-link text-primary p-0">
+                        <i class="fas fa-eye"></i> Detalhes
+                    </a>
+                </div>
             </div>
             {% else %}
             <p class="text-center text-muted small my-2">Nenhum cliente encontrado.</p>

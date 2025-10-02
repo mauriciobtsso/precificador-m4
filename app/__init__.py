@@ -70,7 +70,9 @@ def create_app():
     from app.produtos import produtos_bp
     from app.taxas.routes import taxas_bp
     from app.pedidos import pedidos_bp   # 👈 novo módulo de pedidos
+    from app.uploads import uploads_bp
 
+    app.register_blueprint(uploads_bp)
     app.register_blueprint(main)
     app.register_blueprint(clientes_bp, url_prefix="/clientes")
     app.register_blueprint(vendas_bp, url_prefix="/vendas")

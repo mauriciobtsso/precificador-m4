@@ -1,0 +1,51 @@
+<h5>RG do Cliente</h5>
+
+<form id="formUploadRg" data-cliente-id="{{ cliente.id }}" enctype="multipart/form-data" method="POST">
+  <div class="mb-3">
+    <input type="file" name="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
+  </div>
+  <button type="submit" class="btn btn-primary">Enviar e Processar RG</button>
+</form>
+
+<div class="modal fade" id="preverRgModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('clientes.salvar_rg', cliente_id=cliente.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Pré-visualizar RG</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3"><label>Nome</label><input type="text" name="nome" id="rgNome" class="form-control"></div>
+          <div class="mb-3"><label>CPF</label><input type="text" name="cpf" id="rgCpf" class="form-control"></div>
+          <div class="mb-3"><label>Nº RG</label><input type="text" name="rg_numero" id="rgNumero" class="form-control"></div>
+          <div class="mb-3"><label>Órgão Emissor</label><input type="text" name="orgao_emissor" id="rgOrgao" class="form-control"></div>
+          <input type="hidden" name="caminho" id="rgCaminho">
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Salvar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function abrirPreverRg(dados) {
+  document.getElementById("rgNome").value = dados.nome || '';
+  document.getElementById("rgCpf").value = dados.cpf || '';
+  document.getElementById("rgNumero").value = dados.rg_numero || '';
+  document.getElementById("rgOrgao").value = dados.orgao_emissor || '';
+  document.getElementById("rgCaminho").value = dados.caminho || '';
+  new bootstrap.Modal(document.getElementById('preverRgModal')).show();
+}
+
+document.getElementById("formUploadRg").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const clienteId = e.target.dataset.clienteId;
+  const resp = await fetch(`/uploads/${clienteId}/rg`, { method: "POST", body: formData });
+  abrirPreverRg(await resp.json());
+});
+</script>

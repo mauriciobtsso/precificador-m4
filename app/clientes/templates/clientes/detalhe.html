@@ -1,108 +1,124 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-<!-- ====================== -->
-<!-- Cabeçalho do Cliente -->
-<!-- ====================== -->
+    <!-- Cabeçalho Cliente -->
 
-<!-- Versão Desktop -->
-<div class="card shadow-sm mb-4 border-0 d-none d-md-block">
-    <div class="card-body d-flex align-items-center">
-        <div class="me-3">
-            <img src="{{ url_for('static', filename='img/avatar.png') }}" 
-                 alt="avatar" class="rounded-circle border" width="80" height="80">
+    <!-- Versão Desktop -->
+    <div class="card shadow-sm mb-4 border-0 d-none d-md-block">
+        <div class="card-body d-flex align-items-center">
+            <div class="me-3">
+                <img src="{{ url_for('static', filename='img/avatar.png') }}" 
+                     alt="avatar" class="rounded-circle border" width="80" height="80">
+            </div>
+            <div>
+                <h4 class="mb-1">{{ cliente.nome }}</h4>
+                <p class="text-muted mb-1">{{ cliente.razao_social or '' }}</p>
+                <p class="mb-1">
+                    <strong>CPF/CNPJ:</strong> {{ cliente.documento or 'não possui' }}
+                    {% if cliente.cr %} / <strong>CR:</strong> {{ cliente.cr }}{% endif %}
+                    {% if cliente.rg %} / <strong>RG:</strong> {{ cliente.rg }}{% endif %}
+                    {% if cliente.matricula %} / <strong>Matrícula:</strong> {{ cliente.matricula }}{% else %} / <strong>Matrícula:</strong> não possui{% endif %}
+                </p>
+                <p class="mb-1">
+                    <strong>Data de Nascimento:</strong>
+                    {{ cliente.data_nascimento.strftime('%d/%m/%Y') if cliente.data_nascimento else 'não informado' }}
+                </p>
+                <!-- Contatos principais -->
+                <p class="mb-1">
+                    {% if cliente.contatos %}
+                        {% for c in cliente.contatos %}
+                            {% set valor_limpo = c.valor|replace('(','')|replace(')','')|replace('-','')|replace(' ','') %}
+                            
+                            {% if c.tipo|lower == 'telefone' %}
+                                <a href="tel:{{ valor_limpo }}" class="me-2 text-decoration-none">
+                                    <i class="fas fa-phone"></i> {{ c.valor }}
+                                </a>
+                            {% elif c.tipo|lower == 'celular' %}
+                                <a href="tel:{{ valor_limpo }}" class="me-2 text-decoration-none">
+                                    <i class="fas fa-mobile-alt"></i> {{ c.valor }}
+                                </a>
+                            {% elif c.tipo|lower in ['whatsapp','zap'] %}
+                                <a href="https://wa.me/55{{ valor_limpo }}" target="_blank" class="me-2 text-success text-decoration-none">
+                                    <i class="fab fa-whatsapp"></i> {{ c.valor }}
+                                </a>
+                            {% elif c.tipo|lower == 'email' %}
+                                <a href="mailto:{{ c.valor }}" class="me-2 text-decoration-none">
+                                    <i class="fas fa-envelope"></i> {{ c.valor }}
+                                </a>
+                            {% else %}
+                                <span class="me-2"><strong>{{ c.tipo|capitalize }}:</strong> {{ c.valor }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-muted">nenhum contato cadastrado</span>
+                    {% endif %}
+                </p>
+            </div>
         </div>
-        <div>
-            <h4 class="mb-1">{{ cliente.nome }}</h4>
-            <p class="text-muted mb-1">{{ cliente.razao_social or '' }}</p>
-            <p class="mb-1">
-                <strong>CPF/CNPJ:</strong> {{ cliente.documento or 'não possui' }}
-                {% if cliente.cr %} / <strong>CR:</strong> {{ cliente.cr }}{% endif %}
-                {% if cliente.rg %} / <strong>RG:</strong> {{ cliente.rg }}{% endif %}
-                {% if cliente.matricula %} / <strong>Matrícula:</strong> {{ cliente.matricula }}{% else %} / <strong>Matrícula:</strong> não possui{% endif %}
-            </p>
-            <p class="mb-1">
-                <strong>Data de Nascimento:</strong>
-                {{ cliente.data_nascimento.strftime('%d/%m/%Y') if cliente.data_nascimento else 'não informado' }}
-            </p>
-            <!-- Contatos principais -->
-            <p class="mb-1">
-                {% if cliente.contatos %}
-                    {% for c in cliente.contatos %}
-                        {% if c.tipo|lower == 'telefone' %}
-                            <strong>Tel:</strong> {{ c.valor }}
-                        {% elif c.tipo|lower == 'celular' %}
-                            <i class="fas fa-mobile-alt"></i> {{ c.valor }}
-                        {% elif c.tipo|lower in ['whatsapp','zap'] %}
-                            <i class="fab fa-whatsapp text-success"></i> {{ c.valor }}
-                        {% elif c.tipo|lower == 'email' %}
-                            <strong>E-mail:</strong> {{ c.valor }}
-                        {% else %}
-                            <strong>{{ c.tipo|capitalize }}:</strong> {{ c.valor }}
-                        {% endif %}
-                        {% if not loop.last %} / {% endif %}
-                    {% endfor %}
-                {% else %}
-                    <span class="text-muted">nenhum contato cadastrado</span>
+    </div>
+
+    <!-- Versão Mobile -->
+    <div class="card shadow-sm mb-3 border-0 d-block d-md-none">
+        <div class="card-body d-flex">
+            <div class="me-3">
+                <img src="{{ url_for('static', filename='img/avatar.png') }}" 
+                     alt="avatar" class="rounded-circle border" width="64" height="64">
+            </div>
+            <div class="flex-grow-1">
+                <h6 class="mb-1 fw-bold text-primary">{{ cliente.nome }}</h6>
+                <small class="text-muted d-block">{{ cliente.documento or 'CPF/CNPJ não informado' }}</small>
+
+                {% if cliente.cr or cliente.rg or cliente.matricula %}
+                <small class="d-block">
+                    {% if cliente.cr %}<strong>CR:</strong> {{ cliente.cr }} {% endif %}
+                    {% if cliente.rg %}/ <strong>RG:</strong> {{ cliente.rg }} {% endif %}
+                    {% if cliente.matricula %}/ <strong>Matrícula:</strong> {{ cliente.matricula }} {% endif %}
+                </small>
                 {% endif %}
-            </p>
-        </div>
-    </div>
-</div>
 
-<!-- Versão Mobile -->
-<div class="card shadow-sm mb-3 border-0 d-block d-md-none">
-    <div class="card-body d-flex">
-        <div class="me-3">
-            <img src="{{ url_for('static', filename='img/avatar.png') }}" 
-                 alt="avatar" class="rounded-circle border" width="64" height="64">
-        </div>
-        <div class="flex-grow-1">
-            <h6 class="mb-1 fw-bold text-primary">{{ cliente.nome }}</h6>
-            <small class="text-muted d-block">{{ cliente.documento or 'CPF/CNPJ não informado' }}</small>
-
-            {% if cliente.cr or cliente.rg or cliente.matricula %}
-            <small class="d-block">
-                {% if cliente.cr %}<strong>CR:</strong> {{ cliente.cr }} {% endif %}
-                {% if cliente.rg %}/ <strong>RG:</strong> {{ cliente.rg }} {% endif %}
-                {% if cliente.matricula %}/ <strong>Matrícula:</strong> {{ cliente.matricula }} {% endif %}
-            </small>
-            {% endif %}
-
-            {% if cliente.data_nascimento %}
-            <small class="d-block">
-                <i class="fas fa-birthday-cake me-1"></i> 
-                {{ cliente.data_nascimento.strftime('%d/%m/%Y') }}
-            </small>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Contatos -->
-    <div class="list-group list-group-flush">
-        {% for c in cliente.contatos %}
-        <div class="list-group-item py-1 px-3 border-0">
-            <small>
-                {% if c.tipo|lower == 'telefone' %}
-                    <i class="fas fa-phone fa-xs me-1"></i> {{ c.valor }}
-                {% elif c.tipo|lower == 'celular' %}
-                    <i class="fas fa-mobile-alt fa-xs me-1"></i> {{ c.valor }}
-                {% elif c.tipo|lower in ['whatsapp','zap'] %}
-                    <i class="fab fa-whatsapp text-success fa-xs me-1"></i> {{ c.valor }}
-                {% elif c.tipo|lower == 'email' %}
-                    <i class="fas fa-envelope fa-xs me-1"></i> {{ c.valor }}
-                {% else %}
-                    <i class="fas fa-tag fa-xs me-1"></i> {{ c.tipo|capitalize }}: {{ c.valor }}
+                {% if cliente.data_nascimento %}
+                <small class="d-block">
+                    <i class="fas fa-birthday-cake me-1"></i> 
+                    {{ cliente.data_nascimento.strftime('%d/%m/%Y') }}
+                </small>
                 {% endif %}
-            </small>
+            </div>
         </div>
-        {% else %}
-        <div class="list-group-item py-1 px-3 border-0">
-            <small class="text-muted">Nenhum contato cadastrado.</small>
+
+        <!-- Contatos -->
+        <div class="list-group list-group-flush">
+            {% for c in cliente.contatos %}
+            {% set valor_limpo = c.valor|replace('(','')|replace(')','')|replace('-','')|replace(' ','') %}
+            <div class="list-group-item py-1 px-3 border-0">
+                <small>
+                    {% if c.tipo|lower == 'telefone' %}
+                        <a href="tel:{{ valor_limpo }}" class="text-decoration-none">
+                            <i class="fas fa-phone fa-xs me-1"></i> {{ c.valor }}
+                        </a>
+                    {% elif c.tipo|lower == 'celular' %}
+                        <a href="tel:{{ valor_limpo }}" class="text-decoration-none">
+                            <i class="fas fa-mobile-alt fa-xs me-1"></i> {{ c.valor }}
+                        </a>
+                    {% elif c.tipo|lower in ['whatsapp','zap'] %}
+                        <a href="https://wa.me/55{{ valor_limpo }}" target="_blank" class="text-success text-decoration-none">
+                            <i class="fab fa-whatsapp fa-xs me-1"></i> {{ c.valor }}
+                        </a>
+                    {% elif c.tipo|lower == 'email' %}
+                        <a href="mailto:{{ c.valor }}" class="text-decoration-none">
+                            <i class="fas fa-envelope fa-xs me-1"></i> {{ c.valor }}
+                        </a>
+                    {% else %}
+                        <i class="fas fa-tag fa-xs me-1"></i> {{ c.tipo|capitalize }}: {{ c.valor }}
+                    {% endif %}
+                </small>
+            </div>
+            {% else %}
+            <div class="list-group-item py-1 px-3 border-0">
+                <small class="text-muted">Nenhum contato cadastrado.</small>
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
-</div>
 
     <!-- Botão Voltar -->
     <a href="{{ url_for('clientes.index') }}" class="btn btn-sm btn-outline-secondary mb-3">
@@ -120,9 +136,7 @@
     </ul>
 
     <div class="tab-content border p-3">
-        <!-- ====================== -->
-        <!-- VISÃO GERAL - DASHBOARD -->
-        <!-- ====================== -->
+        <!-- VISÃO GERAL -->
         <div class="tab-pane fade show active" id="visao">
             <!-- Cards de Resumo -->
             <div class="row text-center mb-4">
@@ -164,7 +178,7 @@
                 </div>
             </div>
 
-            <!-- Alertas Inteligentes -->
+            <!-- Alertas -->
             {% if alertas %}
             <div class="alert alert-danger">
                 <h6><i class="fas fa-exclamation-triangle"></i> Alertas</h6>

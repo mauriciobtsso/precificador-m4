@@ -24,8 +24,8 @@ class Cliente(db.Model):
     nome_mae = db.Column(db.String(150))
     matricula = db.Column(db.String(100))
 
-    # Documentos principais
-    documento = db.Column(db.String(30), unique=True)
+    # Documentos principais (dados diretos do cliente)
+    documento = db.Column(db.String(30), unique=True)   # CPF
     rg = db.Column(db.String(30))
     rg_emissor = db.Column(db.String(100))
     cnh = db.Column(db.String(30))
@@ -60,19 +60,19 @@ class Cliente(db.Model):
     armas = db.relationship("Arma", back_populates="cliente", cascade="all, delete-orphan")
     comunicacoes = db.relationship("Comunicacao", back_populates="cliente", cascade="all, delete-orphan")
     processos = db.relationship("Processo", back_populates="cliente", cascade="all, delete-orphan")
-    vendas = db.relationship("Venda", back_populates="cliente", cascade="all, delete-orphan")  # referência para app/models.py
+    vendas = db.relationship("Venda", back_populates="cliente", cascade="all, delete-orphan")
 
     enderecos = db.relationship(
         "EnderecoCliente",
         back_populates="cliente",
         cascade="all, delete-orphan",
-        lazy="select"   # ✅ trocado
+        lazy="select"
     )
     contatos = db.relationship(
         "ContatoCliente",
         back_populates="cliente",
         cascade="all, delete-orphan",
-        lazy="select"   # ✅ trocado
+        lazy="select"
     )
 
     def __repr__(self):
@@ -89,13 +89,13 @@ class EnderecoCliente(db.Model):
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
 
     cep = db.Column(db.String(20))
-    logradouro = db.Column(db.String(255))   # nome da rua
+    logradouro = db.Column(db.String(255))
     numero = db.Column(db.String(20))
     complemento = db.Column(db.String(100))
     bairro = db.Column(db.String(100))
     cidade = db.Column(db.String(100))
     estado = db.Column(db.String(50))
-    tipo = db.Column(db.String(50), default="residencial")  # <-- NOVO CAMPO
+    tipo = db.Column(db.String(50), default="residencial")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -115,7 +115,7 @@ class ContatoCliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
 
-    tipo = db.Column(db.String(50))  # Ex: telefone, celular, email
+    tipo = db.Column(db.String(50))  # telefone, celular, email
     valor = db.Column(db.String(150))
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -126,6 +126,7 @@ class ContatoCliente(db.Model):
     def __repr__(self):
         return f"<ContatoCliente {self.tipo}: {self.valor}>"
 
+
 # =========================
 # Documento
 # =========================
@@ -135,11 +136,11 @@ class Documento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"))
     tipo = db.Column(db.String(50), nullable=False)  # RG, CNH, CR, CRAF, NF etc.
-    nome_original = db.Column(db.Text)
-    caminho_arquivo = db.Column(db.Text, nullable=False)  # URL ou caminho
+    nome_original = db.Column(db.Text)               # Nome do arquivo enviado
+    caminho_arquivo = db.Column(db.Text, nullable=False)  # URL no R2 / caminho
     mime_type = db.Column(db.String(100))
     data_upload = db.Column(db.DateTime, default=datetime.utcnow)
-    validade = db.Column(db.Date)  # Para controle de vencimento
+    validade = db.Column(db.Date)                    # Para controle de vencimento
 
     cliente = db.relationship("Cliente", back_populates="documentos")
 
@@ -183,7 +184,7 @@ class Comunicacao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
     tipo = db.Column(db.String(50), nullable=False)  # whatsapp, email
-    assunto = db.Column(db.String(150))  # Resumir o tema da comunicação
+    assunto = db.Column(db.String(150))
     mensagem = db.Column(db.Text, nullable=False)
     data = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -201,7 +202,7 @@ class Processo(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
-    tipo = db.Column(db.String(100), nullable=False)  # Ex: Aquisição de arma
+    tipo = db.Column(db.String(100), nullable=False)      # Ex: Aquisição de arma
     status = db.Column(db.String(50), default="em_andamento")  # em_andamento, concluido, cancelado
     descricao = db.Column(db.Text)
     data = db.Column(db.DateTime, default=datetime.utcnow)

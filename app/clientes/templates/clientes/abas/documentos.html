@@ -1,70 +1,123 @@
-<h5>Documentos</h5>
+<!-- ====================== -->
+<!-- ABA: DOCUMENTOS -->
+<!-- ====================== -->
 
-<!-- Lista de documentos -->
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Tipo</th>
-            <th>Arquivo</th>
-            <th>Data Upload</th>
-            <th>Ações</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for doc in cliente.documentos %}
-        <tr>
-            <td>{{ doc.tipo or '-' }}</td>
-            <td>
-                {% if doc.caminho_arquivo %}
-                    <a href="{{ doc.caminho_arquivo }}" target="_blank">{{ doc.nome_original or 'arquivo' }}</a>
-                {% else %}
-                    <span class="text-muted">Arquivo não disponível</span>
-                {% endif %}
-            </td>
-            <td>
-                {% if doc.data_upload %}
-                    {{ doc.data_upload.strftime("%d/%m/%Y %H:%M") }}
-                {% else %}
-                    -
-                {% endif %}
-            </td>
-            <td>
-                <form method="POST" action="{{ url_for('clientes.deletar_documento', cliente_id=cliente.id, doc_id=doc.id) }}" style="display:inline;">
-                    <button type="submit" class="btn btn-sm btn-danger"
-                        onclick="return confirm('Deseja realmente excluir este documento?')">
-                        Excluir
-                    </button>
-                </form>
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="4" class="text-center text-muted">Nenhum documento enviado.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom">
+    <h5 class="mb-0">
+      <i class="fas fa-file-alt me-2 text-primary"></i> Documentos
+    </h5>
+  </div>
 
-<hr>
+  <div class="card-body">
+    <!-- Lista de documentos -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 15%">Tipo</th>
+            <th style="width: 35%">Arquivo</th>
+            <th style="width: 20%">Data Upload</th>
+            <th style="width: 15%">Validade</th>
+            <th style="width: 15%" class="text-center">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in cliente.documentos %}
+          <tr>
+            <!-- Tipo -->
+            <td class="fw-semibold">{{ doc.tipo or '-' }}</td>
 
-<!-- Upload -->
-<form method="POST" enctype="multipart/form-data" action="{{ url_for('clientes.upload_documento', cliente_id=cliente.id) }}">
-    <div class="row g-2">
-        <div class="col-md-3">
-            <select name="tipo" class="form-select" required>
-                <option value="">Selecione o tipo</option>
-                <option value="RG">RG</option>
-                <option value="CNH">CNH</option>
-                <option value="CR">CR</option>
-                <option value="Laudo">Laudo</option>
-                <option value="Outro">Outro</option>
-            </select>
-        </div>
-        <div class="col-md-6">
-            <input type="file" name="arquivo" class="form-control" required>
-        </div>
-        <div class="col-md-3">
-            <button type="submit" class="btn btn-success w-100">Upload</button>
-        </div>
+            <!-- Arquivo -->
+            <td>
+              {% if doc.caminho_arquivo %}
+                <a href="{{ url_for('clientes.abrir_documento', doc_id=doc.id) }}" target="_blank">
+                  <i class="fas fa-file-pdf text-danger me-1"></i>
+                  {{ doc.nome_original or 'arquivo' }}
+                </a>
+              {% else %}
+                <span class="text-muted">Arquivo não disponível</span>
+              {% endif %}
+            </td>
+
+            <!-- Data Upload -->
+            <td>
+              {% if doc.data_upload %}
+                {{ doc.data_upload.strftime("%d/%m/%Y %H:%M") }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+
+            <!-- Validade -->
+            <td>
+              {% if doc.validade %}
+                {{ doc.validade.strftime("%d/%m/%Y") }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+
+            <!-- Ações -->
+            <td class="text-center">
+              <a href="{{ url_for('clientes.abrir_documento', doc_id=doc.id) }}"
+                 class="btn btn-sm btn-outline-primary me-1"
+                 target="_blank" title="Abrir">
+                <i class="fas fa-eye"></i>
+              </a>
+              <form method="POST"
+                    action="{{ url_for('clientes.deletar_documento', cliente_id=cliente.id, doc_id=doc.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Deseja realmente excluir este documento?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">
+              <i class="fas fa-info-circle me-2"></i> Nenhum documento enviado.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-</form>
+
+    <!-- Upload -->
+    <hr>
+    <form method="POST" enctype="multipart/form-data"
+          action="{{ url_for('clientes.upload_documento', cliente_id=cliente.id) }}">
+      <div class="row g-3 align-items-end">
+        <!-- Tipo -->
+        <div class="col-md-3">
+          <label for="tipo" class="form-label">Tipo</label>
+          <select id="tipo" name="tipo" class="form-select" required>
+            <option value="">Selecione o tipo</option>
+            <option value="RG">RG</option>
+            <option value="CNH">CNH</option>
+            <option value="CR">CR</option>
+            <option value="CRAF">CRAF</option>
+            <option value="Laudo">Laudo</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+
+        <!-- Arquivo -->
+        <div class="col-md-6">
+          <label for="arquivo" class="form-label">Arquivo</label>
+          <input type="file" id="arquivo" name="arquivo" class="form-control" required>
+        </div>
+
+        <!-- Botão -->
+        <div class="col-md-3 d-grid">
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-upload me-1"></i> Upload
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
