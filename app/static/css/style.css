@@ -852,3 +852,15 @@ body {
 .timeline li strong {
     color: #212529;
 }
+
+@media (max-width: 768px) {
+  .container, .container-fluid {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+  .list-group-item {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+

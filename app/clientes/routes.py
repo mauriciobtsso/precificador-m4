@@ -4,6 +4,7 @@ import mimetypes
 from io import BytesIO
 from datetime import datetime
 from sqlalchemy import or_, func
+from sqlalchemy.orm import joinedload
 
 from flask import (
     render_template, request, redirect, url_for,
@@ -63,10 +64,12 @@ def gerar_link_craf(caminho_craf):
 @clientes_bp.route("/")
 def index():
     q = request.args.get("q", "").strip()
-    query = db.session.query(Cliente)
+    query = db.session.query(Cliente).options(
+        joinedload(Cliente.contatos),
+        joinedload(Cliente.enderecos)
+    )
 
     if q:
-        # termo "limpo" (sem pontos, traços, barras, espaços)
         q_normalizado = q.replace(".", "").replace("-", "").replace("/", "").replace(" ", "")
         search_nome = f"%{q}%"
         search_doc = f"%{q_normalizado}%"
@@ -76,7 +79,6 @@ def index():
                 Cliente.nome.ilike(search_nome),
                 Cliente.apelido.ilike(search_nome),
                 Cliente.razao_social.ilike(search_nome),
-                # remove ., -, / e espaços do documento no banco antes de comparar
                 func.replace(
                     func.replace(
                         func.replace(
@@ -90,6 +92,14 @@ def index():
         )
 
     clientes = query.all()
+
+    # Pré-processa contatos principais
+    for c in clientes:
+        tel = next((cont.valor for cont in c.contatos if cont.tipo == "telefone"), "-")
+        email = next((cont.valor for cont in c.contatos if cont.tipo == "email"), "-")
+        c.telefone_principal = tel
+        c.email_principal = email
+
     return render_template("clientes/index.html", clientes=clientes, q=q)
 
 @clientes_bp.route("/novo", methods=["GET", "POST"])
@@ -212,14 +222,16 @@ def detalhe(cliente_id):
     timeline = sorted(eventos, key=lambda e: e["data"], reverse=True)[:5]
 
     # 🔥 retorna já com endereços e contatos
+
+
     return render_template(
         "clientes/detalhe.html",
         cliente=cliente,
         resumo=resumo,
         alertas=alertas,
         timeline=timeline,
-        enderecos=cliente.enderecos.all() if hasattr(cliente.enderecos, "all") else cliente.enderecos,
-        contatos=cliente.contatos.all() if hasattr(cliente.contatos, "all") else cliente.contatos,
+        enderecos=cliente.enderecos,
+        contatos=cliente.contatos,
     )
 
 # =========================

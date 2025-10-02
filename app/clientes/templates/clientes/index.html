@@ -3,47 +3,97 @@
 <div class="container mt-4">
     <h2><i class="fas fa-users"></i> Clientes</h2>
 
-    <!-- Busca -->
-    <form class="row g-2 mb-3" method="GET" action="{{ url_for('clientes.index') }}">
-        <div class="col-md-4">
+    <!-- 🔍 Busca + Botões -->
+    <form class="row g-2 mb-3 align-items-center" method="GET" action="{{ url_for('clientes.index') }}">
+        <!-- Campo de busca -->
+        <div class="col-12 col-md-6">
             <input type="text" class="form-control" name="q"
                    placeholder="Buscar por nome ou CPF/CNPJ"
                    value="{{ q }}">
         </div>
-        <div class="col-md-2">
-            <button class="btn btn-primary w-100">Buscar</button>
+
+        <!-- Botão Buscar -->
+        <div class="col-6 col-md-2">
+            <button class="btn btn-primary w-100">
+                <i class="fas fa-search"></i> Buscar
+            </button>
         </div>
-        <div class="col-md-2">
-            <a href="{{ url_for('clientes.novo_cliente') }}" class="btn btn-success w-100">+ Cadastrar</a>
+
+        <!-- Botão Cadastrar -->
+        <div class="col-6 col-md-2">
+            <a href="{{ url_for('clientes.novo_cliente') }}" class="btn btn-success w-100">
+                <i class="fas fa-plus"></i> Cadastrar
+            </a>
         </div>
     </form>
 
-    <!-- Lista -->
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>CPF/CNPJ</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
+    <!-- 🖥️ Tabela (Desktop) -->
+    <div class="table-responsive-sm d-none d-md-block">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 30%;">Nome</th>
+                    <th style="width: 20%;">CPF/CNPJ</th>
+                    <th style="width: 20%;">Telefone</th>
+                    <th style="width: 20%;">Email</th>
+                    <th style="width: 10%;" class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cliente in clientes %}
+                <tr>
+                    <td>{{ cliente.nome }}</td>
+                    <td class="text-truncate" style="max-width: 150px;">
+                        {{ cliente.documento or '—' }}
+                    </td>
+                    <td class="text-truncate" style="max-width: 150px;">
+                        {{ cliente.telefone_principal or '—' }}
+                    </td>
+                    <td class="text-truncate" style="max-width: 200px;">
+                        {{ cliente.email_principal or '—' }}
+                    </td>
+                    <td class="text-center">
+                        <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" 
+                           class="btn btn-sm btn-info">
+                            <i class="fas fa-eye"></i> Detalhes
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">Nenhum cliente encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 📱 Lista (Mobile) -->
+    <div class="d-block d-md-none">
+        <div class="list-group list-group-flush">
             {% for cliente in clientes %}
-            <tr>
-                <td>{{ cliente.nome }}</td>
-                <td>{{ cliente.documento }}</td>
-                <td>
-                    <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" class="btn btn-sm btn-info">
-                        Detalhes
-                    </a>
-                </td>
-            </tr>
+            <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-1 border-0 border-bottom">
+                <div class="flex-grow-1">
+                    <div class="fw-bold text-primary small mb-1">
+                        <i class="fas fa-id-card fa-sm me-1"></i> {{ cliente.nome }}
+                    </div>
+                    <small class="text-muted d-block">{{ cliente.documento or '---' }}</small>
+                    <small class="d-block">
+                        <i class="fas fa-phone fa-xs me-1"></i> {{ cliente.telefone_principal or 'sem telefone' }}
+                    </small>
+                    <small class="d-block">
+                        <i class="fas fa-envelope fa-xs me-1"></i> {{ cliente.email_principal or 'sem e-mail' }}
+                    </small>
+                </div>
+                <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" 
+                   class="btn btn-link text-primary p-0 ms-2" title="Detalhes">
+                    <i class="fas fa-eye fa-lg"></i>
+                </a>
+            </div>
             {% else %}
-            <tr>
-                <td colspan="3" class="text-center">Nenhum cliente encontrado.</td>
-            </tr>
+            <p class="text-center text-muted small my-2">Nenhum cliente encontrado.</p>
             {% endfor %}
-        </tbody>
-    </table>
+        </div>
+    </div>
 </div>
 {% endblock %}

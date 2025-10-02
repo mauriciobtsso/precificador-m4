@@ -61,17 +61,18 @@ class Cliente(db.Model):
     comunicacoes = db.relationship("Comunicacao", back_populates="cliente", cascade="all, delete-orphan")
     processos = db.relationship("Processo", back_populates="cliente", cascade="all, delete-orphan")
     vendas = db.relationship("Venda", back_populates="cliente", cascade="all, delete-orphan")  # referência para app/models.py
+
     enderecos = db.relationship(
         "EnderecoCliente",
         back_populates="cliente",
         cascade="all, delete-orphan",
-        lazy="dynamic"
+        lazy="select"   # ✅ trocado
     )
     contatos = db.relationship(
         "ContatoCliente",
         back_populates="cliente",
         cascade="all, delete-orphan",
-        lazy="dynamic"
+        lazy="select"   # ✅ trocado
     )
 
     def __repr__(self):

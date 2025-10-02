@@ -1,0 +1,78 @@
+<div class="modal fade" id="contatoModal" tabindex="-1" aria-labelledby="contatoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-sm">
+      <form method="POST" action="/clientes/{{ cliente.id }}/contatos/adicionar">
+        <div class="modal-header">
+          <h5 class="modal-title" id="contatoModalLabel">
+            <i class="fas fa-address-card me-2"></i>Adicionar Contato
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Tipo -->
+          <div class="mb-3">
+            <label for="contatoTipo" class="form-label">Tipo</label>
+            <select class="form-select" id="contatoTipo" name="tipo" required>
+              <option value="telefone">Telefone</option>
+              <option value="celular">Celular</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="email">E-mail</option>
+              <option value="outro">Outro</option>
+            </select>
+            <div class="form-text">Escolha o tipo de contato.</div>
+          </div>
+
+          <!-- Valor -->
+          <div class="mb-3">
+            <label for="contatoValor" id="contatoValorLabel" class="form-label">Valor</label>
+            <div class="input-group">
+              <span class="input-group-text" id="valorIcon">
+                <i class="fas fa-phone"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control"
+                id="contatoValor"
+                name="valor"
+                placeholder="Digite o contato"
+                required
+                aria-describedby="contatoValorHelp"
+              >
+            </div>
+            <div id="contatoValorHelp" class="form-text">
+              Para telefone/celular o formato será aplicado automaticamente.
+            </div>
+            <div class="invalid-feedback">Informe um e-mail válido.</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i>Salvar
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Ícone do input conforme o tipo (opcional visual)
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'contatoTipo') {
+      var tipo = e.target.value;
+      var icon = 'fa-tag';
+      if (tipo === 'telefone') icon = 'fa-phone';
+      else if (tipo === 'celular' || tipo === 'whatsapp') icon = 'fa-mobile-alt';
+      else if (tipo === 'email') icon = 'fa-envelope';
+      var span = document.querySelector('#valorIcon i');
+      if (span) {
+        span.className = 'fas ' + icon;
+      }
+    }
+  });
+</script>

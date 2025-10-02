@@ -12,7 +12,7 @@
         {% for e in enderecos %}
           <li class="list-group-item d-flex justify-content-between align-items-center">
             <div>
-              <!-- Badge colorido por tipo -->
+              <!-- Badge por tipo -->
               {% if e.tipo == 'residencial' %}
                 <span class="badge bg-success me-2">Residencial</span>
               {% elif e.tipo == 'comercial' %}
@@ -32,14 +32,14 @@
             <!-- Ações -->
             <div class="btn-group btn-group-sm">
               <a href="{{ url_for('clientes.editar_endereco', cliente_id=cliente.id, endereco_id=e.id) }}"
-                 class="btn btn-outline-warning">
+                 class="btn btn-outline-warning" title="Editar">
                 <i class="fas fa-edit"></i>
               </a>
               <form method="POST"
                     action="{{ url_for('clientes.deletar_endereco', cliente_id=cliente.id, endereco_id=e.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Deseja realmente excluir este endereço?')">
-                <button type="submit" class="btn btn-outline-danger">
+                <button type="submit" class="btn btn-outline-danger" title="Excluir">
                   <i class="fas fa-trash"></i>
                 </button>
               </form>
@@ -71,11 +71,11 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label for="numero" class="form-label">Número</label>
-              <input type="text" class="form-control" id="numero" name="numero">
+              <input type="text" class="form-control" id="numero" name="numero" inputmode="numeric" placeholder="ex.: 123">
             </div>
             <div class="col-md-6 mb-3">
               <label for="complemento" class="form-label">Complemento</label>
-              <input type="text" class="form-control" id="complemento" name="complemento">
+              <input type="text" class="form-control" id="complemento" name="complemento" placeholder="apto, bloco, etc.">
             </div>
           </div>
 
@@ -90,12 +90,12 @@
               <input type="text" class="form-control" id="cidade" name="cidade" required>
             </div>
             <div class="col-md-3 mb-3">
-              <label for="estado" class="form-label">Estado</label>
-              <input type="text" class="form-control" id="estado" name="estado" maxlength="2" required>
+              <label for="estado" class="form-label">UF</label>
+              <input type="text" class="form-control" id="estado" name="estado" maxlength="2" style="text-transform:uppercase" required>
             </div>
             <div class="col-md-3 mb-3">
               <label for="cep" class="form-label">CEP</label>
-              <input type="text" class="form-control" id="cep" name="cep">
+              <input type="text" class="form-control" id="cep" name="cep" placeholder="00000-000" maxlength="9" inputmode="numeric">
             </div>
           </div>
 

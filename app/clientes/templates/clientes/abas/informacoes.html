@@ -24,11 +24,15 @@
                 CEP: {{ e.cep }}
               </div>
               <div>
-                <a href="{{ url_for('clientes.editar_endereco', cliente_id=cliente.id, endereco_id=e.id) }}" class="btn btn-sm btn-warning">
+                <a href="{{ url_for('clientes.editar_endereco', cliente_id=cliente.id, endereco_id=e.id) }}"
+                   class="btn btn-sm btn-warning" title="Editar">
                   <i class="fas fa-edit"></i>
                 </a>
-                <form method="POST" action="{{ url_for('clientes.deletar_endereco', cliente_id=cliente.id, endereco_id=e.id) }}" class="d-inline">
-                  <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Excluir este endereço?')">
+                <form method="POST"
+                      action="{{ url_for('clientes.deletar_endereco', cliente_id=cliente.id, endereco_id=e.id) }}"
+                      class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-danger"
+                          onclick="return confirm('Excluir este endereço?')" title="Excluir">
                     <i class="fas fa-trash"></i>
                   </button>
                 </form>
@@ -48,7 +52,7 @@
     <div class="card shadow-sm">
       <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <span><i class="fas fa-address-book"></i> Contatos</span>
-        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addContatoModal">
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#contatoModal">
           <i class="fas fa-plus"></i> Adicionar
         </button>
       </div>
@@ -58,14 +62,28 @@
             {% for c in contatos %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
               <div>
-                <strong>{{ c.tipo|capitalize }}:</strong> {{ c.valor }}
+                {% if c.tipo|lower == 'telefone' %}
+                  <i class="fas fa-phone me-1"></i> {{ c.valor }}
+                {% elif c.tipo|lower == 'celular' %}
+                  <i class="fas fa-mobile-alt me-1"></i> {{ c.valor }}
+                {% elif c.tipo|lower in ['whatsapp', 'zap'] %}
+                  <i class="fab fa-whatsapp text-success me-1"></i> {{ c.valor }}
+                {% elif c.tipo|lower == 'email' %}
+                  <i class="fas fa-envelope me-1"></i> {{ c.valor }}
+                {% else %}
+                  <strong>{{ c.tipo|capitalize }}:</strong> {{ c.valor }}
+                {% endif %}
               </div>
               <div>
-                <a href="{{ url_for('clientes.editar_contato', cliente_id=cliente.id, contato_id=c.id) }}" class="btn btn-sm btn-warning">
+                <a href="{{ url_for('clientes.editar_contato', cliente_id=cliente.id, contato_id=c.id) }}"
+                   class="btn btn-sm btn-warning" title="Editar">
                   <i class="fas fa-edit"></i>
                 </a>
-                <form method="POST" action="{{ url_for('clientes.deletar_contato', cliente_id=cliente.id, contato_id=c.id) }}" class="d-inline">
-                  <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Excluir este contato?')">
+                <form method="POST"
+                      action="{{ url_for('clientes.deletar_contato', cliente_id=cliente.id, contato_id=c.id) }}"
+                      class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-danger"
+                          onclick="return confirm('Excluir este contato?')" title="Excluir">
                     <i class="fas fa-trash"></i>
                   </button>
                 </form>
