@@ -79,4 +79,37 @@
         </div>
     </div>
 </div>
+
+<!-- Paginação -->
+{% if pagination.pages > 1 %}
+<nav aria-label="Navegação de página">
+  <ul class="pagination justify-content-center">
+    <!-- Anterior -->
+    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+      <a class="page-link" href="{{ url_for('clientes.index', page=pagination.prev_num, q=q) }}" tabindex="-1">
+        &laquo; Anterior
+      </a>
+    </li>
+
+    <!-- Números -->
+    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+      {% if p %}
+        <li class="page-item {% if p == pagination.page %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('clientes.index', page=p, q=q) }}">{{ p }}</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+
+    <!-- Próximo -->
+    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+      <a class="page-link" href="{{ url_for('clientes.index', page=pagination.next_num, q=q) }}">
+        Próximo &raquo;
+      </a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+
 {% endblock %}
