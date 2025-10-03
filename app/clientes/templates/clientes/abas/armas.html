@@ -1,59 +1,89 @@
+{# clientes/abas/armas.html #}
+{# importa as listas de constantes passadas pela rota detalhe #}
+{# TIPOS_ARMA, FUNCIONAMENTO_ARMA, EMISSORES_CRAF, CATEGORIAS_ADQUIRENTE #}
+
 <h5>Armas do Cliente</h5>
 
+<div class="mb-3">
+  <!-- Botão Nova Arma -->
+  <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalNovaArma">
+    + Nova Arma
+  </button>
+</div>
+
 <!-- Lista -->
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Tipo</th>
-      <th>Marca</th>
-      <th>Modelo</th>
-      <th>Calibre</th>
-      <th>Nº Série</th>
-      <th>CRAF/SIGMA</th>
-      <th>Validade CRAF</th>
-      <th>Arquivo</th>
-      <th>Ações</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for arma in cliente.armas %}
-    <tr>
-      <td>{{ arma.tipo or "-" }}</td>
-      <td>{{ arma.marca or "-" }}</td>
-      <td>{{ arma.modelo or "-" }}</td>
-      <td>{{ arma.calibre or "-" }}</td>
-      <td>{{ arma.numero_serie or "-" }}</td>
-      <td>{{ arma.craf or "-" }}</td>
-      <td>{{ arma.data_validade_craf.strftime("%d/%m/%Y") if arma.data_validade_craf else "-" }}</td>
-      <td>
-        {% if arma.caminho_craf %}
-          <a href="{{ url_for('clientes.abrir_craf', arma_id=arma.id) }}" target="_blank"
-             class="btn btn-sm btn-outline-primary">Abrir</a>
-        {% else %}
-          <span class="text-muted">Não enviado</span>
-        {% endif %}
-      </td>
-      <td>
-        <form method="POST"
-              action="{{ url_for('clientes.deletar_arma', cliente_id=cliente.id, arma_id=arma.id) }}"
-              style="display:inline;">
-          <button type="submit" class="btn btn-sm btn-danger"
-                  onclick="return confirm('Deseja realmente excluir esta arma?')">Excluir</button>
-        </form>
-      </td>
-    </tr>
-    {% else %}
-    <tr>
-      <td colspan="9" class="text-center text-muted">Nenhuma arma cadastrada.</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>Tipo</th>
+        <th>Marca</th>
+        <th>Modelo</th>
+        <th>Calibre</th>
+        <th>Nº Série</th>
+        <th>Nº Reg. CRAF</th>
+        <th>Validade CRAF</th>
+        <th>Arquivo</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for arma in cliente.armas %}
+      <tr>
+        <td>{{ arma.tipo or "-" }}</td>
+        <td>{{ arma.marca or "-" }}</td>
+        <td>{{ arma.modelo or "-" }}</td>
+        <td>{{ arma.calibre or "-" }}</td>
+        <td>{{ arma.numero_serie or "-" }}</td>
+        <td>{{ arma.numero_sigma or arma.craf or "-" }}</td>
+        <td>
+          {% if arma.validade_indeterminada %}
+            Indeterminada
+          {% else %}
+            {{ arma.data_validade_craf.strftime("%d/%m/%Y") if arma.data_validade_craf else "-" }}
+          {% endif %}
+        </td>
+        <td>
+          {% if arma.caminho_craf %}
+            <a href="{{ url_for('clientes.abrir_craf', arma_id=arma.id) }}" target="_blank"
+               class="btn btn-sm btn-outline-primary">Abrir</a>
+          {% else %}
+            <span class="text-muted">Não enviado</span>
+          {% endif %}
+        </td>
+        <td>
+          <button type="button" class="btn btn-sm btn-warning"
+                  data-bs-toggle="modal" data-bs-target="#modalEditarArma{{ arma.id }}">
+            Editar
+          </button>
+
+          <form method="POST"
+                action="{{ url_for('clientes.deletar_arma', cliente_id=cliente.id, arma_id=arma.id) }}"
+                style="display:inline;">
+            <button type="submit" class="btn btn-sm btn-danger"
+                    onclick="return confirm('Deseja realmente excluir esta arma?')">
+              Excluir
+            </button>
+          </form>
+        </td>
+      </tr>
+
+      {# Modal editar arma para cada registro #}
+      {% include "clientes/abas/armas_editar.html" %}
+
+      {% else %}
+      <tr>
+        <td colspan="9" class="text-center text-muted">Nenhuma arma cadastrada.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 
 <hr>
 
 <div class="row">
-  <!-- Upload de CRAF -->
+  <!-- Upload de CRAF com OCR -->
   <div class="col-md-6">
     <h6>Upload do CRAF (PDF/Imagem)</h6>
     <form id="formUploadCraf" data-cliente-id="{{ cliente.id }}" enctype="multipart/form-data" method="POST">
@@ -65,7 +95,10 @@
   </div>
 </div>
 
-<!-- Modal Pré-visualização CRAF -->
+<!-- Modal Nova Arma -->
+{% include "clientes/abas/armas_nova.html" %}
+
+<!-- Modal Pré-visualização CRAF (pós-OCR) -->
 <div class="modal fade" id="preverCrafModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -75,44 +108,87 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <!-- Tipo -->
+
           <div class="mb-3">
-            <label>Tipo</label>
-            <input type="text" name="tipo" id="crafTipo" class="form-control" placeholder="PISTOLA / REVOLVER / ...">
+            <label>Tipo da Arma</label>
+            <select name="tipo" id="crafTipo" class="form-select">
+              <option value="">Selecione</option>
+              {% for val, label in tipos_arma %}
+                <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
           </div>
 
-          <!-- Marca -->
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Calibre</label>
+              <input type="text" name="calibre" id="crafCalibre" class="form-control">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>Funcionamento</label>
+              <select name="funcionamento" id="crafFuncionamento" class="form-select">
+                <option value="">Selecione</option>
+                {% for val, label in funcionamento_arma %}
+                  <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
           <div class="mb-3">
             <label>Marca</label>
-            <input type="text" name="marca" id="crafMarca" class="form-control" placeholder="Ex: Forjas Taurus">
+            <input type="text" name="marca" id="crafMarca" class="form-control">
           </div>
 
-          <!-- Modelo -->
           <div class="mb-3">
             <label>Modelo</label>
             <input type="text" name="modelo" id="crafModelo" class="form-control" placeholder="(opcional)">
           </div>
 
-          <!-- Calibre -->
-          <div class="mb-3">
-            <label>Calibre</label>
-            <input type="text" name="calibre" id="crafCalibre" class="form-control">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label>Número de série</label>
+              <input type="text" name="numero_serie" id="crafNumeroSerie" class="form-control">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label>Emissor CRAF</label>
+              <select name="emissor_craf" id="crafEmissor" class="form-select">
+                <option value="">Selecione</option>
+                {% for val, label in emissores_craf %}
+                  <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label>Nº Sigma / Nº do Registro</label>
+              <input type="text" name="numero_sigma" id="crafSigma" class="form-control">
+            </div>
           </div>
 
-          <!-- Número de Série -->
-          <div class="mb-3">
-            <label>Número de Série</label>
-            <input type="text" name="numero_serie" id="crafNumeroSerie" class="form-control">
+          <div class="row align-items-center">
+            <div class="col-md-6 mb-3">
+              <label>Data de Validade</label>
+              <input type="date" name="data_validade_craf" id="crafValidade" class="form-control">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>Categoria do Adquirente</label>
+              <select name="categoria_adquirente" id="crafCategoria" class="form-select">
+                <option value="">Selecione</option>
+                {% for val, label in categorias_adquirente %}
+                  <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
 
-          <!-- Validade -->
-          <div class="mb-3">
-            <label>Validade CRAF</label>
-            <input type="date" name="data_validade_craf" id="crafValidade" class="form-control">
+          <div class="mb-3 form-check">
+            <input type="checkbox" name="validade_indeterminada" id="crafValidadeIndet" class="form-check-input">
+            <label class="form-check-label" for="crafValidadeIndet">A validade do CRAF é indeterminada</label>
           </div>
 
           <input type="hidden" name="caminho_craf" id="crafCaminho">
         </div>
+
         <div class="modal-footer">
           <button type="submit" class="btn btn-success">Salvar</button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -122,60 +198,4 @@
   </div>
 </div>
 
-<script>
-function abrirPreverCraf(dados) {
-  document.getElementById("crafTipo").value = dados.tipo || '';
-  document.getElementById("crafMarca").value = dados.marca || '';
-  document.getElementById("crafModelo").value = dados.modelo || '';
-  document.getElementById("crafCalibre").value = dados.calibre || '';
-  document.getElementById("crafNumeroSerie").value = dados.numero_serie || '';
-
-  // converte dd/mm/yyyy -> yyyy-mm-dd para input[type=date]
-  const validade = dados.data_validade_craf || '';
-  if (validade) {
-    const parts = validade.split('/');
-    if (parts.length === 3) {
-      document.getElementById("crafValidade").value =
-        `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-    } else {
-      document.getElementById("crafValidade").value = '';
-    }
-  } else {
-    document.getElementById("crafValidade").value = '';
-  }
-
-  document.getElementById("crafCaminho").value = dados.caminho_craf || '';
-
-  var modal = new bootstrap.Modal(document.getElementById('preverCrafModal'));
-  modal.show();
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-  const uploadForm = document.getElementById("formUploadCraf");
-
-  if (uploadForm) {
-    uploadForm.addEventListener("submit", async function (e) {
-      e.preventDefault();
-
-      const formData = new FormData(uploadForm);
-      const clienteId = uploadForm.dataset.clienteId;
-
-      try {
-        const response = await fetch(`/uploads/${clienteId}/craf`, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error("Erro no upload do CRAF");
-        }
-
-        const dados = await response.json();
-        abrirPreverCraf(dados);
-      } catch (err) {
-        alert("Erro ao processar CRAF: " + err.message);
-      }
-    });
-  }
-});
-</script>
+<script src="{{ url_for('static', filename='js/armas.js') }}"></script>

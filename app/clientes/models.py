@@ -157,18 +157,23 @@ class Arma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
 
+
+    tipo = db.Column(db.String(50))                  # ex: "pistola"
+    funcionamento = db.Column(db.String(50))         # ex: "semi_automatica"
     marca = db.Column(db.String(100))
     modelo = db.Column(db.String(100))
     calibre = db.Column(db.String(50))
     numero_serie = db.Column(db.String(100), unique=True)
-    craf = db.Column(db.String(50))
-    data_aquisicao = db.Column(db.Date)
+    emissor_craf = db.Column(db.String(50))          # ex: "sigma"
+    numero_sigma = db.Column(db.String(50))          # Nº Sigma / Registro
+    categoria_adquirente = db.Column(db.String(60))
+    validade_indeterminada = db.Column(db.Boolean, default=False)
     data_validade_craf = db.Column(db.Date)
-    caminho_craf = db.Column(db.Text)  # URL ou caminho do arquivo
+    caminho_craf = db.Column(db.Text)
+    data_aquisicao = db.Column(db.Date, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
     cliente = db.relationship("Cliente", back_populates="armas")
 
     def __repr__(self):

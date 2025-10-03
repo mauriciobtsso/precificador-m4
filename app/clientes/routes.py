@@ -25,6 +25,12 @@ from app.clientes.models import (
     Cliente, Documento, Arma, Comunicacao, Processo,
     EnderecoCliente, ContatoCliente
 )
+from app.clientes.constants import (
+    TIPOS_ARMA,
+    FUNCIONAMENTO_ARMA,
+    EMISSORES_CRAF,
+    CATEGORIAS_ADQUIRENTE,
+)
 
 import boto3
 from botocore.client import Config
@@ -285,6 +291,10 @@ def detalhe(cliente_id):
         "clientes/detalhe.html",
         cliente=cliente,
         resumo=resumo,
+        tipos_arma=TIPOS_ARMA,
+        funcionamento_arma=FUNCIONAMENTO_ARMA,
+        emissores_craf=EMISSORES_CRAF,
+        categorias_adquirente=CATEGORIAS_ADQUIRENTE,
         alertas=alertas,
         timeline=timeline,
         enderecos=cliente.enderecos,
@@ -527,34 +537,64 @@ def deletar_documento(cliente_id, doc_id):
 # ======================
 # ARMAS
 # ======================
+
 @clientes_bp.route("/<int:cliente_id>/armas", methods=["GET"])
 def cliente_armas(cliente_id):
-    # redireciona para a aba "armas" dentro do detalhe do cliente
+    """Redireciona para a aba 'armas' dentro do detalhe do cliente"""
     return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="armas"))
 
 
-# 🚨 Removemos o upload_craf daqui.
-# O upload e OCR do CRAF agora são feitos no módulo `uploads/routes.py`
-# Endpoint: /uploads/<cliente_id>/craf (retorna JSON para pré-visualização)
-
-
-@clientes_bp.route("/<int:cliente_id>/armas/salvar", methods=["POST"])
-def salvar_craf(cliente_id):
-    """Salva arma no banco, após pré-visualização/edit no front."""
+# ----------------------
+# NOVA ARMA (manual ou com arquivo opcional)
+# ----------------------
+@clientes_bp.route("/<int:cliente_id>/armas/nova", methods=["POST"])
+def nova_arma(cliente_id):
+    """Cadastro manual de arma, com upload opcional de arquivo."""
     num_serie = request.form.get("numero_serie")
-
     if num_serie and Arma.query.filter_by(numero_serie=num_serie).first():
         flash(f"Já existe arma com número de série {num_serie}", "warning")
         return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="armas"))
 
+    tipo = request.form.get("tipo") or None
+    funcionamento = request.form.get("funcionamento") or None
+    marca = request.form.get("marca") or None
+    modelo = request.form.get("modelo") or None
+    calibre = request.form.get("calibre") or None
+    emissor_craf = request.form.get("emissor_craf") or None
+    numero_sigma = request.form.get("numero_sigma") or None
+    categoria_adquirente = request.form.get("categoria_adquirente") or None
+    validade_indeterminada = bool(request.form.get("validade_indeterminada"))
+    data_validade = request.form.get("data_validade_craf") or None
+
+    from datetime import datetime
+    data_validade_parsed = None
+    if data_validade:
+        try:
+            data_validade_parsed = datetime.strptime(data_validade, "%Y-%m-%d").date()
+        except ValueError:
+            data_validade_parsed = None
+
+    # upload opcional de arquivo
+    caminho = None
+    if "arquivo" in request.files and request.files["arquivo"].filename:
+        file = request.files["arquivo"]
+        from app.utils.storage import salvar_arquivo_r2
+        caminho = salvar_arquivo_r2(file, pasta="craf")
+
     arma = Arma(
         cliente_id=cliente_id,
-        marca=request.form.get("marca"),
-        modelo=request.form.get("modelo"),
-        calibre=request.form.get("calibre"),
+        tipo=tipo,
+        funcionamento=funcionamento,
+        marca=marca,
+        modelo=modelo,
+        calibre=calibre,
         numero_serie=num_serie,
-        data_validade_craf=request.form.get("data_validade_craf"),
-        caminho_craf=request.form.get("caminho_craf"),  # veio do endpoint de upload
+        emissor_craf=emissor_craf,
+        numero_sigma=numero_sigma,
+        categoria_adquirente=categoria_adquirente,
+        validade_indeterminada=validade_indeterminada,
+        data_validade_craf=data_validade_parsed,
+        caminho_craf=caminho,
     )
     db.session.add(arma)
     db.session.commit()
@@ -563,6 +603,114 @@ def salvar_craf(cliente_id):
     return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="armas"))
 
 
+# ----------------------
+# EDITAR ARMA (com valida duplicidade + substituição de arquivo)
+# ----------------------
+@clientes_bp.route("/<int:cliente_id>/armas/<int:arma_id>/editar", methods=["POST"])
+def editar_arma(cliente_id, arma_id):
+    """Edita os dados de uma arma existente."""
+    arma = Arma.query.get_or_404(arma_id)
+
+    # valida duplicidade de número de série
+    num_serie = request.form.get("numero_serie")
+    if num_serie and Arma.query.filter(Arma.id != arma.id, Arma.numero_serie == num_serie).first():
+        flash(f"Já existe arma com número de série {num_serie}", "warning")
+        return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="armas"))
+
+    arma.tipo = request.form.get("tipo") or None
+    arma.funcionamento = request.form.get("funcionamento") or None
+    arma.marca = request.form.get("marca") or None
+    arma.modelo = request.form.get("modelo") or None
+    arma.calibre = request.form.get("calibre") or None
+    arma.numero_serie = num_serie or None
+    arma.emissor_craf = request.form.get("emissor_craf") or None
+    arma.numero_sigma = request.form.get("numero_sigma") or None
+    arma.categoria_adquirente = request.form.get("categoria_adquirente") or None
+    arma.validade_indeterminada = bool(request.form.get("validade_indeterminada"))
+
+    from datetime import datetime
+    data_validade = request.form.get("data_validade_craf") or None
+    if data_validade:
+        try:
+            arma.data_validade_craf = datetime.strptime(data_validade, "%Y-%m-%d").date()
+        except ValueError:
+            arma.data_validade_craf = None
+    else:
+        arma.data_validade_craf = None
+
+    # substituição de arquivo (upload manual)
+    if "arquivo" in request.files and request.files["arquivo"].filename:
+        file = request.files["arquivo"]
+        from app.utils.storage import salvar_arquivo_r2
+        arma.caminho_craf = salvar_arquivo_r2(file, pasta="craf")
+
+    # substituição de caminho vindo via OCR (hidden input)
+    caminho = request.form.get("caminho_craf") or None
+    if caminho:
+        arma.caminho_craf = caminho
+
+    db.session.commit()
+    flash("Arma atualizada com sucesso!", "success")
+    return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="armas"))
+
+
+# ----------------------
+# SALVAR CRAF (via OCR)
+# ----------------------
+@clientes_bp.route("/<int:cliente_id>/armas/salvar", methods=["POST"])
+def salvar_craf(cliente_id):
+    """Cria nova arma a partir do OCR do CRAF"""
+    num_serie = request.form.get("numero_serie")
+    if num_serie and Arma.query.filter_by(numero_serie=num_serie).first():
+        flash(f"Já existe arma com número de série {num_serie}", "warning")
+        return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="armas"))
+
+    tipo = request.form.get("tipo") or None
+    funcionamento = request.form.get("funcionamento") or None
+    marca = request.form.get("marca") or None
+    modelo = request.form.get("modelo") or None
+    calibre = request.form.get("calibre") or None
+    numero_serie = num_serie or None
+    emissor_craf = request.form.get("emissor_craf") or None
+    numero_sigma = request.form.get("numero_sigma") or None
+    categoria_adquirente = request.form.get("categoria_adquirente") or None
+    validade_indeterminada = bool(request.form.get("validade_indeterminada"))
+    data_validade = request.form.get("data_validade_craf") or None
+    caminho = request.form.get("caminho_craf") or None
+
+    from datetime import datetime
+    data_validade_parsed = None
+    if data_validade:
+        try:
+            data_validade_parsed = datetime.strptime(data_validade, "%Y-%m-%d").date()
+        except ValueError:
+            data_validade_parsed = None
+
+    arma = Arma(
+        cliente_id=cliente_id,
+        tipo=tipo,
+        funcionamento=funcionamento,
+        marca=marca,
+        modelo=modelo,
+        calibre=calibre,
+        numero_serie=numero_serie,
+        emissor_craf=emissor_craf,
+        numero_sigma=numero_sigma,
+        categoria_adquirente=categoria_adquirente,
+        validade_indeterminada=validade_indeterminada,
+        data_validade_craf=data_validade_parsed,
+        caminho_craf=caminho,
+    )
+    db.session.add(arma)
+    db.session.commit()
+
+    flash("Arma cadastrada com sucesso!", "success")
+    return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="armas"))
+
+
+# ----------------------
+# DELETAR ARMA
+# ----------------------
 @clientes_bp.route("/<int:cliente_id>/armas/<int:arma_id>/deletar", methods=["POST"])
 def deletar_arma(cliente_id, arma_id):
     """Deleta arma do cliente."""
@@ -573,9 +721,9 @@ def deletar_arma(cliente_id, arma_id):
     return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="armas"))
 
 
-# ======================
-# ARMAS - ABRIR
-# ======================
+# ----------------------
+# ABRIR CRAF
+# ----------------------
 @clientes_bp.route("/armas/<int:arma_id>/abrir")
 def abrir_craf(arma_id):
     """Abre o PDF/Imagem do CRAF armazenado no R2."""

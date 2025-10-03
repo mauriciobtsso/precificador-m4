@@ -1,0 +1,121 @@
+<!-- Modal Editar Arma -->
+<div class="modal fade" id="modalEditarArma{{ arma.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('clientes.editar_arma', cliente_id=cliente.id, arma_id=arma.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Editar Arma</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+
+          <!-- Tipo + Funcionamento -->
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Tipo</label>
+              <select name="tipo" class="form-select">
+                <option value="">Selecione</option>
+                {% for val, label in tipos_arma %}
+                  <option value="{{ val }}" {% if arma.tipo == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>Funcionamento</label>
+              <select name="funcionamento" class="form-select">
+                <option value="">Selecione</option>
+                {% for val, label in funcionamento_arma %}
+                  <option value="{{ val }}" {% if arma.funcionamento == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- Marca + Modelo -->
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Marca</label>
+              <input type="text" name="marca" class="form-control" value="{{ arma.marca or '' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>Modelo</label>
+              <input type="text" name="modelo" class="form-control" value="{{ arma.modelo or '' }}">
+            </div>
+          </div>
+
+          <!-- Calibre + Nº Série -->
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Calibre</label>
+              <input type="text" name="calibre" class="form-control" value="{{ arma.calibre or '' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>Número de Série</label>
+              <input type="text" name="numero_serie" class="form-control" value="{{ arma.numero_serie or '' }}">
+            </div>
+          </div>
+
+          <!-- Emissor + Nº Sigma -->
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Emissor do CRAF</label>
+              <select name="emissor_craf" class="form-select">
+                <option value="">Selecione</option>
+                {% for val, label in emissores_craf %}
+                  <option value="{{ val }}" {% if arma.emissor_craf == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>Nº Sigma / Nº do Registro</label>
+              <input type="text" name="numero_sigma" class="form-control" value="{{ arma.numero_sigma or '' }}">
+            </div>
+          </div>
+
+          <!-- Categoria + Validade -->
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Categoria do Adquirente</label>
+              <select name="categoria_adquirente" class="form-select">
+                <option value="">Selecione</option>
+                {% for val, label in categorias_adquirente %}
+                  <option value="{{ val }}" {% if arma.categoria_adquirente == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>Data de Validade</label>
+              <input type="date" name="data_validade_craf" class="form-control"
+                     value="{{ arma.data_validade_craf.strftime('%Y-%m-%d') if arma.data_validade_craf else '' }}">
+              <div class="form-check mt-1">
+                <input type="checkbox" name="validade_indeterminada" class="form-check-input" id="editValidadeIndet{{ arma.id }}"
+                       {% if arma.validade_indeterminada %}checked{% endif %}>
+                <label class="form-check-label" for="editValidadeIndet{{ arma.id }}">Validade indeterminada</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload CRAF -->
+          <div class="mb-3">
+            <label>Arquivo CRAF</label>
+            {% if arma.caminho_craf %}
+              <p>
+                <a href="{{ url_for('clientes.abrir_craf', arma_id=arma.id) }}" target="_blank" class="btn btn-sm btn-outline-primary">Abrir atual</a>
+              </p>
+            {% else %}
+              <p class="text-muted">Nenhum arquivo enviado</p>
+            {% endif %}
+            <input type="file" id="uploadEditarArma{{ arma.id }}" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+            <input type="hidden" name="caminho_craf" id="editarArmaCaminho{{ arma.id }}" value="{{ arma.caminho_craf or '' }}">
+            <small class="text-muted">Se enviar novo arquivo, será processado via OCR e substituirá o atual.</small>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Salvar alterações</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
