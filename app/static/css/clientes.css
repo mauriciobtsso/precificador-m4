@@ -84,3 +84,29 @@ form[action*="documentos/upload"] .form-label {
 .text-muted {
     font-style: italic;
 }
+
+/* =====================================================
+   Correção para list-group em telas pequenas
+   ===================================================== */
+/* Anula o padding horizontal forçado por .container-fluid 
+   para evitar scroll horizontal na lista de clientes. */
+@media (max-width: 768px) {
+  .list-group {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+/* =====================================================
+   Correção Definitiva para Lista Mobile
+   ===================================================== */
+/* Garante que o item da lista não cause overflow horizontal */
+.mobile-list-item {
+  overflow-x: hidden; /* Esconde qualquer overflow do item */
+}
+
+/* Permite que a coluna de informações encolha corretamente */
+.mobile-list-item .info-column {
+  min-width: 0; /* Essencial para o flexbox permitir o encolhimento */
+}
+
+

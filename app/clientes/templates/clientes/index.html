@@ -55,30 +55,43 @@
         </table>
     </div>
 
-    <!-- 📱 Cards (Mobile) -->
-    <div class="d-block d-md-none">
-        <div class="list-group list-group-flush">
-            {% for cliente in clientes %}
-            <div class="list-group-item py-2 px-1 border-0 border-bottom">
-                <div class="fw-bold text-primary small mb-1">
-                    <i class="fas fa-id-card me-1"></i> {{ cliente.nome }}
-                </div>
-                <small class="text-muted d-block">{{ cliente.documento or "—" }}</small>
-                <small class="d-block"><i class="fas fa-phone me-1"></i> {{ cliente.telefone_principal or "sem telefone" }}</small>
-                <small class="d-block"><i class="fas fa-envelope me-1"></i> {{ cliente.email_principal or "sem e-mail" }}</small>
-                <div class="mt-1">
-                    <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" 
-                       class="btn btn-link text-primary p-0">
-                        <i class="fas fa-eye"></i> Detalhes
-                    </a>
-                </div>
-            </div>
-            {% else %}
-            <p class="text-center text-muted small my-2">Nenhum cliente encontrado.</p>
-            {% endfor %}
+<!-- 📱 Lista (Mobile) -->
+<div class="d-block d-md-none">
+  <div class="list-group list-group-flush">
+    {% for cliente in clientes %}
+    <!-- Adicionada a classe 'mobile-list-item' -->
+    <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-2 mobile-list-item">
+      
+      <!-- Adicionada a classe 'info-column' -->
+      <div class="flex-grow-1 pe-2 info-column">
+        <div class="fw-bold text-primary small text-truncate">
+          {{ cliente.nome }}
         </div>
+        <div class="text-muted small text-truncate">{{ cliente.documento or '---' }}</div>
+        <div class="small text-truncate">
+          <i class="fas fa-phone fa-xs text-secondary me-1"></i> 
+          {{ cliente.telefone_principal or 'sem telefone' }}
+        </div>
+        <div class="small text-truncate">
+          <i class="fas fa-envelope fa-xs text-secondary me-1"></i> 
+          {{ cliente.email_principal or 'sem e-mail' }}
+        </div>
+      </div>
+
+      <!-- Botão detalhes pequeno -->
+      <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" 
+         class="btn btn-sm btn-outline-primary rounded-circle flex-shrink-0"
+         title="Ver detalhes"
+         style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+        <i class="fas fa-eye"></i>
+      </a>
     </div>
+    {% else %}
+    <p class="text-center text-muted small my-2">Nenhum cliente encontrado.</p>
+    {% endfor %}
+  </div>
 </div>
+
 
 <!-- Paginação -->
 {% if pagination.pages > 1 %}
