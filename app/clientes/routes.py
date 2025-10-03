@@ -85,7 +85,6 @@ def index():
         .filter(func.lower(ContatoCliente.tipo).in_(["telefone", "celular", "whatsapp"]))
         .subquery()
     )
-
     tel_alias = aliased(tel_sq)
 
     # E-mails (pega o primeiro por cliente usando row_number)
@@ -101,7 +100,6 @@ def index():
         .filter(func.lower(ContatoCliente.tipo) == "email")
         .subquery()
     )
-
     email_alias = aliased(email_sq)
 
     # Query principal: LEFT JOIN com os subqueries filtrados no rn=1
@@ -116,14 +114,35 @@ def index():
     )
 
     if q:
-        query = query.filter(
-            or_(
-                Cliente.nome.ilike(f"%{q}%"),
-                Cliente.documento.ilike(f"%{q}%"),
-                tel_alias.c.telefone_principal.ilike(f"%{q}%"),
-                email_alias.c.email_principal.ilike(f"%{q}%"),
-            )
+        q_digits = "".join(filter(str.isdigit, q))  # 🔹 mantém só números
+
+        search_filter = or_(
+            Cliente.nome.ilike(f"%{q}%"),
+            Cliente.documento.ilike(f"%{q}%"),
+            tel_alias.c.telefone_principal.ilike(f"%{q}%"),
+            email_alias.c.email_principal.ilike(f"%{q}%"),
         )
+
+        if q_digits:
+            # 🔹 Busca CPF/CNPJ sem máscara
+            search_filter = or_(
+                search_filter,
+                func.replace(func.replace(func.replace(Cliente.documento, ".", ""), "-", ""), "/", "").ilike(f"%{q_digits}%")
+            )
+
+            # 🔹 Busca telefone sem máscara
+            search_filter = or_(
+                search_filter,
+                func.replace(
+                    func.replace(
+                        func.replace(
+                            func.replace(tel_alias.c.telefone_principal, "(", ""), ")", ""
+                        ), "-", ""
+                    ), " ", ""
+                ).ilike(f"%{q_digits}%")
+            )
+
+        query = query.filter(search_filter)
 
     clientes_pagination = query.order_by(Cliente.nome.asc()).paginate(page=page, per_page=20, error_out=False)
 
