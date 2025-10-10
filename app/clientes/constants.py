@@ -50,3 +50,28 @@ CATEGORIAS_ADQUIRENTE = [
     ("policial_federal", "Policial Federal"),
     ("policial_rodoviario", "Policial Rodoviário Federal"),
 ]
+
+
+# Categorias exibidas no formulário e usadas pelo OCR/validação
+CATEGORIAS_DOCUMENTO = [
+    ("CR", "Certificado de Registro (CR)"),
+    ("CRAF", "Certificado de Registro de Arma de Fogo (CRAF)"),
+    ("RG", "Registro Geral (RG)"),
+    ("CPF", "Cadastro de Pessoa Física (CPF)"),
+    ("CNH", "Carteira Nacional de Habilitação (CNH)"),
+    ("COMPROVANTE_RESIDENCIA", "Comprovante de Residência"),
+    ("NOTA_FISCAL", "Nota Fiscal"),
+    ("OUTRO", "Outro"),
+]
+
+# Órgãos emissores comuns (usados em selects e no parser do OCR)
+EMISSORES_DOCUMENTO = [
+    "SINARM",
+    "SIGMA",
+    "SSP",
+    "DETRAN",
+    "RECEITA FEDERAL",
+    "JUSTIÇA FEDERAL",
+    "OUTRO",
+]
+

@@ -52,7 +52,7 @@
     <div class="card shadow-sm">
       <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <span><i class="fas fa-address-book"></i> Contatos</span>
-        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#contatoModal">
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addContatoModal">
           <i class="fas fa-plus"></i> Adicionar
         </button>
       </div>
@@ -234,6 +234,48 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         limpaCep();
       }
+    });
+  }
+});
+
+
+// ==============================
+// MÁSCARA DE TELEFONE NO MODAL
+// ==============================
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("addContatoModal");
+
+  if (modal) {
+    modal.addEventListener("shown.bs.modal", function () {
+      const tipoSelect = modal.querySelector("#tipo");
+      const valorInput = modal.querySelector("#valor");
+
+      if (!tipoSelect || !valorInput) return;
+
+      function aplicarMascaraTelefone(v) {
+        v = v.replace(/\D/g, "");
+        if (v.length <= 10) {
+          v = v.replace(/^(\d{2})(\d{4})(\d{0,4})$/, "($1) $2-$3");
+        } else {
+          v = v.replace(/^(\d{2})(\d{5})(\d{0,4})$/, "($1) $2-$3");
+        }
+        return v;
+      }
+
+      function configurarMascara() {
+        valorInput.value = "";
+        valorInput.removeEventListener("input", onInputMask);
+        if (["telefone", "celular", "whatsapp"].includes(tipoSelect.value.toLowerCase())) {
+          valorInput.addEventListener("input", onInputMask);
+        }
+      }
+
+      function onInputMask(e) {
+        e.target.value = aplicarMascaraTelefone(e.target.value);
+      }
+
+      tipoSelect.addEventListener("change", configurarMascara);
+      configurarMascara(); // aplica ao abrir
     });
   }
 });

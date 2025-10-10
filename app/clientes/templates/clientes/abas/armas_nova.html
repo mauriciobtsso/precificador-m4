@@ -7,13 +7,13 @@
           <h5 class="modal-title">Cadastrar Nova Arma</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
 
+        <div class="modal-body">
           <!-- Tipo + Funcionamento -->
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label>Tipo</label>
-              <select name="tipo" class="form-select">
+              <label for="novaTipo">Tipo</label>
+              <select id="novaTipo" name="tipo" class="form-select">
                 <option value="">Selecione</option>
                 {% for val, label in tipos_arma %}
                   <option value="{{ val }}">{{ label }}</option>
@@ -21,8 +21,8 @@
               </select>
             </div>
             <div class="col-md-6 mb-3">
-              <label>Funcionamento</label>
-              <select name="funcionamento" class="form-select">
+              <label for="novaFuncionamento">Funcionamento</label>
+              <select id="novaFuncionamento" name="funcionamento" class="form-select">
                 <option value="">Selecione</option>
                 {% for val, label in funcionamento_arma %}
                   <option value="{{ val }}">{{ label }}</option>
@@ -34,32 +34,32 @@
           <!-- Marca + Modelo -->
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label>Marca</label>
-              <input type="text" name="marca" class="form-control">
+              <label for="novaMarca">Marca</label>
+              <input type="text" id="novaMarca" name="marca" class="form-control">
             </div>
             <div class="col-md-6 mb-3">
-              <label>Modelo</label>
-              <input type="text" name="modelo" class="form-control">
+              <label for="novaModelo">Modelo</label>
+              <input type="text" id="novaModelo" name="modelo" class="form-control">
             </div>
           </div>
 
           <!-- Calibre + Nº Série -->
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label>Calibre</label>
-              <input type="text" name="calibre" class="form-control">
+              <label for="novaCalibre">Calibre</label>
+              <input type="text" id="novaCalibre" name="calibre" class="form-control">
             </div>
             <div class="col-md-6 mb-3">
-              <label>Número de Série</label>
-              <input type="text" name="numero_serie" class="form-control">
+              <label for="novaNumeroSerie">Número de Série</label>
+              <input type="text" id="novaNumeroSerie" name="numero_serie" class="form-control">
             </div>
           </div>
 
           <!-- Emissor + Nº Sigma -->
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label>Emissor do CRAF</label>
-              <select name="emissor_craf" class="form-select">
+              <label for="novaEmissorCraf">Emissor do CRAF</label>
+              <select id="novaEmissorCraf" name="emissor_craf" class="form-select">
                 <option value="">Selecione</option>
                 {% for val, label in emissores_craf %}
                   <option value="{{ val }}">{{ label }}</option>
@@ -67,16 +67,16 @@
               </select>
             </div>
             <div class="col-md-6 mb-3">
-              <label>Nº Sigma / Nº do Registro</label>
-              <input type="text" name="numero_sigma" class="form-control">
+              <label for="novaSigma">Nº Sigma / Nº do Registro</label>
+              <input type="text" id="novaSigma" name="numero_sigma" class="form-control">
             </div>
           </div>
 
           <!-- Categoria + Validade -->
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label>Categoria do Adquirente</label>
-              <select name="categoria_adquirente" class="form-select">
+              <label for="novaCategoria">Categoria do Adquirente</label>
+              <select id="novaCategoria" name="categoria_adquirente" class="form-select">
                 <option value="">Selecione</option>
                 {% for val, label in categorias_adquirente %}
                   <option value="{{ val }}">{{ label }}</option>
@@ -84,10 +84,10 @@
               </select>
             </div>
             <div class="col-md-6 mb-3">
-              <label>Data de Validade</label>
-              <input type="date" name="data_validade_craf" class="form-control">
+              <label for="novaValidade">Data de Validade</label>
+              <input type="date" id="novaValidade" name="data_validade_craf" class="form-control">
               <div class="form-check mt-1">
-                <input type="checkbox" name="validade_indeterminada" class="form-check-input" id="novaValidadeIndet">
+                <input type="checkbox" id="novaValidadeIndet" name="validade_indeterminada" class="form-check-input">
                 <label class="form-check-label" for="novaValidadeIndet">Validade indeterminada</label>
               </div>
             </div>
@@ -95,14 +95,19 @@
 
           <!-- Upload CRAF (opcional) -->
           <div class="mb-3">
-            <label>Arquivo CRAF (opcional)</label>
-            <input type="file" id="uploadNovaArma" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+            <label for="uploadNovaArma">Arquivo CRAF (opcional)</label>
+            <input
+              type="file"
+              id="uploadNovaArma"
+              class="form-control"
+              accept=".pdf,.jpg,.jpeg,.png"
+            >
             <!-- 🔹 Campo oculto que o JS preenche após OCR -->
-            <input type="hidden" name="caminho_craf" id="novaArmaCaminho">
-            <small class="text-muted">Se enviado, será processado via OCR para preencher os campos.</small>
+            <input type="hidden" id="novaCaminhoCraf" name="caminho_craf">
+            <small class="text-muted">Se enviado, será processado via OCR para preencher automaticamente os campos.</small>
           </div>
-
         </div>
+
         <div class="modal-footer">
           <button type="submit" class="btn btn-success">Salvar</button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

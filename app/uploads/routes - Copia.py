@@ -1,6 +1,6 @@
-# ====================================================================
-# UPLOADS E OCR (VERSÃO FINAL REVISADA POR MANUS)
-# ====================================================================
+# ======================
+# UPLOADS E OCR
+# ======================
 
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
@@ -9,7 +9,7 @@ import os
 import tempfile
 
 from app.utils.storage import get_s3, get_bucket
-from app.services.ocr_pipeline import processar_documento
+from app.services.ocr_pipeline import processar_documento  # ✅ Novo pipeline
 from app.uploads.parsers import (
     parse_craf,
     parse_cr,
@@ -58,38 +58,48 @@ def upload_craf(cliente_id):
         return jsonify({"error": "Nenhum arquivo enviado"}), 400
 
     try:
+        # 🔹 1. Lê os bytes do arquivo ANTES de qualquer operação
         file_bytes = file.read()
-        file.seek(0)
+        file.seek(0)  # reseta o ponteiro após a leitura (por segurança)
 
+        # 🔹 2. Envia ao Cloudflare R2
         caminho_r2 = _upload_to_r2(file, cliente_id, "armas")
+
+        # 🔹 3. Executa OCR híbrido + IA
         resultado = processar_documento(file_bytes, file.filename)
         dados_raw = resultado.get("resultado", {}) or {}
-        
         current_app.logger.info(f"[DEBUG OCR CRAF] Resultado OCR bruto: {dados_raw}")
 
-        # ✅ Mapeamento para um dicionário plano, incluindo todos os campos necessários para o JS
-        dados_mapeados = {
+        # 🔹 4. Mapeia os campos para o formato esperado pelo módulo Armas
+        dados = {
+            # Campos básicos
             "tipo": dados_raw.get("tipo") or dados_raw.get("tipo_arma") or "",
             "funcionamento": dados_raw.get("funcionamento") or "",
             "marca": dados_raw.get("marca") or "",
             "modelo": dados_raw.get("modelo") or "",
             "calibre": dados_raw.get("calibre") or "",
-            "numero_serie": dados_raw.get("numero_serie") or "",
-            "numero_sigma": dados_raw.get("numero_sigma") or "",
-            "numero_documento": dados_raw.get("numero_documento") or "", # Essencial para a lógica no JS
+
+            # Identificadores
+            "numero_serie": dados_raw.get("numero_serie") or "",  # número físico gravado na arma
+            "numero_sigma": dados_raw.get("numero_documento") or dados_raw.get("numero_craf") or "",  # número do registro do CRAF
+
+            # Dados administrativos
             "emissor_craf": dados_raw.get("emissor") or "",
             "categoria_adquirente": dados_raw.get("categoria_adquirente") or "",
             "data_validade_craf": dados_raw.get("data_validade") or "",
             "validade_indeterminada": dados_raw.get("validade_indeterminada", False),
+
+            # Outros
             "caminho_craf": caminho_r2,
             "nome_original": secure_filename(file.filename),
         }
 
-        # Log do dicionário exato que será enviado como JSON
-        current_app.logger.info(f"[DEBUG FLASK RESPONSE] Enviando JSON: {dados_mapeados}")
-
-        # ✅ Retornando um JSON plano, sem aninhamento
-        return jsonify(dados_mapeados)
+        # 🔹 5. Retorna no mesmo padrão do módulo Documentos
+        return jsonify({
+            "dados": {"resultado": dados},
+            "caminho_arquivo": caminho_r2,
+            "nome_original": secure_filename(file.filename),
+        })
 
     except Exception as e:
         current_app.logger.exception(f"[UPLOAD CRAF] Erro: {e}")
@@ -202,15 +212,18 @@ def upload_documento(cliente_id):
         return jsonify({"error": "Nenhum arquivo enviado"}), 400
 
     try:
+        # 🔹 Nome seguro e diretório do cliente
         filename = secure_filename(file.filename)
         cliente_dir = os.path.join(current_app.config["UPLOAD_FOLDER"], f"cliente_{cliente_id}")
         os.makedirs(cliente_dir, exist_ok=True)
 
+        # 🔹 Caminho físico local
         caminho_arquivo = os.path.join(cliente_dir, filename)
         file.save(caminho_arquivo)
 
         current_app.logger.info(f"[UPLOAD OCR] Arquivo salvo em: {caminho_arquivo}")
 
+        # 🔹 Envia também para o Cloudflare R2
         try:
             s3 = get_s3()
             bucket = get_bucket()
@@ -222,6 +235,7 @@ def upload_documento(cliente_id):
             current_app.logger.warning(f"[UPLOAD OCR] Falha ao enviar ao R2: {e}")
             key_r2 = None
 
+        # 🔹 Processa OCR e interpretação via pipeline inteligente
         with open(caminho_arquivo, "rb") as f:
             file_bytes = f.read()
 
@@ -231,6 +245,7 @@ def upload_documento(cliente_id):
 
         current_app.logger.info(f"[UPLOAD OCR] Resultado OCR: {resultado}")
 
+        # 🔹 Retorna JSON com metadados + caminho do arquivo (local/R2)
         resposta = {
             "dados": resultado,
             "ocr_engine": resultado.get("ocr_engine", "local"),

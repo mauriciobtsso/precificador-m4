@@ -1,31 +1,80 @@
-import boto3
-from flask import current_app
-from botocore.client import Config  # 👈 necessário para forçar SigV4
+# ========================================
+# M4 TÁTICA — STORAGE HELPERS (R2 / S3)
+# ========================================
+"""
+Utilitários centralizados para upload e leitura de arquivos
+usando o Cloudflare R2 (ou qualquer endpoint compatível S3).
+Permite reutilizar a conexão e padronizar prefixos de pastas.
 
+Usado por: app/clientes/routes.py, app/uploads/routes.py, etc.
+"""
+
+import boto3
+import os
+from botocore.client import Config
+
+
+# ========================================
+# CONFIGURAÇÕES DE CONEXÃO
+# ========================================
 
 def get_s3():
-    """Cria client S3 apontando para o R2 (forçando assinatura SigV4)."""
-    return boto3.client(
-        "s3",
-        endpoint_url=current_app.config["R2_ENDPOINT"],
-        aws_access_key_id=current_app.config["R2_ACCESS_KEY"],
-        aws_secret_access_key=current_app.config["R2_SECRET_KEY"],
-        config=Config(signature_version="s3v4")  # 👈 obrigatório no R2
-    )
-
-
-def get_bucket():
-    """Retorna o nome do bucket configurado."""
-    return current_app.config["R2_BUCKET"]
-
-
-def gerar_link_r2(caminho_arquivo: str, expira_em: int = 3600) -> str:
     """
-    Gera link presigned (temporário) para abrir arquivo no R2.
+    Retorna o cliente S3 configurado para Cloudflare R2.
+    As credenciais e endpoint devem estar definidas no .env:
+        R2_ENDPOINT_URL
+        R2_ACCESS_KEY_ID
+        R2_SECRET_ACCESS_KEY
+    """
+    endpoint_url = os.getenv("R2_ENDPOINT_URL")
+    access_key = os.getenv("R2_ACCESS_KEY_ID")
+    secret_key = os.getenv("R2_SECRET_ACCESS_KEY")
 
-    :param caminho_arquivo: caminho salvo no banco (ex: clientes/1/documentos/xpto.pdf)
-    :param expira_em: tempo em segundos que o link será válido (default 3600s = 1h)
-    :return: URL presigned para download/visualização
+    if not all([endpoint_url, access_key, secret_key]):
+        raise RuntimeError("⚠️ Variáveis R2_* não configuradas no ambiente.")
+
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        config=Config(signature_version="s3v4"),
+        region_name="auto",  # Cloudflare usa região 'auto'
+    )
+    return s3
+
+
+def get_bucket() -> str:
+    """
+    Retorna o nome do bucket padrão (ex: 'm4-clientes-docs').
+    Deve estar definido no .env como R2_BUCKET_NAME.
+    """
+    bucket = os.getenv("R2_BUCKET_NAME")
+    if not bucket:
+        raise RuntimeError("⚠️ Bucket R2_BUCKET_NAME não definido.")
+    return bucket
+
+
+# ========================================
+# FUNÇÕES AUXILIARES
+# ========================================
+
+def upload_file(file_obj, caminho_destino: str):
+    """
+    Faz upload de um arquivo para o bucket R2.
+    file_obj pode ser um FileStorage (Flask) ou BytesIO.
+    caminho_destino é o caminho/prefixo dentro do bucket.
+    """
+    s3 = get_s3()
+    bucket = get_bucket()
+    s3.upload_fileobj(file_obj, bucket, caminho_destino)
+    return caminho_destino
+
+
+def gerar_link_publico(caminho_arquivo: str, expira_segundos: int = 3600) -> str:
+    """
+    Gera um link pré-assinado (válido por tempo limitado)
+    para abrir o arquivo armazenado no R2.
     """
     s3 = get_s3()
     bucket = get_bucket()
@@ -33,6 +82,20 @@ def gerar_link_r2(caminho_arquivo: str, expira_em: int = 3600) -> str:
     url = s3.generate_presigned_url(
         "get_object",
         Params={"Bucket": bucket, "Key": caminho_arquivo},
-        ExpiresIn=expira_em
+        ExpiresIn=expira_segundos,
     )
     return url
+
+
+def deletar_arquivo(caminho_arquivo: str):
+    """
+    Remove o arquivo do bucket, se existir.
+    """
+    if not caminho_arquivo:
+        return
+    s3 = get_s3()
+    bucket = get_bucket()
+    try:
+        s3.delete_object(Bucket=bucket, Key=caminho_arquivo)
+    except Exception as e:
+        print(f"[R2] Erro ao excluir {caminho_arquivo}: {e}")

@@ -1,66 +1,59 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-  <h2><i class="fas fa-user-plus"></i> Novo Cliente</h2>
+  <h4 class="mb-3"><i class="fas fa-user-plus"></i> Novo Cliente</h4>
+
   <form method="POST" action="{{ url_for('clientes.novo_cliente') }}">
+
+    <!-- CPF / CNPJ -->
     <div class="row">
-      <!-- Documento (CPF/CNPJ) -->
       <div class="col-md-4 mb-3">
         <label for="documento" class="form-label">CPF / CNPJ</label>
         <input type="text" class="form-control" id="documento" name="documento" required>
       </div>
       <div class="col-md-8 mb-3">
-        <label for="nome" class="form-label">Nome</label>
+        <label for="nome" class="form-label">Nome Completo</label>
         <input type="text" class="form-control" id="nome" name="nome" required>
       </div>
     </div>
 
     <div class="row">
-      <!-- Apelido e Razão Social -->
       <div class="col-md-6 mb-3">
-        <label for="apelido" class="form-label">Apelido</label>
-        <input type="text" class="form-control" id="apelido" name="apelido">
-      </div>
-      <div class="col-md-6 mb-3">
-        <label for="razao_social" class="form-label">Razão Social</label>
+        <label for="razao_social" class="form-label">Razão Social (se for CNPJ)</label>
         <input type="text" class="form-control" id="razao_social" name="razao_social">
+      </div>
+
+      <div class="col-md-3 mb-3">
+        <label for="sexo" class="form-label">Sexo</label>
+        <select class="form-select" id="sexo" name="sexo">
+          <option value="">--</option>
+          <option value="M">Masculino</option>
+          <option value="F">Feminino</option>
+        </select>
+      </div>
+
+      <div class="col-md-3 mb-3">
+        <label for="data_nascimento" class="form-label">Data de Nascimento</label>
+        <input type="date" class="form-control" id="data_nascimento" name="data_nascimento">
       </div>
     </div>
 
     <div class="row">
-      <!-- Sexo e Data de Nascimento -->
-      <div class="col-md-4 mb-3">
-        <label for="sexo" class="form-label">Sexo</label>
-        <select class="form-select" id="sexo" name="sexo">
-          <option value="">--</option>
-          <option value="Masculino">Masculino</option>
-          <option value="Feminino">Feminino</option>
-        </select>
-      </div>
-      <div class="col-md-4 mb-3">
-        <label for="data_nascimento" class="form-label">Data de Nascimento</label>
-        <input type="date" class="form-control" id="data_nascimento" name="data_nascimento">
-      </div>
       <div class="col-md-4 mb-3">
         <label for="profissao" class="form-label">Profissão</label>
         <input type="text" class="form-control" id="profissao" name="profissao">
       </div>
-    </div>
-
-    <div class="row">
-      <!-- Estado civil e escolaridade -->
-      <div class="col-md-6 mb-3">
+      <div class="col-md-4 mb-3">
         <label for="estado_civil" class="form-label">Estado Civil</label>
         <input type="text" class="form-control" id="estado_civil" name="estado_civil">
       </div>
-      <div class="col-md-6 mb-3">
+      <div class="col-md-4 mb-3">
         <label for="escolaridade" class="form-label">Escolaridade</label>
         <input type="text" class="form-control" id="escolaridade" name="escolaridade">
       </div>
     </div>
 
     <div class="row">
-      <!-- Nome dos pais -->
       <div class="col-md-6 mb-3">
         <label for="nome_pai" class="form-label">Nome do Pai</label>
         <input type="text" class="form-control" id="nome_pai" name="nome_pai">
@@ -71,24 +64,10 @@
       </div>
     </div>
 
+    <!-- ENDEREÇO -->
+    <hr class="mt-4 mb-3">
+    <h6><i class="fas fa-map-marker-alt"></i> Endereço Principal</h6>
     <div class="row">
-      <!-- Contatos -->
-      <div class="col-md-4 mb-3">
-        <label for="email" class="form-label">E-mail</label>
-        <input type="email" class="form-control" id="email" name="email">
-      </div>
-      <div class="col-md-4 mb-3">
-        <label for="telefone" class="form-label">Telefone</label>
-        <input type="text" class="form-control" id="telefone" name="telefone">
-      </div>
-      <div class="col-md-4 mb-3">
-        <label for="celular" class="form-label">Celular</label>
-        <input type="text" class="form-control" id="celular" name="celular">
-      </div>
-    </div>
-
-    <div class="row">
-      <!-- CEP antes do endereço -->
       <div class="col-md-2 mb-3">
         <label for="cep" class="form-label">CEP</label>
         <input type="text" class="form-control" id="cep" name="cep">
@@ -120,131 +99,201 @@
         <label for="estado" class="form-label">Estado</label>
         <input type="text" class="form-control" id="estado" name="estado">
       </div>
-      <div class="col-md-2 mb-3">
-        <label for="naturalidade" class="form-label">Naturalidade</label>
-        <input type="text" class="form-control" id="naturalidade" name="naturalidade">
-      </div>
     </div>
 
+    <!-- CONTATOS -->
+    <hr class="mt-4 mb-3">
+    <h6><i class="fas fa-address-book"></i> Contatos</h6>
     <div class="row">
-      <!-- Registros -->
-      <div class="col-md-3 mb-3">
-        <label for="cr" class="form-label">CR</label>
-        <input type="text" class="form-control" id="cr" name="cr">
+      <div class="col-md-4 mb-3">
+        <label for="email" class="form-label">E-mail</label>
+        <input type="email" class="form-control" id="email" name="email">
       </div>
-      <div class="col-md-3 mb-3">
-        <label for="cr_emissor" class="form-label">Órgão Emissor CR</label>
-        <input type="text" class="form-control" id="cr_emissor" name="cr_emissor">
+      <div class="col-md-4 mb-3">
+        <label for="telefone" class="form-label">Telefone</label>
+        <input type="text" class="form-control" id="telefone" name="telefone">
       </div>
-      <div class="col-md-3 mb-3">
-        <label for="sigma" class="form-label">SIGMA</label>
-        <input type="text" class="form-control" id="sigma" name="sigma">
-      </div>
-      <div class="col-md-3 mb-3">
-        <label for="sinarm" class="form-label">SINARM</label>
-        <input type="text" class="form-control" id="sinarm" name="sinarm">
+      <div class="col-md-4 mb-3">
+        <label for="celular" class="form-label">Celular</label>
+        <input type="text" class="form-control" id="celular" name="celular">
       </div>
     </div>
 
-    <!-- Flags -->
+    <!-- CATEGORIAS / FUNÇÕES -->
+    <hr class="mt-4 mb-3">
+    <h6><i class="fas fa-user-tag"></i> Categorias / Funções</h6>
     <div class="row mb-3">
-      <div class="col-md-12">
-        <label class="form-label">Categorias</label><br>
-
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="checkbox" id="cac" name="cac">
-          <label class="form-check-label" for="cac">Cac</label>
-        </div>
-
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="checkbox" id="filiado" name="filiado">
-          <label class="form-check-label" for="filiado">Filiado</label>
-        </div>
-
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="checkbox" id="policial" name="policial">
-          <label class="form-check-label" for="policial">Policial</label>
-        </div>
-
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="checkbox" id="bombeiro" name="bombeiro">
-          <label class="form-check-label" for="bombeiro">Bombeiro</label>
-        </div>
-
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="checkbox" id="militar" name="militar">
-          <label class="form-check-label" for="militar">Militar</label>
-        </div>
-
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="checkbox" id="iat" name="iat">
-          <label class="form-check-label" for="iat">Iat</label>
-        </div>
-
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="checkbox" id="psicologo" name="psicologo">
-          <label class="form-check-label" for="psicologo">Psicólogo</label>
-        </div>
+      <div class="col-12">
+        {% set flags = ['cac','filiado','policial','bombeiro','militar','iat','psicologo'] %}
+        {% for flag in flags %}
+          <div class="form-check form-check-inline mb-1">
+            <input class="form-check-input" type="checkbox" id="{{ flag }}" name="{{ flag }}">
+            <label class="form-check-label" for="{{ flag }}">{{ flag|capitalize }}</label>
+          </div>
+        {% endfor %}
       </div>
     </div>
 
-    <button type="submit" class="btn btn-success">Salvar</button>
-    <a href="{{ url_for('clientes.index') }}" class="btn btn-secondary">Cancelar</a>
+    <!-- BOTÕES -->
+    <div class="mt-4">
+      <button type="submit" class="btn btn-success">
+        <i class="fas fa-save"></i> Salvar
+      </button>
+      <a href="{{ url_for('clientes.index') }}" class="btn btn-secondary ms-2">
+        Cancelar
+      </a>
+    </div>
   </form>
 </div>
 
-<!-- Inputmask -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.8/jquery.inputmask.min.js"></script>
+<!-- JS puro: máscaras + buscas automáticas -->
 <script>
-  $(document).ready(function(){
-    $("#documento").inputmask({
-      mask: ["999.999.999-99", "99.999.999/9999-99"],
-      keepStatic: true
+(function () {
+  // Helpers
+  const onlyDigits = (v) => (v || '').replace(/\D/g, '');
+  const setIfEmpty = (sel, val) => {
+    const el = document.querySelector(sel);
+    if (el && (el.value === '' || el.value === null)) el.value = val || '';
+  };
+  const formatCEP = (v) => {
+    const d = onlyDigits(v).slice(0,8);
+    return d.length > 5 ? d.slice(0,5) + '-' + d.slice(5) : d;
+  };
+  const formatCPF = (v) => {
+    const d = onlyDigits(v).slice(0,11);
+    return d
+      .replace(/^(\d{3})(\d)/, '$1.$2')
+      .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1-$2');
+  };
+  const formatCNPJ = (v) => {
+    const d = onlyDigits(v).slice(0,14);
+    return d
+      .replace(/^(\d{2})(\d)/, '$1.$2')
+      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2');
+  };
+  const formatPhone = (v) => {
+    const d = onlyDigits(v).slice(0,11);
+    if (d.length <= 10) {
+      return d
+        .replace(/^(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{4})(\d{1,4})$/, '$1-$2');
+    } else {
+      return d
+        .replace(/^(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+    }
+  };
+
+  // Campos
+  const docInput  = document.getElementById('documento');
+  const cepInput  = document.getElementById('cep');
+  const telInput  = document.getElementById('telefone');
+  const celInput  = document.getElementById('celular');
+
+  // Máscara CPF/CNPJ dinâmica
+  if (docInput) {
+    docInput.addEventListener('input', (e) => {
+      const digits = onlyDigits(e.target.value);
+      e.target.value = digits.length <= 11 ? formatCPF(digits) : formatCNPJ(digits);
     });
-    $("#telefone").inputmask("(99) 9999-9999");
-    $("#celular").inputmask("(99) 99999-9999");
-    $("#cep").inputmask("99999-999");
-  });
-</script>
-<script>
-  // Consulta CNPJ na API receitaws
-  $("#documento").on("blur", function(){
-    var doc = $(this).val().replace(/\D/g, '');
-    if (doc.length === 14) {
-      $.getJSON("https://www.receitaws.com.br/v1/cnpj/" + doc, function(data) {
-        if (data.status === "OK") {
-          $("#razao_social").val(data.nome);
-          $("#nome").val(data.fantasia || data.nome);
-          $("#endereco").val(data.logradouro);
-          $("#numero").val(data.numero);
-          $("#bairro").val(data.bairro);
-          $("#cidade").val(data.municipio);
-          $("#estado").val(data.uf);
-          $("#cep").val(data.cep);
-        } else {
-          alert("Não foi possível buscar dados do CNPJ: " + data.message);
-        }
-      }).fail(function() {
-        alert("Erro ao consultar CNPJ. Tente novamente mais tarde.");
-      });
-    }
-  });
 
-  // Consulta CEP na API ViaCEP
-  $("#cep").on("blur", function(){
-    var cep = $(this).val().replace(/\D/g, '');
-    if (cep.length === 8) {
-      $.getJSON("https://viacep.com.br/ws/" + cep + "/json/", function(data) {
-        if (!("erro" in data)) {
-          $("#endereco").val(data.logradouro);
-          $("#bairro").val(data.bairro);
-          $("#cidade").val(data.localidade);
-          $("#estado").val(data.uf);
-        }
-      });
-    }
-  });
-</script>
+    // Busca automática de CNPJ ao sair do campo
+    docInput.addEventListener('blur', async () => {
+      const digits = onlyDigits(docInput.value);
+      if (digits.length !== 14) return; // só CNPJ
 
+      // tenta BrasilAPI -> fallback Receitaws
+      async function fetchCNPJ(cnpj) {
+        // 1) BrasilAPI
+        try {
+          const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+          if (r.ok) {
+            const d = await r.json();
+            return {
+              razao_social: d.razao_social,
+              nome_fantasia: d.nome_fantasia,
+              logradouro: d.logradouro,
+              numero: d.numero,
+              bairro: d.bairro,
+              municipio: d.municipio,
+              uf: d.uf,
+              cep: d.cep
+            };
+          }
+        } catch (_) {}
+
+        // 2) Receitaws
+        try {
+          const r2 = await fetch(`https://www.receitaws.com.br/v1/cnpj/${cnpj}`);
+          if (r2.ok) {
+            const d2 = await r2.json();
+            if (d2.status === 'OK') {
+              return {
+                razao_social: d2.nome,
+                nome_fantasia: d2.fantasia,
+                logradouro: d2.logradouro,
+                numero: d2.numero,
+                bairro: d2.bairro,
+                municipio: d2.municipio,
+                uf: d2.uf,
+                cep: d2.cep
+              };
+            }
+          }
+        } catch (_) {}
+        throw new Error('Consulta CNPJ indisponível no momento.');
+      }
+
+      try {
+        const data = await fetchCNPJ(digits);
+        if (!data) return;
+
+        // Preenche SEM sobrescrever o que o usuário já digitou
+        setIfEmpty('#razao_social', data.razao_social);
+        const nomeEl = document.getElementById('nome');
+        if (nomeEl && (nomeEl.value || '') === '') {
+          nomeEl.value = data.nome_fantasia || data.razao_social || '';
+        }
+        setIfEmpty('#endereco', data.logradouro);
+        setIfEmpty('#numero', data.numero);
+        setIfEmpty('#bairro', data.bairro);
+        setIfEmpty('#cidade', data.municipio);
+        setIfEmpty('#estado', data.uf);
+        const cepFmt = formatCEP(data.cep);
+        setIfEmpty('#cep', cepFmt);
+
+        console.log('CNPJ carregado com sucesso.');
+      } catch (err) {
+        console.warn(err.message || err);
+      }
+    });
+  }
+
+  // Máscaras telefone/celular
+  if (telInput)  telInput.addEventListener('input', (e) => e.target.value = formatPhone(e.target.value));
+  if (celInput)  celInput.addEventListener('input', (e) => e.target.value = formatPhone(e.target.value));
+
+  // Máscara CEP + busca ViaCEP
+  if (cepInput) {
+    cepInput.addEventListener('input', (e) => e.target.value = formatCEP(e.target.value));
+    cepInput.addEventListener('blur', async () => {
+      const cep = onlyDigits(cepInput.value);
+      if (cep.length !== 8) return;
+      try {
+        const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        if (!r.ok) return;
+        const d = await r.json();
+        if (d.erro) return;
+        setIfEmpty('#endereco', d.logradouro);
+        setIfEmpty('#bairro', d.bairro);
+        setIfEmpty('#cidade', d.localidade);
+        setIfEmpty('#estado', d.uf);
+      } catch (_) {}
+    });
+  }
+})();
+</script>
 {% endblock %}

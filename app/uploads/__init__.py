@@ -1,5 +1,3 @@
-from flask import Blueprint
+from app.uploads.routes import uploads_bp
 
-uploads_bp = Blueprint("uploads", __name__, url_prefix="/uploads")
-
-from app.uploads import routes  # noqa
+__all__ = ["uploads_bp"]

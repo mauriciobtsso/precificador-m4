@@ -130,22 +130,78 @@ class ContatoCliente(db.Model):
 # =========================
 # Documento
 # =========================
+from datetime import datetime
+from app import db
+
+
 class Documento(db.Model):
     __tablename__ = "documentos"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"))
+
+    # FK para o cliente
+    cliente_id = db.Column(
+        db.Integer,
+        db.ForeignKey("clientes.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Tipo genérico (mantido por compatibilidade antiga)
     tipo = db.Column(db.String(50), nullable=False)  # RG, CNH, CR, CRAF, NF etc.
-    nome_original = db.Column(db.Text)               # Nome do arquivo enviado
-    caminho_arquivo = db.Column(db.Text, nullable=False)  # URL no R2 / caminho
+
+    # === NOVOS CAMPOS (para OCR, controle e padronização) ===
+    categoria = db.Column(db.String(50), nullable=True, index=True)  # ex: CR, CRAF, RG...
+    emissor = db.Column(db.String(50), nullable=True)                # ex: SINARM, SIGMA, SSP...
+    numero_documento = db.Column(db.String(100), nullable=True, index=True)
+    data_emissao = db.Column(db.Date, nullable=True)
+    data_validade = db.Column(db.Date, nullable=True)
+    validade_indeterminada = db.Column(db.Boolean, default=False, nullable=False)
+
+    # === ARQUIVO E METADADOS ===
+    nome_original = db.Column(db.Text)                # Nome original do arquivo enviado
+    caminho_arquivo = db.Column(db.Text, nullable=False)  # Caminho interno no R2
     mime_type = db.Column(db.String(100))
     data_upload = db.Column(db.DateTime, default=datetime.utcnow)
-    validade = db.Column(db.Date)                    # Para controle de vencimento
 
-    cliente = db.relationship("Cliente", back_populates="documentos")
+    observacoes = db.Column(db.Text, nullable=True)
 
+    # === AUDITORIA ===
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    # === RELACIONAMENTO ===
+    cliente = db.relationship(
+        "Cliente",
+        back_populates="documentos",
+        lazy="joined",
+    )
+
+    # === MÉTODOS AUXILIARES ===
     def __repr__(self):
-        return f"<Documento {self.tipo} - Cliente {self.cliente_id}>"
+        return f"<Documento id={self.id} tipo={self.tipo} cliente={self.cliente_id}>"
+
+    @property
+    def arquivo_enviado(self) -> bool:
+        """Retorna True se o documento tiver um arquivo associado."""
+        return bool(self.caminho_arquivo)
+
+    @property
+    def esta_vencido(self) -> bool:
+        """Indica se o documento tem validade e já venceu."""
+        if self.data_validade and not self.validade_indeterminada:
+            return self.data_validade < datetime.utcnow().date()
+        return False
+
+    @property
+    def dias_para_vencer(self):
+        """Retorna os dias restantes para o vencimento."""
+        if self.data_validade and not self.validade_indeterminada:
+            delta = (self.data_validade - datetime.utcnow().date()).days
+            return delta
+        return None
 
 
 # =========================

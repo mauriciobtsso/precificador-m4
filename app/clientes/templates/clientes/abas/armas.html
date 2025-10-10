@@ -1,7 +1,4 @@
 {# clientes/abas/armas.html #}
-{# importa as listas de constantes passadas pela rota detalhe #}
-{# TIPOS_ARMA, FUNCIONAMENTO_ARMA, EMISSORES_CRAF, CATEGORIAS_ADQUIRENTE #}
-
 <h5>Armas do Cliente</h5>
 
 <div class="mb-3">
@@ -68,9 +65,7 @@
         </td>
       </tr>
 
-      {# Modal editar arma para cada registro #}
       {% include "clientes/abas/armas_editar.html" %}
-
       {% else %}
       <tr>
         <td colspan="9" class="text-center text-muted">Nenhuma arma cadastrada.</td>
@@ -99,18 +94,25 @@
 {% include "clientes/abas/armas_nova.html" %}
 
 <!-- Modal Pré-visualização CRAF (pós-OCR) -->
-<div class="modal fade" id="preverCrafModal" tabindex="-1" aria-hidden="true">
+<div class="modal" id="preverCrafModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <form method="POST" action="{{ url_for('clientes.salvar_craf', cliente_id=cliente.id) }}">
+      <!-- ✅ ID essencial para o JS; sem data-ajax-save para submit normal -->
+      <form id="formPreverCraf"
+            method="POST"
+            action="{{ url_for('clientes.salvar_craf', cliente_id=cliente.id) }}"
+            novalidate
+            autocomplete="off">
+
         <div class="modal-header">
           <h5 class="modal-title">Pré-visualizar CRAF</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
 
+        <div class="modal-body">
+          <!-- Tipo -->
           <div class="mb-3">
-            <label>Tipo da Arma</label>
+            <label for="crafTipo" class="form-label">Tipo da Arma</label>
             <select name="tipo" id="crafTipo" class="form-select">
               <option value="">Selecione</option>
               {% for val, label in tipos_arma %}
@@ -119,13 +121,14 @@
             </select>
           </div>
 
+          <!-- Calibre + Funcionamento -->
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label>Calibre</label>
+              <label for="crafCalibre" class="form-label">Calibre</label>
               <input type="text" name="calibre" id="crafCalibre" class="form-control">
             </div>
             <div class="col-md-6 mb-3">
-              <label>Funcionamento</label>
+              <label for="crafFuncionamento" class="form-label">Funcionamento</label>
               <select name="funcionamento" id="crafFuncionamento" class="form-select">
                 <option value="">Selecione</option>
                 {% for val, label in funcionamento_arma %}
@@ -135,23 +138,26 @@
             </div>
           </div>
 
-          <div class="mb-3">
-            <label>Marca</label>
-            <input type="text" name="marca" id="crafMarca" class="form-control">
+          <!-- Marca + Modelo -->
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="crafMarca" class="form-label">Marca</label>
+              <input type="text" name="marca" id="crafMarca" class="form-control">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="crafModelo" class="form-label">Modelo</label>
+              <input type="text" name="modelo" id="crafModelo" class="form-control" placeholder="(opcional)">
+            </div>
           </div>
 
-          <div class="mb-3">
-            <label>Modelo</label>
-            <input type="text" name="modelo" id="crafModelo" class="form-control" placeholder="(opcional)">
-          </div>
-
+          <!-- Nº Série + Emissor + Nº Sigma -->
           <div class="row">
             <div class="col-md-4 mb-3">
-              <label>Número de série</label>
+              <label for="crafNumeroSerie" class="form-label">Número de Série</label>
               <input type="text" name="numero_serie" id="crafNumeroSerie" class="form-control">
             </div>
             <div class="col-md-4 mb-3">
-              <label>Emissor CRAF</label>
+              <label for="crafEmissor" class="form-label">Emissor CRAF</label>
               <select name="emissor_craf" id="crafEmissor" class="form-select">
                 <option value="">Selecione</option>
                 {% for val, label in emissores_craf %}
@@ -160,18 +166,19 @@
               </select>
             </div>
             <div class="col-md-4 mb-3">
-              <label>Nº Sigma / Nº do Registro</label>
+              <label for="crafSigma" class="form-label">Nº Sigma / Nº do Registro</label>
               <input type="text" name="numero_sigma" id="crafSigma" class="form-control">
             </div>
           </div>
 
-          <div class="row align-items-center">
+          <!-- Validade + Categoria -->
+          <div class="row">
             <div class="col-md-6 mb-3">
-              <label>Data de Validade</label>
+              <label for="crafValidade" class="form-label">Data de Validade</label>
               <input type="date" name="data_validade_craf" id="crafValidade" class="form-control">
             </div>
             <div class="col-md-6 mb-3">
-              <label>Categoria do Adquirente</label>
+              <label for="crafCategoria" class="form-label">Categoria do Adquirente</label>
               <select name="categoria_adquirente" id="crafCategoria" class="form-select">
                 <option value="">Selecione</option>
                 {% for val, label in categorias_adquirente %}
@@ -181,9 +188,15 @@
             </div>
           </div>
 
-          <div class="mb-3 form-check">
-            <input type="checkbox" name="validade_indeterminada" id="crafValidadeIndet" class="form-check-input">
-            <label class="form-check-label" for="crafValidadeIndet">A validade do CRAF é indeterminada</label>
+          <!-- Checkbox de validade indeterminada -->
+          <div class="form-check mb-3">
+            <input type="checkbox"
+                   name="validade_indeterminada"
+                   id="crafValidadeIndet"
+                   class="form-check-input">
+            <label class="form-check-label" for="crafValidadeIndet">
+              A validade do CRAF é indeterminada
+            </label>
           </div>
 
           <input type="hidden" name="caminho_craf" id="crafCaminho">
@@ -198,4 +211,5 @@
   </div>
 </div>
 
+<!-- Importa o JS principal do módulo Armas -->
 <script src="{{ url_for('static', filename='js/armas.js') }}"></script>

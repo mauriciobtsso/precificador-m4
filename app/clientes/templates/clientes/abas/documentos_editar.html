@@ -1,0 +1,92 @@
+<!-- ================================== -->
+<!-- CONTEÚDO DO MODAL: EDITAR DOCUMENTO -->
+<!-- ================================== -->
+
+<form method="POST" enctype="multipart/form-data" action="{{ url_for('clientes.editar_documento', cliente_id=cliente.id, doc_id=doc.id) }}">
+  <div class="modal-header">
+    <h5 class="modal-title">
+      <i class="fas fa-pen-to-square me-2 text-primary"></i> Editar Documento
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+
+  <div class="modal-body">
+    <div class="row g-3">
+      <!-- Categoria -->
+      <div class="col-md-4">
+        <label class="form-label">Categoria</label>
+        <select name="categoria" class="form-select" required>
+          {% for value, label in CATEGORIAS_DOCUMENTO %}
+            <option value="{{ value }}" {% if doc.categoria == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Emissor -->
+      <div class="col-md-4">
+        <label class="form-label">Emissor</label>
+        <select name="emissor" class="form-select">
+          <option value="">Selecione</option>
+          {% for emissor in EMISSORES_DOCUMENTO %}
+            <option value="{{ emissor }}" {% if doc.emissor == emissor %}selected{% endif %}>{{ emissor }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Nº Documento -->
+      <div class="col-md-4">
+        <label class="form-label">Nº Documento</label>
+        <input type="text" name="numero_documento" value="{{ doc.numero_documento or '' }}" class="form-control" placeholder="Informe o número">
+      </div>
+
+      <!-- Datas -->
+      <div class="col-md-6">
+        <label class="form-label">Data de Emissão</label>
+        <input type="date" name="data_emissao" value="{{ doc.data_emissao or '' }}" class="form-control">
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Data de Validade</label>
+        <input type="date" name="data_validade" value="{{ doc.data_validade or '' }}" class="form-control">
+      </div>
+
+      <!-- Validade Indeterminada -->
+      <div class="col-12">
+        <div class="form-check mt-1">
+          <input class="form-check-input" type="checkbox" name="validade_indeterminada" {% if doc.validade_indeterminada %}checked{% endif %}>
+          <label class="form-check-label">Validade indeterminada</label>
+        </div>
+      </div>
+
+      <!-- Observações -->
+      <div class="col-12">
+        <label class="form-label">Observações</label>
+        <textarea class="form-control" name="observacoes" rows="2">{{ doc.observacoes or '' }}</textarea>
+      </div>
+
+      <!-- Arquivo -->
+      <div class="col-12">
+        {% if doc.caminho_arquivo %}
+          <p class="mb-2">
+            <strong>Arquivo atual:</strong><br>
+            <a href="{{ url_for('clientes.abrir_documento', doc_id=doc.id) }}" target="_blank">
+              <i class="fas fa-file-pdf text-danger me-1"></i> {{ doc.nome_original or 'arquivo' }}
+            </a>
+          </p>
+        {% endif %}
+        <label class="form-label">Substituir arquivo (opcional)</label>
+        <input type="file" class="form-control" name="arquivoEditar{{ doc.id }}" id="arquivoEditar{{ doc.id }}">
+        <input type="hidden" name="caminho_arquivo" id="caminho_arquivo_editar{{ doc.id }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+      <i class="fas fa-times me-1"></i> Cancelar
+    </button>
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-save me-1"></i> Salvar Alterações
+    </button>
+  </div>
+</form>

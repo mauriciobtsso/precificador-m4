@@ -1,0 +1,215 @@
+<!-- ==============================
+     FORMULÁRIO DE CLIENTE (COMPARTILHADO)
+     Usado em: novo.html e editar.html
+================================= -->
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h6 class="text-primary mb-3"><i class="fas fa-user"></i> Dados Pessoais</h6>
+
+    <div class="row mb-3">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Nome completo</label>
+        <input type="text" name="nome" class="form-control" 
+               value="{{ cliente.nome or '' }}" required>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Apelido</label>
+        <input type="text" name="apelido" class="form-control"
+               value="{{ cliente.apelido or '' }}">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Sexo</label>
+        <select name="sexo" class="form-select">
+          <option value="">-- Selecione --</option>
+          <option value="M" {% if cliente and cliente.sexo == 'M' %}selected{% endif %}>Masculino</option>
+          <option value="F" {% if cliente and cliente.sexo == 'F' %}selected{% endif %}>Feminino</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Data de Nascimento</label>
+        <input type="date" name="data_nascimento" class="form-control"
+               value="{{ cliente.data_nascimento.strftime('%Y-%m-%d') if cliente and cliente.data_nascimento else '' }}">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Profissão</label>
+        <input type="text" name="profissao" class="form-control"
+               value="{{ cliente.profissao or '' }}">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Estado Civil</label>
+        <input type="text" name="estado_civil" class="form-control"
+               value="{{ cliente.estado_civil or '' }}">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Escolaridade</label>
+        <input type="text" name="escolaridade" class="form-control"
+               value="{{ cliente.escolaridade or '' }}">
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Nome do Pai</label>
+        <input type="text" name="nome_pai" class="form-control"
+               value="{{ cliente.nome_pai or '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Nome da Mãe</label>
+        <input type="text" name="nome_mae" class="form-control"
+               value="{{ cliente.nome_mae or '' }}">
+      </div>
+    </div>
+
+    <hr>
+
+    <h6 class="text-primary mb-3"><i class="fas fa-id-card"></i> Documentação</h6>
+    <div class="row mb-3">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">CPF ou CNPJ</label>
+        <input type="text" name="documento" class="form-control"
+               value="{{ cliente.documento or '' }}">
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">CR</label>
+        <input type="text" name="cr" class="form-control"
+               value="{{ cliente.cr or '' }}">
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Emissor do CR</label>
+        <input type="text" name="cr_emissor" class="form-control"
+               value="{{ cliente.cr_emissor or '' }}">
+      </div>
+    </div>
+
+    <hr>
+
+    <h6 class="text-primary mb-3"><i class="fas fa-building"></i> Endereço Principal</h6>
+    {% set end = cliente.enderecos[0] if cliente and cliente.enderecos else None %}
+    <div class="row mb-3">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">CEP</label>
+        <input type="text" name="cep" class="form-control"
+               value="{{ end.cep or '' if end else '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Endereço</label>
+        <input type="text" name="endereco" class="form-control"
+               value="{{ end.logradouro or '' if end else '' }}">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Número</label>
+        <input type="text" name="numero" class="form-control"
+               value="{{ end.numero or '' if end else '' }}">
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Complemento</label>
+        <input type="text" name="complemento" class="form-control"
+               value="{{ end.complemento or '' if end else '' }}">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Bairro</label>
+        <input type="text" name="bairro" class="form-control"
+               value="{{ end.bairro or '' if end else '' }}">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Cidade</label>
+        <input type="text" name="cidade" class="form-control"
+               value="{{ end.cidade or '' if end else '' }}">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Estado (UF)</label>
+        <input type="text" name="estado" maxlength="2" class="form-control"
+               value="{{ end.estado or '' if end else '' }}">
+      </div>
+    </div>
+
+    <hr>
+
+    <h6 class="text-primary mb-3"><i class="fas fa-phone-alt"></i> Contatos</h6>
+    <div class="row mb-3">
+      {% set email = (cliente.contatos | selectattr('tipo', 'equalto', 'email') | map(attribute='valor') | list | first) if cliente else '' %}
+      {% set tel = (cliente.contatos | selectattr('tipo', 'equalto', 'telefone') | map(attribute='valor') | list | first) if cliente else '' %}
+      {% set cel = (cliente.contatos | selectattr('tipo', 'equalto', 'celular') | map(attribute='valor') | list | first) if cliente else '' %}
+      <div class="col-md-4 mb-3">
+        <label class="form-label">E-mail</label>
+        <input type="email" name="email" class="form-control" value="{{ email or '' }}">
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Telefone</label>
+        <input type="text" name="telefone" class="form-control" value="{{ tel or '' }}">
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Celular</label>
+        <input type="text" name="celular" class="form-control" value="{{ cel or '' }}">
+      </div>
+    </div>
+
+    <hr>
+
+    <h6 class="text-primary mb-3"><i class="fas fa-user-shield"></i> Categorias / Funções</h6>
+    <div class="row mb-2">
+      {% set flags = ['cac','filiado','policial','bombeiro','militar','iat','psicologo','atirador_n1','atirador_n2','atirador_n3'] %}
+      {% for flag in flags %}
+        <div class="col-6 col-md-3 form-check mb-2">
+          <input class="form-check-input" type="checkbox" id="{{ flag }}" name="{{ flag }}"
+                 {% if cliente and cliente|attr(flag) %}checked{% endif %}>
+          <label class="form-check-label" for="{{ flag }}">{{ flag|replace('_', ' ')|capitalize }}</label>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ============================== -->
+<!-- MÁSCARAS DE CPF/CNPJ E TELEFONES -->
+<!-- ============================== -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // ===== CPF ou CNPJ =====
+  const docInput = document.querySelector('input[name="documento"]');
+  if (docInput) {
+    docInput.addEventListener("input", function (e) {
+      let v = e.target.value.replace(/\D/g, "");
+      if (v.length <= 11) {
+        v = v.replace(/(\d{3})(\d)/, "$1.$2");
+        v = v.replace(/(\d{3})(\d)/, "$1.$2");
+        v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+      } else {
+        v = v.replace(/^(\d{2})(\d)/, "$1.$2");
+        v = v.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+        v = v.replace(/\.(\d{3})(\d)/, ".$1/$2");
+        v = v.replace(/(\d{4})(\d)/, "$1-$2");
+      }
+      e.target.value = v;
+    });
+  }
+
+  // ===== Telefone e Celular =====
+  function aplicarMascaraTelefone(v) {
+    v = v.replace(/\D/g, "");
+    if (v.length <= 10) {
+      v = v.replace(/^(\d{2})(\d{4})(\d{0,4})$/, "($1) $2-$3");
+    } else {
+      v = v.replace(/^(\d{2})(\d{5})(\d{0,4})$/, "($1) $2-$3");
+    }
+    return v;
+  }
+
+  const telInput = document.querySelector('input[name="telefone"]');
+  const celInput = document.querySelector('input[name="celular"]');
+
+  [telInput, celInput].forEach(input => {
+    if (input) {
+      input.addEventListener("input", function (e) {
+        e.target.value = aplicarMascaraTelefone(e.target.value);
+      });
+    }
+  });
+});
+</script>

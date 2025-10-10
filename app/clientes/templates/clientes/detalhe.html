@@ -120,10 +120,54 @@
         </div>
     </div>
 
-    <!-- Botão Voltar -->
-    <a href="{{ url_for('clientes.index') }}" class="btn btn-sm btn-outline-secondary mb-3">
+<!-- Ações principais -->
+<div class="d-flex align-items-center mb-3">
+    <a href="{{ url_for('clientes.index') }}" class="btn btn-sm btn-outline-secondary me-2">
         <i class="fas fa-arrow-left"></i> Voltar
     </a>
+
+    <a href="{{ url_for('clientes.editar_cliente', cliente_id=cliente.id) }}"
+       class="btn btn-sm btn-outline-primary me-2">
+      <i class="fas fa-edit"></i> Editar Cliente
+    </a>
+
+    <!-- Botão que abre o modal -->
+    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalExcluirCliente">
+        <i class="fas fa-trash-alt"></i> Excluir Cliente
+    </button>
+</div>
+
+<!-- Modal de confirmação -->
+<div class="modal fade" id="modalExcluirCliente" tabindex="-1" aria-labelledby="modalExcluirClienteLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalExcluirClienteLabel">
+          <i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">
+          Tem certeza que deseja excluir o cliente
+          <strong>{{ cliente.nome }}</strong>?
+          <br>
+          <small class="text-muted">Esta ação removerá todos os dados associados e não poderá ser desfeita.</small>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <form method="POST" action="{{ url_for('clientes.deletar_cliente', cliente_id=cliente.id) }}" class="d-inline">
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash-alt"></i> Confirmar Exclusão
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
     <!-- Abas -->
     <ul class="nav nav-tabs" id="clienteTabs" role="tablist">

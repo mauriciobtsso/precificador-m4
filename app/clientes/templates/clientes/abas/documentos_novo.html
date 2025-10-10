@@ -1,0 +1,110 @@
+<!-- ================================== -->
+<!-- MODAL: NOVO DOCUMENTO (com suporte OCR) -->
+<!-- ================================== -->
+<div class="modal fade" id="modalNovoDocumento" tabindex="-1" aria-labelledby="modalNovoDocumentoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form method="POST" enctype="multipart/form-data"
+            action="{{ url_for('clientes.novo_documento', cliente_id=cliente.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalNovoDocumentoLabel">
+            <i class="fas fa-file-circle-plus me-2 text-primary"></i> Novo Documento
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+
+            <!-- Categoria -->
+            <div class="col-md-4">
+              <label for="categoria" class="form-label">Categoria <span class="text-danger">*</span></label>
+              <select name="categoria" id="categoria" class="form-select" required>
+                <option value="">Selecione</option>
+                {% for value, label in CATEGORIAS_DOCUMENTO %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Emissor -->
+            <div class="col-md-4">
+              <label for="emissor" class="form-label">Emissor</label>
+              <select name="emissor" id="emissor" class="form-select">
+                <option value="">Selecione</option>
+                {% for emissor in EMISSORES_DOCUMENTO %}
+                  <option value="{{ emissor }}">{{ emissor }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Nº Documento -->
+            <div class="col-md-4">
+              <label for="numero_documento" class="form-label">Nº Documento</label>
+              <input type="text" name="numero_documento" id="numero_documento" class="form-control" placeholder="Informe o número">
+            </div>
+
+            <!-- Datas -->
+            <div class="col-md-6">
+              <label for="data_emissao" class="form-label">Data de Emissão</label>
+              <input type="date" name="data_emissao" id="data_emissao" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="data_validade" class="form-label">Data de Validade</label>
+              <input type="date" name="data_validade" id="data_validade" class="form-control">
+            </div>
+
+            <!-- Validade Indeterminada -->
+            <div class="col-12">
+              <div class="form-check mt-1">
+                <input class="form-check-input" type="checkbox" id="validade_indeterminada" name="validade_indeterminada">
+                <label class="form-check-label" for="validade_indeterminada">
+                  Validade indeterminada
+                </label>
+              </div>
+            </div>
+
+            <!-- Observações -->
+            <div class="col-12">
+              <label for="observacoes" class="form-label">Observações</label>
+              <textarea class="form-control" name="observacoes" id="observacoes" rows="2"
+                        placeholder="Adicione informações adicionais, se necessário"></textarea>
+            </div>
+
+            <!-- Upload -->
+            <div class="col-12">
+              <label for="arquivoNovoDoc" class="form-label">Arquivo (opcional)</label>
+              <input type="file" class="form-control" id="arquivoNovoDoc" name="arquivo" accept="application/pdf,image/*">
+              <!-- caminho preenchido automaticamente via OCR -->
+              <input type="hidden" name="caminho_arquivo" id="caminho_arquivo">
+            </div>
+
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-1"></i> Cancelar
+          </button>
+          <button type="submit" id="btnSalvarDocumento" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i> Salvar Documento
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Pequeno UX extra: mostra loading ao salvar
+  document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("btnSalvarDocumento");
+    const form = btn?.closest("form");
+    if (!form) return;
+    form.addEventListener("submit", () => {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Salvando...';
+    });
+  });
+</script>

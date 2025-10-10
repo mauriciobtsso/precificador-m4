@@ -50,6 +50,19 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # 🔧 Garante que a configuração UPLOAD_FOLDER está carregada
+    upload_folder = app.config.get("UPLOAD_FOLDER")
+    if not upload_folder:
+        from app.config import UPLOAD_FOLDER
+        upload_folder = UPLOAD_FOLDER
+        app.config["UPLOAD_FOLDER"] = upload_folder
+
+    # 🔧 Cria a pasta se não existir (evita erro 500 no primeiro upload)
+    os.makedirs(upload_folder, exist_ok=True)
+
+    app.logger.info(f"[UPLOAD] Pasta configurada em: {upload_folder}")
+
+
     # 🚨 Proteção contra testes em banco de produção
     if app.config.get("TESTING") and "neon.tech" in app.config.get("SQLALCHEMY_DATABASE_URI", ""):
         raise RuntimeError("⚠️ Testes NÃO podem rodar em banco de produção (Neon)!")
@@ -69,10 +82,11 @@ def create_app():
     from app.vendas import vendas_bp
     from app.produtos import produtos_bp
     from app.taxas.routes import taxas_bp
-    from app.pedidos import pedidos_bp   # 👈 novo módulo de pedidos
+    from app.pedidos import pedidos_bp  # 👈 novo módulo de pedidos
     from app.uploads import uploads_bp
 
-    app.register_blueprint(uploads_bp)
+    # 👇 ALTERAÇÃO APLICADA AQUI 👇
+    app.register_blueprint(uploads_bp, url_prefix="/uploads") 
     app.register_blueprint(main)
     app.register_blueprint(clientes_bp, url_prefix="/clientes")
     app.register_blueprint(vendas_bp, url_prefix="/vendas")

@@ -1,26 +1,32 @@
+# ======================
+# CLIENTES - ROTAS
+# ======================
+
 import os
 import re
 import mimetypes
 from io import BytesIO
 from datetime import datetime
-from sqlalchemy import or_, func
-from sqlalchemy.orm import joinedload
-from sqlalchemy.sql import over
-from sqlalchemy.sql import label
-from sqlalchemy.orm import aliased
-from sqlalchemy import select
-from sqlalchemy.sql import over
+
+from sqlalchemy import or_, func, select
+from sqlalchemy.orm import aliased, joinedload
+from sqlalchemy.sql import over, label
 
 from flask import (
-    render_template, request, redirect, url_for,
-    flash, jsonify, Blueprint, current_app
+    Blueprint, render_template, request, redirect, url_for,
+    flash, jsonify, current_app
 )
 
+import boto3
+from botocore.client import Config
+from PIL import Image
+import pytesseract
+import pdfplumber
+
 from app import db
-from app.clientes.models import Cliente, EnderecoCliente, ContatoCliente
 from app.extensions import db
 from app.utils.db_helpers import get_or_404
-from app.utils.storage import gerar_link_r2
+from app.utils.r2_helpers import gerar_link_r2
 from app.clientes.models import (
     Cliente, Documento, Arma, Comunicacao, Processo,
     EnderecoCliente, ContatoCliente
@@ -30,19 +36,31 @@ from app.clientes.constants import (
     FUNCIONAMENTO_ARMA,
     EMISSORES_CRAF,
     CATEGORIAS_ADQUIRENTE,
+    CATEGORIAS_DOCUMENTO,
+    EMISSORES_DOCUMENTO,
 )
-
-import boto3
-from botocore.client import Config
-from PIL import Image
-import pytesseract
-import pdfplumber
-
 
 # =========================
 # Blueprint
 # =========================
-clientes_bp = Blueprint("clientes", __name__, template_folder="templates")
+clientes_bp = Blueprint(
+    "clientes",
+    __name__,
+    template_folder=os.path.join(os.path.dirname(__file__), "templates")
+)
+
+# ----------------------
+# Helper: Converte string para data
+# ----------------------
+def parse_date(value):
+    """Converte string 'YYYY-MM-DD' para datetime.date ou None."""
+    if not value or value.strip() == "":
+        return None
+    try:
+        return datetime.strptime(value.strip(), "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
 
 # ======================
 # Config R2
@@ -71,7 +89,7 @@ def gerar_link_craf(caminho_craf):
 
 
 # ======================
-# LISTAGEM / CADASTRO
+# LISTAR CLIENTES
 # ======================
 @clientes_bp.route("/")
 def index():
@@ -165,26 +183,36 @@ def index():
         q=q,
     )
 
+
+# ======================
+# NOVO CLIENTE
+# ======================
 @clientes_bp.route("/novo", methods=["GET", "POST"])
 def novo_cliente():
     if request.method == "POST":
         try:
+            documento = request.form.get("documento")
+
+            # --- Verifica duplicidade de CPF/CNPJ ---
+            if documento:
+                existente = Cliente.query.filter_by(documento=documento).first()
+                if existente:
+                    flash("Já existe um cliente cadastrado com este CPF/CNPJ.", "warning")
+                    return redirect(url_for("clientes.cliente_detalhe", cliente_id=existente.id))
+
+            # --- Criação do cliente ---
             cliente = Cliente(
-                documento=request.form.get("documento"),
                 nome=request.form.get("nome"),
                 apelido=request.form.get("apelido"),
                 razao_social=request.form.get("razao_social"),
                 sexo=request.form.get("sexo"),
-                data_nascimento=request.form.get("data_nascimento"),
+                data_nascimento=parse_date(request.form.get("data_nascimento")),
                 profissao=request.form.get("profissao"),
                 estado_civil=request.form.get("estado_civil"),
                 escolaridade=request.form.get("escolaridade"),
                 nome_pai=request.form.get("nome_pai"),
                 nome_mae=request.form.get("nome_mae"),
-                cr=request.form.get("cr"),
-                cr_emissor=request.form.get("cr_emissor"),
-                sigma=request.form.get("sigma"),
-                sinarm=request.form.get("sinarm"),
+                documento=documento,
                 cac=bool(request.form.get("cac")),
                 filiado=bool(request.form.get("filiado")),
                 policial=bool(request.form.get("policial")),
@@ -192,24 +220,227 @@ def novo_cliente():
                 militar=bool(request.form.get("militar")),
                 iat=bool(request.form.get("iat")),
                 psicologo=bool(request.form.get("psicologo")),
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
             )
+
             db.session.add(cliente)
+            db.session.flush()  # Garante o ID antes de salvar endereços/contatos
+
+            # --- Endereço principal ---
+            cep = request.form.get("cep")
+            endereco = request.form.get("endereco")
+            numero = request.form.get("numero")
+            bairro = request.form.get("bairro")
+            cidade = request.form.get("cidade")
+            estado = request.form.get("estado")
+
+            if any([cep, endereco, bairro, cidade, estado]):
+                end = EnderecoCliente(
+                    cliente_id=cliente.id,
+                    tipo="residencial",
+                    cep=cep,
+                    endereco=endereco,
+                    numero=numero,
+                    complemento=request.form.get("complemento"),
+                    bairro=bairro,
+                    cidade=cidade,
+                    estado=estado,
+                )
+                db.session.add(end)
+
+            # --- Contatos principais ---
+            email = request.form.get("email")
+            telefone = request.form.get("telefone")
+            celular = request.form.get("celular")
+
+            if email:
+                db.session.add(ContatoCliente(cliente_id=cliente.id, tipo="email", valor=email))
+            if telefone:
+                db.session.add(ContatoCliente(cliente_id=cliente.id, tipo="telefone", valor=telefone))
+            if celular:
+                db.session.add(ContatoCliente(cliente_id=cliente.id, tipo="celular", valor=celular))
+
+            # --- Commit final ---
             db.session.commit()
             flash("Cliente cadastrado com sucesso!", "success")
-            return redirect(url_for("clientes.index"))
+            return redirect(url_for("clientes.detalhe", cliente_id=cliente.id))
+
         except Exception as e:
             db.session.rollback()
-            flash(f"Erro ao salvar cliente: {str(e)}", "danger")
+            print("Erro ao salvar cliente:", e)
+            flash(f"Erro ao salvar cliente: {e}", "danger")
+            return redirect(url_for("clientes.novo_cliente"))
+
     return render_template("clientes/novo.html")
 
 
-# =========================
-# Detalhe
-# =========================
+# ======================
+# DETALHE DO CLIENTE
+# ======================
 @clientes_bp.route("/<int:cliente_id>")
 def detalhe(cliente_id):
-    cliente = get_or_404(Cliente, cliente_id)
+    try:
+        # Carrega o cliente com relacionamentos
+        cliente = (
+            Cliente.query
+            .options(
+                joinedload(Cliente.enderecos),
+                joinedload(Cliente.contatos),
+                joinedload(Cliente.documentos),
+                joinedload(Cliente.armas),
+                joinedload(Cliente.comunicacoes),
+                joinedload(Cliente.processos)
+            )
+            .get_or_404(cliente_id)
+        )
 
+        resumo = {
+            "documentos": len(cliente.documentos or []),
+            "armas": len(cliente.armas or []),
+            "comunicacoes": len(cliente.comunicacoes or []),
+            "processos": len(cliente.processos or []),
+        }
+
+        alertas = []
+        timeline = []
+
+        # ✅ Passa explicitamente os relacionamentos usados em informacoes.html
+        return render_template(
+            "clientes/detalhe.html",
+            cliente=cliente,
+            enderecos=cliente.enderecos,
+            contatos=cliente.contatos,
+            resumo=resumo,
+            alertas=alertas,
+            timeline=timeline,
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"Erro ao carregar detalhe do cliente {cliente_id}: {e}")
+        flash("Não foi possível carregar os dados do cliente.", "danger")
+        return redirect(url_for("clientes.index"))
+
+
+# ======================
+# EDITAR CLIENTE
+# ======================
+@clientes_bp.route("/<int:cliente_id>/editar", methods=["GET", "POST"])
+def editar_cliente(cliente_id):
+    cliente = Cliente.query.get_or_404(cliente_id)
+
+    if request.method == "POST":
+        try:
+            # Dados pessoais
+            cliente.nome = request.form.get("nome") or None
+            cliente.apelido = request.form.get("apelido") or None
+            cliente.sexo = request.form.get("sexo") or None
+            cliente.data_nascimento = parse_date(request.form.get("data_nascimento"))
+            cliente.profissao = request.form.get("profissao") or None
+            cliente.estado_civil = request.form.get("estado_civil") or None
+            cliente.escolaridade = request.form.get("escolaridade") or None
+            cliente.nome_pai = request.form.get("nome_pai") or None
+            cliente.nome_mae = request.form.get("nome_mae") or None
+
+            # Documentação
+            cliente.documento = request.form.get("documento") or None
+            cliente.cr = request.form.get("cr") or None
+            cliente.cr_emissor = request.form.get("cr_emissor") or None
+            cliente.sigma = request.form.get("sigma") or None
+            cliente.sinarm = request.form.get("sinarm") or None
+            cliente.razao_social = request.form.get("razao_social") or None
+
+            # ============================
+            # Atualizar endereço principal
+            # ============================
+            cep = request.form.get("cep")
+            logradouro = request.form.get("endereco")
+            numero = request.form.get("numero")
+            complemento = request.form.get("complemento")
+            bairro = request.form.get("bairro")
+            cidade = request.form.get("cidade")
+            estado = request.form.get("estado")
+
+            if cliente.enderecos and len(cliente.enderecos) > 0:
+                end = cliente.enderecos[0]
+            else:
+                end = EnderecoCliente(cliente_id=cliente.id)
+                db.session.add(end)
+
+            end.cep = cep or None
+            end.logradouro = logradouro or None
+            end.numero = numero or None
+            end.complemento = complemento or None
+            end.bairro = bairro or None
+            end.cidade = cidade or None
+            end.estado = estado or None
+            end.tipo = "residencial"
+
+            # ============================
+            # Atualizar contatos principais
+            # ============================
+            email_val = request.form.get("email")
+            tel_val = request.form.get("telefone")
+            cel_val = request.form.get("celular")
+
+            tipos = {"email": email_val, "telefone": tel_val, "celular": cel_val}
+
+            for tipo, valor in tipos.items():
+                if not valor:
+                    continue
+                contato_existente = next((c for c in cliente.contatos if c.tipo == tipo), None)
+                if contato_existente:
+                    contato_existente.valor = valor
+                else:
+                    db.session.add(ContatoCliente(cliente_id=cliente.id, tipo=tipo, valor=valor))
+
+            # ============================
+            # Atualizar categorias / funções
+            # ============================
+            cliente.cac = "cac" in request.form
+            cliente.filiado = "filiado" in request.form
+            cliente.policial = "policial" in request.form
+            cliente.bombeiro = "bombeiro" in request.form
+            cliente.militar = "militar" in request.form
+            cliente.iat = "iat" in request.form
+            cliente.psicologo = "psicologo" in request.form
+            cliente.atirador_n1 = "atirador_n1" in request.form
+            cliente.atirador_n2 = "atirador_n2" in request.form
+            cliente.atirador_n3 = "atirador_n3" in request.form
+
+            cliente.updated_at = datetime.now()
+            db.session.commit()
+
+            flash("Dados do cliente atualizados com sucesso!", "success")
+            return redirect(url_for("clientes.detalhe", cliente_id=cliente.id))
+
+        except Exception as e:
+            db.session.rollback()
+            print("Erro ao editar cliente:", e)
+            flash(f"Erro ao editar cliente: {e}", "danger")
+
+    return render_template("clientes/editar.html", cliente=cliente)
+
+# ======================
+# EXCLUIR CLIENTE
+# ======================
+@clientes_bp.route("/<int:cliente_id>/excluir", methods=["POST"])
+def deletar_cliente(cliente_id):
+    cliente = Cliente.query.get_or_404(cliente_id)
+
+    try:
+        db.session.delete(cliente)
+        db.session.commit()
+        flash("Cliente excluído com sucesso.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao excluir cliente: {e}", "danger")
+
+    return redirect(url_for("clientes.index"))
+
+    # ===============================
+    # Resumo de quantidades
+    # ===============================
     resumo = {
         "documentos": len(cliente.documentos),
         "armas": len(cliente.armas),
@@ -218,8 +449,12 @@ def detalhe(cliente_id):
         "vendas": len(cliente.vendas),
     }
 
+    # ===============================
     # Alertas inteligentes
+    # ===============================
     alertas = []
+
+    # 1️⃣ CR não informado ou vencido
     if not cliente.cr or not cliente.cr_emissor:
         alertas.append("CR não informado.")
     if cliente.data_validade_cr and cliente.data_validade_cr < datetime.now().date():
@@ -227,18 +462,24 @@ def detalhe(cliente_id):
             f"CR vencido em {cliente.data_validade_cr.strftime('%d/%m/%Y')}"
         )
 
+    # 2️⃣ Documentos vencidos
     for doc in cliente.documentos:
-        if doc.validade and doc.validade < datetime.now().date():
+        if getattr(doc, "data_validade", None) and doc.data_validade < datetime.now().date():
             alertas.append(
-                f"Documento '{doc.tipo}' vencido em {doc.validade.strftime('%d/%m/%Y')}"
+                f"Documento '{doc.tipo or doc.categoria}' vencido em {doc.data_validade.strftime('%d/%m/%Y')}"
             )
 
+    # 3️⃣ Processos em andamento
     for proc in cliente.processos:
         if proc.status and proc.status.lower() not in ["concluído", "finalizado"]:
             alertas.append(f"Processo em andamento: {proc.tipo} ({proc.status})")
 
+    # ===============================
     # Mini Timeline
+    # ===============================
     eventos = []
+
+    # Última venda
     if cliente.vendas:
         ultima_venda = max(
             cliente.vendas, key=lambda v: v.data_abertura or datetime.min, default=None
@@ -252,6 +493,7 @@ def detalhe(cliente_id):
                 }
             )
 
+    # Última comunicação
     if cliente.comunicacoes:
         ultima_com = max(cliente.comunicacoes, key=lambda c: c.data)
         eventos.append(
@@ -262,16 +504,18 @@ def detalhe(cliente_id):
             }
         )
 
+    # Último documento
     if cliente.documentos:
         ultimo_doc = max(cliente.documentos, key=lambda d: d.data_upload)
         eventos.append(
             {
                 "data": ultimo_doc.data_upload,
                 "tipo": "Documento",
-                "descricao": ultimo_doc.tipo,
+                "descricao": ultimo_doc.tipo or ultimo_doc.categoria,
             }
         )
 
+    # Último processo
     if cliente.processos:
         ultimo_proc = max(cliente.processos, key=lambda p: p.data)
         eventos.append(
@@ -282,11 +526,12 @@ def detalhe(cliente_id):
             }
         )
 
+    # Ordena e limita timeline
     timeline = sorted(eventos, key=lambda e: e["data"], reverse=True)[:5]
 
-    # 🔥 retorna já com endereços e contatos
-
-
+    # ===============================
+    # Renderização final
+    # ===============================
     return render_template(
         "clientes/detalhe.html",
         cliente=cliente,
@@ -296,6 +541,8 @@ def detalhe(cliente_id):
         emissores_craf=EMISSORES_CRAF,
         categorias_adquirente=CATEGORIAS_ADQUIRENTE,
         alertas=alertas,
+        CATEGORIAS_DOCUMENTO=CATEGORIAS_DOCUMENTO,
+        EMISSORES_DOCUMENTO=EMISSORES_DOCUMENTO,
         timeline=timeline,
         enderecos=cliente.enderecos,
         contatos=cliente.contatos,
@@ -463,76 +710,192 @@ def deletar_contato(cliente_id, contato_id):
 
     return redirect(url_for("clientes.detalhe", cliente_id=cliente_id))
 
-# ======================
-# DOCUMENTOS (UPLOAD SIMPLES)
-# ======================
-from io import BytesIO
+# =========================
+# DOCUMENTOS
+# =========================
+from flask import request, redirect, url_for, render_template, flash, jsonify
+from app import db
+from app.utils.r2_helpers import gerar_link_r2
+# 👇 ALTERAÇÃO APLICADA AQUI (import) 👇
+from app.utils.storage import get_s3, get_bucket, deletar_arquivo 
+from app.clientes.models import Cliente, Documento
+from app.clientes.constants import CATEGORIAS_DOCUMENTO, EMISSORES_DOCUMENTO
 from datetime import datetime
-from app.clientes.models import Documento
+from werkzeug.utils import secure_filename
+from io import BytesIO
 
-@clientes_bp.route("/<int:cliente_id>/documentos/upload", methods=["POST"])
-def upload_documento(cliente_id):
-    """Upload simples de documento (sem OCR)."""
-    file = request.files.get("arquivo")
-    tipo = request.form.get("tipo")
 
-    if not file or not tipo:
-        flash("Selecione um tipo de documento e um arquivo.", "warning")
-        return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="documentos"))
-
-    # Nome do arquivo no storage
-    filename = f"clientes/{cliente_id}/documentos/{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}"
-    file_bytes = file.read()
-
-    # Upload para R2
-    from app.uploads.services import get_s3, get_bucket
-    s3 = get_s3()
-    bucket = get_bucket()
-    s3.upload_fileobj(BytesIO(file_bytes), bucket, filename)
-
-    # Salvar metadados no banco
-    doc = Documento(
-        cliente_id=cliente_id,
-        tipo=tipo,
-        nome_original=file.filename,
-        caminho_arquivo=filename,
-        mime_type=file.mimetype,
-    )
-    db.session.add(doc)
-    db.session.commit()
-
-    flash(f"{tipo} enviado com sucesso!", "success")
+@clientes_bp.route("/<int:cliente_id>/documentos")
+def documentos(cliente_id):
+    """
+    Redireciona para a aba 'documentos' dentro do detalhe do cliente.
+    (A listagem é renderizada pelo template principal do cliente.)
+    """
     return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="documentos"))
 
 
-# ======================
-# DOCUMENTOS - ABRIR
-# ======================
-@clientes_bp.route("/documentos/<int:doc_id>/abrir")
-def abrir_documento(doc_id):
-    """Gera link temporário e abre documento do cliente no R2."""
-    doc = Documento.query.get_or_404(doc_id)
-    if not doc.caminho_arquivo:
-        flash("Arquivo não encontrado", "danger")
-        return redirect(url_for("clientes.detalhe", cliente_id=doc.cliente_id, _anchor="documentos"))
+# --- NOVO DOCUMENTO (manual + OCR) ---
+@clientes_bp.route("/<int:cliente_id>/documentos/novo", methods=["POST"])
+def novo_documento(cliente_id):
+    """Criação manual de documento, com upload opcional (manual ou OCR)."""
+    cliente = Cliente.query.get_or_404(cliente_id)
 
-    url = gerar_link_r2(doc.caminho_arquivo)
-    return redirect(url)
+    categoria = request.form.get("categoria")
+    tipo = categoria or request.form.get("tipo")
+    emissor = request.form.get("emissor")
+    numero = request.form.get("numero_documento")
+    data_emissao = request.form.get("data_emissao")
+    data_validade = request.form.get("data_validade")
+    validade_indeterminada = bool(request.form.get("validade_indeterminada"))
+    observacoes = request.form.get("observacoes")
+    caminho_arquivo = request.form.get("caminho_arquivo") or None
+    nome_original = request.form.get("arquivo") or None
 
-# ======================
-# DOCUMENTOS (DELETE)
-# ======================
+    # 🔹 Upload manual (se o OCR não enviou caminho)
+    if not caminho_arquivo and "arquivo" in request.files and request.files["arquivo"].filename:
+        file = request.files["arquivo"]
+        nome_seguro = secure_filename(file.filename)
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        caminho_arquivo = f"clientes/{cliente_id}/documentos/{timestamp}_{nome_seguro}"
+
+        s3 = get_s3()
+        bucket = get_bucket()
+        s3.upload_fileobj(file, bucket, caminho_arquivo)
+        nome_original = nome_seguro
+
+    def parse_date(value):
+        if not value:
+            return None
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
+            try:
+                return datetime.strptime(value, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    documento = Documento(
+        cliente_id=cliente.id,
+        tipo=tipo,
+        categoria=categoria,
+        emissor=emissor,
+        numero_documento=numero,
+        data_emissao=parse_date(data_emissao),
+        data_validade=parse_date(data_validade),
+        validade_indeterminada=validade_indeterminada,
+        observacoes=observacoes,
+        caminho_arquivo=caminho_arquivo,
+        nome_original=nome_original,
+        data_upload=datetime.utcnow(),
+    )
+
+    db.session.add(documento)
+    db.session.commit()
+    flash("Documento cadastrado com sucesso!", "success")
+    return redirect(url_for("clientes.detalhe", cliente_id=cliente.id, _anchor="documentos"))
+
+
+# --- EDITAR DOCUMENTO (com suporte dinâmico) ---
+@clientes_bp.route("/<int:cliente_id>/documentos/<int:doc_id>/editar", methods=["GET", "POST"])
+def editar_documento(cliente_id, doc_id):
+    documento = Documento.query.get_or_404(doc_id)
+    cliente = Cliente.query.get_or_404(cliente_id)  # ✅ necessário para o template
+
+    # GET → retorna o HTML do formulário para o modal dinâmico (AJAX)
+    if request.method == "GET":
+        return render_template(
+            "clientes/abas/documentos_editar.html",
+            cliente=cliente,                           # ✅ evita 'cliente is undefined'
+            doc=documento,
+            CATEGORIAS_DOCUMENTO=CATEGORIAS_DOCUMENTO,
+            EMISSORES_DOCUMENTO=EMISSORES_DOCUMENTO,
+        )
+
+    # POST → salva alterações
+    documento.categoria = request.form.get("categoria")
+    documento.tipo = documento.categoria or request.form.get("tipo")
+    documento.emissor = request.form.get("emissor")
+    documento.numero_documento = request.form.get("numero_documento")
+    documento.observacoes = request.form.get("observacoes")
+    documento.validade_indeterminada = bool(request.form.get("validade_indeterminada"))
+
+    def parse_date(value):
+        if not value:
+            return None
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
+            try:
+                return datetime.strptime(value, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    documento.data_emissao = parse_date(request.form.get("data_emissao"))
+    documento.data_validade = parse_date(request.form.get("data_validade"))
+
+    # Substituição de arquivo (manual ou OCR)
+    novo_caminho = request.form.get("caminho_arquivo")
+    field_name = f"arquivoEditar{doc_id}"
+    if field_name in request.files and request.files[field_name].filename:
+        file = request.files[field_name]
+        nome_seguro = secure_filename(file.filename)
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        novo_caminho = f"clientes/{cliente_id}/documentos/{timestamp}_{nome_seguro}"
+
+        s3 = get_s3()
+        bucket = get_bucket()
+        file.seek(0)
+        s3.upload_fileobj(file, bucket, novo_caminho)
+        documento.nome_original = nome_seguro
+
+    if novo_caminho:
+        documento.caminho_arquivo = novo_caminho
+        documento.data_upload = datetime.utcnow()
+
+    db.session.commit()
+    flash("Documento atualizado com sucesso!", "success")
+    return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="documentos"))
+
+
+# --- DELETAR DOCUMENTO ---
 @clientes_bp.route("/<int:cliente_id>/documentos/<int:doc_id>/deletar", methods=["POST"])
 def deletar_documento(cliente_id, doc_id):
-    """Remove documento do cliente."""
-    doc = Documento.query.get_or_404(doc_id)
+    # 👇 ALTERAÇÃO APLICADA AQUI (lógica inteira da função) 👇
+    documento = Documento.query.get_or_404(doc_id)
+    
+    # Guarda o caminho do arquivo antes de deletar o objeto
+    caminho_arquivo_para_deletar = documento.caminho_arquivo
 
-    # Remover do banco
-    db.session.delete(doc)
-    db.session.commit()
-
-    flash("Documento excluído com sucesso!", "success")
+    try:
+        db.session.delete(documento)
+        db.session.commit()
+        
+        # Se a deleção no DB foi bem-sucedida, deleta o arquivo no R2
+        if caminho_arquivo_para_deletar:
+            deletar_arquivo(caminho_arquivo_para_deletar)
+            
+        flash("Documento removido com sucesso!", "info")
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erro ao deletar documento {doc_id}: {e}")
+        flash("Erro ao remover o documento.", "danger")
+        
     return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="documentos"))
+
+
+# --- ABRIR DOCUMENTO (R2) ---
+@clientes_bp.route("/documentos/<int:doc_id>/abrir")
+def abrir_documento(doc_id):
+    """Gera link pré-assinado para abrir documento armazenado no R2."""
+    documento = Documento.query.get_or_404(doc_id)
+    if not documento.caminho_arquivo:
+        flash("Nenhum arquivo enviado para este documento.", "warning")
+        return redirect(request.referrer or url_for("clientes.index"))
+
+    try:
+        link = gerar_link_r2(documento.caminho_arquivo)
+        return redirect(link)
+    except Exception as e:
+        flash(f"Erro ao gerar link do arquivo: {e}", "danger")
+        return redirect(request.referrer or url_for("clientes.index"))
 
 # ======================
 # ARMAS

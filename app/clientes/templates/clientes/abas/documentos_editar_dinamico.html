@@ -1,0 +1,63 @@
+<!-- ========================================= -->
+<!-- MODAL DINÂMICO: EDITAR DOCUMENTO CLIENTE -->
+<!-- ========================================= -->
+<div class="modal fade" id="modalEditarDocumentoDinamico" tabindex="-1" aria-labelledby="modalEditarDocumentoDinamicoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+
+      <!-- Cabeçalho padrão -->
+      <div class="modal-header bg-white border-bottom">
+        <h5 class="modal-title" id="modalEditarDocumentoDinamicoLabel">
+          <i class="fas fa-pen-to-square me-2 text-primary"></i> Editar Documento
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <!-- Corpo: será preenchido dinamicamente via JS -->
+      <div class="modal-body" id="modalEditarConteudo">
+        <div class="text-center text-muted py-5">
+          <i class="fas fa-spinner fa-spin me-2"></i>Carregando conteúdo...
+        </div>
+      </div>
+
+      <!-- Rodapé padrão (aparece apenas se o conteúdo não tiver um próprio) -->
+      <div class="modal-footer d-none" id="modalEditarFooter">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i> Fechar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===========================================================
+  // Controle de segurança: previne duplicação de modais/backdrops
+  // ===========================================================
+  document.addEventListener("DOMContentLoaded", () => {
+    const modalEl = document.getElementById("modalEditarDocumentoDinamico");
+
+    modalEl.addEventListener("shown.bs.modal", () => {
+      // Garante que só um backdrop fica ativo
+      const backdrops = document.querySelectorAll(".modal-backdrop.show");
+      if (backdrops.length > 1) {
+        for (let i = 0; i < backdrops.length - 1; i++) {
+          backdrops[i].remove();
+        }
+      }
+      modalEl.style.zIndex = "1065";
+    });
+
+    // Remove conteúdo ao fechar para evitar overlays antigos
+    modalEl.addEventListener("hidden.bs.modal", () => {
+      const body = modalEl.querySelector("#modalEditarConteudo");
+      if (body) {
+        body.innerHTML = `
+          <div class="text-center text-muted py-5">
+            <i class="fas fa-spinner fa-spin me-2"></i>Carregando conteúdo...
+          </div>`;
+      }
+    });
+  });
+</script>

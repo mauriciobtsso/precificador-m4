@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4 class="mb-3"><i class="fas fa-user-edit"></i> Editar Cliente</h4>
+
+  <form method="POST">
+    {% include "clientes/form_cliente.html" %}
+    <div class="mt-3">
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-save"></i> Salvar Alterações
+      </button>
+      <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" class="btn btn-outline-secondary ms-2">
+        <i class="fas fa-times"></i> Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

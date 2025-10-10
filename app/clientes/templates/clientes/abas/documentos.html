@@ -1,5 +1,5 @@
 <!-- ====================== -->
-<!-- ABA: DOCUMENTOS -->
+<!-- ABA: DOCUMENTOS (NOVA) -->
 <!-- ====================== -->
 
 <div class="card shadow-sm mb-4">
@@ -7,26 +7,71 @@
     <h5 class="mb-0">
       <i class="fas fa-file-alt me-2 text-primary"></i> Documentos
     </h5>
+    <div>
+      <!-- Botão Novo Documento -->
+      <button class="btn btn-sm btn-primary me-2"
+              data-bs-toggle="modal"
+              data-bs-target="#modalNovoDocumento">
+        <i class="fas fa-plus me-1"></i> Novo Documento
+      </button>
+
+      <!-- Botão OCR -->
+      <button class="btn btn-sm btn-success" id="btnUploadOCR">
+        <i class="fas fa-upload me-1"></i> Enviar e Processar Documento (OCR)
+      </button>
+
+      <!-- Input oculto para upload -->
+      <input type="file" id="inputUploadOCR" class="d-none" accept="application/pdf,image/*">
+    </div>
   </div>
 
   <div class="card-body">
     <!-- Lista de documentos -->
     <div class="table-responsive">
-      <table class="table table-hover align-middle">
+      <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
           <tr>
-            <th style="width: 15%">Tipo</th>
-            <th style="width: 35%">Arquivo</th>
-            <th style="width: 20%">Data Upload</th>
-            <th style="width: 15%">Validade</th>
+            <th style="width: 15%">Categoria</th>
+            <th style="width: 15%">Emissor</th>
+            <th style="width: 15%">Nº Documento</th>
+            <th style="width: 10%">Emissão</th>
+            <th style="width: 10%">Validade</th>
+            <th style="width: 20%">Arquivo</th>
             <th style="width: 15%" class="text-center">Ações</th>
           </tr>
         </thead>
+
         <tbody>
           {% for doc in cliente.documentos %}
           <tr>
-            <!-- Tipo -->
-            <td class="fw-semibold">{{ doc.tipo or '-' }}</td>
+            <!-- Categoria -->
+            <td>{{ doc.categoria or doc.tipo or '-' }}</td>
+
+            <!-- Emissor -->
+            <td>{{ doc.emissor or '-' }}</td>
+
+            <!-- Nº Documento -->
+            <td>{{ doc.numero_documento or '-' }}</td>
+
+            <!-- Data Emissão -->
+            <td>
+              {% if doc.data_emissao %}
+                {{ doc.data_emissao.strftime('%d/%m/%Y') }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+
+            <!-- Validade -->
+            <td>
+              {% if doc.validade_indeterminada %}
+                <span class="badge bg-secondary">Indeterminada</span>
+              {% elif doc.data_validade %}
+                {{ doc.data_validade.strftime('%d/%m/%Y') }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
 
             <!-- Arquivo -->
             <td>
@@ -36,88 +81,111 @@
                   {{ doc.nome_original or 'arquivo' }}
                 </a>
               {% else %}
-                <span class="text-muted">Arquivo não disponível</span>
-              {% endif %}
-            </td>
-
-            <!-- Data Upload -->
-            <td>
-              {% if doc.data_upload %}
-                {{ doc.data_upload.strftime("%d/%m/%Y %H:%M") }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-
-            <!-- Validade -->
-            <td>
-              {% if doc.validade %}
-                {{ doc.validade.strftime("%d/%m/%Y") }}
-              {% else %}
-                -
+                <span class="text-muted">Não enviado</span>
               {% endif %}
             </td>
 
             <!-- Ações -->
             <td class="text-center">
-              <a href="{{ url_for('clientes.abrir_documento', doc_id=doc.id) }}"
-                 class="btn btn-sm btn-outline-primary me-1"
-                 target="_blank" title="Abrir">
-                <i class="fas fa-eye"></i>
-              </a>
+              <!-- Editar -->
+              <button class="btn btn-sm btn-outline-primary me-1 btnEditarDoc"
+                      data-cliente-id="{{ cliente.id }}"
+                      data-doc-id="{{ doc.id }}"
+                      title="Editar Documento">
+                <i class="fas fa-edit"></i>
+              </button>
+
+              <!-- Excluir -->
               <form method="POST"
                     action="{{ url_for('clientes.deletar_documento', cliente_id=cliente.id, doc_id=doc.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Deseja realmente excluir este documento?')">
-                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir Documento">
                   <i class="fas fa-trash"></i>
                 </button>
               </form>
             </td>
           </tr>
-          {% else %}
+          {% endfor %}
+
+          {% if cliente.documentos|length == 0 %}
           <tr>
-            <td colspan="5" class="text-center text-muted">
-              <i class="fas fa-info-circle me-2"></i> Nenhum documento enviado.
+            <td colspan="7" class="text-center text-muted py-3">
+              <i class="fas fa-info-circle me-2"></i> Nenhum documento cadastrado.
             </td>
           </tr>
-          {% endfor %}
+          {% endif %}
         </tbody>
       </table>
     </div>
-
-    <!-- Upload -->
-    <hr>
-    <form method="POST" enctype="multipart/form-data"
-          action="{{ url_for('clientes.upload_documento', cliente_id=cliente.id) }}">
-      <div class="row g-3 align-items-end">
-        <!-- Tipo -->
-        <div class="col-md-3">
-          <label for="tipo" class="form-label">Tipo</label>
-          <select id="tipo" name="tipo" class="form-select" required>
-            <option value="">Selecione o tipo</option>
-            <option value="RG">RG</option>
-            <option value="CNH">CNH</option>
-            <option value="CR">CR</option>
-            <option value="CRAF">CRAF</option>
-            <option value="Laudo">Laudo</option>
-            <option value="Outro">Outro</option>
-          </select>
-        </div>
-
-        <!-- Arquivo -->
-        <div class="col-md-6">
-          <label for="arquivo" class="form-label">Arquivo</label>
-          <input type="file" id="arquivo" name="arquivo" class="form-control" required>
-        </div>
-
-        <!-- Botão -->
-        <div class="col-md-3 d-grid">
-          <button type="submit" class="btn btn-success">
-            <i class="fas fa-upload me-1"></i> Upload
-          </button>
-        </div>
-      </div>
-    </form>
   </div>
 </div>
+
+<!-- ====================== -->
+<!-- MODAL: NOVO DOCUMENTO -->
+<!-- ====================== -->
+{% include 'clientes/abas/documentos_novo.html' %}
+
+<!-- ====================== -->
+<!-- MODAL DINÂMICO DE EDIÇÃO -->
+<!-- ====================== -->
+<div class="modal fade" id="modalEditarDocumentoDinamico" tabindex="-1" aria-labelledby="modalEditarDocumentoDinamicoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+
+      <!-- Cabeçalho padrão -->
+      <div class="modal-header bg-white border-bottom">
+        <h5 class="modal-title" id="modalEditarDocumentoDinamicoLabel">
+          <i class="fas fa-pen-to-square me-2 text-primary"></i> Editar Documento
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <!-- Corpo: será preenchido dinamicamente via JS -->
+      <div class="modal-body" id="modalEditarConteudo">
+        <div class="text-center text-muted py-5">
+          <i class="fas fa-spinner fa-spin me-2"></i>Carregando conteúdo...
+        </div>
+      </div>
+
+      <!-- Rodapé padrão (opcional) -->
+      <div class="modal-footer d-none" id="modalEditarFooter">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i> Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== -->
+<!-- SCRIPT: FIX DE BACKDROP -->
+<!-- ====================== -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const modalEl = document.getElementById("modalEditarDocumentoDinamico");
+
+    modalEl.addEventListener("shown.bs.modal", () => {
+      const backdrops = document.querySelectorAll(".modal-backdrop.show");
+      if (backdrops.length > 1) {
+        for (let i = 0; i < backdrops.length - 1; i++) backdrops[i].remove();
+      }
+      modalEl.style.zIndex = "1065";
+    });
+
+    modalEl.addEventListener("hidden.bs.modal", () => {
+      const body = modalEl.querySelector("#modalEditarConteudo");
+      if (body) {
+        body.innerHTML = `
+          <div class="text-center text-muted py-5">
+            <i class="fas fa-spinner fa-spin me-2"></i>Carregando conteúdo...
+          </div>`;
+      }
+    });
+  });
+</script>
+
+<!-- ====================== -->
+<!-- SCRIPT PRINCIPAL -->
+<!-- ====================== -->
+<script src="{{ url_for('static', filename='js/documentos.js') }}"></script>

@@ -5,6 +5,19 @@ from io import BytesIO
 from flask import current_app
 import boto3
 
+try:
+    from app.uploads.ocr import extrair_texto as _ocr_extrair_texto
+except Exception:
+    _ocr_extrair_texto = None
+
+def extrair_texto(file_bytes: bytes, filename: str | None = None) -> str:
+    """
+    Wrapper mantido para compatibilidade com rotas antigas.
+    Delega para app.uploads.ocr.extrair_texto, se disponível.
+    """
+    if _ocr_extrair_texto is None:
+        raise RuntimeError("OCR não configurado: app.uploads.ocr.extrair_texto indisponível.")
+    return _ocr_extrair_texto(file_bytes, filename)
 
 # ======================
 # STORAGE (R2)
