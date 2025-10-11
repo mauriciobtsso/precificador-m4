@@ -9,28 +9,24 @@ from io import BytesIO
 from datetime import datetime
 
 from sqlalchemy import or_, func, select
-from sqlalchemy.orm import aliased, joinedload
-from sqlalchemy.sql import over, label
+from sqlalchemy.orm import joinedload, aliased
+from sqlalchemy.sql import label, over
 
 from flask import (
-    Blueprint, render_template, request, redirect, url_for,
-    flash, jsonify, current_app
+    render_template, request, redirect, url_for,
+    flash, jsonify, Blueprint, current_app
 )
 
-import boto3
-from botocore.client import Config
-from PIL import Image
-import pytesseract
-import pdfplumber
-
 from app import db
-from app.extensions import db
 from app.utils.db_helpers import get_or_404
 from app.utils.r2_helpers import gerar_link_r2
+
 from app.clientes.models import (
     Cliente, Documento, Arma, Comunicacao, Processo,
     EnderecoCliente, ContatoCliente
 )
+
+# Certifique-se de que todas as constantes necessárias estão sendo importadas
 from app.clientes.constants import (
     TIPOS_ARMA,
     FUNCIONAMENTO_ARMA,
@@ -40,27 +36,17 @@ from app.clientes.constants import (
     EMISSORES_DOCUMENTO,
 )
 
+import boto3
+from botocore.client import Config
+from PIL import Image
+import pytesseract
+import pdfplumber
+from werkzeug.utils import secure_filename
+
 # =========================
 # Blueprint
 # =========================
-clientes_bp = Blueprint(
-    "clientes",
-    __name__,
-    template_folder=os.path.join(os.path.dirname(__file__), "templates")
-)
-
-# ----------------------
-# Helper: Converte string para data
-# ----------------------
-def parse_date(value):
-    """Converte string 'YYYY-MM-DD' para datetime.date ou None."""
-    if not value or value.strip() == "":
-        return None
-    try:
-        return datetime.strptime(value.strip(), "%Y-%m-%d").date()
-    except ValueError:
-        return None
-
+clientes_bp = Blueprint("clientes", __name__, template_folder="templates")
 
 # ======================
 # Config R2
@@ -78,15 +64,27 @@ s3 = boto3.client(
     config=Config(signature_version="s3v4"),
 )
 
-
-def gerar_link_craf(caminho_craf):
-    """Gera link temporário (5 min) para acessar o arquivo no R2"""
+def gerar_link_craf(caminho_craf: str):
+    """Gera link temporário (5 min) para acessar o arquivo no R2."""
     return s3.generate_presigned_url(
         "get_object",
         Params={"Bucket": R2_BUCKET, "Key": caminho_craf},
         ExpiresIn=300,
     )
 
+# ----------------------
+# Helper: Converte string para data
+# ----------------------
+def parse_date(value):
+    """Converte 'YYYY-MM-DD' ou 'DD/MM/YYYY' para date (ou None)."""
+    if not value or not str(value).strip():
+        return None
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(str(value).strip(), fmt).date()
+        except ValueError:
+            continue
+    return None
 
 # ======================
 # LISTAR CLIENTES
@@ -96,7 +94,6 @@ def index():
     page = request.args.get("page", 1, type=int)
     q = request.args.get("q", "").strip()
 
-    # Telefones (pega o primeiro por cliente usando row_number)
     tel_sq = (
         db.session.query(
             ContatoCliente.cliente_id,
@@ -111,7 +108,6 @@ def index():
     )
     tel_alias = aliased(tel_sq)
 
-    # E-mails (pega o primeiro por cliente usando row_number)
     email_sq = (
         db.session.query(
             ContatoCliente.cliente_id,
@@ -126,7 +122,6 @@ def index():
     )
     email_alias = aliased(email_sq)
 
-    # Query principal: LEFT JOIN com os subqueries filtrados no rn=1
     query = (
         db.session.query(
             Cliente,
@@ -138,7 +133,7 @@ def index():
     )
 
     if q:
-        q_digits = "".join(filter(str.isdigit, q))  # 🔹 mantém só números
+        q_digits = "".join(filter(str.isdigit, q))
 
         search_filter = or_(
             Cliente.nome.ilike(f"%{q}%"),
@@ -148,13 +143,10 @@ def index():
         )
 
         if q_digits:
-            # 🔹 Busca CPF/CNPJ sem máscara
             search_filter = or_(
                 search_filter,
                 func.replace(func.replace(func.replace(Cliente.documento, ".", ""), "-", ""), "/", "").ilike(f"%{q_digits}%")
             )
-
-            # 🔹 Busca telefone sem máscara
             search_filter = or_(
                 search_filter,
                 func.replace(
@@ -183,7 +175,6 @@ def index():
         q=q,
     )
 
-
 # ======================
 # NOVO CLIENTE
 # ======================
@@ -193,14 +184,12 @@ def novo_cliente():
         try:
             documento = request.form.get("documento")
 
-            # --- Verifica duplicidade de CPF/CNPJ ---
             if documento:
                 existente = Cliente.query.filter_by(documento=documento).first()
                 if existente:
                     flash("Já existe um cliente cadastrado com este CPF/CNPJ.", "warning")
                     return redirect(url_for("clientes.cliente_detalhe", cliente_id=existente.id))
 
-            # --- Criação do cliente ---
             cliente = Cliente(
                 nome=request.form.get("nome"),
                 apelido=request.form.get("apelido"),
@@ -225,9 +214,8 @@ def novo_cliente():
             )
 
             db.session.add(cliente)
-            db.session.flush()  # Garante o ID antes de salvar endereços/contatos
+            db.session.flush()
 
-            # --- Endereço principal ---
             cep = request.form.get("cep")
             endereco = request.form.get("endereco")
             numero = request.form.get("numero")
@@ -249,7 +237,6 @@ def novo_cliente():
                 )
                 db.session.add(end)
 
-            # --- Contatos principais ---
             email = request.form.get("email")
             telefone = request.form.get("telefone")
             celular = request.form.get("celular")
@@ -261,7 +248,6 @@ def novo_cliente():
             if celular:
                 db.session.add(ContatoCliente(cliente_id=cliente.id, tipo="celular", valor=celular))
 
-            # --- Commit final ---
             db.session.commit()
             flash("Cliente cadastrado com sucesso!", "success")
             return redirect(url_for("clientes.detalhe", cliente_id=cliente.id))
@@ -274,14 +260,12 @@ def novo_cliente():
 
     return render_template("clientes/novo.html")
 
-
 # ======================
 # DETALHE DO CLIENTE
 # ======================
 @clientes_bp.route("/<int:cliente_id>")
 def detalhe(cliente_id):
     try:
-        # Carrega o cliente com relacionamentos
         cliente = (
             Cliente.query
             .options(
@@ -303,24 +287,43 @@ def detalhe(cliente_id):
         }
 
         alertas = []
-        timeline = []
+        # Lógica de alertas (exemplo)
+        if not cliente.cr:
+            alertas.append("CR não informado.")
+        # Adicione outras lógicas de alerta aqui...
 
-        # ✅ Passa explicitamente os relacionamentos usados em informacoes.html
+        timeline = []
+        # Lógica da timeline (exemplo)
+        if cliente.comunicacoes:
+            ultima_com = max(cliente.comunicacoes, key=lambda c: c.data)
+            timeline.append({
+                "data": ultima_com.data,
+                "tipo": "Comunicação",
+                "descricao": ultima_com.assunto,
+            })
+        # Adicione outras lógicas de timeline aqui...
+
         return render_template(
             "clientes/detalhe.html",
             cliente=cliente,
-            enderecos=cliente.enderecos,
-            contatos=cliente.contatos,
             resumo=resumo,
             alertas=alertas,
             timeline=timeline,
+            enderecos=cliente.enderecos,
+            contatos=cliente.contatos,
+            # Constantes para a aba ARMAS
+            TIPOS_ARMA=TIPOS_ARMA,
+            FUNCIONAMENTO_ARMA=FUNCIONAMENTO_ARMA,
+            EMISSORES_CRAF=EMISSORES_CRAF,
+            CATEGORIAS_ADQUIRENTE=CATEGORIAS_ADQUIRENTE,
+            # Constantes para a aba DOCUMENTOS
+            CATEGORIAS_DOCUMENTO=CATEGORIAS_DOCUMENTO,
+            EMISSORES_DOCUMENTO=EMISSORES_DOCUMENTO,
         )
-
     except Exception as e:
         current_app.logger.error(f"Erro ao carregar detalhe do cliente {cliente_id}: {e}")
         flash("Não foi possível carregar os dados do cliente.", "danger")
         return redirect(url_for("clientes.index"))
-
 
 # ======================
 # EDITAR CLIENTE
@@ -908,7 +911,24 @@ def cliente_armas(cliente_id):
 
 
 # ----------------------
-# NOVA ARMA (manual ou com arquivo opcional)
+# FORMULÁRIO NOVA ARMA (GET - usado no modal)
+# ----------------------
+@clientes_bp.route("/<int:cliente_id>/armas/nova", methods=["GET"])
+def form_nova_arma(cliente_id):
+    """Renderiza o modal para cadastro de nova arma"""
+    cliente = Cliente.query.get_or_404(cliente_id)
+    return render_template(
+        "clientes/abas/armas_nova.html",
+        cliente=cliente,
+        TIPOS_ARMA=TIPOS_ARMA,
+        FUNCIONAMENTO_ARMA=FUNCIONAMENTO_ARMA,
+        EMISSORES_CRAF=EMISSORES_CRAF,
+        CATEGORIAS_ADQUIRENTE=CATEGORIAS_ADQUIRENTE,
+    )
+
+
+# ----------------------
+# NOVA ARMA (POST - cadastro manual ou com arquivo opcional)
 # ----------------------
 @clientes_bp.route("/<int:cliente_id>/armas/nova", methods=["POST"])
 def nova_arma(cliente_id):
@@ -937,12 +957,15 @@ def nova_arma(cliente_id):
         except ValueError:
             data_validade_parsed = None
 
-    # upload opcional de arquivo
+    # upload opcional de arquivo (R2)
     caminho = None
     if "arquivo" in request.files and request.files["arquivo"].filename:
         file = request.files["arquivo"]
-        from app.utils.storage import salvar_arquivo_r2
-        caminho = salvar_arquivo_r2(file, pasta="craf")
+        nome_seguro = secure_filename(file.filename)
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        caminho = f"clientes/{cliente_id}/armas/{timestamp}_{nome_seguro}"
+        # salva no R2
+        s3.upload_fileobj(file, R2_BUCKET, caminho)
 
     arma = Arma(
         cliente_id=cliente_id,
@@ -959,6 +982,7 @@ def nova_arma(cliente_id):
         data_validade_craf=data_validade_parsed,
         caminho_craf=caminho,
     )
+
     db.session.add(arma)
     db.session.commit()
 
@@ -967,7 +991,26 @@ def nova_arma(cliente_id):
 
 
 # ----------------------
-# EDITAR ARMA (com valida duplicidade + substituição de arquivo)
+# FORMULÁRIO EDITAR ARMA (GET - usado no modal)
+# ----------------------
+@clientes_bp.route("/<int:cliente_id>/armas/<int:arma_id>/editar", methods=["GET"])
+def form_editar_arma(cliente_id, arma_id):
+    """Renderiza o modal para edição da arma"""
+    cliente = Cliente.query.get_or_404(cliente_id)
+    arma = Arma.query.get_or_404(arma_id)
+    return render_template(
+        "clientes/abas/armas_editar.html",
+        cliente=cliente,
+        arma=arma,
+        TIPOS_ARMA=TIPOS_ARMA,
+        FUNCIONAMENTO_ARMA=FUNCIONAMENTO_ARMA,
+        EMISSORES_CRAF=EMISSORES_CRAF,
+        CATEGORIAS_ADQUIRENTE=CATEGORIAS_ADQUIRENTE,
+    )
+
+
+# ----------------------
+# EDITAR ARMA (POST - com valida duplicidade e substituição de arquivo)
 # ----------------------
 @clientes_bp.route("/<int:cliente_id>/armas/<int:arma_id>/editar", methods=["POST"])
 def editar_arma(cliente_id, arma_id):
@@ -1001,11 +1044,13 @@ def editar_arma(cliente_id, arma_id):
     else:
         arma.data_validade_craf = None
 
-    # substituição de arquivo (upload manual)
+    # substituição de arquivo (upload manual para o R2)
     if "arquivo" in request.files and request.files["arquivo"].filename:
         file = request.files["arquivo"]
-        from app.utils.storage import salvar_arquivo_r2
-        arma.caminho_craf = salvar_arquivo_r2(file, pasta="craf")
+        nome_seguro = secure_filename(file.filename)
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        arma.caminho_craf = f"clientes/{cliente_id}/armas/{timestamp}_{nome_seguro}"
+        s3.upload_fileobj(file, R2_BUCKET, arma.caminho_craf)
 
     # substituição de caminho vindo via OCR (hidden input)
     caminho = request.form.get("caminho_craf") or None
@@ -1015,7 +1060,6 @@ def editar_arma(cliente_id, arma_id):
     db.session.commit()
     flash("Arma atualizada com sucesso!", "success")
     return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="armas"))
-
 
 # ----------------------
 # SALVAR CRAF (via OCR)
