@@ -87,15 +87,29 @@ def gerar_link_publico(caminho_arquivo: str, expira_segundos: int = 3600) -> str
     return url
 
 
-def deletar_arquivo(caminho_arquivo: str):
+def deletar_arquivo(caminho_arquivo: str) -> bool:
     """
     Remove o arquivo do bucket, se existir.
+    Retorna True se conseguir excluir (ou se já não existir).
+    Retorna False apenas em falhas reais de conexão/autorização.
     """
     if not caminho_arquivo:
-        return
+        print("[R2] Nenhum caminho fornecido para exclusão.")
+        return True  # nada a excluir → tratado como sucesso
+
     s3 = get_s3()
     bucket = get_bucket()
+
     try:
         s3.delete_object(Bucket=bucket, Key=caminho_arquivo)
+        print(f"[R2] Arquivo excluído (ou já inexistente): {caminho_arquivo}")
+        return True
+
+    except s3.exceptions.NoSuchKey:
+        # Caso o arquivo já tenha sido removido
+        print(f"[R2] Arquivo não encontrado (já excluído): {caminho_arquivo}")
+        return True
+
     except Exception as e:
         print(f"[R2] Erro ao excluir {caminho_arquivo}: {e}")
+        return False

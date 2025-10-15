@@ -1,221 +1,286 @@
+# ======================
+# ROTAS — PRODUTOS
+# ======================
+
 from flask import (
-    render_template, request, redirect, url_for, flash, send_from_directory
+    render_template, request, redirect, url_for,
+    flash, jsonify, current_app, send_file
 )
 from flask_login import login_required
+from werkzeug.utils import secure_filename
 from app import db
-from app.models import Produto
-from openpyxl import load_workbook
-from io import TextIOWrapper
-import csv
-import os
-
-# utilitários que você já usava em routes.py
-from app.utils.numeros import to_float, to_number
-from app.utils.importar import _headers_lower, _row_as_dict, _get
-from app.utils.db_helpers import get_or_404
-
-from . import produtos_bp
+from app.produtos import produtos_bp
+from app.produtos.models import Produto
+from app.produtos.categorias.models import CategoriaProduto
+from app.utils.importar import importar_planilha_produtos
+from decimal import Decimal
+import io
 
 
-###########################
-# --- Produtos ---
-###########################
-
-@produtos_bp.route("/", methods=["GET"])
+# ======================
+# LISTAGEM DE PRODUTOS
+# ======================
+@produtos_bp.route("/", endpoint="index")
 @login_required
-def produtos():
+def index():
     termo = request.args.get("termo", "").strip()
-    lucro = request.args.get("lucro")
-    preco_min = request.args.get("preco_min")
-    preco_max = request.args.get("preco_max")
+    lucro = request.args.get("lucro", "")
+    preco_min = request.args.get("preco_min", type=float)
+    preco_max = request.args.get("preco_max", type=float)
 
-    query = db.session.query(Produto)
+    query = Produto.query
 
+    # 🔍 Filtros opcionais
     if termo:
-        like = f"%{termo}%"
-        query = query.filter(
-            (Produto.nome.ilike(like)) | (Produto.sku.ilike(like))
-        )
-
-    if lucro == "positivo":
-        query = query.filter(Produto.lucro_liquido_real >= 0)
-    elif lucro == "negativo":
-        query = query.filter(Produto.lucro_liquido_real < 0)
-
+        query = query.filter(Produto.nome.ilike(f"%{termo}%"))
     if preco_min:
-        try:
-            query = query.filter(Produto.preco_a_vista >= float(preco_min))
-        except:
-            pass
+        query = query.filter(Produto.preco >= preco_min)
     if preco_max:
-        try:
-            query = query.filter(Produto.preco_a_vista <= float(preco_max))
-        except:
-            pass
+        query = query.filter(Produto.preco <= preco_max)
 
     produtos = query.all()
-    return render_template("produtos.html", produtos=produtos)
+    return render_template("produtos/index.html", produtos=produtos)
 
-
-@produtos_bp.route("/novo", methods=["GET", "POST"])
-@produtos_bp.route("/editar/<int:produto_id>", methods=["GET", "POST"])
-@login_required
-def gerenciar_produto(produto_id=None):
-    produto = db.session.get(Produto, produto_id) if produto_id else None
-
-    if request.method == "POST":
-        if not produto:
-            produto = Produto()
-            db.session.add(produto)
-
-        produto.sku = request.form.get("sku", "").upper()
-        produto.nome = request.form["nome"]
-
-        produto.preco_fornecedor = to_float(request.form.get("preco_fornecedor"))
-        produto.desconto_fornecedor = to_float(request.form.get("desconto_fornecedor"))
-
-        produto.margem = to_float(request.form.get("margem"))
-        produto.lucro_alvo = (to_float(request.form.get("lucro_alvo")) or None)
-        produto.preco_final = (to_float(request.form.get("preco_final")) or None)
-
-        # 🔹 Novo campo frete
-        produto.frete = to_float(request.form.get("frete"))
-
-        produto.ipi = to_float(request.form.get("ipi"))
-        produto.ipi_tipo = request.form.get("ipi_tipo", "%")
-        produto.difal = to_float(request.form.get("difal"))
-        produto.imposto_venda = to_float(request.form.get("imposto_venda"))
-
-        # 🔹 Calcula preços com frete incluído
-        produto.calcular_precos()
-
-        db.session.commit()
-        flash("Produto salvo com sucesso!", "success")
-        return redirect(url_for("produtos.produtos"))
-
-    return render_template("produto_form.html", produto=produto)
-
-
-@produtos_bp.route("/excluir/<int:produto_id>")
-@login_required
-def excluir_produto(produto_id):
-    produto = get_or_404(Produto, produto_id)
-    db.session.delete(produto)
-    db.session.commit()
-    flash("Produto excluído com sucesso!", "success")
-    return redirect(url_for("produtos.produtos"))
-
-
-# --- Importação de Produtos (sem pandas) ---
+# ======================
+# IMPORTAR PRODUTOS VIA PLANILHA
+# ======================
 @produtos_bp.route("/importar", methods=["GET", "POST"])
 @login_required
 def importar_produtos():
+    """Importa produtos a partir de uma planilha Excel/CSV."""
     if request.method == "POST":
-        file = request.files.get("arquivo")
-        if not file or file.filename == "":
+        arquivo = request.files.get("arquivo")
+        if not arquivo:
             flash("Nenhum arquivo selecionado.", "warning")
             return redirect(url_for("produtos.importar_produtos"))
 
-        filename = file.filename.lower()
+        try:
+            # Aqui você pode usar sua função de importação existente
+            from app.services.importacao import importar_produtos_planilha
+            qtd, erros = importar_produtos_planilha(arquivo)
+
+            flash(f"✅ {qtd} produtos importados com sucesso!", "success")
+            if erros:
+                flash(f"⚠️ Alguns produtos apresentaram erros: {', '.join(erros)}", "warning")
+
+        except Exception as e:
+            current_app.logger.error(f"Erro ao importar produtos: {e}")
+            flash("❌ Erro ao processar a planilha de produtos.", "danger")
+
+        return redirect(url_for("produtos.index"))
+
+    # GET → exibe formulário simples de upload
+    return render_template("produtos/importar.html")
+
+
+
+# ======================
+# CADASTRAR / EDITAR PRODUTO
+# ======================
+@produtos_bp.route("/novo", methods=["GET", "POST"])
+@produtos_bp.route("/<int:produto_id>/editar", methods=["GET", "POST"])
+@login_required
+def gerenciar_produto(produto_id=None):
+    """Cria ou edita um produto com validação de duplicidade e categoria."""
+
+    # 🔁 DUPLICAR PRODUTO (pré-preenche o formulário)
+    duplicar_de = request.args.get("duplicar_de", type=int)
+    if duplicar_de:
+        produto_ref = Produto.query.get(duplicar_de)
+        if produto_ref:
+            produto = Produto(
+                nome=produto_ref.nome,
+                descricao=produto_ref.descricao,
+                categoria_id=produto_ref.categoria_id,
+                preco_fornecedor=produto_ref.preco_fornecedor,
+                desconto_fornecedor=produto_ref.desconto_fornecedor,
+                frete=produto_ref.frete,
+                margem=produto_ref.margem,
+                lucro_alvo=produto_ref.lucro_alvo,
+                preco_final=produto_ref.preco_final,
+                ipi_tipo=produto_ref.ipi_tipo,
+                ipi=produto_ref.ipi,
+                difal=produto_ref.difal,
+                imposto_venda=produto_ref.imposto_venda,
+            )
+            flash(f"Produto '{produto_ref.nome}' duplicado. Revise antes de salvar.", "info")
+        else:
+            flash("⚠️ Produto de origem não encontrado para duplicação.", "warning")
+            produto = Produto()
+    else:
+        produto = Produto.query.get(produto_id) if produto_id else Produto()
+
+    categorias = CategoriaProduto.query.order_by(CategoriaProduto.nome.asc()).all()
+
+    if request.method == "POST":
+        data = request.form
+
+        # Campos principais
+        codigo = (data.get("codigo") or "").strip().upper()
+        nome = (data.get("nome") or "").strip()
+        descricao = (data.get("descricao") or "").strip() or None
+
+        # Categoria
+        cat_id = data.get("categoria_id")
+        categoria_id = int(cat_id) if cat_id else None
+
+        # 🚫 Verifica duplicidade (ignora o próprio produto)
+        existente = (
+            Produto.query.filter(Produto.codigo == codigo)
+            .filter(Produto.id != produto.id if produto.id else True)
+            .first()
+        )
+        if existente:
+            flash(f"⚠️ Já existe um produto com o código {codigo}.", "warning")
+            return redirect(url_for("produtos.gerenciar_produto", produto_id=produto.id))
+
+        # Atualiza ou cria
+        produto.codigo = codigo
+        produto.nome = nome
+        produto.descricao = descricao
+        produto.categoria_id = categoria_id
+
+        # Conversão segura para Decimal
+        from decimal import Decimal, InvalidOperation
+
+        def to_decimal(value):
+            try:
+                return Decimal(str(value or 0).replace(",", "."))
+            except InvalidOperation:
+                return Decimal(0)
+
+        produto.preco_fornecedor = to_decimal(data.get("preco_fornecedor"))
+        produto.desconto_fornecedor = to_decimal(data.get("desconto_fornecedor"))
+        produto.frete = to_decimal(data.get("frete"))
+        produto.margem = to_decimal(data.get("margem"))
+        produto.lucro_alvo = to_decimal(data.get("lucro_alvo"))
+        produto.preco_final = to_decimal(data.get("preco_final"))
+        produto.ipi = to_decimal(data.get("ipi"))
+        produto.difal = to_decimal(data.get("difal"))
+        produto.imposto_venda = to_decimal(data.get("imposto_venda"))
+        produto.ipi_tipo = data.get("ipi_tipo", "%_dentro")
 
         try:
-            criados, atualizados = 0, 0
+            if hasattr(produto, "calcular_precos"):
+                produto.calcular_precos()
 
-            if filename.endswith(".xlsx"):
-                wb = load_workbook(file, data_only=True)
-                ws = wb.active
-                headers = _headers_lower(ws)
-
-                for row in ws.iter_rows(min_row=2, values_only=True):
-                    data = _row_as_dict(headers, row)
-
-                    sku = (str(_get(data, "sku") or "").strip().upper())
-                    if not sku:
-                        continue
-
-                    produto = db.session.query(Produto).filter_by(sku=sku).first()
-                    if not produto:
-                        produto = Produto(sku=sku)
-                        db.session.add(produto)
-                        criados += 1
-                    else:
-                        atualizados += 1
-
-                    produto.nome = _get(data, "nome", default=produto.nome)
-                    produto.preco_fornecedor = to_number(_get(data, "preco_fornecedor"))
-                    produto.desconto_fornecedor = to_number(_get(data, "desconto_fornecedor"))
-                    produto.margem = to_number(_get(data, "margem"))
-                    produto.lucro_alvo = to_number(_get(data, "lucro_alvo")) or None
-                    produto.preco_final = to_number(_get(data, "preco_final")) or None
-
-                    produto.ipi = to_number(_get(data, "ipi"))
-                    produto.ipi_tipo = _get(data, "ipi_tipo", default="%") or "%"
-                    produto.difal = to_number(_get(data, "difal"))
-                    produto.imposto_venda = to_number(_get(data, "imposto_venda"))
-
-                    produto.calcular_precos()
-
-            elif filename.endswith(".csv"):
-                # Detectar encoding/delimitador e ler linhas
-                text = TextIOWrapper(file.stream, encoding="utf-8-sig", newline="")
-                try:
-                    sniffer = csv.Sniffer()
-                    sample = text.read(2048)
-                    text.seek(0)
-                    dialect = sniffer.sniff(sample)
-                except Exception:
-                    text.seek(0)
-                    dialect = csv.excel
-
-                reader = csv.DictReader(text, dialect=dialect)
-                # normalizar headers para lower
-                field_map = {h: h.strip().lower() for h in reader.fieldnames or []}
-
-                for row in reader:
-                    data = {field_map.get(k, k).lower(): v for k, v in row.items()}
-
-                    sku = (str(data.get("sku") or "").strip().upper())
-                    if not sku:
-                        continue
-
-                    produto = db.session.query(Produto).filter_by(sku=sku).first()
-                    if not produto:
-                        produto = Produto(sku=sku)
-                        db.session.add(produto)
-                        criados += 1
-                    else:
-                        atualizados += 1
-
-                    produto.nome = data.get("nome", produto.nome)
-                    produto.preco_fornecedor = to_number(data.get("preco_fornecedor"))
-                    produto.desconto_fornecedor = to_number(data.get("desconto_fornecedor"))
-                    produto.margem = to_number(data.get("margem"))
-                    produto.lucro_alvo = to_number(data.get("lucro_alvo")) or None
-                    produto.preco_final = to_number(data.get("preco_final")) or None
-
-                    produto.ipi = to_number(data.get("ipi"))
-                    produto.ipi_tipo = data.get("ipi_tipo") or "%"
-                    produto.difal = to_number(data.get("difal"))
-                    produto.imposto_venda = to_number(data.get("imposto_venda"))
-
-                    produto.calcular_precos()
-            else:
-                flash("Formato de arquivo não suportado. Use .csv ou .xlsx", "danger")
-                return redirect(url_for("produtos.importar_produtos"))
-
+            db.session.add(produto)
             db.session.commit()
-            flash(f"Importação concluída! {criados} criados, {atualizados} atualizados.", "success")
+
+            flash("✅ Produto salvo com sucesso!", "success")
+            return redirect(url_for("produtos.index"))
+
         except Exception as e:
             db.session.rollback()
-            flash(f"Erro ao importar: {e}", "danger")
+            current_app.logger.error(f"Erro ao salvar produto: {e}")
+            flash("❌ Ocorreu um erro ao salvar o produto.", "danger")
 
-        return redirect(url_for("produtos.produtos"))
+    # GET
+    return render_template("produtos/produto_form.html", produto=produto, categorias=categorias)
 
-    return render_template("produtos_importar.html")
+
+# ======================
+# EXCLUIR PRODUTO
+# ======================
+@produtos_bp.route("/<int:produto_id>/excluir")
+@login_required
+def excluir_produto(produto_id):
+    produto = Produto.query.get_or_404(produto_id)
+    try:
+        db.session.delete(produto)
+        db.session.commit()
+        flash("🗑️ Produto excluído com sucesso!", "success")
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erro ao excluir produto: {e}")
+        flash("❌ Erro ao excluir produto.", "danger")
+    return redirect(url_for("produtos.index"))
+
+# ======================
+# DUPLICAR PRODUTO
+# ======================
+
+from flask import Blueprint, redirect, url_for, flash
+from flask_login import login_required
+from app import db
+from app.produtos.models import Produto, CategoriaProduto
+
+produtos_bp = Blueprint("produtos", __name__)
+
+@produtos_bp.route("/<int:produto_id>/duplicar")
+@login_required
+def duplicar_produto(produto_id):
+    """Duplica um produto existente, abrindo o form pré-preenchido para revisão."""
+    produto_original = Produto.query.get_or_404(produto_id)
+
+    # Cria uma cópia do objeto (sem ID e código)
+    produto_novo = Produto(
+        codigo=None,  # o usuário define no form
+        sku=None,
+        nome=produto_original.nome,
+        descricao=produto_original.descricao,
+        categoria_id=produto_original.categoria_id,
+        preco_fornecedor=produto_original.preco_fornecedor,
+        desconto_fornecedor=produto_original.desconto_fornecedor,
+        frete=produto_original.frete,
+        margem=produto_original.margem,
+        lucro_alvo=produto_original.lucro_alvo,
+        preco_final=produto_original.preco_final,
+        ipi_tipo=produto_original.ipi_tipo,
+        ipi=produto_original.ipi,
+        difal=produto_original.difal,
+        imposto_venda=produto_original.imposto_venda,
+    )
+
+    # ⚠️ Não comita ainda — apenas cria a instância para edição
+    db.session.expunge(produto_original)  # evita vínculo de referência
+
+    flash(f"Produto '{produto_original.nome}' duplicado. Revise antes de salvar.", "info")
+
+    # Redireciona para o form de criação com dados pré-preenchidos
+    # passando via sessão (Flask) ou querystring se preferir.
+    # Aqui, vamos usar o método via querystring para simplicidade:
+    return redirect(
+        url_for("produtos.gerenciar_produto", duplicar_de=produto_id)
+    )
 
 
-@produtos_bp.route("/exemplo-csv")
+
+# ======================
+# BAIXAR EXEMPLO CSV
+# ======================
+@produtos_bp.route("/exemplo_csv")
 @login_required
 def exemplo_csv():
-    pasta = os.path.join(os.path.dirname(__file__), "..", "static")
-    return send_from_directory(pasta, "exemplo_produtos.csv", as_attachment=True)
+    exemplo = io.StringIO()
+    exemplo.write("sku,nome,preco_fornecedor,desconto_fornecedor,margem,ipi,ipi_tipo,difal,imposto_venda\n")
+    exemplo.write("ABC123,Exemplo de Produto,3500,5,25,0,%_dentro,5,8\n")
+    exemplo.seek(0)
+
+    return send_file(
+        io.BytesIO(exemplo.getvalue().encode("utf-8")),
+        as_attachment=True,
+        download_name="modelo_produtos.csv",
+        mimetype="text/csv"
+    )
+
+
+# ======================
+# API — TEXTO PARA WHATSAPP
+# ======================
+@produtos_bp.route("/api/produto/<int:produto_id>/whatsapp")
+@login_required
+def produto_whatsapp(produto_id):
+    produto = Produto.query.get_or_404(produto_id)
+    produto.calcular_precos()
+
+    texto = (
+        f"*{produto.nome}*\n"
+        f"💰 À vista: R$ {produto.preco_a_vista:,.2f}\n"
+        f"📦 Custo total: R$ {produto.custo_total:,.2f}\n"
+        f"💸 Lucro líquido: R$ {produto.lucro_liquido_real:,.2f}\n"
+        f"🧮 Margem: {produto.margem or 0}%\n\n"
+        f"Código: {produto.codigo}"
+    )
+
+    return jsonify({"texto_completo": texto})

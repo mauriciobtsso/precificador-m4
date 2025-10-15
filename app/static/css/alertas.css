@@ -1,0 +1,185 @@
+/* =========================
+   ALERTAS - ESTILO BASE
+   ========================= */
+
+#page-alertas {
+  font-size: 0.95rem;
+}
+
+.filtros-container {
+  background-color: #f9f9f9;
+  border-left: 4px solid #0d6efd;
+}
+
+#form-filtros .form-label {
+  font-weight: 500;
+}
+
+.tipo {
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tipo-doc {
+  color: #0d6efd;
+}
+
+.tipo-arma {
+  color: #fd7e14;
+}
+
+.tipo-proc {
+  color: #198754;
+}
+
+.tipo-cliente {
+  color: #6c757d;
+}
+
+.nivel {
+  font-weight: 600;
+}
+
+.nivel-alto {
+  color: #dc3545;
+}
+
+.nivel-medio {
+  color: #ffc107;
+}
+
+.nivel-baixo {
+  color: #198754;
+}
+
+.table td, .table th {
+  vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.card-footer {
+  background-color: #fff;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.pagination .page-link {
+  color: #0d6efd;
+}
+
+#form-filtros input[type="date"]::-webkit-datetime-edit {
+  color: #6c757d;
+}
+
+#form-filtros input[type="text"]::placeholder {
+  color: #adb5bd;
+}
+
+#form-filtros .form-control {
+  height: 38px;
+}
+
+/* =========================
+   ALERTAS - MELHORIAS VISUAIS
+   ========================= */
+
+#page-alertas h2 {
+  font-weight: 600;
+}
+
+.tipo {
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.95rem;
+}
+
+.nivel {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.table td, .table th {
+  vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.badge-nivel {
+  padding: 0.35em 0.6em;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.badge-nivel.alto {
+  background-color: #dc3545;
+  color: #fff;
+}
+.badge-nivel.médio, .badge-nivel.medio {
+  background-color: #ffc107;
+  color: #212529;
+}
+.badge-nivel.baixo {
+  background-color: #198754;
+  color: #fff;
+}
+
+/* Tooltip leve para ícones */
+.tooltip-alerta {
+  position: absolute;
+  background: #000;
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* ======================
+   NOTIFICAÇÕES - Estilo visual
+====================== */
+.notificacao-item.lida {
+  opacity: 0.6;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+}
+.notificacao-item .status {
+  font-size: 0.9em;
+  color: #777;
+}
+
+/* ===========================
+   Layout do Painel de Notificações
+=========================== */
+
+/* Define proporções melhores */
+#tabelaNotificacoes th:nth-child(1) { width: 10%; } /* Data */
+#tabelaNotificacoes th:nth-child(2) { width: 18%; } /* Cliente */
+#tabelaNotificacoes th:nth-child(3),
+#tabelaNotificacoes th:nth-child(4),
+#tabelaNotificacoes th:nth-child(6),
+#tabelaNotificacoes th:nth-child(7),
+#tabelaNotificacoes th:nth-child(8) { width: 8%; }
+
+/* 🔹 Mensagem com largura fluida e quebra suave */
+#tabelaNotificacoes td.col-mensagem {
+  max-width: 45%;
+  white-space: normal;
+  word-break: break-word;
+  text-wrap: balance;
+  line-height: 1.4;
+}
+

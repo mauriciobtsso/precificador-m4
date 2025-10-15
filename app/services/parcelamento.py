@@ -1,6 +1,7 @@
 # app/services/parcelamento.py
 from typing import List, Tuple, Optional
-from app.models import Produto, Taxa
+from app.produtos.models import Produto
+from app.models import Taxa
 import app.utils.parcelamento as parc
 from app.utils.whatsapp import gerar_mensagem_whatsapp
 

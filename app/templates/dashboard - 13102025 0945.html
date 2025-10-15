@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+    <span class="text-muted">Visão geral do sistema</span>
+</div>
+
+<!-- Atalhos principais -->
+<div class="row mb-4 g-2">
+    <div class="col-12 col-sm-6 col-md-3">
+        <a href="{{ url_for('produtos.gerenciar_produto') }}" class="card text-center shadow-sm text-decoration-none h-100">
+            <div class="card-body p-3">
+                <i class="fas fa-plus-circle fa-lg d-inline d-md-none text-primary mb-2"></i>
+                <i class="fas fa-plus-circle fa-2x d-none d-md-inline text-primary mb-2"></i>
+                <h6 class="text-dark">Cadastrar Produto</h6>
+            </div>
+        </a>
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <a href="{{ url_for('taxas.listar') }}" class="card text-center shadow-sm text-decoration-none h-100">
+            <div class="card-body p-3">
+                <i class="fas fa-percent fa-lg d-inline d-md-none text-success mb-2"></i>
+                <i class="fas fa-percent fa-2x d-none d-md-inline text-success mb-2"></i>
+                <h6 class="text-dark">Gerenciar Taxas</h6>
+            </div>
+        </a>
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <a href="{{ url_for('produtos.produtos') }}" class="card text-center shadow-sm text-decoration-none h-100">
+            <div class="card-body p-3">
+                <i class="fas fa-boxes fa-lg d-inline d-md-none text-warning mb-2"></i>
+                <i class="fas fa-boxes fa-2x d-none d-md-inline text-warning mb-2"></i>
+                <h6 class="text-dark">Lista de Produtos</h6>
+            </div>
+        </a>
+    </div>
+    <div class="col-12 col-sm-6 col-md-3">
+        <a href="{{ url_for('main.parcelamento_rapido') }}" class="card text-center shadow-sm text-decoration-none h-100">
+            <div class="card-body p-3">
+                <i class="fas fa-calculator fa-lg d-inline d-md-none text-info mb-2"></i>
+                <i class="fas fa-calculator fa-2x d-none d-md-inline text-info mb-2"></i>
+                <h6 class="text-dark">Simulação Rápida</h6>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Indicadores -->
+<div class="row mb-4 g-2">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center h-100">
+            <div class="card-body p-2 p-md-3">
+                <i class="fas fa-cubes fa-lg d-inline d-md-none text-primary mb-2"></i>
+                <i class="fas fa-cubes fa-2x d-none d-md-inline text-primary mb-2"></i>
+                <h6>Total Produtos</h6>
+                <h5 class="text-primary">{{ produtos|length }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center h-100">
+            <div class="card-body p-2 p-md-3">
+                <i class="fas fa-dollar-sign fa-lg d-inline d-md-none text-success mb-2"></i>
+                <i class="fas fa-dollar-sign fa-2x d-none d-md-inline text-success mb-2"></i>
+                <h6>Vendas no mês</h6>
+                <h5 class="text-success">{{ "R$ {:,.2f}".format(total_vendas_mes).replace(",", "X").replace(".", ",").replace("X", ".") }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center h-100">
+            <div class="card-body p-2 p-md-3">
+                <i class="fas fa-chart-line fa-lg d-inline d-md-none text-info mb-2"></i>
+                <i class="fas fa-chart-line fa-2x d-none d-md-inline text-info mb-2"></i>
+                <h6>Ticket Médio</h6>
+                <h5 class="text-info">{{ "R$ {:,.2f}".format(ticket_medio).replace(",", "X").replace(".", ",").replace("X", ".") }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm text-center h-100">
+            <div class="card-body p-2 p-md-3">
+                <i class="fas fa-star fa-lg d-inline d-md-none text-warning mb-2"></i>
+                <i class="fas fa-star fa-2x d-none d-md-inline text-warning mb-2"></i>
+                <h6>Produto + vendido</h6>
+                {% if produto_mais_vendido %}
+                    <small class="d-block text-truncate">{{ produto_mais_vendido[0] }}</small>
+                {% else %}
+                    <small class="d-block text-muted">Sem vendas</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-chart-bar"></i> Vendas últimos 6 meses
+            </div>
+            <div class="card-body">
+                <canvas id="chartVendas"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-users"></i> Top 5 Clientes
+            </div>
+            <div class="card-body">
+                <canvas id="chartClientes"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela Top Clientes -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <i class="fas fa-crown"></i> Top 5 Clientes
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cliente, total in top_clientes %}
+                <tr>
+                    <td>{{ cliente }}</td>
+                    <td>{{ "R$ {:,.2f}".format(total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2" class="text-center text-muted">Sem vendas</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Gráfico de vendas
+    new Chart(document.getElementById('chartVendas').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: {{ meses|tojson }},
+            datasets: [{
+                label: 'Vendas (R$)',
+                data: {{ totais|tojson }},
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // Gráfico de clientes
+    new Chart(document.getElementById('chartClientes').getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: [{% for cliente, total in top_clientes %}"{{ cliente }}",{% endfor %}],
+            datasets: [{
+                data: [{% for cliente, total in top_clientes %}{{ total }},{% endfor %}],
+                backgroundColor: ['#007bff','#28a745','#ffc107','#17a2b8','#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+</script>
+{% endblock %}

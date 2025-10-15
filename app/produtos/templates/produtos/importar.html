@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-file-upload"></i> Importar Produtos</h2>
+    <a href="{{ url_for('produtos.index') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="arquivo" class="form-label">Selecione o arquivo</label>
+                <input type="file" name="arquivo" id="arquivo" class="form-control" accept=".csv,.xlsx" required>
+            </div>
+
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-upload"></i> Importar
+            </button>
+
+            <a href="{{ url_for('produtos.exemplo_csv') }}" class="btn btn-outline-info ms-2">
+                <i class="fas fa-download"></i> Baixar modelo CSV
+            </a>
+        </form>
+
+        <hr>
+
+        <h6>📌 Instruções:</h6>
+        <ul class="small text-muted">
+            <li>O arquivo pode estar em formato <code>.csv</code> (separado por vírgulas ou ponto e vírgula) ou <code>.xlsx</code> (Excel).</li>
+            <li>Colunas aceitas: <code>sku, nome, preco_fornecedor, desconto_fornecedor, margem, ipi, ipi_tipo, difal, imposto_venda</code>.</li>
+            <li>Os campos numéricos podem ser informados com ponto ou vírgula (ex: <code>3500.50</code> ou <code>3500,50</code>).</li>
+            <li><code>ipi_tipo</code> deve ser <strong>%</strong> ou <strong>R$</strong> (valores inválidos serão corrigidos para <strong>%</strong>).</li>
+            <li>Se o SKU já existir, o produto será atualizado; caso contrário, será criado.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

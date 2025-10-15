@@ -1,43 +1,81 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h2><i class="fas fa-credit-card"></i> Simulação de Parcelamento</h2>
-  <span class="text-muted">Condições para <strong>{{ produto.nome }}</strong></span>
+<style>
+  .card-parcela {
+    border: none;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+  }
+  .card-parcela:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  .card-parcela .badge {
+    font-size: 0.8rem;
+    padding: 0.4em 0.8em;
+  }
+  .sku-info {
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+  .highlight-badge {
+    background: linear-gradient(90deg, #ff6600, #ff8800);
+    color: #fff !important;
+    font-weight: 600;
+  }
+</style>
+
+<!-- Cabeçalho -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+  <h2 class="mb-2 mb-md-0">
+    <i class="fas fa-credit-card text-warning me-2"></i> Simulação de Parcelamento
+  </h2>
+  <span class="text-muted">
+    Condições para <strong>{{ produto.nome }}</strong>
+  </span>
 </div>
 
 <!-- Resumo do produto -->
-<div class="card shadow-sm mb-4">
-  <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+<div class="card shadow-sm mb-4 border-0">
+  <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-      <h5 class="card-title mb-1">{{ produto.nome }}</h5>
-      <small class="text-muted">SKU: {{ produto.sku }}</small>
+      <h5 class="card-title mb-1 text-dark fw-semibold">
+        <i class="fas fa-box-open text-secondary me-1"></i> {{ produto.nome }}
+      </h5>
+      <div class="sku-info">
+        <i class="fas fa-barcode me-1"></i> SKU: {{ produto.sku or '—' }}
+      </div>
     </div>
-    <span class="badge bg-primary fs-5 mt-2 mt-md-0">
-      À vista: {{ (produto.preco_final or produto.preco_a_vista)|currency }}
-    </span>
+    <div>
+      <span class="badge highlight-badge fs-5 px-3 py-2 rounded-pill shadow-sm">
+        À vista: {{ (produto.preco_final or produto.preco_a_vista)|currency }}
+      </span>
+    </div>
   </div>
 </div>
 
 <!-- Tabela de Parcelamento em Cards -->
 <div class="row g-3">
   <!-- PIX -->
-  <div class="col-12 col-md-4">
+  <div class="col-12 col-md-4 col-lg-3">
     <div class="card shadow-sm h-100 text-center card-parcela">
       <div class="card-body">
         <span class="badge bg-success mb-2">PIX</span>
-        <h5 class="fw-bold">{{ (produto.preco_final or produto.preco_a_vista)|currency }}</h5>
+        <h5 class="fw-bold text-dark mb-1">
+          {{ (produto.preco_final or produto.preco_a_vista)|currency }}
+        </h5>
         <small class="text-muted">Total: {{ (produto.preco_final or produto.preco_a_vista)|currency }}</small>
       </div>
     </div>
   </div>
 
   <!-- Débito -->
-  {% set debito_total = (produto.preco_final or produto.preco_a_vista) / (1 - 0.0109) %}
-  <div class="col-12 col-md-4">
+  {% set debito_total = (produto.preco_final or produto.preco_a_vista) / (1 - Decimal('0.0109')) %}
+  <div class="col-12 col-md-4 col-lg-3">
     <div class="card shadow-sm h-100 text-center card-parcela">
       <div class="card-body">
         <span class="badge bg-info mb-2">Débito</span>
-        <h5 class="fw-bold">{{ debito_total|currency }}</h5>
+        <h5 class="fw-bold text-dark mb-1">{{ debito_total|currency }}</h5>
         <small class="text-muted">Total: {{ debito_total|currency }}</small>
       </div>
     </div>
@@ -45,11 +83,11 @@
 
   <!-- Demais planos -->
   {% for r in resultado %}
-  <div class="col-12 col-md-4">
+  <div class="col-12 col-md-4 col-lg-3">
     <div class="card shadow-sm h-100 text-center card-parcela">
       <div class="card-body">
         <span class="badge bg-secondary mb-2">{{ r.rotulo }}</span>
-        <h5 class="fw-bold">{{ r.parcela|currency }}</h5>
+        <h5 class="fw-bold text-dark mb-1">{{ r.parcela|currency }}</h5>
         <small class="text-muted">Total: {{ r.total|currency }}</small>
       </div>
     </div>
@@ -57,12 +95,14 @@
   {% endfor %}
 </div>
 
+<!-- Botão WhatsApp -->
 <div class="mt-4 text-end">
-  <button id="btnCopy" class="btn btn-success">
+  <button id="btnCopy" class="btn btn-success px-4 py-2 shadow-sm">
     <i class="fas fa-copy me-1"></i> Copiar para WhatsApp
   </button>
 </div>
 
+<!-- Script de cópia -->
 <script>
   const textoWhats = {{ texto_whats|tojson|safe }};
 
@@ -70,9 +110,9 @@
     try {
       await navigator.clipboard.writeText(textoWhats);
 
-      // feedback visual simples
       const btn = document.getElementById('btnCopy');
       const original = btn.innerHTML;
+
       btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
       btn.classList.remove('btn-success');
       btn.classList.add('btn-primary');

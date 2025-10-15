@@ -1,15 +1,15 @@
 # ======================
-# MÓDULO: PRODUTOS
+# MÓDULO DE ALERTAS
 # ======================
 
 from flask import Blueprint
 
-produtos_bp = Blueprint(
-    "produtos",
+# Criação do Blueprint principal
+alertas_bp = Blueprint(
+    "alertas",
     __name__,
-    url_prefix="/produtos",
     template_folder="templates",
     static_folder="static"
 )
 
-from app.produtos import routes  # noqa: E402, F401
+from app.alertas import routes  # noqa: E402

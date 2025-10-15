@@ -8,7 +8,7 @@ import mimetypes
 from io import BytesIO
 from datetime import datetime
 
-from sqlalchemy import or_, func, select, extract
+from sqlalchemy import or_, func, select
 from sqlalchemy.orm import joinedload, aliased
 from sqlalchemy.sql import label, over
 
@@ -20,9 +20,6 @@ from flask import (
 from app import db
 from app.utils.db_helpers import get_or_404
 from app.utils.r2_helpers import gerar_link_r2
-from app.utils.storage import get_s3, get_bucket, deletar_arquivo
-from app.models import Venda
-from app.produtos.models import Produto
 
 from app.clientes.models import (
     Cliente, Documento, Arma, Comunicacao, Processo,
@@ -931,12 +928,11 @@ def form_nova_arma(cliente_id):
 
 
 # ----------------------
-# NOVA ARMA (POST - cadastro manual ou com arquivo opcional / OCR)
+# NOVA ARMA (POST - cadastro manual ou com arquivo opcional)
 # ----------------------
 @clientes_bp.route("/<int:cliente_id>/armas/nova", methods=["POST"])
 def nova_arma(cliente_id):
-    """Cadastro manual de arma, com upload opcional de arquivo.
-    Evita duplicidade quando o OCR já fez o upload."""
+    """Cadastro manual de arma, com upload opcional de arquivo."""
     num_serie = request.form.get("numero_serie")
     if num_serie and Arma.query.filter_by(numero_serie=num_serie).first():
         flash(f"Já existe arma com número de série {num_serie}", "warning")
@@ -961,26 +957,15 @@ def nova_arma(cliente_id):
         except ValueError:
             data_validade_parsed = None
 
-    # ==============================
-    # 🔹 Upload inteligente (OCR + manual)
-    # ==============================
-    caminho = request.form.get("caminho_craf") or None
-
-    # Só faz upload se o OCR ainda não fez (evita duplicidade no R2)
-    if not caminho and "arquivo" in request.files and request.files["arquivo"].filename:
+    # upload opcional de arquivo (R2)
+    caminho = None
+    if "arquivo" in request.files and request.files["arquivo"].filename:
         file = request.files["arquivo"]
         nome_seguro = secure_filename(file.filename)
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         caminho = f"clientes/{cliente_id}/armas/{timestamp}_{nome_seguro}"
-
-        s3 = get_s3()
-        bucket = get_bucket()
-        file.seek(0)
-        s3.upload_fileobj(file, bucket, caminho)
-        print(f"[R2] Upload realizado: {caminho}")
-    else:
-        if caminho:
-            print(f"[R2] OCR já havia enviado: {caminho}")
+        # salva no R2
+        s3.upload_fileobj(file, R2_BUCKET, caminho)
 
     arma = Arma(
         cliente_id=cliente_id,
@@ -1029,8 +1014,7 @@ def form_editar_arma(cliente_id, arma_id):
 # ----------------------
 @clientes_bp.route("/<int:cliente_id>/armas/<int:arma_id>/editar", methods=["POST"])
 def editar_arma(cliente_id, arma_id):
-    """Edita os dados de uma arma existente, priorizando OCR sobre upload manual
-    e garantindo exclusão do arquivo anterior no R2."""
+    """Edita os dados de uma arma existente."""
     arma = Arma.query.get_or_404(arma_id)
 
     # valida duplicidade de número de série
@@ -1060,33 +1044,18 @@ def editar_arma(cliente_id, arma_id):
     else:
         arma.data_validade_craf = None
 
-    # ==============================
-    # 🔹 Upload inteligente (prioriza OCR, substitui manualmente se necessário)
-    # ==============================
-    novo_caminho = request.form.get("caminho_craf") or None
-
-    if not novo_caminho and "arquivo" in request.files and request.files["arquivo"].filename:
+    # substituição de arquivo (upload manual para o R2)
+    if "arquivo" in request.files and request.files["arquivo"].filename:
         file = request.files["arquivo"]
         nome_seguro = secure_filename(file.filename)
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        novo_caminho = f"clientes/{cliente_id}/armas/{timestamp}_{nome_seguro}"
+        arma.caminho_craf = f"clientes/{cliente_id}/armas/{timestamp}_{nome_seguro}"
+        s3.upload_fileobj(file, R2_BUCKET, arma.caminho_craf)
 
-        # Exclui o arquivo anterior no R2, se existir
-        if arma.caminho_craf:
-            deletar_arquivo(arma.caminho_craf)
-
-        s3 = get_s3()
-        bucket = get_bucket()
-        file.seek(0)
-        s3.upload_fileobj(file, bucket, novo_caminho)
-        print(f"[R2] Upload substituição realizado: {novo_caminho}")
-    else:
-        if novo_caminho:
-            print(f"[R2] OCR substituiu caminho existente: {novo_caminho}")
-
-    # Atualiza o caminho se houver novo
-    if novo_caminho:
-        arma.caminho_craf = novo_caminho
+    # substituição de caminho vindo via OCR (hidden input)
+    caminho = request.form.get("caminho_craf") or None
+    if caminho:
+        arma.caminho_craf = caminho
 
     db.session.commit()
     flash("Arma atualizada com sucesso!", "success")
@@ -1151,25 +1120,11 @@ def salvar_craf(cliente_id):
 # ----------------------
 @clientes_bp.route("/<int:cliente_id>/armas/<int:arma_id>/deletar", methods=["POST"])
 def deletar_arma(cliente_id, arma_id):
-    """Deleta arma do cliente e remove o arquivo CRAF do R2 (se existir)."""
+    """Deleta arma do cliente."""
     arma = Arma.query.get_or_404(arma_id)
-    caminho_arquivo = arma.caminho_craf
-
-    try:
-        db.session.delete(arma)
-        db.session.commit()
-
-        # 🔹 Após deletar no banco, remove o arquivo do R2
-        if caminho_arquivo:
-            deletar_arquivo(caminho_arquivo)
-
-        flash("Arma excluída com sucesso!", "success")
-
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Erro ao excluir arma {arma_id}: {e}")
-        flash("Erro ao excluir arma.", "danger")
-
+    db.session.delete(arma)
+    db.session.commit()
+    flash("Arma excluída com sucesso!", "success")
     return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="armas"))
 
 
@@ -1330,99 +1285,3 @@ def excluir_processo(cliente_id, proc_id):
     db.session.commit()
     flash("Processo excluído com sucesso!", "success")
     return redirect(url_for("clientes.detalhe", cliente_id=cliente.id))
-
-# ============================
-# API - DASHBOARD M4
-# ============================
-
-@clientes_bp.route("/api/resumo")
-def api_resumo():
-    """Retorna totais consolidados para o dashboard."""
-    hoje = datetime.now()
-    clientes_total = db.session.query(func.count(Cliente.id)).scalar()
-    documentos_validos = db.session.query(func.count(Documento.id)).filter(
-        Documento.data_validade >= hoje
-    ).scalar()
-    documentos_vencidos = db.session.query(func.count(Documento.id)).filter(
-        Documento.data_validade < hoje
-    ).scalar()
-    produtos_total = db.session.query(func.count(Produto.id)).scalar()
-    processos_ativos = db.session.query(func.count(Processo.id)).filter(
-        func.lower(Processo.status).notin_(["concluído", "finalizado"])
-    ).scalar()
-
-    vendas_mes = (
-        db.session.query(func.sum(Venda.valor_total))
-        .filter(extract("year", Venda.data_abertura) == hoje.year)
-        .filter(extract("month", Venda.data_abertura) == hoje.month)
-        .scalar()
-        or 0
-    )
-
-    return jsonify({
-        "clientes_total": clientes_total or 0,
-        "documentos_validos": documentos_validos or 0,
-        "documentos_vencidos": documentos_vencidos or 0,
-        "produtos_total": produtos_total or 0,      # ← novo campo
-        "processos_ativos": processos_ativos or 0,
-        "vendas_mes": float(vendas_mes)
-    })
-
-
-@clientes_bp.route("/api/alertas")
-def api_alertas():
-    """Retorna lista de alertas do sistema."""
-    from app.utils.alertas import gerar_alertas_gerais  # ✅ import local e seguro
-    alertas = gerar_alertas_gerais()
-    return jsonify({"alertas": alertas})
-
-
-@clientes_bp.route("/api/timeline")
-def api_timeline():
-    """Retorna eventos recentes (documentos, processos, vendas, comunicações)."""
-    eventos = []
-
-    # Documentos
-    docs = Documento.query.filter(Documento.data_upload != None).limit(5).all()
-    for d in docs:
-        eventos.append({
-            "data": d.data_upload.isoformat(),
-            "tipo": "documento",
-            "descricao": f"Upload de {d.tipo or d.categoria} - {d.cliente.nome}"
-        })
-
-    # Processos
-    procs = Processo.query.limit(5).all()
-    for p in procs:
-        eventos.append({
-            "data": p.data.isoformat() if p.data else None,
-            "tipo": "processo",
-            "descricao": f"{p.tipo} ({p.status}) - {p.cliente.nome}"
-        })
-
-    # Vendas
-    vendas = Venda.query.limit(5).all()
-    for v in vendas:
-        eventos.append({
-            "data": v.data_abertura.isoformat() if v.data_abertura else None,
-            "tipo": "venda",
-            "descricao": f"Venda #{v.id} - {v.cliente.nome if v.cliente else 'Cliente não identificado'}"
-        })
-
-    # Comunicações
-    comunicacoes = Comunicacao.query.limit(5).all()
-    for c in comunicacoes:
-        eventos.append({
-            "data": c.data.isoformat() if c.data else None,
-            "tipo": "comunicacao",
-            "descricao": f"{c.assunto or 'Comunicação'} - {c.cliente.nome}"
-        })
-
-    # Ordena e limita globalmente
-    eventos = sorted(
-        [e for e in eventos if e.get("data")],
-        key=lambda x: x["data"],
-        reverse=True
-    )[:10]
-
-    return jsonify({"eventos": eventos})
