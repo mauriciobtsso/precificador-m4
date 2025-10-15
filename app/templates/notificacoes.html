@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- =======================
+     CABEÇALHO
+======================= -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-semibold mb-0">
+    <i class="fas fa-bell text-danger me-2"></i> Painel de Notificações
+  </h2>
+  <div>
+    <button id="btnReload" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-sync-alt me-1"></i> Atualizar
+    </button>
+  </div>
+</div>
+
+<!-- =======================
+     FILTROS
+======================= -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <form id="filtrosForm" class="row g-2 align-items-center">
+      <div class="col-md-2">
+        <select name="tipo" class="form-select form-select-sm text-capitalize">
+          <option value="">Tipo</option>
+          <option value="documento">Documento</option>
+          <option value="arma">Arma</option>
+          <option value="processo">Processo</option>
+          <option value="cr">CR</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="nivel" class="form-select form-select-sm text-capitalize">
+          <option value="">Nível</option>
+          <option value="alto">Alto</option>
+          <option value="médio">Médio</option>
+          <option value="baixo">Baixo</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="status" class="form-select form-select-sm text-capitalize">
+          <option value="">Status</option>
+          <option value="enviado">Enviado</option>
+          <option value="lido">Lido</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <input type="text" name="q" class="form-control form-control-sm"
+               placeholder="Buscar por cliente ou mensagem...">
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary btn-sm w-100">
+          <i class="fas fa-search me-1"></i> Filtrar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =======================
+     TABELA DE NOTIFICAÇÕES
+======================= -->
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped align-middle mb-0 table-sm" id="tabelaNotificacoes" style="min-width: 100%;">
+        <thead class="table-light">
+          <tr class="text-nowrap">
+            <th style="width: 140px;">Data</th>
+            <th style="width: 220px;">Cliente</th>
+            <th style="width: 100px;">Tipo</th>
+            <th style="width: 100px;">Nível</th>
+            <th style="min-width: 300px;">Mensagem</th>
+            <th style="width: 100px;">Meio</th>
+            <th style="width: 100px;">Status</th>
+            <th style="width: 120px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="8" class="text-center text-muted py-3">
+              <div class="spinner-border text-secondary me-2" role="status"></div>
+              Carregando notificações...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/notificacoes.js') }}"></script>
+{% endblock %}

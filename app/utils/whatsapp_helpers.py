@@ -17,7 +17,7 @@ def compor_whatsapp(produto=None, valor_base=0.0, linhas=None):
 
     if produto:
         cab.append(f"🔫 {produto.nome}")
-        cab.append(f"🔖 SKU: {produto.sku}")
+        cab.append(f"🔖 SKU: {getattr(produto, 'sku', getattr(produto, 'codigo', '—'))}")
         cab.append(f"💰 À vista: {br_money(base)}")
     else:
         cab.append("💳 Simulação de Parcelamento")

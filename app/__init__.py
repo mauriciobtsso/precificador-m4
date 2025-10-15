@@ -81,18 +81,30 @@ def create_app():
     from app.clientes.routes import clientes_bp
     from app.vendas import vendas_bp
     from app.produtos import produtos_bp
+    from app.produtos.categorias.routes import categorias_bp
     from app.taxas.routes import taxas_bp
     from app.pedidos import pedidos_bp  # 👈 novo módulo de pedidos
     from app.uploads import uploads_bp
+    from app.alertas import alertas_bp
+    from app.notificacoes import notificacoes_bp
 
     # 👇 ALTERAÇÃO APLICADA AQUI 👇
     app.register_blueprint(uploads_bp, url_prefix="/uploads") 
     app.register_blueprint(main)
     app.register_blueprint(clientes_bp, url_prefix="/clientes")
     app.register_blueprint(vendas_bp, url_prefix="/vendas")
-    app.register_blueprint(produtos_bp, url_prefix="/produtos")
+    app.register_blueprint(produtos_bp)
+    app.register_blueprint(categorias_bp)
     app.register_blueprint(taxas_bp)
     app.register_blueprint(pedidos_bp, url_prefix="/pedidos")  # 👈 registra pedidos
+    app.register_blueprint(alertas_bp)
+    app.register_blueprint(notificacoes_bp)
+
+    # ====================================
+    # INICIAR AGENDADOR DE ALERTAS (DIÁRIO)
+    # ====================================
+    from app.alertas.tasks import iniciar_scheduler
+    iniciar_scheduler(app)
 
     # -------------------------
     # Filtro customizado: currency
@@ -113,7 +125,8 @@ def create_app():
     # Seed inicial (apenas se tabelas existirem e NÃO for ambiente de teste)
     # -------------------------
     if not app.config.get("TESTING"):
-        from app.models import User, Taxa, Produto, Configuracao
+        from app.models import User, Taxa, Configuracao
+        from app.produtos.models import Produto
 
         with app.app_context():
             inspector = inspect(db.engine)
@@ -145,39 +158,39 @@ def create_app():
                     db.session.add_all(taxas)
 
                 # Produtos de exemplo
-                if not Produto.query.first():
-                    produtos = [
-                        Produto(
-                            sku="CBC8122",
-                            nome="Rifle CBC 8122 Bolt Action 23\" OXPP",
-                            preco_fornecedor=2500.00,
-                            desconto_fornecedor=0,
-                            margem=40,
-                            ipi=10,
-                            ipi_tipo="%",
-                            difal=5,
-                        ),
-                        Produto(
-                            sku="RT066INOX",
-                            nome="Revólver Taurus RT 066 357Mag 4\" Inox Fosco",
-                            preco_fornecedor=3500.00,
-                            desconto_fornecedor=0,
-                            margem=42,
-                            ipi=12,
-                            ipi_tipo="%",
-                            difal=5,
-                        ),
-                        Produto(
-                            sku="RT065OX",
-                            nome="Revólver Taurus RT 065 357Mag 4\" Oxidado",
-                            preco_fornecedor=3300.00,
-                            desconto_fornecedor=0,
-                            margem=40,
-                            ipi=12,
-                            ipi_tipo="%",
-                            difal=5,
-                        ),
-                    ]
+#                if not Produto.query.first():
+#                    produtos = [
+#                        Produto(
+#                            sku="CBC8122",
+#                            nome="Rifle CBC 8122 Bolt Action 23\" OXPP",
+#                            preco_fornecedor=2500.00,
+#                            desconto_fornecedor=0,
+#                            margem=40,
+#                            ipi=10,
+#                            ipi_tipo="%",
+#                            difal=5,
+#                        ),
+#                        Produto(
+#                            sku="RT066INOX",
+#                            nome="Revólver Taurus RT 066 357Mag 4\" Inox Fosco",
+#                            preco_fornecedor=3500.00,
+#                            desconto_fornecedor=0,
+#                            margem=42,
+#                            ipi=12,
+#                            ipi_tipo="%",
+#                            difal=5,
+#                        ),
+#                        Produto(
+#                            sku="RT065OX",
+#                            nome="Revólver Taurus RT 065 357Mag 4\" Oxidado",
+#                            preco_fornecedor=3300.00,
+#                            desconto_fornecedor=0,
+#                            margem=40,
+#                            ipi=12,
+#                            ipi_tipo="%",
+#                            difal=5,
+#                        ),
+#                    ]
                     for p in produtos:
                         p.calcular_precos()
                         db.session.add(p)

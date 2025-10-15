@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Alertas Detalhados{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4" id="page-alertas">
+
+  <!-- Cabeçalho -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">📢 Alertas do Sistema</h2>
+    <span class="text-muted small">Monitoramento em tempo real de pendências e vencimentos</span>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card p-3 mb-4 shadow-sm filtros-container">
+    <form id="form-filtros" class="row g-3 align-items-end">
+<div class="col-md-3 col-lg-3">
+  <label class="form-label">Tipo</label>
+  <select class="form-select" name="tipo">
+    <option value="">Todos</option>
+    <option value="documento">Documentos</option>
+    <option value="arma">Armas</option>
+    <option value="processo">Processos</option>
+    <option value="cliente">Clientes</option>
+  </select>
+</div>
+
+<div class="col-md-3 col-lg-3">
+  <label class="form-label">Nível</label>
+  <select class="form-select" name="nivel">
+    <option value="">Todos</option>
+    <option value="alto">Alto</option>
+    <option value="medio">Médio</option>
+    <option value="baixo">Baixo</option>
+  </select>
+</div>
+
+<div class="col-md-4 col-lg-4">
+  <label class="form-label">Período</label>
+  <div class="row g-1 align-items-center">
+    <div class="col-5">
+      <input type="date" class="form-control" name="inicio" placeholder="dd/mm/aaaa">
+    </div>
+    <div class="col-1 text-center text-muted">–</div>
+    <div class="col-6">
+      <input type="date" class="form-control" name="fim" placeholder="dd/mm/aaaa">
+    </div>
+  </div>
+</div>
+
+<div class="col-md-2 col-lg-2">
+  <label class="form-label">Busca</label>
+  <input type="text" class="form-control" name="q" placeholder="Cliente, alerta, palavra-chave...">
+</div>
+
+  <!-- Tabela -->
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="tabela-alertas">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 5%">#</th>
+              <th style="width: 10%">Tipo</th>
+              <th style="width: 10%">Nível</th>
+              <th style="width: 20%">Cliente</th>
+              <th>Mensagem</th>
+              <th style="width: 15%">Data</th>
+              <th style="width: 10%">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Dados simulados (mock visual) -->
+            <tr>
+              <td>1</td>
+              <td><span class="tipo tipo-doc">📄 Documento</span></td>
+              <td><span class="nivel nivel-alto">🔴 Alto</span></td>
+              <td>M4 Tática</td>
+              <td>Documento CRAF vencido em 12/10/2025</td>
+              <td>12/10/2025</td>
+              <td>
+                <a href="#" class="btn btn-sm btn-outline-primary">Ver cliente</a>
+              </td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td><span class="tipo tipo-arma">🔫 Arma</span></td>
+              <td><span class="nivel nivel-medio">🟡 Médio</span></td>
+              <td>João Silva</td>
+              <td>Número SIGMA não corresponde ao CR</td>
+              <td>10/10/2025</td>
+              <td>
+                <a href="#" class="btn btn-sm btn-outline-primary">Ver cliente</a>
+              </td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td><span class="tipo tipo-proc">📁 Processo</span></td>
+              <td><span class="nivel nivel-baixo">🟢 Baixo</span></td>
+              <td>Maria Souza</td>
+              <td>Processo em andamento aguardando análise</td>
+              <td>09/10/2025</td>
+              <td>
+                <a href="#" class="btn btn-sm btn-outline-primary">Ver cliente</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Paginação -->
+    <div class="card-footer d-flex justify-content-between align-items-center">
+      <div class="text-muted small">Exibindo 1–3 de 3 alertas</div>
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item disabled"><a class="page-link">«</a></li>
+          <li class="page-item active"><a class="page-link" href="#">1</a></li>
+          <li class="page-item"><a class="page-link" href="#">2</a></li>
+          <li class="page-item"><a class="page-link" href="#">»</a></li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/alertas.js') }}"></script>
+{% endblock %}

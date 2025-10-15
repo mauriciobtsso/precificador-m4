@@ -10,7 +10,6 @@ from app.config import get_config
 from sqlalchemy import text, func, extract
 from openpyxl import load_workbook
 from io import TextIOWrapper
-from decimal import Decimal
 import csv
 import os
 from datetime import datetime, timedelta
@@ -165,33 +164,33 @@ def dashboard():
 ###########################
 # Wrappers de compatibilidade para Produtos
 ###########################
-# @main.route("/produtos")
-# @login_required
-# def produtos_legacy():
-#     return redirect(url_for("produtos.produtos"), code=308)
+@main.route("/produtos")
+@login_required
+def produtos_legacy():
+    return redirect(url_for("produtos.produtos"), code=308)
 
-# @main.route("/produto/novo", methods=["GET", "POST"])
-# @main.route("/produto/editar/<int:produto_id>", methods=["GET", "POST"])
-# @login_required
-# def gerenciar_produto_legacy(produto_id=None):
-#     if produto_id:
-#         return redirect(url_for("produtos.gerenciar_produto", produto_id=produto_id), code=308)
-#     return redirect(url_for("produtos.gerenciar_produto"), code=308)
+@main.route("/produto/novo", methods=["GET", "POST"])
+@main.route("/produto/editar/<int:produto_id>", methods=["GET", "POST"])
+@login_required
+def gerenciar_produto_legacy(produto_id=None):
+    if produto_id:
+        return redirect(url_for("produtos.gerenciar_produto", produto_id=produto_id), code=308)
+    return redirect(url_for("produtos.gerenciar_produto"), code=308)
 
-# @main.route("/produto/excluir/<int:produto_id>")
-# @login_required
-# def excluir_produto_legacy(produto_id):
-#     return redirect(url_for("produtos.excluir_produto", produto_id=produto_id), code=308)
+@main.route("/produto/excluir/<int:produto_id>")
+@login_required
+def excluir_produto_legacy(produto_id):
+    return redirect(url_for("produtos.excluir_produto", produto_id=produto_id), code=308)
 
-# @main.route("/produtos/importar", methods=["GET", "POST"])
-# @login_required
-# def importar_produtos_legacy():
-#     return redirect(url_for("produtos.importar_produtos"), code=308)
+@main.route("/produtos/importar", methods=["GET", "POST"])
+@login_required
+def importar_produtos_legacy():
+    return redirect(url_for("produtos.importar_produtos"), code=308)
 
-# @main.route("/produtos/exemplo-csv")
-# @login_required
-# def exemplo_csv_legacy():
-#     return redirect(url_for("produtos.exemplo_csv"), code=308)
+@main.route("/produtos/exemplo-csv")
+@login_required
+def exemplo_csv_legacy():
+    return redirect(url_for("produtos.exemplo_csv"), code=308)
 
 #######################
 # --- Parcelamento ---
@@ -202,7 +201,6 @@ def parcelamento_index():
     produtos = Produto.query.order_by(Produto.nome).all()
     return render_template("parcelamento_index.html", produtos=produtos)
 
-
 @main.route("/parcelamento/<int:produto_id>")
 @login_required
 def parcelamento(produto_id):
@@ -211,13 +209,11 @@ def parcelamento(produto_id):
     valor_base, linhas = gerar_linhas_por_produto(produto)
     texto_whats = gerar_texto_whatsapp(produto, valor_base, linhas)
 
-    # ✅ aqui passamos Decimal para o template
     return render_template(
         "parcelamento.html",
         produto=produto,
         resultado=linhas,
-        texto_whats=texto_whats,
-        Decimal=Decimal  # <-- adicionado
+        texto_whats=texto_whats
     )
 
 @main.route("/parcelamento/rapido", methods=["GET", "POST"])

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-semibold mb-0">
+    <i class="fas fa-sitemap me-2 text-primary"></i> Categorias de Produtos
+  </h2>
+  <a href="{{ url_for('categorias.gerenciar_categoria') }}" class="btn btn-success">
+    <i class="fas fa-plus"></i> Nova Categoria
+  </a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% if categorias_pai %}
+      <ul class="list-group">
+        {% for cat in categorias_pai %}
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ cat.nome }}</strong>
+                {% if cat.descricao %}
+                  <small class="text-muted ms-2">— {{ cat.descricao }}</small>
+                {% endif %}
+              </div>
+              <div>
+                <a href="{{ url_for('categorias.gerenciar_categoria', id=cat.id) }}" class="btn btn-sm btn-outline-primary">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <a href="{{ url_for('categorias.excluir_categoria', id=cat.id) }}"
+                   onclick="return confirm('Excluir esta categoria?');"
+                   class="btn btn-sm btn-outline-danger">
+                  <i class="fas fa-trash"></i>
+                </a>
+              </div>
+            </div>
+
+            {% if cat.subcategorias %}
+              <ul class="list-group list-group-flush mt-2 ms-3">
+                {% for sub in cat.subcategorias %}
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <i class="fas fa-level-up-alt text-secondary me-2"></i>
+                      {{ sub.nome }}
+                      {% if sub.descricao %}
+                        <small class="text-muted ms-2">— {{ sub.descricao }}</small>
+                      {% endif %}
+                    </div>
+                    <div>
+                      <a href="{{ url_for('categorias.gerenciar_categoria', id=sub.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <a href="{{ url_for('categorias.excluir_categoria', id=sub.id) }}"
+                         onclick="return confirm('Excluir esta subcategoria?');"
+                         class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-trash"></i>
+                      </a>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted mb-0">Nenhuma categoria cadastrada.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
