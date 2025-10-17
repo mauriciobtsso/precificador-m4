@@ -191,7 +191,7 @@ def gerenciar_produto(produto_id=None):
             flash("❌ Ocorreu um erro ao salvar o produto.", "danger")
 
     return render_template(
-        "produtos/produto_form.html",
+        "produtos/form/produto_form.html",
         produto=produto,
         categorias=categorias,
         marcas=marcas,
@@ -284,3 +284,78 @@ def produto_whatsapp(produto_id):
     )
 
     return jsonify({"texto_completo": texto})
+
+# ======================================================
+# AUTO-SAVE - Atualiza produto parcialmente via AJAX + Histórico
+# ======================================================
+@produtos_bp.route("/auto-save/<int:produto_id>", methods=["POST"])
+@login_required
+def auto_save(produto_id):
+    produto = Produto.query.get(produto_id)
+    if not produto:
+        return jsonify({"success": False, "error": "Produto não encontrado"}), 404
+
+    data = request.form
+    alteracoes = []
+
+    try:
+        for field, value in data.items():
+            if not hasattr(produto, field):
+                continue
+
+            valor_atual = getattr(produto, field)
+            novo_valor = value or None
+
+            # compara valores antes de salvar
+            if str(valor_atual) != str(novo_valor):
+                alteracoes.append({
+                    "campo": field,
+                    "valor_antigo": valor_atual,
+                    "valor_novo": novo_valor
+                })
+                setattr(produto, field, novo_valor)
+
+        # Só registra histórico se houver alterações
+        if alteracoes:
+            for alt in alteracoes:
+                hist = ProdutoHistorico(
+                    produto_id=produto.id,
+                    campo=alt["campo"],
+                    valor_antigo=str(alt["valor_antigo"]),
+                    valor_novo=str(alt["valor_novo"]),
+                    usuario_id=current_user.id,
+                    usuario_nome=current_user.nome if hasattr(current_user, "nome") else current_user.email
+                )
+                db.session.add(hist)
+
+        produto.atualizado_em = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({"success": True, "id": produto.id, "alteracoes": len(alteracoes)})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ======================================================
+# MODELO: HISTÓRICO DE ALTERAÇÕES DE PRODUTO
+# ======================================================
+from app import db
+from datetime import datetime
+from flask_login import current_user
+
+class ProdutoHistorico(db.Model):
+    __tablename__ = "produto_historico"
+
+    id = db.Column(db.Integer, primary_key=True)
+    produto_id = db.Column(db.Integer, db.ForeignKey("produto.id"), nullable=False)
+    campo = db.Column(db.String(100), nullable=False)
+    valor_antigo = db.Column(db.Text)
+    valor_novo = db.Column(db.Text)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuario.id"))
+    usuario_nome = db.Column(db.String(120))
+    data_modificacao = db.Column(db.DateTime, default=datetime.utcnow)
+
+    produto = db.relationship("Produto", backref=db.backref("historicos", lazy=True))
+
+    def __repr__(self):
+        return f"<Histórico Produto {self.produto_id} ({self.campo})>"

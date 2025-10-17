@@ -1,0 +1,111 @@
+<!-- ============================================================
+     ABA: DADOS GERAIS
+============================================================ -->
+<div class="border-start border-4 border-orange ps-3 mb-3">
+  <h5 class="fw-semibold text-dark mb-0">
+    <i class="fas fa-info-circle me-2"></i>Dados Gerais
+  </h5>
+</div>
+
+<div class="row g-3">
+  <!-- Código / SKU -->
+  <div class="col-md-3">
+    <label class="form-label fw-semibold">Código / SKU</label>
+    <input type="text" id="codigo" name="codigo" class="form-control text-uppercase"
+           placeholder="Ex: ABC123" value="{{ produto.codigo or '' }}" required>
+  </div>
+
+  <!-- Nome -->
+  <div class="col-md-5">
+    <label class="form-label fw-semibold">Nome do Produto</label>
+    <input type="text" id="nome" name="nome" class="form-control"
+           placeholder="Ex: Pistola Taurus G3C" value="{{ produto.nome or '' }}" required>
+  </div>
+
+  <!-- Tipo -->
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">Tipo</label>
+    <div class="input-group">
+      <select class="form-select" id="tipo_id" name="tipo_id">
+        <option value="">Selecione...</option>
+        {% for t in tipos %}
+          <option value="{{ t.id }}" {% if produto and produto.tipo_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
+        {% endfor %}
+      </select>
+      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoTipo">
+        <i class="fas fa-cog"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Categoria -->
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">Categoria</label>
+    <div class="input-group">
+      <select class="form-select" id="categoria_id" name="categoria_id">
+        <option value="">Selecione...</option>
+        {% for c in categorias %}
+          <option value="{{ c.id }}" {% if produto and produto.categoria_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+        {% endfor %}
+      </select>
+      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaCategoria">
+        <i class="fas fa-cog"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Marca -->
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">Marca</label>
+    <div class="input-group">
+      <select class="form-select" id="marca_id" name="marca_id">
+        <option value="">Selecione...</option>
+        {% for m in marcas %}
+          <option value="{{ m.id }}" {% if produto and produto.marca_id == m.id %}selected{% endif %}>{{ m.nome }}</option>
+        {% endfor %}
+      </select>
+      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaMarca">
+        <i class="fas fa-cog"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Calibre -->
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">Calibre</label>
+    <div class="input-group">
+      <select class="form-select" id="calibre_id" name="calibre_id">
+        <option value="">Selecione...</option>
+        {% for c in calibres %}
+          <option value="{{ c.id }}" {% if produto and produto.calibre_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+        {% endfor %}
+      </select>
+      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoCalibre">
+        <i class="fas fa-cog"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Funcionamento -->
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">Funcionamento</label>
+    <div class="input-group">
+      <select class="form-select" id="funcionamento_id" name="funcionamento_id">
+        <option value="">Selecione...</option>
+        {% for f in funcionamentos %}
+          <option value="{{ f.id }}" {% if produto and produto.funcionamento_id == f.id %}selected{% endif %}>{{ f.nome }}</option>
+        {% endfor %}
+      </select>
+      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoFuncionamento">
+        <i class="fas fa-cog"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Descrição -->
+  <div class="col-12">
+    <label class="form-label fw-semibold">Descrição</label>
+    <textarea name="descricao" rows="3" class="form-control"
+              placeholder="Descrição breve do produto">{{ produto.descricao or '' }}</textarea>
+  </div>
+</div>

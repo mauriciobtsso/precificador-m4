@@ -1,0 +1,41 @@
+<!-- =======================
+     MODAL: NOVO CALIBRE
+======================= -->
+<div class="modal fade" id="modalNovoCalibre" tabindex="-1" aria-labelledby="modalNovoCalibreLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-semibold" id="modalNovoCalibreLabel">
+          <i class="fas fa-bullseye me-2"></i>Novo Calibre
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="alert alert-light border small mb-3">
+          Cadastre um novo <strong>calibre</strong> (Ex: 9mm, .380, .40...).
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="ncali_nome">Nome</label>
+            <input type="text" id="ncali_nome" class="form-control" placeholder="Ex: 9mm">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-success"
+                data-tabela="calibres"
+                data-input="ncali_nome"
+                data-select="calibre_id">
+          <i class="fas fa-check me-1"></i>Salvar Calibre
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

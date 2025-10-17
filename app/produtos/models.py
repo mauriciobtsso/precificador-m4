@@ -4,6 +4,10 @@
 
 from app import db
 from sqlalchemy import func
+from datetime import datetime
+from flask_login import current_user
+
+# Importações dos módulos auxiliares
 from app.produtos.categorias.models import CategoriaProduto
 from app.produtos.configs.models import (
     MarcaProduto,
@@ -13,6 +17,9 @@ from app.produtos.configs.models import (
 )
 
 
+# ======================================================
+# MODELO PRINCIPAL: PRODUTO
+# ======================================================
 class Produto(db.Model):
     __tablename__ = "produtos"
 
@@ -22,7 +29,7 @@ class Produto(db.Model):
     descricao = db.Column(db.Text, nullable=True)
 
     # ============================
-    # CAMPOS RELACIONADOS (NOVOS)
+    # RELACIONAMENTOS (FKs)
     # ============================
     categoria_id = db.Column(db.Integer, db.ForeignKey("categoria_produto.id"))
     categoria = db.relationship("CategoriaProduto", backref="produtos")
@@ -77,6 +84,16 @@ class Produto(db.Model):
     criado_em = db.Column(db.DateTime(timezone=True), server_default=func.now())
     atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 
+    # ============================
+    # RELAÇÃO COM HISTÓRICO
+    # ============================
+    historicos = db.relationship(
+        "ProdutoHistorico",
+        back_populates="produto",
+        cascade="all, delete-orphan",
+        lazy=True,
+    )
+
     # ======================
     # MÉTODOS AUXILIARES
     # ======================
@@ -128,3 +145,32 @@ class Produto(db.Model):
 
     def __repr__(self):
         return f"<Produto {self.codigo} - {self.nome}>"
+
+
+# ======================================================
+# MODELO: HISTÓRICO DE ALTERAÇÕES DE PRODUTO
+# ======================================================
+class ProdutoHistorico(db.Model):
+    __tablename__ = "produto_historico"
+
+    id = db.Column(db.Integer, primary_key=True)
+    produto_id = db.Column(
+        db.Integer,
+        db.ForeignKey("produtos.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    campo = db.Column(db.String(100), nullable=False)
+    valor_antigo = db.Column(db.Text)
+    valor_novo = db.Column(db.Text)
+    usuario_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),  # ✅ referência correta para tabela 'users'
+        nullable=True,
+    )
+    usuario_nome = db.Column(db.String(120))
+    data_modificacao = db.Column(db.DateTime, default=datetime.utcnow)
+
+    produto = db.relationship("Produto", back_populates="historicos")
+
+    def __repr__(self):
+        return f"<Histórico Produto {self.produto_id} ({self.campo})>"

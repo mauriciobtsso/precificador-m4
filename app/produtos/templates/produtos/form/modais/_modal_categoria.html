@@ -1,0 +1,56 @@
+<!-- =======================
+     MODAL: NOVA CATEGORIA
+======================= -->
+<div class="modal fade" id="modalNovaCategoria" tabindex="-1" aria-labelledby="modalNovaCategoriaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-semibold" id="modalNovaCategoriaLabel">
+          <i class="fas fa-folder-plus me-2"></i>Nova Categoria
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="alert alert-light border small mb-3">
+          Preencha os campos abaixo para adicionar uma nova categoria. Ela será adicionada automaticamente ao seletor principal.
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="nc_nome">Nome</label>
+            <input type="text" id="nc_nome" class="form-control" placeholder="Ex: Pistolas">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="nc_pai">Categoria Pai (opcional)</label>
+            <select id="nc_pai" class="form-select">
+              <option value="">— Nenhuma (categoria principal) —</option>
+              {% for c in categorias %}
+                <option value="{{ c.id }}">{{ c.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="nc_descricao">Descrição (opcional)</label>
+            <textarea id="nc_descricao" class="form-control" rows="3" placeholder="Descrição breve da categoria"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-success"
+                data-tabela="categorias"
+                data-input="nc_nome"
+                data-select="categoria_id">
+          <i class="fas fa-check me-1"></i>Salvar Categoria
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

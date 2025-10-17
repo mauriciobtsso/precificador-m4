@@ -1,0 +1,41 @@
+<!-- =======================
+     MODAL: NOVO TIPO
+======================= -->
+<div class="modal fade" id="modalNovoTipo" tabindex="-1" aria-labelledby="modalNovoTipoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-semibold" id="modalNovoTipoLabel">
+          <i class="fas fa-shapes me-2"></i>Novo Tipo de Produto
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="alert alert-light border small mb-3">
+          Cadastre um novo <strong>tipo de produto</strong> (Ex: Arma de fogo, Airsoft, Acessório...).
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="nt_nome">Nome</label>
+            <input type="text" id="nt_nome" class="form-control" placeholder="Ex: Arma de fogo">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-success"
+                data-tabela="tipos"
+                data-input="nt_nome"
+                data-select="tipo_id">
+          <i class="fas fa-check me-1"></i>Salvar Tipo
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

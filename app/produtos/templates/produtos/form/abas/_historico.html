@@ -1,0 +1,39 @@
+<!-- ============================================================
+     ABA: HISTÓRICO DE ALTERAÇÕES DO PRODUTO
+============================================================ -->
+<div class="border-start border-4 border-orange ps-3 mb-3">
+  <h5 class="fw-semibold text-dark mb-0">
+    <i class="fas fa-clock-rotate-left me-2"></i>Histórico de Alterações
+  </h5>
+</div>
+
+{% if produto.historicos %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle table-bordered">
+      <thead class="table-light">
+        <tr>
+          <th>Data</th>
+          <th>Usuário</th>
+          <th>Campo</th>
+          <th>Valor Anterior</th>
+          <th>Valor Novo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in produto.historicos|sort(attribute='data_modificacao', reverse=True) %}
+          <tr>
+            <td>{{ h.data_modificacao.strftime("%d/%m/%Y %H:%M") }}</td>
+            <td>{{ h.usuario_nome or '—' }}</td>
+            <td><strong>{{ h.campo }}</strong></td>
+            <td class="text-muted small">{{ h.valor_antigo or '—' }}</td>
+            <td class="small">{{ h.valor_novo or '—' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-light border small">
+    <i class="fas fa-info-circle me-2"></i>Sem registros de alteração para este produto.
+  </div>
+{% endif %}
