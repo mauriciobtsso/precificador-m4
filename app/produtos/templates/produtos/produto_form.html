@@ -914,6 +914,120 @@
     });
   });
 </script>
+<script>
+/* ==========================================================
+   Modais de Configurações (Tipo, Marca, Calibre, Funcionamento, Categoria)
+   – compatível com os botões atuais que usam data-attrs
+   – corrige plural → singular na rota
+   – injeta a nova opção no <select> e já seleciona
+   ========================================================== */
+(function () {
+  // Mapeia o data-tabela (às vezes vem no plural) para a rota esperada no backend (singular)
+  const rotaPorTabela = {
+    "tipo": "tipo",
+    "tipos": "tipo",
+    "marca": "marca",
+    "marcas": "marca",
+    "calibre": "calibre",
+    "calibres": "calibre",
+    "funcionamento": "funcionamento",
+    "funcionamentos": "funcionamento",
+    "categoria": "categoria",
+    "categorias": "categoria"
+  };
+
+  // 1) Handler padrão para TODOS os modais com o botão .btn-success[data-tabela]
+  document.querySelectorAll('.modal-footer .btn-success[data-tabela]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tabelaAttr = (btn.dataset.tabela || "").trim();        // ex.: "tipos", "marcas", "calibres", "funcionamentos", "categoria"
+      const tabela = rotaPorTabela[tabelaAttr];                     // normaliza para singular aceito pela rota
+      const inputId = btn.dataset.input;                            // ex.: "nt_nome", "nm_nome", "ncali_nome", "nf_nome", "nc_nome"
+      const selectId = btn.dataset.select;                          // ex.: "tipo_id", "marca_id", "calibre_id", "funcionamento_id", "categoria_id"
+
+      if (!tabela) {
+        alert("Tabela inválida.");
+        return;
+      }
+      if (!inputId || !selectId) {
+        alert("Config do botão está incompleta (input/select).");
+        return;
+      }
+
+      const inputEl = document.getElementById(inputId);
+      if (!inputEl) {
+        alert("Campo de nome não encontrado.");
+        return;
+      }
+
+      const nome = (inputEl.value || "").trim();
+      // Se existir um textarea de descrição dentro do mesmo modal, usamos; caso contrário, fica vazio
+      const modalEl = btn.closest('.modal');
+      const descEl = modalEl ? modalEl.querySelector('textarea, textarea[name="descricao"]') : null;
+      const descricao = (descEl && descEl.value) ? descEl.value.trim() : "";
+
+      if (!nome) {
+        alert("Informe o nome.");
+        return;
+      }
+
+      // Desabilita o botão enquanto envia
+      btn.disabled = true;
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Salvando...';
+
+      try {
+        const resp = await fetch(`/produtos/configs/adicionar/${tabela}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nome, descricao })
+        });
+
+        const data = await resp.json();
+        if (!resp.ok || !data || (!data.success && !data.id)) {
+          throw new Error((data && data.error) || "Falha ao salvar.");
+        }
+
+        // Sucesso: cria option no select correspondente e seleciona
+        const selectEl = document.getElementById(selectId);
+        if (selectEl) {
+          const option = document.createElement("option");
+          option.value = data.id || data.item_id || ""; // cobre variações
+          option.textContent = nome;
+          option.selected = true;
+          selectEl.appendChild(option);
+        }
+
+        // Fecha modal e limpa campos
+        if (modalEl) {
+          const bsModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+          bsModal.hide();
+          inputEl.value = "";
+          if (descEl) descEl.value = "";
+        }
+
+        // Feedback rápido
+        // (Se você tiver um toast global, pode disparar aqui também)
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Erro ao salvar. Tente novamente.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    });
+  });
+
+  // 2) Suporte opcional para o botão específico de Categoria se existir (ex.: id="btnSalvarCategoria")
+  const btnSalvarCategoria = document.getElementById('btnSalvarCategoria');
+  if (btnSalvarCategoria) {
+    btnSalvarCategoria.dataset.tabela = btnSalvarCategoria.dataset.tabela || 'categoria';
+    btnSalvarCategoria.dataset.input  = btnSalvarCategoria.dataset.input  || 'nc_nome';
+    btnSalvarCategoria.dataset.select = btnSalvarCategoria.dataset.select || 'categoria_id';
+    // Obs.: Não adicionamos outro addEventListener separado
+    // porque o botão já será coberto pela regra (1) acima.
+  }
+})();
+</script>
 
 
 {% endblock %}

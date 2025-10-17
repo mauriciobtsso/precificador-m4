@@ -357,26 +357,47 @@ document.addEventListener("click", async function(e) {
   }
 });
 
-/* Excluir produto — Modal */
+/* Excluir: abre modal e injeta dados */
 document.addEventListener("click", function(e) {
   const btn = e.target.closest(".btn-excluir");
   if (!btn) return;
 
-  const id = btn.dataset.id;
-  const nome = btn.dataset.nome;
-  const sku = btn.dataset.sku;
+  const id = btn.getAttribute("data-id");
+  const nome = btn.getAttribute("data-nome");
+  const sku = btn.getAttribute("data-sku");
 
   document.getElementById("ex_nome").textContent = nome || "—";
   document.getElementById("ex_sku").textContent = sku || "—";
-  document.getElementById("ex_btn_confirmar").setAttribute("href", `/produtos/${id}/excluir`);
 
-  new bootstrap.Modal(document.getElementById("modalExcluirProduto")).show();
-});
+  const href = `/produtos/${id}/excluir`;
+  const confirmBtn = document.getElementById("ex_btn_confirmar");
 
-/* Tooltips Bootstrap */
-document.addEventListener("DOMContentLoaded", function () {
-  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-  tooltipTriggerList.forEach((el) => new bootstrap.Tooltip(el));
+  // Remove event listeners antigos
+  const newConfirmBtn = confirmBtn.cloneNode(true);
+  confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+  // Novo comportamento: envia POST corretamente
+  newConfirmBtn.addEventListener("click", function (ev) {
+    ev.preventDefault();
+    fetch(href, {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    })
+    .then(resp => {
+      if (resp.ok) {
+        location.reload();
+      } else {
+        alert("Erro ao excluir o produto. Tente novamente.");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Falha de conexão ao excluir o produto.");
+    });
+  });
+
+  const modal = new bootstrap.Modal(document.getElementById("modalExcluirProduto"));
+  modal.show();
 });
 </script>
 
