@@ -25,6 +25,38 @@ def index():
     return render_template("categorias/categorias.html", categorias_pai=categorias_pai)
 
 # ======================
+# API: Adicionar categoria via AJAX (modal)
+# ======================
+@categorias_bp.route("/nova", methods=["POST"])
+@login_required
+def adicionar_categoria_ajax():
+    from flask import request, jsonify
+    data = request.get_json() or {}
+    nome = (data.get("nome") or "").strip()
+    pai_id = data.get("pai_id")
+    descricao = (data.get("descricao") or "").strip() or None
+
+    if not nome:
+        return jsonify({"erro": "Nome é obrigatório."}), 400
+
+    nova_cat = CategoriaProduto(nome=nome, descricao=descricao)
+    if pai_id:
+        try:
+            nova_cat.pai_id = int(pai_id)
+        except (ValueError, TypeError):
+            pass
+
+    try:
+        db.session.add(nova_cat)
+        db.session.commit()
+        return jsonify({"id": nova_cat.id, "nome": nova_cat.nome})
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erro ao criar categoria via AJAX: {e}")
+        return jsonify({"erro": "Erro interno ao salvar."}), 500
+
+
+# ======================
 # NOVA / EDITAR
 # ======================
 @categorias_bp.route("/nova", methods=["GET", "POST"])

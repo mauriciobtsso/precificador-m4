@@ -886,4 +886,53 @@ body {
 .mobile-list-item .info-column {
   min-width: 0; /* Essencial para o flexbox permitir o encolhimento */
 }
+/* ============================
+   SUBMENU (Produtos → Configurações)
+============================ */
+
+/* Ajuste da estrutura interna */
+#sidebar .collapse .nav-link {
+  font-size: 0.93rem;
+  padding-left: 1.2rem;
+  opacity: 0.85;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Hover e foco */
+#sidebar .collapse .nav-link:hover {
+  background-color: rgba(255, 94, 0, 0.15); /* Laranja M4 suave */
+  color: #ff5e00;
+  opacity: 1;
+  border-radius: 4px;
+}
+
+/* Ativo */
+#sidebar .collapse .nav-link.active {
+  background-color: rgba(255, 94, 0, 0.25);
+  color: #fff;
+  font-weight: 600;
+  border-left: 3px solid #ff5e00;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Ícone de seta rotacionando ao expandir */
+#sidebar a[aria-expanded="true"] i.fas.fa-chevron-down {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+
+#sidebar a[aria-expanded="false"] i.fas.fa-chevron-down {
+  transform: rotate(0deg);
+  transition: transform 0.3s ease;
+}
+
+/* Espaçamento visual entre os subitens */
+#submenuProdutos ul.nav.flex-column li {
+  margin-bottom: 4px;
+}
+
+/* Linha guia sutil */
+#submenuProdutos ul.nav {
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
 

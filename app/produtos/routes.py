@@ -1,10 +1,10 @@
 # ======================
-# ROTAS — PRODUTOS
+# ROTAS — PRODUTOS (Unificado Fase 4B)
 # ======================
 
 from flask import (
-    render_template, request, redirect, url_for,
-    flash, jsonify, current_app, send_file
+    render_template, request, redirect, url_for, flash,
+    jsonify, current_app, send_file
 )
 from flask_login import login_required
 from werkzeug.utils import secure_filename
@@ -12,66 +12,76 @@ from app import db
 from app.produtos import produtos_bp
 from app.produtos.models import Produto
 from app.produtos.categorias.models import CategoriaProduto
-from app.utils.importar import importar_planilha_produtos
-from decimal import Decimal
+from app.produtos.configs.models import (
+    MarcaProduto, CalibreProduto, TipoProduto, FuncionamentoProduto
+)
+from decimal import Decimal, InvalidOperation
 import io
 
 
 # ======================
-# LISTAGEM DE PRODUTOS
+# LISTAGEM DE PRODUTOS — Sprint 4B
 # ======================
 @produtos_bp.route("/", endpoint="index")
 @login_required
 def index():
+    """Listagem com filtros dinâmicos, busca por nome/código e ordenação."""
     termo = request.args.get("termo", "").strip()
-    lucro = request.args.get("lucro", "")
-    preco_min = request.args.get("preco_min", type=float)
-    preco_max = request.args.get("preco_max", type=float)
+    tipo = request.args.get("tipo", type=int)
+    categoria = request.args.get("categoria", type=int)
+    marca = request.args.get("marca", type=int)
+    calibre = request.args.get("calibre", type=int)
+    ordenar = request.args.get("ordenar", "nome_asc")
 
     query = Produto.query
 
-    # 🔍 Filtros opcionais
+    # 🔍 Busca inteligente (nome ou código)
     if termo:
-        query = query.filter(Produto.nome.ilike(f"%{termo}%"))
-    if preco_min:
-        query = query.filter(Produto.preco >= preco_min)
-    if preco_max:
-        query = query.filter(Produto.preco <= preco_max)
+        query = query.filter(
+            db.or_(
+                Produto.nome.ilike(f"%{termo}%"),
+                Produto.codigo.ilike(f"%{termo}%")
+            )
+        )
+
+    # 🎯 Filtros opcionais
+    if tipo:
+        query = query.filter(Produto.tipo_id == tipo)
+    if categoria:
+        query = query.filter(Produto.categoria_id == categoria)
+    if marca:
+        query = query.filter(Produto.marca_id == marca)
+    if calibre:
+        query = query.filter(Produto.calibre_id == calibre)
+
+    # ↕️ Ordenação dinâmica
+    ordem_map = {
+        "nome_asc": Produto.nome.asc(),
+        "nome_desc": Produto.nome.desc(),
+        "preco_asc": Produto.preco_a_vista.asc(),
+        "preco_desc": Produto.preco_a_vista.desc(),
+        "lucro_asc": Produto.lucro_liquido_real.asc(),
+        "lucro_desc": Produto.lucro_liquido_real.desc(),
+        "atualizado_em_desc": Produto.atualizado_em.desc(),
+    }
+    query = query.order_by(ordem_map.get(ordenar, Produto.nome.asc()))
 
     produtos = query.all()
-    return render_template("produtos/index.html", produtos=produtos)
 
-# ======================
-# IMPORTAR PRODUTOS VIA PLANILHA
-# ======================
-@produtos_bp.route("/importar", methods=["GET", "POST"])
-@login_required
-def importar_produtos():
-    """Importa produtos a partir de uma planilha Excel/CSV."""
-    if request.method == "POST":
-        arquivo = request.files.get("arquivo")
-        if not arquivo:
-            flash("Nenhum arquivo selecionado.", "warning")
-            return redirect(url_for("produtos.importar_produtos"))
+    # 🔄 Listas dinâmicas (para selects de filtro)
+    tipos = TipoProduto.query.order_by(TipoProduto.nome.asc()).all()
+    categorias = CategoriaProduto.query.order_by(CategoriaProduto.nome.asc()).all()
+    marcas = MarcaProduto.query.order_by(MarcaProduto.nome.asc()).all()
+    calibres = CalibreProduto.query.order_by(CalibreProduto.nome.asc()).all()
 
-        try:
-            # Aqui você pode usar sua função de importação existente
-            from app.services.importacao import importar_produtos_planilha
-            qtd, erros = importar_produtos_planilha(arquivo)
-
-            flash(f"✅ {qtd} produtos importados com sucesso!", "success")
-            if erros:
-                flash(f"⚠️ Alguns produtos apresentaram erros: {', '.join(erros)}", "warning")
-
-        except Exception as e:
-            current_app.logger.error(f"Erro ao importar produtos: {e}")
-            flash("❌ Erro ao processar a planilha de produtos.", "danger")
-
-        return redirect(url_for("produtos.index"))
-
-    # GET → exibe formulário simples de upload
-    return render_template("produtos/importar.html")
-
+    return render_template(
+        "produtos/index.html",
+        produtos=produtos,
+        tipos=tipos,
+        categorias=categorias,
+        marcas=marcas,
+        calibres=calibres,
+    )
 
 
 # ======================
@@ -81,9 +91,9 @@ def importar_produtos():
 @produtos_bp.route("/<int:produto_id>/editar", methods=["GET", "POST"])
 @login_required
 def gerenciar_produto(produto_id=None):
-    """Cria ou edita um produto com validação de duplicidade e categoria."""
+    """Cria ou edita um produto com relacionamentos de tipo/marca/calibre/funcionamento."""
 
-    # 🔁 DUPLICAR PRODUTO (pré-preenche o formulário)
+    # 🔁 DUPLICAR PRODUTO
     duplicar_de = request.args.get("duplicar_de", type=int)
     if duplicar_de:
         produto_ref = Produto.query.get(duplicar_de)
@@ -92,6 +102,10 @@ def gerenciar_produto(produto_id=None):
                 nome=produto_ref.nome,
                 descricao=produto_ref.descricao,
                 categoria_id=produto_ref.categoria_id,
+                tipo_id=produto_ref.tipo_id,
+                marca_id=produto_ref.marca_id,
+                calibre_id=produto_ref.calibre_id,
+                funcionamento_id=produto_ref.funcionamento_id,
                 preco_fornecedor=produto_ref.preco_fornecedor,
                 desconto_fornecedor=produto_ref.desconto_fornecedor,
                 frete=produto_ref.frete,
@@ -111,20 +125,29 @@ def gerenciar_produto(produto_id=None):
         produto = Produto.query.get(produto_id) if produto_id else Produto()
 
     categorias = CategoriaProduto.query.order_by(CategoriaProduto.nome.asc()).all()
+    marcas = MarcaProduto.query.order_by(MarcaProduto.nome.asc()).all()
+    calibres = CalibreProduto.query.order_by(CalibreProduto.nome.asc()).all()
+    tipos = TipoProduto.query.order_by(TipoProduto.nome.asc()).all()
+    funcionamentos = FuncionamentoProduto.query.order_by(FuncionamentoProduto.nome.asc()).all()
 
     if request.method == "POST":
         data = request.form
-
-        # Campos principais
         codigo = (data.get("codigo") or "").strip().upper()
         nome = (data.get("nome") or "").strip()
         descricao = (data.get("descricao") or "").strip() or None
 
-        # Categoria
-        cat_id = data.get("categoria_id")
-        categoria_id = int(cat_id) if cat_id else None
+        def to_int(value):
+            try:
+                return int(value) if value else None
+            except ValueError:
+                return None
 
-        # 🚫 Verifica duplicidade (ignora o próprio produto)
+        produto.categoria_id = to_int(data.get("categoria_id"))
+        produto.marca_id = to_int(data.get("marca_id"))
+        produto.calibre_id = to_int(data.get("calibre_id"))
+        produto.tipo_id = to_int(data.get("tipo_id"))
+        produto.funcionamento_id = to_int(data.get("funcionamento_id"))
+
         existente = (
             Produto.query.filter(Produto.codigo == codigo)
             .filter(Produto.id != produto.id if produto.id else True)
@@ -134,14 +157,9 @@ def gerenciar_produto(produto_id=None):
             flash(f"⚠️ Já existe um produto com o código {codigo}.", "warning")
             return redirect(url_for("produtos.gerenciar_produto", produto_id=produto.id))
 
-        # Atualiza ou cria
         produto.codigo = codigo
         produto.nome = nome
         produto.descricao = descricao
-        produto.categoria_id = categoria_id
-
-        # Conversão segura para Decimal
-        from decimal import Decimal, InvalidOperation
 
         def to_decimal(value):
             try:
@@ -163,26 +181,57 @@ def gerenciar_produto(produto_id=None):
         try:
             if hasattr(produto, "calcular_precos"):
                 produto.calcular_precos()
-
             db.session.add(produto)
             db.session.commit()
-
             flash("✅ Produto salvo com sucesso!", "success")
             return redirect(url_for("produtos.index"))
-
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Erro ao salvar produto: {e}")
             flash("❌ Ocorreu um erro ao salvar o produto.", "danger")
 
-    # GET
-    return render_template("produtos/produto_form.html", produto=produto, categorias=categorias)
+    return render_template(
+        "produtos/produto_form.html",
+        produto=produto,
+        categorias=categorias,
+        marcas=marcas,
+        calibres=calibres,
+        tipos=tipos,
+        funcionamentos=funcionamentos,
+    )
+
+
+# ======================
+# IMPORTAR PRODUTOS VIA PLANILHA
+# ======================
+@produtos_bp.route("/importar", methods=["GET", "POST"])
+@login_required
+def importar_produtos():
+    if request.method == "POST":
+        arquivo = request.files.get("arquivo")
+        if not arquivo:
+            flash("Nenhum arquivo selecionado.", "warning")
+            return redirect(url_for("produtos.importar_produtos"))
+
+        try:
+            from app.services.importacao import importar_produtos_planilha
+            qtd, erros = importar_produtos_planilha(arquivo)
+            flash(f"✅ {qtd} produtos importados com sucesso!", "success")
+            if erros:
+                flash(f"⚠️ Alguns produtos apresentaram erros: {', '.join(erros)}", "warning")
+        except Exception as e:
+            current_app.logger.error(f"Erro ao importar produtos: {e}")
+            flash("❌ Erro ao processar a planilha de produtos.", "danger")
+
+        return redirect(url_for("produtos.index"))
+
+    return render_template("produtos/importar.html")
 
 
 # ======================
 # EXCLUIR PRODUTO
 # ======================
-@produtos_bp.route("/<int:produto_id>/excluir")
+@produtos_bp.route("/<int:produto_id>/excluir", methods=["POST"])
 @login_required
 def excluir_produto(produto_id):
     produto = Produto.query.get_or_404(produto_id)
@@ -196,55 +245,6 @@ def excluir_produto(produto_id):
         flash("❌ Erro ao excluir produto.", "danger")
     return redirect(url_for("produtos.index"))
 
-# ======================
-# DUPLICAR PRODUTO
-# ======================
-
-from flask import Blueprint, redirect, url_for, flash
-from flask_login import login_required
-from app import db
-from app.produtos.models import Produto, CategoriaProduto
-
-produtos_bp = Blueprint("produtos", __name__)
-
-@produtos_bp.route("/<int:produto_id>/duplicar")
-@login_required
-def duplicar_produto(produto_id):
-    """Duplica um produto existente, abrindo o form pré-preenchido para revisão."""
-    produto_original = Produto.query.get_or_404(produto_id)
-
-    # Cria uma cópia do objeto (sem ID e código)
-    produto_novo = Produto(
-        codigo=None,  # o usuário define no form
-        sku=None,
-        nome=produto_original.nome,
-        descricao=produto_original.descricao,
-        categoria_id=produto_original.categoria_id,
-        preco_fornecedor=produto_original.preco_fornecedor,
-        desconto_fornecedor=produto_original.desconto_fornecedor,
-        frete=produto_original.frete,
-        margem=produto_original.margem,
-        lucro_alvo=produto_original.lucro_alvo,
-        preco_final=produto_original.preco_final,
-        ipi_tipo=produto_original.ipi_tipo,
-        ipi=produto_original.ipi,
-        difal=produto_original.difal,
-        imposto_venda=produto_original.imposto_venda,
-    )
-
-    # ⚠️ Não comita ainda — apenas cria a instância para edição
-    db.session.expunge(produto_original)  # evita vínculo de referência
-
-    flash(f"Produto '{produto_original.nome}' duplicado. Revise antes de salvar.", "info")
-
-    # Redireciona para o form de criação com dados pré-preenchidos
-    # passando via sessão (Flask) ou querystring se preferir.
-    # Aqui, vamos usar o método via querystring para simplicidade:
-    return redirect(
-        url_for("produtos.gerenciar_produto", duplicar_de=produto_id)
-    )
-
-
 
 # ======================
 # BAIXAR EXEMPLO CSV
@@ -253,10 +253,9 @@ def duplicar_produto(produto_id):
 @login_required
 def exemplo_csv():
     exemplo = io.StringIO()
-    exemplo.write("sku,nome,preco_fornecedor,desconto_fornecedor,margem,ipi,ipi_tipo,difal,imposto_venda\n")
-    exemplo.write("ABC123,Exemplo de Produto,3500,5,25,0,%_dentro,5,8\n")
+    exemplo.write("codigo,nome,tipo,marca,calibre,preco_fornecedor,desconto_fornecedor,margem,ipi,ipi_tipo,difal,imposto_venda\n")
+    exemplo.write("ABC123,Exemplo de Produto,Arma de Fogo,Taurus,9mm,3500,5,25,0,%_dentro,5,8\n")
     exemplo.seek(0)
-
     return send_file(
         io.BytesIO(exemplo.getvalue().encode("utf-8")),
         as_attachment=True,
@@ -272,7 +271,8 @@ def exemplo_csv():
 @login_required
 def produto_whatsapp(produto_id):
     produto = Produto.query.get_or_404(produto_id)
-    produto.calcular_precos()
+    if hasattr(produto, "calcular_precos"):
+        produto.calcular_precos()
 
     texto = (
         f"*{produto.nome}*\n"

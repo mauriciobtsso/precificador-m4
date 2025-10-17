@@ -39,12 +39,38 @@
             <i class="fas fa-chart-line"></i> <span>Dashboard</span>
           </a>
         </li>
+        <!-- Submenu de Produtos -->
         <li class="nav-item">
-          <a class="nav-link text-white {% if request.endpoint == 'main.produtos' %}active border-start border-3 border-primary{% endif %}" 
-             href="{{ url_for('produtos.index') }}">
-            <i class="fas fa-box"></i> <span>Produtos</span>
+          <a class="nav-link text-white d-flex justify-content-between align-items-center"
+             data-bs-toggle="collapse"
+             href="#submenuProdutos"
+             role="button"
+             aria-expanded="false"
+             aria-controls="submenuProdutos">
+            <span><i class="fas fa-box-open"></i> Produtos</span>
+            <i class="fas fa-chevron-down small"></i>
           </a>
-        </li>
+
+          <div class="collapse ps-3" id="submenuProdutos">
+            <ul class="nav flex-column border-start border-secondary ms-2 ps-2 mt-2">
+
+      <li class="nav-item mb-1">
+        <a class="nav-link text-white {% if request.endpoint and 'produtos.index' in request.endpoint %}active border-start border-3 border-primary{% endif %}" 
+           href="{{ url_for('produtos.index') }}">
+          <i class="fas fa-list me-1"></i> Produtos
+        </a>
+      </li>
+
+      <li class="nav-item mb-1">
+        <a class="nav-link text-white {% if request.endpoint and 'produtos_configs' in request.endpoint %}active border-start border-3 border-primary{% endif %}" 
+           href="{{ url_for('produtos_configs.index') }}">
+          <i class="fas fa-sliders-h me-1"></i> Configurações
+        </a>
+      </li>
+
+    </ul>
+  </div>
+</li>
         <li class="nav-item">
           <a class="nav-link text-white {% if request.endpoint == 'main.taxas' %}active border-start border-3 border-primary{% endif %}" 
              href="{{ url_for('taxas.listar') }}">

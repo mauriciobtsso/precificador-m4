@@ -1,0 +1,35 @@
+<!-- =======================
+     MODAIS DE CONFIGURAÇÕES
+======================= -->
+
+{% macro modal_config(id, titulo, tabela) %}
+<div class="modal fade" id="modal{{ id }}" tabindex="-1" aria-labelledby="label{{ id }}" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="label{{ id }}">
+          <i class="fas fa-plus-circle me-2"></i>Nova {{ titulo }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label fw-semibold">Nome</label>
+        <input type="text" id="input{{ id }}" class="form-control" placeholder="Nome da {{ titulo|lower }}">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" data-tabela="{{ tabela }}" data-input="input{{ id }}" data-select="{{ id|lower }}_id">
+          <i class="fas fa-check me-1"></i>Salvar
+        </button>
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{{ modal_config("NovoTipo", "Tipo de Produto", "tipo_produto") }}
+{{ modal_config("NovaMarca", "Marca de Produto", "marca_produto") }}
+{{ modal_config("NovoCalibre", "Calibre de Produto", "calibre_produto") }}
+{{ modal_config("NovoFuncionamento", "Funcionamento de Produto", "funcionamento_produto") }}

@@ -8,7 +8,7 @@ from logging.handlers import RotatingFileHandler
 
 # Importa extensões centralizadas
 from app.extensions import db, login_manager, migrate
-
+from app.produtos.configs import models as configs_models
 
 def configure_logging(app):
     """Configura logs em arquivo (rotativo) e no console (Render captura stdout)."""
@@ -81,6 +81,7 @@ def create_app():
     from app.clientes.routes import clientes_bp
     from app.vendas import vendas_bp
     from app.produtos import produtos_bp
+    from app.produtos.configs.routes import configs_bp
     from app.produtos.categorias.routes import categorias_bp
     from app.taxas.routes import taxas_bp
     from app.pedidos import pedidos_bp  # 👈 novo módulo de pedidos
@@ -94,6 +95,7 @@ def create_app():
     app.register_blueprint(clientes_bp, url_prefix="/clientes")
     app.register_blueprint(vendas_bp, url_prefix="/vendas")
     app.register_blueprint(produtos_bp)
+    app.register_blueprint(configs_bp)
     app.register_blueprint(categorias_bp)
     app.register_blueprint(taxas_bp)
     app.register_blueprint(pedidos_bp, url_prefix="/pedidos")  # 👈 registra pedidos

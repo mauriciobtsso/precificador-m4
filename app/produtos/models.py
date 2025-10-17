@@ -5,7 +5,12 @@
 from app import db
 from sqlalchemy import func
 from app.produtos.categorias.models import CategoriaProduto
-
+from app.produtos.configs.models import (
+    MarcaProduto,
+    CalibreProduto,
+    TipoProduto,
+    FuncionamentoProduto,
+)
 
 
 class Produto(db.Model):
@@ -16,42 +21,67 @@ class Produto(db.Model):
     nome = db.Column(db.String(255), nullable=False)
     descricao = db.Column(db.Text, nullable=True)
 
-    # Relacionamento
+    # ============================
+    # CAMPOS RELACIONADOS (NOVOS)
+    # ============================
     categoria_id = db.Column(db.Integer, db.ForeignKey("categoria_produto.id"))
     categoria = db.relationship("CategoriaProduto", backref="produtos")
 
-    # Custos e impostos
+    marca_id = db.Column(db.Integer, db.ForeignKey("marca_produto.id"), nullable=True)
+    marca_rel = db.relationship("MarcaProduto", backref="produtos")
+
+    calibre_id = db.Column(db.Integer, db.ForeignKey("calibre_produto.id"), nullable=True)
+    calibre_rel = db.relationship("CalibreProduto", backref="produtos")
+
+    tipo_id = db.Column(db.Integer, db.ForeignKey("tipo_produto.id"), nullable=True)
+    tipo_rel = db.relationship("TipoProduto", backref="produtos")
+
+    funcionamento_id = db.Column(db.Integer, db.ForeignKey("funcionamento_produto.id"), nullable=True)
+    funcionamento_rel = db.relationship("FuncionamentoProduto", backref="produtos")
+
+    # ============================
+    # CAMPOS ANTIGOS (LEGADO)
+    # ============================
+    tipo = db.Column(db.String(80), nullable=True)
+    marca = db.Column(db.String(80), nullable=True)
+    calibre = db.Column(db.String(50), nullable=True)
+
+    # ============================
+    # CUSTOS E IMPOSTOS
+    # ============================
     preco_fornecedor = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     desconto_fornecedor = db.Column(db.Numeric(5, 2), nullable=True, default=0)
     frete = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     margem = db.Column(db.Numeric(5, 2), nullable=True, default=0)
-
     ipi = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     ipi_tipo = db.Column(db.String(10), nullable=True, default="%")  # "%", "%_dentro", "R$"
     difal = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     imposto_venda = db.Column(db.Numeric(10, 2), nullable=True, default=0)
 
-    # Cálculos derivados
+    # ============================
+    # CÁLCULOS DERIVADOS
+    # ============================
     custo_total = db.Column(db.Numeric(12, 2), nullable=True, default=0)
     preco_a_vista = db.Column(db.Numeric(12, 2), nullable=True, default=0)
     lucro_liquido_real = db.Column(db.Numeric(12, 2), nullable=True, default=0)
 
-    # Objetivos
+    # ============================
+    # OBJETIVOS
+    # ============================
     lucro_alvo = db.Column(db.Numeric(12, 2), nullable=True)
     preco_final = db.Column(db.Numeric(12, 2), nullable=True)
 
-    # Auditoria
+    # ============================
+    # AUDITORIA
+    # ============================
     criado_em = db.Column(db.DateTime(timezone=True), server_default=func.now())
     atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 
     # ======================
     # MÉTODOS AUXILIARES
     # ======================
-
     def calcular_precos(self):
-        """
-        Realiza o cálculo completo de custo total, preço sugerido e lucro líquido.
-        """
+        """Cálculo completo de custo total, preço sugerido e lucro líquido."""
         preco_fornecedor = float(self.preco_fornecedor or 0)
         desconto = float(self.desconto_fornecedor or 0)
         frete = float(self.frete or 0)
@@ -61,10 +91,7 @@ class Produto(db.Model):
         ipi = float(self.ipi or 0)
         ipi_tipo = (self.ipi_tipo or "%").strip()
 
-        # 1. Desconto sobre o fornecedor
         base = preco_fornecedor * (1 - (desconto / 100))
-
-        # 2. IPI — considerar embutido, por fora ou fixo
         if ipi_tipo == "%_dentro":
             base_sem_ipi = base / (1 + (ipi / 100))
             valor_ipi = base - base_sem_ipi
@@ -73,13 +100,9 @@ class Produto(db.Model):
         else:
             valor_ipi = ipi
 
-        # 3. DIFAL
         valor_difal = (base - valor_ipi + frete) * (difal / 100)
-
-        # 4. Custo total (inclui frete)
         custo_total = base + valor_difal + frete
 
-        # 5. Preço sugerido
         preco_final = float(self.preco_final or 0)
         lucro_alvo = float(self.lucro_alvo or 0)
         if preco_final <= 0:
@@ -90,11 +113,9 @@ class Produto(db.Model):
             else:
                 preco_final = custo_total
 
-        # 6. Imposto sobre a venda e lucro líquido
         imposto_venda_valor = preco_final * (imposto_venda / 100)
         lucro_liquido = preco_final - custo_total - imposto_venda_valor
 
-        # 7. Atualiza campos persistentes
         self.custo_total = round(custo_total, 2)
         self.preco_a_vista = round(preco_final, 2)
         self.lucro_liquido_real = round(lucro_liquido, 2)

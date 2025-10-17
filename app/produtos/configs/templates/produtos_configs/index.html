@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">
+    <i class="fas fa-cogs me-2 text-danger"></i>
+    Configurações de Produtos
+  </h2>
+  <small class="text-muted">Gerencie categorias, marcas, calibres, tipos e funcionamentos</small>
+</div>
+
+<!-- Abas -->
+<ul class="nav nav-tabs" id="tabsConfig" role="tablist">
+  {% for aba in [
+    ("categorias", "fa-layer-group", "Categorias"),
+    ("marcas", "fa-industry", "Marcas"),
+    ("calibres", "fa-bullseye", "Calibres"),
+    ("tipos", "fa-gun", "Tipos"),
+    ("funcionamentos", "fa-cogs", "Funcionamentos")
+  ] %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if loop.first %}active{% endif %}" id="tab-{{ aba[0] }}" data-bs-toggle="tab" data-bs-target="#{{ aba[0] }}" type="button" role="tab">
+      <i class="fas {{ aba[1] }} me-1"></i> {{ aba[2] }}
+    </button>
+  </li>
+  {% endfor %}
+</ul>
+
+<div class="tab-content border border-top-0 p-3 bg-white rounded-bottom shadow-sm">
+  {% set tabelas = {
+    'categorias': categorias,
+    'marcas': marcas,
+    'calibres': calibres,
+    'tipos': tipos,
+    'funcionamentos': funcionamentos
+  } %}
+
+  {% for key, lista in tabelas.items() %}
+  <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ key }}" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0 text-capitalize"><i class="fas fa-list me-2 text-secondary"></i>{{ key }}</h5>
+      <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalItem" data-tabela="{{ key[:-1] }}">
+        <i class="fas fa-plus"></i> Adicionar
+      </button>
+    </div>
+    <table class="table table-sm table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Nome</th>
+          <th>Descrição</th>
+          <th class="text-end">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in lista %}
+        <tr data-id="{{ i.id }}">
+          <td>{{ i.nome }}</td>
+          <td class="text-muted small">{{ i.descricao or '' }}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary btnEditar"
+                    data-tabela="{{ key[:-1] }}"
+                    data-id="{{ i.id }}"
+                    data-nome="{{ i.nome }}"
+                    data-descricao="{{ i.descricao or '' }}">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger btnExcluir"
+                    data-tabela="{{ key[:-1] }}"
+                    data-id="{{ i.id }}">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="text-center text-muted">Nenhum item cadastrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- =======================
+     MODAL ITEM (ADD / EDIT)
+======================= -->
+<div class="modal fade" id="modalItem" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-semibold"><i class="fas fa-edit me-2"></i>Item</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formItem">
+          <input type="hidden" id="tabelaDestino">
+          <input type="hidden" id="itemId">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nome</label>
+            <input type="text" id="nomeItem" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descrição</label>
+            <textarea id="descItem" class="form-control" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnSalvarItem" class="btn btn-success">
+          <i class="fas fa-check me-1"></i> Salvar
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =======================
+     JS CRUD AJAX
+======================= -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const modalEl = document.getElementById("modalItem");
+  const modal = new bootstrap.Modal(modalEl);
+  const tabelaInput = document.getElementById("tabelaDestino");
+  const itemIdInput = document.getElementById("itemId");
+  const nomeInput = document.getElementById("nomeItem");
+  const descInput = document.getElementById("descItem");
+  const btnSalvar = document.getElementById("btnSalvarItem");
+
+  // ======================
+  // Toast helper
+  // ======================
+function showToast(mensagem, tipo = "success") {
+  // Define cor e ícone
+  const cores = {
+    success: { bg: "bg-success", icon: "fa-check-circle" },
+    error: { bg: "bg-danger", icon: "fa-times-circle" },
+    warning: { bg: "bg-warning text-dark", icon: "fa-exclamation-triangle" },
+    info: { bg: "bg-info text-dark", icon: "fa-info-circle" }
+  };
+  const estilo = cores[tipo] || cores.success;
+
+  // Cria o contêiner de toasts (se não existir)
+  let container = document.getElementById("toastContainer");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toastContainer";
+    container.className = "toast-container position-fixed top-0 end-0 p-3";
+    container.style.zIndex = "1080"; // acima do header e modals
+    container.style.marginTop = "80px"; // desloca abaixo do topo fixo
+    document.body.appendChild(container);
+  }
+
+  // Cria o toast
+  const toast = document.createElement("div");
+  toast.className = `toast align-items-center text-white border-0 shadow-sm ${estilo.bg}`;
+  toast.role = "alert";
+  toast.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="fas ${estilo.icon} me-2"></i> ${mensagem}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  `;
+
+  container.appendChild(toast);
+  const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+  bsToast.show();
+
+  // Remove após desaparecer
+  toast.addEventListener("hidden.bs.toast", () => toast.remove());
+}
+
+  // ======================
+  // ABRIR MODAL (Adicionar)
+  // ======================
+  document.querySelectorAll("[data-bs-target='#modalItem']").forEach(btn => {
+    btn.addEventListener("click", () => {
+      tabelaInput.value = btn.dataset.tabela;
+      itemIdInput.value = "";
+      nomeInput.value = "";
+      descInput.value = "";
+      btnSalvar.dataset.action = "add";
+      modalEl.querySelector(".modal-title").innerHTML =
+        `<i class="fas fa-plus me-2"></i>Novo ${tabelaInput.value}`;
+    });
+  });
+
+  // ======================
+  // ABRIR MODAL (Editar)
+  // ======================
+  document.querySelectorAll(".btnEditar").forEach(btn => {
+    btn.addEventListener("click", () => {
+      tabelaInput.value = btn.dataset.tabela;
+      itemIdInput.value = btn.dataset.id;
+      nomeInput.value = btn.dataset.nome;
+      descInput.value = btn.dataset.descricao;
+      btnSalvar.dataset.action = "edit";
+      modalEl.querySelector(".modal-title").innerHTML =
+        `<i class="fas fa-edit me-2"></i>Editar ${tabelaInput.value}`;
+      modal.show();
+    });
+  });
+
+  // ======================
+  // SALVAR ITEM (Add/Edit)
+  // ======================
+btnSalvar.addEventListener("click", async () => {
+  const tabela = tabelaInput.value;
+  const nome = nomeInput.value.trim();
+  const descricao = descInput.value.trim();
+  const id = itemIdInput.value;
+  const action = btnSalvar.dataset.action;
+
+  if (!nome) {
+    showToast("Informe o nome do item.", "error");
+    return;
+  }
+
+  btnSalvar.disabled = true;
+  btnSalvar.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Salvando...`;
+
+  const url = action === "add"
+    ? `/produtos/configs/adicionar/${tabela}`
+    : `/produtos/configs/editar/${tabela}/${id}`;
+  const method = action === "add" ? "POST" : "PUT";
+
+  try {
+    const resp = await fetch(url, {
+      method,
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ nome, descricao })
+    });
+
+    if (resp.status === 409) {
+      const msg = await resp.json();
+      showToast(msg.error || "Já existe um item com esse nome.", "error");
+      return;
+    }
+
+    if (!resp.ok) throw new Error("Erro na resposta");
+
+    modal.hide();
+    showToast(action === "add" ? "Item adicionado com sucesso!" : "Alterações salvas com sucesso!");
+    atualizarTabela(tabela);
+  } catch (e) {
+    showToast("Erro ao salvar item.", "error");
+  } finally {
+    btnSalvar.disabled = false;
+    btnSalvar.innerHTML = `<i class="fas fa-check me-1"></i> Salvar`;
+  }
+});
+
+  // ======================
+  // EXCLUIR ITEM
+  // ======================
+  document.querySelectorAll(".btnExcluir").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const tabela = btn.dataset.tabela;
+      const id = btn.dataset.id;
+      if (!confirm("Deseja realmente excluir este item?")) return;
+
+      try {
+        const resp = await fetch(`/produtos/configs/excluir/${tabela}/${id}`, { method: "DELETE" });
+        if (!resp.ok) throw new Error();
+        showToast("Item excluído com sucesso!");
+        atualizarTabela(tabela);
+      } catch {
+        showToast("Erro ao excluir item.", "error");
+      }
+    });
+  });
+
+  // ======================
+  // Atualização dinâmica da tabela (recarrega apenas a aba)
+  // ======================
+  async function atualizarTabela(tabela) {
+    const resp = await fetch("/produtos/configs/");
+    const html = await resp.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const novaTabela = doc.querySelector(`#${tabela}s table tbody`).innerHTML;
+    document.querySelector(`#${tabela}s table tbody`).innerHTML = novaTabela;
+  }
+});
+</script>
+
+<style>
+.nav-tabs .nav-link.active {
+  background-color: #212529;
+  color: #fff;
+}
+.nav-tabs .nav-link {
+  color: #333;
+}
+</style>
+
+{% endblock %}

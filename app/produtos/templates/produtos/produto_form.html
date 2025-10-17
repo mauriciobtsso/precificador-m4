@@ -1,350 +1,376 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h2 class="mb-0">
-    <i class="fas fa-box-open me-2"></i>
-    {{ 'Editar Produto' if produto else 'Novo Produto' }}
-  </h2>
-  <small class="text-muted">Preencha os dados e salve</small>
+
+<!-- ============================================================
+     CABEÇALHO — PRODUTO (agora fora do <form>)
+============================================================ -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold text-dark mb-0">
+      <i class="fas fa-gun text-orange me-2"></i>
+      {{ 'Editar Produto' if produto and produto.id else 'Novo Produto' }}
+    </h3>
+
+    {% if produto and produto.codigo %}
+      <small class="text-muted d-block">
+        Código interno: <strong>{{ produto.codigo }}</strong>
+      </small>
+    {% endif %}
+
+    {% if produto %}
+      <div class="text-muted small mt-1">
+        <i class="far fa-clock me-1"></i>
+        Última modificação:
+        {% if produto.atualizado_em %}
+          {{ produto.atualizado_em.strftime('%d/%m/%Y %Hh%M') }}
+        {% else %}
+          não há registro
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="d-flex gap-2 mt-3 mt-md-0">
+    {% if produto and produto.id %}
+      <!-- Botão Duplicar -->
+      <a href="{{ url_for('produtos.gerenciar_produto', duplicar_de=produto.id) }}"
+         class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-clone me-1"></i>Duplicar
+      </a>
+
+      <!-- Botão Excluir (POST separado, fora do form principal) -->
+      <form action="{{ url_for('produtos.excluir_produto', produto_id=produto.id) }}"
+            method="POST"
+            onsubmit="return confirm('Tem certeza que deseja excluir este produto?');"
+            style="display:inline;">
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+          <i class="fas fa-trash"></i>
+        </button>
+      </form>
+    {% endif %}
+
+    <!-- Botão Voltar -->
+    <a href="{{ url_for('produtos.index') }}" class="btn btn-outline-dark btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Voltar
+    </a>
+  </div>
 </div>
 
+<!-- ============================================================
+     FORMULÁRIO PRINCIPAL
+============================================================ -->
 <form method="POST" action="" class="needs-validation" novalidate>
+
   <!-- =======================
        DADOS GERAIS
   ======================== -->
-  <div class="card shadow-sm mb-3">
-    <div class="card-header bg-light fw-semibold">
-      <i class="fas fa-info-circle me-1"></i>Dados gerais
+  <div class="mb-4">
+    <div class="border-start border-4 border-orange ps-3 mb-3">
+      <h5 class="fw-semibold text-dark mb-0"><i class="fas fa-info-circle me-2"></i>Dados Gerais</h5>
     </div>
-    <div class="card-body">
-      <div class="row g-3">
+    <div class="row g-3">
 
-        <!-- CÓDIGO / SKU -->
-        <div class="col-md-4">
-          <label for="codigo" class="form-label">Código / SKU</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-barcode"></i></span>
-            <input
-              type="text"
-              class="form-control"
-              id="codigo"
-              name="codigo"
-              placeholder="Ex: ABC123"
-              style="text-transform: uppercase;"
-              value="{{ produto.codigo or '' }}"
-              required>
-          </div>
+      <!-- Código / SKU -->
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Código / SKU</label>
+        <input type="text" id="codigo" name="codigo"
+               class="form-control text-uppercase"
+               placeholder="Ex: ABC123"
+               value="{{ produto.codigo or '' }}" required>
+      </div>
+
+      <!-- Nome -->
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Nome do Produto</label>
+        <input type="text" id="nome" name="nome"
+               class="form-control"
+               placeholder="Ex: Pistola Taurus G3C"
+               value="{{ produto.nome or '' }}" required>
+      </div>
+
+      <!-- 🔄 TROCA DE POSIÇÃO: agora TIPO vem antes de CATEGORIA -->
+
+      <!-- Tipo -->
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Tipo</label>
+        <div class="input-group">
+          <select class="form-select" id="tipo_id" name="tipo_id">
+            <option value="">Selecione...</option>
+            {% for t in tipos %}
+              <option value="{{ t.id }}" {% if produto and produto.tipo_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoTipo">
+            <i class="fas fa-cog"></i>
+          </button>
         </div>
+      </div>
 
-        <!-- NOME -->
-        <div class="col-md-8">
-          <label for="nome" class="form-label">Nome do Produto</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-tag"></i></span>
-            <input
-              type="text"
-              class="form-control"
-              id="nome"
-              name="nome"
-              placeholder="Ex: Pistola Taurus G3C"
-              value="{{ produto.nome or '' }}"
-              required>
-          </div>
+      <!-- Categoria -->
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Categoria</label>
+        <div class="input-group">
+          <select class="form-select" id="categoria_id" name="categoria_id">
+            <option value="">Selecione...</option>
+            {% for c in categorias %}
+              <option value="{{ c.id }}" {% if produto and produto.categoria_id == c.id %}selected{% endif %}>
+                {{ c.nome }}
+              </option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline-secondary"
+                  data-bs-toggle="modal" data-bs-target="#modalNovaCategoria">
+            <i class="fas fa-cog"></i>
+          </button>
         </div>
+      </div>
 
-        <!-- Preço fornecedor (R$) -->
-        <div class="col-md-4">
-          <label class="form-label">Preço do fornecedor (R$)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-money-bill-wave"></i></span>
-            <input
-              type="text" name="preco_fornecedor" id="in_preco_fornecedor"
-              class="form-control" inputmode="decimal"
-              value="{{ produto.preco_fornecedor if produto else '' }}">
-          </div>
-          <div class="form-text text-muted">
-            Atual: {{ (produto.preco_fornecedor|float)|currency if produto else 'R$ 0,00' }}
-          </div>
+      <!-- Marca -->
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Marca</label>
+        <div class="input-group">
+          <select class="form-select" id="marca_id" name="marca_id">
+            <option value="">Selecione...</option>
+            {% for m in marcas %}
+              <option value="{{ m.id }}" {% if produto and produto.marca_id == m.id %}selected{% endif %}>{{ m.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaMarca">
+            <i class="fas fa-cog"></i>
+          </button>
         </div>
+      </div>
 
-        <!-- Desconto fornecedor (%) -->
-        <div class="col-md-4">
-          <label class="form-label">Desconto fornecedor (%)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-percent"></i></span>
-            <input
-              type="number" name="desconto_fornecedor" id="in_desconto"
-              class="form-control" step="0.01" min="0" placeholder="0,00"
-              value="{{ produto.desconto_fornecedor if produto else '' }}">
-          </div>
-          <div class="form-text text-muted">
-            Atual: <span id="out_desconto">
-              {% if produto %}
-                {{ ((produto.preco_fornecedor|float) * (1 - (produto.desconto_fornecedor|float)/100)) | currency }}
-              {% else %}
-                R$ 0,00
-              {% endif %}
-            </span>
-          </div>
+      <!-- Calibre -->
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Calibre</label>
+        <div class="input-group">
+          <select class="form-select" id="calibre_id" name="calibre_id">
+            <option value="">Selecione...</option>
+            {% for c in calibres %}
+              <option value="{{ c.id }}" {% if produto and produto.calibre_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoCalibre">
+            <i class="fas fa-cog"></i>
+          </button>
         </div>
+      </div>
 
-        <!-- Frete (R$) -->
-        <div class="col-md-4">
-          <label class="form-label">Frete (R$)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-truck"></i></span>
-            <input
-              type="text" name="frete" id="in_frete"
-              class="form-control"
-              value="{{ produto.frete if produto else '' }}">
-          </div>
-          <div class="form-text text-muted">
-            Atual: <span id="out_frete">{{ (produto.frete|float)|currency if produto else 'R$ 0,00' }}</span>
-          </div>
+      <!-- Funcionamento -->
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Funcionamento</label>
+        <div class="input-group">
+          <select class="form-select" id="funcionamento_id" name="funcionamento_id">
+            <option value="">Selecione...</option>
+            {% for f in funcionamentos %}
+              <option value="{{ f.id }}" {% if produto and produto.funcionamento_id == f.id %}selected{% endif %}>{{ f.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoFuncionamento">
+            <i class="fas fa-cog"></i>
+          </button>
         </div>
-
-        <!-- CATEGORIA + ENGENHAGEM (MODAL) -->
-        <div class="col-md-6">
-          <label for="categoria_id" class="form-label">Categoria</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
-            <select class="form-select" id="categoria_id" name="categoria_id">
-              <option value="">Selecione...</option>
-              {% for c in categorias %}
-                <option value="{{ c.id }}"
-                  {% if produto and produto.categoria_id == c.id %}selected{% endif %}>
-                  {{ c.nome }}
-                </option>
-              {% endfor %}
-            </select>
-            <!-- Botão engrenagem abre o modal -->
-            <button type="button"
-                    class="btn btn-outline-secondary"
-                    title="Gerenciar categorias"
-                    data-bs-toggle="modal"
-                    data-bs-target="#modalNovaCategoria">
-              <i class="fas fa-cog"></i>
-            </button>
-          </div>
-          <div class="form-text text-muted">
-            Se necessário, clique na engrenagem para adicionar novas categorias sem sair desta página.
-          </div>
-        </div>
-
-        <!-- DESCRIÇÃO -->
-        <div class="col-md-6">
-          <label for="descricao" class="form-label">Descrição</label>
-          <textarea class="form-control"
-                    id="descricao"
-                    name="descricao"
-                    rows="3"
-                    placeholder="Descrição breve do produto">{{ produto.descricao or '' }}</textarea>
-        </div>
-
+      </div>
+      <!-- Descrição -->
+      <div class="col-12">
+        <label class="form-label fw-semibold">Descrição</label>
+        <textarea name="descricao" rows="3" class="form-control"
+                  placeholder="Descrição breve do produto">{{ produto.descricao or '' }}</textarea>
       </div>
     </div>
   </div>
 
   <!-- =======================
-       OBJETIVOS (opcionais)
+       CUSTOS E IMPOSTOS
   ======================== -->
-  <div class="card shadow-sm mb-3">
-    <div class="card-header bg-light fw-semibold">
-      <i class="fas fa-bullseye me-1"></i>Objetivos (opcionais)
+  <div class="mb-4">
+    <div class="border-start border-4 border-orange ps-3 mb-3">
+      <h5 class="fw-semibold text-dark mb-0">
+        <i class="fas fa-coins me-2"></i>Custos e Impostos
+      </h5>
     </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <!-- Margem (%) -->
-        <div class="col-md-4">
-          <label class="form-label">Margem (%)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-chart-line"></i></span>
-            <input
-              type="number" name="margem" id="in_margem"
-              class="form-control" step="0.01" min="0" placeholder="0,00"
-              value="{{ produto.margem if produto else '' }}">
-          </div>
-        </div>
 
-        <!-- Lucro alvo (R$) -->
-        <div class="col-md-4">
-          <label class="form-label">Lucro alvo (R$)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-hand-holding-usd"></i></span>
-            <input
-              type="text" name="lucro_alvo" id="in_lucro_alvo"
-              class="form-control" inputmode="decimal"
-              value="{{ produto.lucro_alvo if produto and produto.lucro_alvo is not none else '' }}">
-          </div>
+    <div class="row g-3">
+      <!-- Preço do fornecedor -->
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Preço fornecedor (R$)</label>
+        <input type="text" name="preco_fornecedor" id="in_preco_fornecedor"
+               class="form-control" inputmode="decimal"
+               value="{{ produto.preco_fornecedor if produto else '' }}">
+        <div class="form-text text-muted">
+          Atual: {{ (produto.preco_fornecedor|float)|currency if produto else 'R$ 0,00' }}
         </div>
+      </div>
 
-        <!-- Preço final desejado (R$) -->
-        <div class="col-md-4">
-          <label class="form-label">Preço final desejado (R$)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
-            <input
-              type="text" name="preco_final" id="in_preco_final"
-              class="form-control" inputmode="decimal"
-              value="{{ produto.preco_final if produto and produto.preco_final is not none else '' }}">
-          </div>
+      <!-- Desconto fornecedor -->
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Desconto fornecedor (%)</label>
+        <input type="number" step="0.01" min="0" name="desconto_fornecedor" id="in_desconto"
+               class="form-control"
+               value="{{ produto.desconto_fornecedor if produto else '' }}">
+        <div class="form-text text-muted">
+          Atual: <span id="out_desconto">{{ 'R$ 0,00' if not produto else ((produto.preco_fornecedor|float) * (1 - (produto.desconto_fornecedor|float)/100)) | currency }}</span>
+        </div>
+      </div>
+
+      <!-- Frete -->
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Frete (R$)</label>
+        <input type="text" name="frete" id="in_frete" class="form-control"
+               value="{{ produto.frete if produto else '' }}">
+        <div class="form-text text-muted">
+          Atual: <span id="out_frete">{{ (produto.frete|float)|currency if produto else 'R$ 0,00' }}</span>
+        </div>
+      </div>
+
+      <!-- Margem -->
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Margem (%)</label>
+        <input type="number" step="0.01" min="0" name="margem" id="in_margem"
+               class="form-control"
+               value="{{ produto.margem if produto else '' }}">
+      </div>
+
+      <!-- Lucro alvo -->
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Lucro alvo (R$)</label>
+        <input type="text" name="lucro_alvo" id="in_lucro_alvo"
+               class="form-control" inputmode="decimal"
+               value="{{ produto.lucro_alvo if produto else '' }}">
+      </div>
+
+      <!-- Preço final desejado -->
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Preço final desejado (R$)</label>
+        <input type="text" name="preco_final" id="in_preco_final"
+               class="form-control" inputmode="decimal"
+               value="{{ produto.preco_final if produto else '' }}">
+      </div>
+
+      <!-- IPI -->
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">IPI</label>
+        <div class="input-group">
+          <select name="ipi_tipo" id="in_ipi_tipo" class="form-select" style="max-width: 180px;">
+            <option value="%_dentro" {% if (produto and produto.ipi_tipo == "%_dentro") or not produto %}selected{% endif %}>% (embutido)</option>
+            <option value="%" {% if produto and produto.ipi_tipo == "%" %}selected{% endif %}>% (por fora)</option>
+            <option value="R$" {% if produto and produto.ipi_tipo == "R$" %}selected{% endif %}>R$ (fixo)</option>
+          </select>
+          <input type="number" step="0.01" name="ipi" id="in_ipi" class="form-control"
+                 value="{{ produto.ipi if produto else '' }}">
+        </div>
+        <div class="form-text text-muted">
+          Atual: <span id="out_ipi">{{ produto.valor_ipi|currency if produto else 'R$ 0,00' }}</span>
+        </div>
+      </div>
+
+      <!-- DIFAL -->
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">DIFAL (%)</label>
+        <input type="number" step="0.01" name="difal" id="in_difal" class="form-control"
+               value="{{ produto.difal if produto else '' }}">
+        <div class="form-text text-muted">
+          Atual: <span id="out_difal">{{ produto.valor_difal|currency if produto else 'R$ 0,00' }}</span>
+        </div>
+      </div>
+
+      <!-- Imposto venda -->
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Imposto venda (%)</label>
+        <input type="number" step="0.01" name="imposto_venda" id="in_imposto_venda"
+               class="form-control"
+               value="{{ produto.imposto_venda if produto else '' }}">
+        <div class="form-text text-muted">
+          Atual: <span id="out_imposto">{{ ((produto.preco_final or 0) * (produto.imposto_venda or 0) / 100)|currency if produto else 'R$ 0,00' }}</span>
         </div>
       </div>
     </div>
   </div>
 
   <!-- =======================
-       TRIBUTOS
+       RESUMO DO PRODUTO
   ======================== -->
-  <div class="card shadow-sm mb-3">
-    <div class="card-header bg-light fw-semibold">
-      <i class="fas fa-balance-scale"></i> Tributos
+  <div class="mb-4">
+    <div class="border-start border-4 border-orange ps-3 mb-3">
+      <h5 class="fw-semibold text-dark mb-0">
+        <i class="fas fa-calculator me-2"></i>Resumo do Produto
+      </h5>
     </div>
-    <div class="card-body">
-      <div class="row g-3">
-
-        <!-- IPI -->
-        <div class="col-md-3">
-          <label class="form-label">IPI (valor)</label>
-          <div class="input-group">
-            <select name="ipi_tipo" id="in_ipi_tipo" class="form-select" style="max-width: 190px;">
-              <option value="%_dentro"
-                {% if (produto and produto.ipi_tipo == "%_dentro") or not produto %}selected{% endif %}>
-                % (embutido)
-              </option>
-              <option value="%"
-                {% if produto and produto.ipi_tipo == "%" %}selected{% endif %}>
-                % (por fora)
-              </option>
-              <option value="R$"
-                {% if produto and produto.ipi_tipo == "R$" %}selected{% endif %}>
-                R$ (fixo)
-              </option>
-            </select>
-            <input
-              type="number" step="0.01" name="ipi" id="in_ipi"
-              class="form-control"
-              value="{{ produto.ipi if produto else '' }}">
-          </div>
-          <div class="form-text text-muted">
-            Atual: <span id="out_ipi">{{ produto.valor_ipi|currency if produto else 'R$ 0,00' }}</span>
-          </div>
-        </div>
-
-        <!-- DIFAL -->
-        <div class="col-md-3">
-          <label class="form-label">DIFAL (%)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-exchange-alt"></i></span>
-            <input
-              type="number" step="0.01" name="difal" id="in_difal"
-              class="form-control"
-              value="{{ produto.difal if produto else '' }}">
-          </div>
-          <div class="form-text text-muted">
-            Atual: <span id="out_difal">{{ produto.valor_difal|currency if produto else 'R$ 0,00' }}</span>
-          </div>
-        </div>
-
-        <!-- Imposto sobre a venda -->
-        <div class="col-md-3">
-          <label class="form-label">Imposto sobre a venda (%)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-balance-scale"></i></span>
-            <input
-              type="number" step="0.01" name="imposto_venda" id="in_imposto_venda"
-              class="form-control"
-              value="{{ produto.imposto_venda if produto else '' }}">
-          </div>
-          <div class="form-text text-muted">
-            Atual: <span id="out_imposto">
-              {{ ((produto.preco_final or 0) * (produto.imposto_venda or 0) / 100)|currency if produto else 'R$ 0,00' }}
-            </span>
-          </div>
-        </div>
-
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label text-muted small mb-1">Custo total (estimado)</label>
+        <input type="text" id="out_custo_total" class="form-control" value="-" readonly>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label text-muted small mb-1">Preço à vista (estimado)</label>
+        <input type="text" id="out_preco_a_vista" class="form-control" value="-" readonly>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label text-muted small mb-1">Lucro líquido (estimado)</label>
+        <input type="text" id="out_lucro_liquido" class="form-control" value="-" readonly>
       </div>
     </div>
   </div>
 
   <!-- =======================
-       RESUMO DO PRODUTO (CARD)
+       ABAS INFERIORES (placeholders)
   ======================== -->
-  <div class="card shadow-sm mb-3">
-    <div class="card-header bg-light fw-semibold">
-      <i class="fas fa-calculator me-1"></i>Resumo do Produto
+  <ul class="nav nav-tabs mb-3" id="tabsProduto" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-info" type="button">Informações Complementares</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-fiscal" type="button">Fiscal</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-fornecedores" type="button">Fornecedores</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-historico" type="button">Histórico de Preço</button></li>
+  </ul>
+
+  <div class="tab-content" id="tabConteudoProduto">
+    <div class="tab-pane fade show active p-3 border border-top-0 rounded-bottom" id="tab-info">
+      <em class="text-muted">Campos adicionais e ficha técnica serão exibidos aqui em versões futuras.</em>
     </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <!-- Custo total -->
-        <div class="col-md-4">
-          <label class="form-label">Custo total (estimado)</label>
-          <input type="text" id="out_custo_total" class="form-control" value="-" readonly>
-        </div>
-
-        <!-- Preço à vista -->
-        <div class="col-md-4">
-          <label class="form-label">Preço à vista (estimado)</label>
-          <input type="text" id="out_preco_a_vista" class="form-control" value="-" readonly>
-        </div>
-
-        <!-- Lucro líquido -->
-        <div class="col-md-4">
-          <label class="form-label">Lucro líquido (estimado)</label>
-          <input type="text" id="out_lucro_liquido" class="form-control" value="-" readonly>
-        </div>
-      </div>
+    <div class="tab-pane fade p-3 border border-top-0 rounded-bottom" id="tab-fiscal">
+      <em class="text-muted">Aba Fiscal (em breve).</em>
+    </div>
+    <div class="tab-pane fade p-3 border border-top-0 rounded-bottom" id="tab-fornecedores">
+      <em class="text-muted">Aba Fornecedores (em breve).</em>
+    </div>
+    <div class="tab-pane fade p-3 border border-top-0 rounded-bottom" id="tab-historico">
+      <em class="text-muted">Aba Histórico de Preço (em breve).</em>
     </div>
   </div>
 
   <!-- =======================
        AÇÕES
   ======================== -->
-  <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-success">
-      <i class="fas fa-check me-1"></i>Salvar
+  <div class="text-end mt-4">
+    <button type="submit" class="btn btn-orange px-4 fw-semibold">
+      <i class="fas fa-save me-2"></i>Salvar Produto
     </button>
-    <a href="{{ url_for('produtos.index') }}" class="btn btn-outline-secondary">
-      <i class="fas fa-arrow-left me-1"></i>Cancelar
-    </a>
-
-    {% if produto and produto.id %}
-      <a href="{{ url_for('produtos.excluir_produto', produto_id=produto.id) }}"
-         class="btn btn-outline-danger ms-auto"
-         onclick="return confirm('Tem certeza que deseja excluir este produto?');"
-         title="Excluir produto">
-        <i class="fas fa-trash-alt"></i>
-      </a>
-    {% endif %}
   </div>
 </form>
-
 <!-- =======================
      MODAL: NOVA CATEGORIA
 ======================= -->
 <div class="modal fade" id="modalNovaCategoria" tabindex="-1" aria-labelledby="modalNovaCategoriaLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header bg-dark text-white">
         <h5 class="modal-title fw-semibold" id="modalNovaCategoriaLabel">
           <i class="fas fa-folder-plus me-2"></i>Nova Categoria
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
 
       <div class="modal-body">
-        <div class="alert alert-light border small">
+        <div class="alert alert-light border small mb-3">
           Preencha os campos abaixo para adicionar uma nova categoria. Ela será adicionada ao seletor automaticamente.
         </div>
 
         <div class="row g-3">
-          <!-- Nome -->
           <div class="col-12">
             <label class="form-label fw-semibold" for="nc_nome">Nome</label>
             <input type="text" id="nc_nome" class="form-control" placeholder="Nome da categoria">
           </div>
 
-          <!-- Categoria Pai -->
           <div class="col-12">
             <label class="form-label fw-semibold" for="nc_pai">Categoria Pai (opcional)</label>
             <select id="nc_pai" class="form-select">
@@ -356,7 +382,6 @@
             <div class="form-text">Use se esta for uma subcategoria.</div>
           </div>
 
-          <!-- Descrição -->
           <div class="col-12">
             <label class="form-label fw-semibold" for="nc_descricao">Descrição (opcional)</label>
             <textarea id="nc_descricao" class="form-control" rows="3" placeholder="Descrição breve da categoria"></textarea>
@@ -366,35 +391,202 @@
 
       <div class="modal-footer">
         <button id="btnSalvarCategoria" type="button" class="btn btn-success">
-          <i class="fas fa-check me-1"></i> Salvar Categoria
+          <i class="fas fa-check me-1"></i>Salvar Categoria
         </button>
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-          <i class="fas fa-times me-1"></i> Fechar
+          <i class="fas fa-times me-1"></i>Fechar
         </button>
       </div>
     </div>
   </div>
 </div>
+
+<!-- =======================
+     MODAL: NOVO TIPO
+======================= -->
+<div class="modal fade" id="modalNovoTipo" tabindex="-1" aria-labelledby="modalNovoTipoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-semibold" id="modalNovoTipoLabel">
+          <i class="fas fa-shapes me-2"></i>Novo Tipo de Produto
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="alert alert-light border small mb-3">
+          Cadastre um novo <strong>tipo de produto</strong> (Ex: Arma de fogo, Airsoft, Acessório...).
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="nt_nome">Nome</label>
+            <input type="text" id="nt_nome" class="form-control" placeholder="Ex: Arma de fogo">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-success"
+                data-tabela="tipos"
+                data-input="nt_nome"
+                data-select="tipo_id">
+          <i class="fas fa-check me-1"></i>Salvar Tipo
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =======================
+     MODAL: NOVA MARCA
+======================= -->
+<div class="modal fade" id="modalNovaMarca" tabindex="-1" aria-labelledby="modalNovaMarcaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-semibold" id="modalNovaMarcaLabel">
+          <i class="fas fa-trademark me-2"></i>Nova Marca
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="alert alert-light border small mb-3">
+          Cadastre uma nova <strong>marca</strong> (Ex: Taurus, Glock, CBC...).
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="nm_nome">Nome</label>
+            <input type="text" id="nm_nome" class="form-control" placeholder="Ex: Taurus">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-success"
+                data-tabela="marcas"
+                data-input="nm_nome"
+                data-select="marca_id">
+          <i class="fas fa-check me-1"></i>Salvar Marca
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =======================
+     MODAL: NOVO CALIBRE
+======================= -->
+<div class="modal fade" id="modalNovoCalibre" tabindex="-1" aria-labelledby="modalNovoCalibreLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-semibold" id="modalNovoCalibreLabel">
+          <i class="fas fa-bullseye me-2"></i>Novo Calibre
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="alert alert-light border small mb-3">
+          Cadastre um novo <strong>calibre</strong> (Ex: 9mm, .380, .40...).
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="ncali_nome">Nome</label>
+            <input type="text" id="ncali_nome" class="form-control" placeholder="Ex: 9mm">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-success"
+                data-tabela="calibres"
+                data-input="ncali_nome"
+                data-select="calibre_id">
+          <i class="fas fa-check me-1"></i>Salvar Calibre
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =======================
+     MODAL: NOVO FUNCIONAMENTO
+======================= -->
+<div class="modal fade" id="modalNovoFuncionamento" tabindex="-1" aria-labelledby="modalNovoFuncionamentoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-semibold" id="modalNovoFuncionamentoLabel">
+          <i class="fas fa-cogs me-2"></i>Novo Funcionamento
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="alert alert-light border small mb-3">
+          Cadastre um novo <strong>tipo de funcionamento</strong> (Ex: Semi-automático, Repetição, Alavanca...).
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="nf_nome">Nome</label>
+            <input type="text" id="nf_nome" class="form-control" placeholder="Ex: Semi-automático">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-success"
+                data-tabela="funcionamentos"
+                data-input="nf_nome"
+                data-select="funcionamento_id">
+          <i class="fas fa-check me-1"></i>Salvar Funcionamento
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- =======================
      TOAST SUCESSO
 ======================= -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080;">
   <div id="toastCategoria" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="d-flex">
       <div class="toast-body">
-        <i class="fas fa-check-circle me-2"></i>
-        Categoria adicionada com sucesso.
+        <i class="fas fa-check-circle me-2"></i>Categoria adicionada com sucesso.
       </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
     </div>
   </div>
 </div>
 
 <!-- =======================
-     SCRIPTS
+     SCRIPTS (AutoNumeric + cálculo)
 ======================= -->
-<!-- AutoNumeric para máscara + cálculos -->
 <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.5"></script>
 <script>
   // ======= Máscaras =======
@@ -410,9 +602,9 @@
   };
 
   const anFornecedor = new AutoNumeric('#in_preco_fornecedor', anOpts);
-  const anLucroAlvo  = new AutoNumeric('#in_lucro_alvo',   anOpts);
-  const anPrecoFinal = new AutoNumeric('#in_preco_final',  anOpts);
-  const anFrete      = new AutoNumeric('#in_frete',        anOpts);
+  const anLucroAlvo  = new AutoNumeric('#in_lucro_alvo', anOpts);
+  const anPrecoFinal = new AutoNumeric('#in_preco_final', anOpts);
+  const anFrete      = new AutoNumeric('#in_frete', anOpts);
 
   {% if produto %}
     if (!isNaN({{ produto.preco_fornecedor or 0 }})) anFornecedor.set({{ produto.preco_fornecedor or 0 }});
@@ -435,67 +627,52 @@
     const ipiValor      = num('in_ipi');
     const ipiTipo       = el('in_ipi_tipo').value;
     const frete         = getAN(anFrete);
-
     const lucroAlvo     = getAN(anLucroAlvo);
     let   precoFinal    = getAN(anPrecoFinal);
 
-    // Valor final após aplicar desconto sobre o preço fornecedor
-    const valorComDesconto = precoCompra * (1 - (descFornecedor/100));
-
-    // Atualiza os campos "Atual" em tempo real
+    const valorComDesconto = precoCompra * (1 - (descFornecedor / 100));
     if (el('out_desconto')) el('out_desconto').textContent = brl.format(valorComDesconto);
     if (el('out_frete')) el('out_frete').textContent = brl.format(frete);
 
-    // 1) Base com desconto
     const base = valorComDesconto;
-
-    // 2) IPI (3 modos: %_dentro, %, R$)
     let valorIPI = 0;
     if (ipiTipo === '%_dentro') {
-      const baseSemIPI = base / (1 + (ipiValor/100));
+      const baseSemIPI = base / (1 + (ipiValor / 100));
       valorIPI = base - baseSemIPI;
     } else if (ipiTipo === '%') {
-      valorIPI = base * (ipiValor/100);
+      valorIPI = base * (ipiValor / 100);
     } else {
       valorIPI = ipiValor;
     }
 
-    // 3) DIFAL
     const baseDifal  = Math.max(base - valorIPI + frete, 0);
-    const valorDifal = baseDifal * (difal/100);
-
-    // 4) Custo total (inclui frete)
+    const valorDifal = baseDifal * (difal / 100);
     const custoTotal = base + valorDifal + frete;
 
-    // 5) Preço sugerido
     if (!(precoFinal > 0)) {
       if (lucroAlvo > 0) {
-        precoFinal = (custoTotal + lucroAlvo) / (1 - (impostoVenda/100));
+        precoFinal = (custoTotal + lucroAlvo) / (1 - (impostoVenda / 100));
       } else if (margem > 0) {
-        precoFinal = custoTotal / (1 - (margem/100));
+        precoFinal = custoTotal / (1 - (margem / 100));
       } else {
         precoFinal = custoTotal;
       }
     }
 
-    // 6) Imposto e lucro líquido
-    const impostoVendaValor = precoFinal * (impostoVenda/100);
+    const impostoVendaValor = precoFinal * (impostoVenda / 100);
     const lucroLiquido      = precoFinal - custoTotal - impostoVendaValor;
 
-    // 7) Saídas principais
     el('out_custo_total').value   = brl.format(custoTotal);
     el('out_preco_a_vista').value = brl.format(precoFinal);
     el('out_lucro_liquido').value = brl.format(lucroLiquido);
 
-    // 8) Saídas detalhadas (IPI, DIFAL, Imposto)
     if (el('out_ipi'))      el('out_ipi').textContent      = brl.format(valorIPI);
     if (el('out_difal'))    el('out_difal').textContent    = brl.format(valorDifal);
     if (el('out_imposto'))  el('out_imposto').textContent  = brl.format(impostoVendaValor);
   }
 
-  // Eventos de recálculo
   ['in_desconto','in_margem','in_imposto_venda','in_difal','in_ipi','in_ipi_tipo']
-    .forEach(id => el(id).addEventListener('input', recalcular));
+    .forEach(id => el(id)?.addEventListener('input', recalcular));
 
   document.addEventListener('autoNumeric:rawValueModified', (e) => {
     if (['in_preco_fornecedor','in_lucro_alvo','in_preco_final','in_frete'].includes(e.target.id)) {
@@ -503,72 +680,38 @@
     }
   });
 
-  // Código em uppercase sempre
-  el('codigo').addEventListener('input', () => {
+  el('codigo')?.addEventListener('input', () => {
     el('codigo').value = el('codigo').value.toUpperCase();
   });
 
-  // Chamada inicial
   recalcular();
 
-  // =======================
-  // Modal "Nova Categoria" - AJAX
-  // =======================
+  // ============ Modal Categoria (AJAX) ============
   const btnSalvarCategoria = document.getElementById('btnSalvarCategoria');
   btnSalvarCategoria.addEventListener('click', async () => {
     const nome = (document.getElementById('nc_nome').value || '').trim();
     const pai  = document.getElementById('nc_pai').value || '';
     const desc = document.getElementById('nc_descricao').value || '';
-
-    if (!nome) {
-      alert('Informe o nome da categoria.');
-      return;
-    }
+    if (!nome) return alert('Informe o nome da categoria.');
 
     try {
-      const resp = await fetch('/categorias/adicionar', {
+      const resp = await fetch('/produtos/categorias/nova', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome: nome,
-          pai_id: pai || null,
-          descricao: desc || null
-        })
+        body: JSON.stringify({ nome: nome, pai_id: pai || null, descricao: desc || null })
       });
+      if (!resp.ok) throw new Error(await resp.text());
+      const data = await resp.json();
+      if (!data || !data.id) throw new Error('Resposta inesperada.');
 
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(text || 'Erro ao salvar categoria.');
-      }
-
-      const data = await resp.json(); // esperado: { id, nome }
-      if (!data || !data.id) {
-        throw new Error('Resposta inesperada do servidor.');
-      }
-
-      // adiciona no select principal e seleciona
       const sel = document.getElementById('categoria_id');
       const opt = document.createElement('option');
-      opt.value = data.id;
-      opt.textContent = data.nome;
-      sel.appendChild(opt);
-      sel.value = String(data.id);
+      opt.value = data.id; opt.textContent = data.nome;
+      sel.appendChild(opt); sel.value = String(data.id);
 
-      // limpa campos do modal
-      document.getElementById('nc_nome').value = '';
-      document.getElementById('nc_pai').value = '';
-      document.getElementById('nc_descricao').value = '';
-
-      // fecha modal
-      const modalEl = document.getElementById('modalNovaCategoria');
-      const modal   = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-      modal.hide();
-
-      // toast de sucesso
-      const toastEl = document.getElementById('toastCategoria');
-      const toast   = new bootstrap.Toast(toastEl);
-      toast.show();
-
+      ['nc_nome','nc_pai','nc_descricao'].forEach(id => document.getElementById(id).value = '');
+      bootstrap.Modal.getInstance(document.getElementById('modalNovaCategoria')).hide();
+      new bootstrap.Toast(document.getElementById('toastCategoria')).show();
     } catch (err) {
       console.error(err);
       alert('Não foi possível adicionar a categoria. Verifique a conexão e tente novamente.');
@@ -576,9 +719,201 @@
   });
 </script>
 
+<!-- =======================
+     ESTILO FINAL M4
+======================= -->
 <style>
-  .card-header { font-size: .95rem; }
-  .input-group-text i { font-size: .9rem; }
+  .border-orange { border-color: #ff5e00 !important; }
+  .btn-orange {
+    background-color: #ff5e00;
+    color: #fff;
+    border: none;
+  }
+  .btn-orange:hover { background-color: #e65000; color: #fff; }
   .form-label { font-weight: 500; }
+  .border-start.border-4 { border-left-width: 0.4rem !important; }
+  .nav-tabs .nav-link.active {
+    color: #ff5e00;
+    font-weight: 600;
+    border-color: #ff5e00 #ff5e00 #fff;
+  }
+  .nav-tabs .nav-link { color: #555; }
+  .nav-tabs .nav-link:hover { color: #ff5e00; }
+  .input-group-text i { font-size: .9rem; }
+  .toast .toast-body { font-size: 0.9rem; }
 </style>
+
+<!-- =======================
+     SCRIPTS (AutoNumeric + cálculo + modais configs)
+======================= -->
+<script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.5"></script>
+<script>
+  // ======= Máscaras =======
+  const anOpts = {
+    digitGroupSeparator: '.',
+    decimalCharacter: ',',
+    decimalPlaces: 2,
+    currencySymbol: 'R$ ',
+    currencySymbolPlacement: 'p',
+    unformatOnSubmit: true,
+    emptyInputBehavior: 'zero',
+    modifyValueOnWheel: false
+  };
+
+  const anFornecedor = new AutoNumeric('#in_preco_fornecedor', anOpts);
+  const anLucroAlvo  = new AutoNumeric('#in_lucro_alvo', anOpts);
+  const anPrecoFinal = new AutoNumeric('#in_preco_final', anOpts);
+  const anFrete      = new AutoNumeric('#in_frete', anOpts);
+
+  {% if produto %}
+    if (!isNaN({{ produto.preco_fornecedor or 0 }})) anFornecedor.set({{ produto.preco_fornecedor or 0 }});
+    if (!isNaN({{ produto.lucro_alvo or 0 }}))       anLucroAlvo.set({{ produto.lucro_alvo or 0 }});
+    if (!isNaN({{ produto.preco_final or 0 }}))      anPrecoFinal.set({{ produto.preco_final or 0 }});
+    if (!isNaN({{ produto.frete or 0 }}))            anFrete.set({{ produto.frete or 0 }});
+  {% endif %}
+
+  const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  const el  = (id) => document.getElementById(id);
+  const num = (id) => parseFloat((el(id).value || '0').replace(',', '.')) || 0;
+  const getAN = (an) => parseFloat(an.getNumber()) || 0;
+
+  function recalcular() {
+    const precoCompra   = getAN(anFornecedor);
+    const descFornecedor= num('in_desconto');
+    const margem        = num('in_margem');
+    const impostoVenda  = num('in_imposto_venda');
+    const difal         = num('in_difal');
+    const ipiValor      = num('in_ipi');
+    const ipiTipo       = el('in_ipi_tipo').value;
+    const frete         = getAN(anFrete);
+    const lucroAlvo     = getAN(anLucroAlvo);
+    let   precoFinal    = getAN(anPrecoFinal);
+
+    const valorComDesconto = precoCompra * (1 - (descFornecedor / 100));
+    if (el('out_desconto')) el('out_desconto').textContent = brl.format(valorComDesconto);
+    if (el('out_frete')) el('out_frete').textContent = brl.format(frete);
+
+    const base = valorComDesconto;
+    let valorIPI = 0;
+    if (ipiTipo === '%_dentro') {
+      const baseSemIPI = base / (1 + (ipiValor / 100));
+      valorIPI = base - baseSemIPI;
+    } else if (ipiTipo === '%') {
+      valorIPI = base * (ipiValor / 100);
+    } else {
+      valorIPI = ipiValor;
+    }
+
+    const baseDifal  = Math.max(base - valorIPI + frete, 0);
+    const valorDifal = baseDifal * (difal / 100);
+    const custoTotal = base + valorDifal + frete;
+
+    if (!(precoFinal > 0)) {
+      if (lucroAlvo > 0) {
+        precoFinal = (custoTotal + lucroAlvo) / (1 - (impostoVenda / 100));
+      } else if (margem > 0) {
+        precoFinal = custoTotal / (1 - (margem / 100));
+      } else {
+        precoFinal = custoTotal;
+      }
+    }
+
+    const impostoVendaValor = precoFinal * (impostoVenda / 100);
+    const lucroLiquido      = precoFinal - custoTotal - impostoVendaValor;
+
+    el('out_custo_total').value   = brl.format(custoTotal);
+    el('out_preco_a_vista').value = brl.format(precoFinal);
+    el('out_lucro_liquido').value = brl.format(lucroLiquido);
+
+    if (el('out_ipi'))      el('out_ipi').textContent      = brl.format(valorIPI);
+    if (el('out_difal'))    el('out_difal').textContent    = brl.format(valorDifal);
+    if (el('out_imposto'))  el('out_imposto').textContent  = brl.format(impostoVendaValor);
+  }
+
+  ['in_desconto','in_margem','in_imposto_venda','in_difal','in_ipi','in_ipi_tipo']
+    .forEach(id => el(id)?.addEventListener('input', recalcular));
+
+  document.addEventListener('autoNumeric:rawValueModified', (e) => {
+    if (['in_preco_fornecedor','in_lucro_alvo','in_preco_final','in_frete'].includes(e.target.id)) {
+      recalcular();
+    }
+  });
+
+  el('codigo')?.addEventListener('input', () => {
+    el('codigo').value = el('codigo').value.toUpperCase();
+  });
+
+  recalcular();
+
+  // ============ Modal Categoria (AJAX) ============
+  const btnSalvarCategoria = document.getElementById('btnSalvarCategoria');
+  btnSalvarCategoria.addEventListener('click', async () => {
+    const nome = (document.getElementById('nc_nome').value || '').trim();
+    const pai  = document.getElementById('nc_pai').value || '';
+    const desc = document.getElementById('nc_descricao').value || '';
+    if (!nome) return alert('Informe o nome da categoria.');
+
+    try {
+      const resp = await fetch('/categorias/adicionar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: nome, pai_id: pai || null, descricao: desc || null })
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+      const data = await resp.json();
+      if (!data || !data.id) throw new Error('Resposta inesperada.');
+
+      const sel = document.getElementById('categoria_id');
+      const opt = document.createElement('option');
+      opt.value = data.id; opt.textContent = data.nome;
+      sel.appendChild(opt); sel.value = String(data.id);
+
+      ['nc_nome','nc_pai','nc_descricao'].forEach(id => document.getElementById(id).value = '');
+      bootstrap.Modal.getInstance(document.getElementById('modalNovaCategoria')).hide();
+      new bootstrap.Toast(document.getElementById('toastCategoria')).show();
+    } catch (err) {
+      console.error(err);
+      alert('Não foi possível adicionar a categoria. Verifique a conexão e tente novamente.');
+    }
+  });
+
+  // ============ Modais de Configurações (Tipo, Marca, Calibre, Funcionamento) ============
+  document.querySelectorAll('.modal-footer .btn-success[data-tabela]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tabela = btn.dataset.tabela;
+      const inputId = btn.dataset.input;
+      const selectId = btn.dataset.select;
+      const nome = document.getElementById(inputId).value.trim();
+      if (!nome) return alert('Informe o nome.');
+
+      try {
+        const resp = await fetch(`/produtos/configs/adicionar/${tabela}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome })
+        });
+
+        if (!resp.ok) throw new Error(await resp.text());
+        const data = await resp.json();
+        if (!data.id) throw new Error('Resposta inesperada.');
+
+        const sel = document.getElementById(selectId);
+        const opt = document.createElement('option');
+        opt.value = data.id;
+        opt.textContent = data.nome;
+        sel.appendChild(opt);
+        sel.value = data.id;
+
+        document.getElementById(inputId).value = '';
+        bootstrap.Modal.getInstance(btn.closest('.modal')).hide();
+        new bootstrap.Toast(document.getElementById('toastCategoria')).show();
+      } catch (err) {
+        console.error(err);
+        alert('Não foi possível salvar. Verifique a conexão e tente novamente.');
+      }
+    });
+  });
+</script>
+
+
 {% endblock %}
