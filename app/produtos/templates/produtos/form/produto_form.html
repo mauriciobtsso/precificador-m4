@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="container py-3">
+<div class="container py-3" data-produto-id="{{ produto.id or '' }}">
   <!-- ============================================================
        CABEÇALHO — PRODUTO
   ============================================================ -->
@@ -66,57 +66,33 @@
     ============================== -->
     <ul class="nav nav-tabs" id="produtoTabs" role="tablist">
       <li class="nav-item" role="presentation">
-        <button
-          class="nav-link active"
-          id="tab-geral"
-          type="button"
-          role="tab"
-          data-bs-toggle="tab"
-          data-bs-target="#abaGeral"
-          aria-controls="abaGeral"
-          aria-selected="true">
+        <button class="nav-link active" id="tab-geral" type="button" role="tab"
+                data-bs-toggle="tab" data-bs-target="#abaGeral"
+                aria-controls="abaGeral" aria-selected="true">
           <i class="fas fa-box me-1"></i> Geral
         </button>
       </li>
 
       <li class="nav-item" role="presentation">
-        <button
-          class="nav-link"
-          id="tab-precos"
-          type="button"
-          role="tab"
-          data-bs-toggle="tab"
-          data-bs-target="#abaPrecos"
-          aria-controls="abaPrecos"
-          aria-selected="false">
+        <button class="nav-link" id="tab-precos" type="button" role="tab"
+                data-bs-toggle="tab" data-bs-target="#abaPrecos"
+                aria-controls="abaPrecos" aria-selected="false">
           <i class="fas fa-coins me-1"></i> Preços
         </button>
       </li>
 
       <li class="nav-item" role="presentation">
-        <button
-          class="nav-link"
-          id="tab-tecnicos"
-          type="button"
-          role="tab"
-          data-bs-toggle="tab"
-          data-bs-target="#abaTecnicos"
-          aria-controls="abaTecnicos"
-          aria-selected="false">
+        <button class="nav-link" id="tab-tecnicos" type="button" role="tab"
+                data-bs-toggle="tab" data-bs-target="#abaTecnicos"
+                aria-controls="abaTecnicos" aria-selected="false">
           <i class="fas fa-tools me-1"></i> Técnicos
         </button>
       </li>
 
       <li class="nav-item" role="presentation">
-        <button
-          class="nav-link"
-          id="tab-historico"
-          type="button"
-          role="tab"
-          data-bs-toggle="tab"
-          data-bs-target="#abaHistorico"
-          aria-controls="abaHistorico"
-          aria-selected="false">
+        <button class="nav-link" id="tab-historico" type="button" role="tab"
+                data-bs-toggle="tab" data-bs-target="#abaHistorico"
+                aria-controls="abaHistorico" aria-selected="false">
           <i class="fas fa-history me-1"></i> Histórico
         </button>
       </li>
@@ -125,7 +101,7 @@
     <!-- =============================
          CONTEÚDO DAS ABAS
     ============================== -->
-    <div class="tab-content p-3 border border-top-0 rounded-bottom">
+    <div class="tab-content p-3 border border-top-0 rounded-bottom fade-in">
       <div class="tab-pane fade show active" id="abaGeral" role="tabpanel">
         {% include "produtos/form/abas/_geral.html" %}
       </div>
@@ -135,7 +111,7 @@
       <div class="tab-pane fade" id="abaTecnicos" role="tabpanel">
         {% include "produtos/form/abas/_tecnicos.html" %}
       </div>
-      <div class="tab-pane fade" id="abaHistorico" role="tabpanel">
+      <div class="tab-pane fade" id="abaHistorico" role="tabpanel" data-produto-id="{{ produto.id }}">
         {% include "produtos/form/abas/_historico.html" %}
       </div>
     </div>
@@ -169,34 +145,48 @@
       <div class="toast-body">
         <i class="fas fa-check-circle me-2"></i>Operação realizada com sucesso.
       </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast" aria-label="Fechar"></button>
     </div>
   </div>
 </div>
 
 {% endblock %}
 
+<!-- ============================================================
+     SCRIPTS
+============================================================ -->
 <script src="{{ url_for('static', filename='js/produtos_autosave.js') }}"></script>
 
 {% block scripts %}
 <!-- AutoNumeric -->
 <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.5"></script>
 
-<!-- Scripts principais -->
+{{ super() }}
 <script src="{{ url_for('static', filename='js/produtos_form.js') }}"></script>
 <script src="{{ url_for('static', filename='js/configs_modals.js') }}"></script>
+<script src="{{ url_for('static', filename='js/produtos_historico.js') }}"></script>
 
-<!-- Proteção extra: força todos os botões sem tipo a virarem "button" -->
 <script>
+/* Garantir tooltips e segurança dos botões */
 document.addEventListener("DOMContentLoaded", () => {
+  // evita submits indevidos
   document.querySelectorAll("button:not([type])").forEach(btn => {
     btn.setAttribute("type", "button");
   });
+
+  // inicializa tooltips bootstrap
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
 });
 </script>
 
 <style>
-/* Feedback visual ao salvar */
+/* ==============================
+   UI REFINADA – VISUAL GERAL
+============================== */
+.text-orange { color: #ff5e00 !important; }
+
 input, select, textarea {
   transition: border-color .2s ease, box-shadow .2s ease;
 }
@@ -218,54 +208,17 @@ input:focus, select:focus, textarea:focus {
   background-color: #e65000;
   color: #fff;
 }
-</style>
-<style>
-/* ==============================
-   UI REFINADA – VISUAL
-============================== */
-.text-orange { color: #ff5e00 !important; }
-
-.status-bar {
-  background: #f8f9fa;
-  border-top: 1px solid #e5e5e5;
-  font-size: 0.85rem;
-  margin-top: 10px;
-  border-radius: 0 0 .5rem .5rem;
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  color: #666;
+.table th, .table td { vertical-align: middle; }
+.table td.small { font-size: 0.85rem; }
+.table-bordered>tbody>tr>td, .table-bordered>thead>tr>th {
+  border-color: #ddd;
 }
 
-.fade-in {
-  animation: fadeIn .4s ease-in-out;
-}
-
+/* Fade suave nas abas */
+.fade-in { animation: fadeIn .4s ease-in-out; }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-/* Abas com ponto indicador de alteração */
-.nav-tabs .nav-link {
-  position: relative;
-  transition: color .2s ease;
-}
-.nav-tabs .nav-link .text-orange {
-  font-size: 1.2rem;
-  vertical-align: middle;
-}
 </style>
-<style>
-.table th, .table td {
-  vertical-align: middle;
-}
-.table td.small {
-  font-size: 0.85rem;
-}
-.table-bordered>tbody>tr>td, .table-bordered>thead>tr>th {
-  border-color: #ddd;
-}
-</style>
-
 {% endblock %}

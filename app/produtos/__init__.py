@@ -13,10 +13,10 @@ produtos_bp = Blueprint(
     static_folder="static"
 )
 
-# ⚠️ IMPORTANTE:
-# Esse import deve vir DEPOIS da criação do blueprint,
-# pois é ele que faz o Flask registrar todas as rotas (como /novo e /editar)
+# ⚙️ IMPORTANTE:
+# O import deve vir DEPOIS da criação do blueprint
+# e DEVE SER RELATIVO para evitar duplicação de módulos no SQLAlchemy
 try:
-    from app.produtos import routes  # noqa: E402, F401
+    from . import routes  # ✅ import relativo (corrige o aviso)
 except Exception as e:
-    print(f"[AVISO] Não foi possível importar app.produtos.routes: {e}")
+    print(f"[AVISO] Falha ao importar rotas de produtos: {e}")

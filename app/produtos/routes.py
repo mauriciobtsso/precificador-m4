@@ -87,6 +87,32 @@ def index():
 # ======================
 # CADASTRAR / EDITAR PRODUTO
 # ======================
+from decimal import Decimal, InvalidOperation
+from datetime import datetime
+from sqlalchemy.orm import joinedload
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    current_app,
+)
+from flask_login import login_required, current_user
+from app import db
+from app.produtos.models import Produto, ProdutoHistorico
+from app.produtos.categorias.models import CategoriaProduto
+from app.produtos.configs.models import (
+    MarcaProduto,
+    CalibreProduto,
+    TipoProduto,
+    FuncionamentoProduto,
+)
+
+# ... seu blueprint produtos_bp já declarado acima ...
+
+
 @produtos_bp.route("/novo", methods=["GET", "POST"])
 @produtos_bp.route("/<int:produto_id>/editar", methods=["GET", "POST"])
 @login_required
@@ -122,19 +148,28 @@ def gerenciar_produto(produto_id=None):
             flash("⚠️ Produto de origem não encontrado para duplicação.", "warning")
             produto = Produto()
     else:
-        produto = Produto.query.get(produto_id) if produto_id else Produto()
+        # ✅ Carrega o produto com histórico incluído na edição
+        if produto_id:
+            produto = (
+                Produto.query.options(joinedload(Produto.historicos))
+                .filter_by(id=produto_id)
+                .first()
+            )
+        else:
+            produto = Produto()
 
+    # Dados auxiliares para selects
     categorias = CategoriaProduto.query.order_by(CategoriaProduto.nome.asc()).all()
     marcas = MarcaProduto.query.order_by(MarcaProduto.nome.asc()).all()
     calibres = CalibreProduto.query.order_by(CalibreProduto.nome.asc()).all()
     tipos = TipoProduto.query.order_by(TipoProduto.nome.asc()).all()
     funcionamentos = FuncionamentoProduto.query.order_by(FuncionamentoProduto.nome.asc()).all()
 
+    # ======================
+    # SALVAR PRODUTO (POST)
+    # ======================
     if request.method == "POST":
         data = request.form
-        codigo = (data.get("codigo") or "").strip().upper()
-        nome = (data.get("nome") or "").strip()
-        descricao = (data.get("descricao") or "").strip() or None
 
         def to_int(value):
             try:
@@ -142,12 +177,34 @@ def gerenciar_produto(produto_id=None):
             except ValueError:
                 return None
 
+        def to_decimal(value):
+            try:
+                return Decimal(str(value or 0).replace(",", "."))
+            except InvalidOperation:
+                return Decimal(0)
+
+        # 🔎 snapshot antes das mudanças (para diffs)
+        campos_auditados = [
+            "codigo", "nome", "descricao",
+            "categoria_id", "marca_id", "calibre_id", "tipo_id", "funcionamento_id",
+            "preco_fornecedor", "desconto_fornecedor", "frete",
+            "margem", "lucro_alvo", "preco_final",
+            "ipi", "ipi_tipo", "difal", "imposto_venda",
+        ]
+        antes = {c: getattr(produto, c, None) for c in campos_auditados}
+
+        # Campos básicos
+        codigo = (data.get("codigo") or "").strip().upper()
+        nome = (data.get("nome") or "").strip()
+        descricao = (data.get("descricao") or "").strip() or None
+
         produto.categoria_id = to_int(data.get("categoria_id"))
         produto.marca_id = to_int(data.get("marca_id"))
         produto.calibre_id = to_int(data.get("calibre_id"))
         produto.tipo_id = to_int(data.get("tipo_id"))
         produto.funcionamento_id = to_int(data.get("funcionamento_id"))
 
+        # Verifica duplicidade de SKU
         existente = (
             Produto.query.filter(Produto.codigo == codigo)
             .filter(Produto.id != produto.id if produto.id else True)
@@ -161,12 +218,7 @@ def gerenciar_produto(produto_id=None):
         produto.nome = nome
         produto.descricao = descricao
 
-        def to_decimal(value):
-            try:
-                return Decimal(str(value or 0).replace(",", "."))
-            except InvalidOperation:
-                return Decimal(0)
-
+        # Valores numéricos
         produto.preco_fornecedor = to_decimal(data.get("preco_fornecedor"))
         produto.desconto_fornecedor = to_decimal(data.get("desconto_fornecedor"))
         produto.frete = to_decimal(data.get("frete"))
@@ -179,17 +231,65 @@ def gerenciar_produto(produto_id=None):
         produto.ipi_tipo = data.get("ipi_tipo", "%_dentro")
 
         try:
+            # Cálculo automático dos preços
             if hasattr(produto, "calcular_precos"):
                 produto.calcular_precos()
+
+            # Persiste o produto e garante o ID para auditar
             db.session.add(produto)
+            db.session.flush()  # 👈 garante produto.id
+
+            # 🔐 auditoria de criação/edição + diffs
+            registros = []
+
+            if not produto_id:
+                # registro de criação
+                registros.append(ProdutoHistorico(
+                    produto_id=produto.id,
+                    campo="__acao__",
+                    valor_antigo=None,
+                    valor_novo="Criação de produto",
+                    usuario_id=getattr(current_user, "id", None),
+                    usuario_nome=getattr(current_user, "nome", None)
+                    or getattr(current_user, "username", None)
+                    or getattr(current_user, "email", None),
+                    data_modificacao=datetime.utcnow(),
+                ))
+
+            # compara diffs campo a campo
+            depois = {c: getattr(produto, c, None) for c in campos_auditados}
+            for campo in campos_auditados:
+                a, d = antes.get(campo), depois.get(campo)
+
+                # normaliza para comparação (Decimal/None/str)
+                if str(a) != str(d):
+                    registros.append(ProdutoHistorico(
+                        produto_id=produto.id,
+                        campo=campo,
+                        valor_antigo=str(a) if a is not None else None,
+                        valor_novo=str(d) if d is not None else None,
+                        usuario_id=getattr(current_user, "id", None),
+                        usuario_nome=getattr(current_user, "nome", None) or getattr(current_user, "username", None),
+                        data_modificacao=datetime.utcnow(),
+                    ))
+
+            if registros:
+                db.session.add_all(registros)
+
+            # commit final
             db.session.commit()
+
             flash("✅ Produto salvo com sucesso!", "success")
             return redirect(url_for("produtos.index"))
+
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Erro ao salvar produto: {e}")
             flash("❌ Ocorreu um erro ao salvar o produto.", "danger")
 
+    # ======================
+    # RENDERIZAÇÃO FINAL
+    # ======================
     return render_template(
         "produtos/form/produto_form.html",
         produto=produto,
@@ -199,6 +299,83 @@ def gerenciar_produto(produto_id=None):
         tipos=tipos,
         funcionamentos=funcionamentos,
     )
+
+# ======================
+# REVERTER VALOR DE HISTÓRICO
+# ======================
+from flask import jsonify
+
+@produtos_bp.route("/historico/<int:hist_id>/reverter", methods=["POST"])
+@login_required
+def reverter_historico(hist_id):
+    """Restaura o valor antigo de um campo no produto, com registro de auditoria."""
+    from app.produtos.models import ProdutoHistorico, Produto
+
+    hist = ProdutoHistorico.query.get_or_404(hist_id)
+    produto = Produto.query.get(hist.produto_id)
+
+    if not produto:
+        return jsonify({"success": False, "error": "Produto não encontrado"}), 404
+    if hist.campo == "__acao__":
+        return jsonify({"success": False, "error": "Ação de criação não pode ser revertida"}), 400
+
+    try:
+        # atualiza o campo no produto
+        if hasattr(produto, hist.campo):
+            setattr(produto, hist.campo, hist.valor_antigo)
+        else:
+            return jsonify({"success": False, "error": f"Campo '{hist.campo}' inválido"}), 400
+
+        # registra nova linha de histórico
+        reversao = ProdutoHistorico(
+            produto_id=produto.id,
+            campo=hist.campo,
+            valor_antigo=hist.valor_novo,
+            valor_novo=hist.valor_antigo,
+            usuario_id=getattr(current_user, "id", None),
+            usuario_nome=(
+                getattr(current_user, "nome", None)
+                or getattr(current_user, "username", None)
+                or getattr(current_user, "email", None)
+            ),
+            data_modificacao=datetime.utcnow(),
+        )
+
+        db.session.add(reversao)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"Campo '{hist.campo}' revertido com sucesso.",
+            "campo": hist.campo,
+            "valor_novo": hist.valor_antigo,
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erro ao reverter histórico: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ======================
+# FRAGMENTO DE HISTÓRICO (AJAX)
+# ======================
+@produtos_bp.route("/<int:produto_id>/historico/fragment", methods=["GET"])
+@login_required
+def fragment_historico(produto_id):
+    """Retorna o HTML parcial da aba histórico para atualização via AJAX."""
+    from flask import render_template
+    from app.produtos.models import Produto
+
+    produto = (
+        Produto.query.options(joinedload(Produto.historicos))
+        .filter_by(id=produto_id)
+        .first()
+    )
+
+    if not produto:
+        return "<div class='alert alert-danger small'>Produto não encontrado.</div>", 404
+
+    return render_template("produtos/form/abas/_historico.html", produto=produto)
 
 
 # ======================
@@ -306,7 +483,6 @@ def auto_save(produto_id):
             valor_atual = getattr(produto, field)
             novo_valor = value or None
 
-            # compara valores antes de salvar
             if str(valor_atual) != str(novo_valor):
                 alteracoes.append({
                     "campo": field,
@@ -315,7 +491,6 @@ def auto_save(produto_id):
                 })
                 setattr(produto, field, novo_valor)
 
-        # Só registra histórico se houver alterações
         if alteracoes:
             for alt in alteracoes:
                 hist = ProdutoHistorico(
@@ -324,14 +499,14 @@ def auto_save(produto_id):
                     valor_antigo=str(alt["valor_antigo"]),
                     valor_novo=str(alt["valor_novo"]),
                     usuario_id=current_user.id,
-                    usuario_nome=current_user.nome if hasattr(current_user, "nome") else current_user.email
+                    usuario_nome=current_user.nome if hasattr(current_user, "nome") else current_user.email,
                 )
                 db.session.add(hist)
 
         produto.atualizado_em = datetime.utcnow()
         db.session.commit()
-
         return jsonify({"success": True, "id": produto.id, "alteracoes": len(alteracoes)})
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500

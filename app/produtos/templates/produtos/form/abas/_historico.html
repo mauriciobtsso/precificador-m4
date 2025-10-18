@@ -3,37 +3,99 @@
 ============================================================ -->
 <div class="border-start border-4 border-orange ps-3 mb-3">
   <h5 class="fw-semibold text-dark mb-0">
-    <i class="fas fa-clock-rotate-left me-2"></i>Histórico de Alterações
+    <i class="fas fa-clock-rotate-left me-2 text-orange"></i>Histórico de Alterações
   </h5>
 </div>
 
 {% if produto.historicos %}
-  <div class="table-responsive">
-    <table class="table table-sm align-middle table-bordered">
+  <div class="table-responsive shadow-sm rounded border">
+    <table class="table table-sm table-hover align-middle mb-0">
       <thead class="table-light">
-        <tr>
-          <th>Data</th>
-          <th>Usuário</th>
+        <tr class="text-muted small">
+          <th style="width: 140px;">Data</th>
+          <th style="width: 160px;">Usuário</th>
           <th>Campo</th>
-          <th>Valor Anterior</th>
-          <th>Valor Novo</th>
+          <th class="text-end" style="width: 160px;">Valor Anterior</th>
+          <th class="text-end" style="width: 160px;">Valor Novo</th>
+          <th class="text-end" style="width: 70px;"></th>
         </tr>
       </thead>
       <tbody>
         {% for h in produto.historicos|sort(attribute='data_modificacao', reverse=True) %}
-          <tr>
-            <td>{{ h.data_modificacao.strftime("%d/%m/%Y %H:%M") }}</td>
-            <td>{{ h.usuario_nome or '—' }}</td>
-            <td><strong>{{ h.campo }}</strong></td>
-            <td class="text-muted small">{{ h.valor_antigo or '—' }}</td>
-            <td class="small">{{ h.valor_novo or '—' }}</td>
-          </tr>
+        {% set monetario = (
+            'preco' in h.campo or
+            'valor' in h.campo or
+            'lucro' in h.campo or
+            'frete' in h.campo or
+            'ipi' in h.campo or
+            'difal' in h.campo or
+            'imposto' in h.campo
+        ) %}
+        <tr>
+          <!-- Data -->
+          <td class="text-muted small">
+            {{ h.data_modificacao.strftime('%d/%m/%Y %H:%M') if h.data_modificacao else '—' }}
+          </td>
+
+          <!-- Usuário -->
+          <td class="text-muted small">
+            {{ h.usuario_nome or '—' }}
+          </td>
+
+          <!-- Campo -->
+          <td>
+            {% if h.campo == '__acao__' %}
+              <em class="text-muted">Criação de produto</em>
+            {% else %}
+              <span class="fw-semibold text-dark">{{ h.campo.replace('_', ' ')|capitalize }}</span>
+            {% endif %}
+          </td>
+
+          <!-- Valor Anterior -->
+          <td class="text-end text-muted">
+            {% if monetario and h.valor_antigo %}
+              {% set val = h.valor_antigo|float %}
+              {{ "R$ {:,.2f}".format(val).replace(",", "v").replace(".", ",").replace("v", ".") }}
+            {% else %}
+              {{ h.valor_antigo or "—" }}
+            {% endif %}
+          </td>
+
+          <!-- Valor Novo -->
+          <td class="text-end fw-semibold">
+            {% if monetario and h.valor_novo %}
+              {% set val = h.valor_novo|float %}
+              <span class="text-success">
+                {{ "R$ {:,.2f}".format(val).replace(",", "v").replace(".", ",").replace("v", ".") }}
+              </span>
+            {% else %}
+              <span class="text-dark">{{ h.valor_novo or "—" }}</span>
+            {% endif %}
+          </td>
+
+          <!-- Botão de Reversão -->
+          <td class="text-end">
+            {% if h.campo != '__acao__' %}
+              <button type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      data-reverter-id="{{ h.id }}"
+                      data-campo="{{ h.campo }}"
+                      title="Reverter valor"
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="left">
+                <i class="fas fa-undo-alt"></i>
+              </button>
+            {% endif %}
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+
 {% else %}
   <div class="alert alert-light border small">
-    <i class="fas fa-info-circle me-2"></i>Sem registros de alteração para este produto.
+    <i class="fas fa-info-circle me-2 text-muted"></i>
+    Sem registros de alteração para este produto.
   </div>
 {% endif %}
