@@ -1,0 +1,20 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+  <h3>Armas em Estoque</h3>
+  <table class='table table-sm'>
+    <thead><tr><th>#</th><th>Série / Identificação</th><th>Produto</th><th>Status</th><th>Recebimento</th></tr></thead>
+    <tbody>
+      {% for a in armas %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ a.numero_serie or '-' }}</td>
+          <td>{{ a.produto.nome if a.produto else '—' }}</td>
+          <td>{{ a.status }}</td>
+          <td>{{ a.data_recebimento.strftime('%d/%m/%Y') if a.data_recebimento else '' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan='5'>Nenhuma arma encontrada.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

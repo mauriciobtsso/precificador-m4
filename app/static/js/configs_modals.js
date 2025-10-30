@@ -1,10 +1,13 @@
 /* ==========================================================
    CONFIGS_MODALS.JS
-   - Gera CRUD rápido das engrenagens (tipo, marca, calibre, etc.)
+   CRUD rápido das engrenagens (tipo, marca, calibre, etc.)
    ========================================================== */
 (() => {
   console.log("[M4] configs_modals.js carregado");
 
+  // ==========================================
+  // Mapa de rotas
+  // ==========================================
   const rotaPorTabela = {
     tipos: "tipo",
     marcas: "marca",
@@ -13,6 +16,27 @@
     categorias: "categoria"
   };
 
+  // ==========================================
+  // Função auxiliar segura para fechar modal
+  // ==========================================
+  function closeModalById(modalId) {
+    const el = document.getElementById(modalId);
+    if (!el) {
+      console.warn(`[M4] closeModalById: elemento #${modalId} não encontrado`);
+      return;
+    }
+
+    let instance = bootstrap.Modal.getInstance(el);
+    // Se não existe instância, cria e depois esconde
+    if (!instance) instance = new bootstrap.Modal(el);
+    instance.hide();
+
+    console.log(`[M4] Modal #${modalId} fechado com segurança ✅`);
+  }
+
+  // ==========================================
+  // Ações de salvar (botões das modais)
+  // ==========================================
   document.querySelectorAll(".modal-footer .btn-success[data-tabela]").forEach(btn => {
     btn.addEventListener("click", async () => {
       const tabelaAttr = btn.dataset.tabela || "";
@@ -21,7 +45,10 @@
       const selectId = btn.dataset.select;
       const nome = (document.getElementById(inputId)?.value || "").trim();
 
-      if (!nome) return alert("Informe o nome.");
+      if (!nome) {
+        alert("Informe o nome.");
+        return;
+      }
 
       btn.disabled = true;
       const originalHTML = btn.innerHTML;
@@ -37,6 +64,7 @@
         const data = await resp.json();
         if (!resp.ok || !data.id) throw new Error(data.error || "Erro ao salvar.");
 
+        // Atualiza o <select> vinculado
         const sel = document.getElementById(selectId);
         if (sel) {
           const opt = document.createElement("option");
@@ -46,11 +74,22 @@
           sel.appendChild(opt);
         }
 
+        // Fecha o modal de forma segura
         const modalEl = btn.closest(".modal");
-        bootstrap.Modal.getInstance(modalEl)?.hide();
-        document.getElementById(inputId).value = "";
+        if (modalEl?.id) closeModalById(modalEl.id);
 
-        new bootstrap.Toast(document.getElementById("toastCategoria")).show();
+        // Limpa campo
+        const input = document.getElementById(inputId);
+        if (input) input.value = "";
+
+        // Mostra toast de sucesso, se existir
+        const toastEl = document.getElementById("toastCategoria");
+        if (toastEl) {
+          const bsToast = new bootstrap.Toast(toastEl);
+          bsToast.show();
+        }
+
+        console.log(`[M4] Novo registro salvo em '${tabela}' → ${nome}`);
       } catch (err) {
         console.error("[M4] Erro ao salvar configuração:", err);
         alert(err.message || "Falha ao salvar.");

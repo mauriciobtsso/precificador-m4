@@ -2,68 +2,25 @@
 {% block content %}
 
 <div class="container py-3" data-produto-id="{{ produto.id or '' }}">
-  <!-- ============================================================
-       CABEÇALHO — PRODUTO
-  ============================================================ -->
-  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-    <div>
-      <h3 class="fw-bold text-dark mb-0">
-        <i class="fas fa-gun text-orange me-2"></i>
-        {{ 'Editar Produto' if produto and produto.id else 'Novo Produto' }}
-      </h3>
-
-      {% if produto and produto.codigo %}
-        <small class="text-muted d-block">
-          Código interno: <strong>{{ produto.codigo }}</strong>
-        </small>
-      {% endif %}
-
-      {% if produto %}
-        <div class="text-muted small mt-1">
-          <i class="far fa-clock me-1"></i>
-          Última modificação:
-          {% if produto.atualizado_em %}
-            {{ produto.atualizado_em.strftime('%d/%m/%Y %Hh%M') }}
-          {% else %}
-            não há registro
-          {% endif %}
-        </div>
-      {% endif %}
-    </div>
-
-    <div class="d-flex gap-2 mt-3 mt-md-0">
-      {% if produto and produto.id %}
-        <!-- Botão Duplicar -->
-        <a href="{{ url_for('produtos.gerenciar_produto', duplicar_de=produto.id) }}"
-           class="btn btn-outline-secondary btn-sm">
-          <i class="fas fa-clone me-1"></i>Duplicar
-        </a>
-
-        <!-- Botão Excluir -->
-        <form action="{{ url_for('produtos.excluir_produto', produto_id=produto.id) }}"
-              method="POST"
-              onsubmit="return confirm('Tem certeza que deseja excluir este produto?');"
-              style="display:inline;">
-          <button type="submit" class="btn btn-outline-danger btn-sm">
-            <i class="fas fa-trash"></i>
-          </button>
-        </form>
-      {% endif %}
-
-      <!-- Botão Voltar -->
-      <a href="{{ url_for('produtos.index') }}" class="btn btn-outline-dark btn-sm">
-        <i class="fas fa-arrow-left me-1"></i>Voltar
-      </a>
-    </div>
-  </div>
+  {# =========================
+     CABEÇALHO (include)
+  ========================== #}
+  {% include "produtos/form/includes/_header.html" %}
+  
+  {# =========================
+     BLOCO DA FOTO DO PRODUTO (upload e preview, SOMENTE NO FORM)
+     IDs: inputFotoProduto, btnSelecionarFoto, btnRemoverFoto, fotoProdutoPreview, inputFotoUrl
+     MOVIDO PARA _geral.html
+  ========================== #}
 
   <!-- ============================================================
        FORMULÁRIO PRINCIPAL
   ============================================================ -->
   <form method="POST" action="" class="needs-validation" novalidate id="produtoForm">
-    <!-- =============================
-         ABAS DO FORMULÁRIO DE PRODUTO
-    ============================== -->
+
+
+
+	  <!-- ABAS -->
     <ul class="nav nav-tabs" id="produtoTabs" role="tablist">
       <li class="nav-item" role="presentation">
         <button class="nav-link active" id="tab-geral" type="button" role="tab"
@@ -98,10 +55,8 @@
       </li>
     </ul>
 
-    <!-- =============================
-         CONTEÚDO DAS ABAS
-    ============================== -->
-    <div class="tab-content p-3 border border-top-0 rounded-bottom fade-in">
+	    <!-- CONTEÚDO DAS ABAS -->
+	    <div class="tab-content p-3 border border-top-0 rounded-bottom fade-in">
       <div class="tab-pane fade show active" id="abaGeral" role="tabpanel">
         {% include "produtos/form/abas/_geral.html" %}
       </div>
@@ -116,109 +71,63 @@
       </div>
     </div>
 
-    <!-- =============================
-         BOTÃO DE SALVAR
-    ============================== -->
-    <div class="text-end mt-4">
-      <button type="submit" class="btn btn-orange px-4 fw-semibold">
-        <i class="fas fa-save me-2"></i>Salvar Produto
-      </button>
-    </div>
-  </form>
-</div>
+	    {# Rodapé com botão salvar #}
+	    {% include "produtos/form/includes/_footer.html" %}
+	  </form>
+	</div>
 
-<!-- ============================================================
-     MODAIS DE CONFIGURAÇÕES (ENGRENAGENS)
-============================================================ -->
+{# Toast de sucesso #}
+{% include "produtos/form/includes/_toast.html" %}
+
+{# ================================
+   MODAIS (categorias, tipo, marca…)
+================================ #}
 {% include "produtos/form/modais/_modal_categoria.html" %}
 {% include "produtos/form/modais/_modal_tipo.html" %}
 {% include "produtos/form/modais/_modal_marca.html" %}
 {% include "produtos/form/modais/_modal_calibre.html" %}
 {% include "produtos/form/modais/_modal_funcionamento.html" %}
 
-<!-- ============================================================
-     TOAST GLOBAL DE SUCESSO
-============================================================ -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080;">
-  <div id="toastCategoria" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="d-flex">
-      <div class="toast-body">
-        <i class="fas fa-check-circle me-2"></i>Operação realizada com sucesso.
-      </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto"
-              data-bs-dismiss="toast" aria-label="Fechar"></button>
-    </div>
-  </div>
-</div>
-
 {% endblock %}
 
-<!-- ============================================================
-     SCRIPTS
-============================================================ -->
-<script src="{{ url_for('static', filename='js/produtos_autosave.js') }}"></script>
-
+{# ============================================================
+   SCRIPTS (ordem crítica para restaurar comportamentos)
+============================================================ #}
 {% block scripts %}
-<!-- AutoNumeric -->
-<script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.5"></script>
+  {{ super() }}
 
-{{ super() }}
-<script src="{{ url_for('static', filename='js/produtos_form.js') }}"></script>
-<script src="{{ url_for('static', filename='js/configs_modals.js') }}"></script>
-<script src="{{ url_for('static', filename='js/produtos_historico.js') }}"></script>
+  <!-- CSS específico da Fase 5 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/produtos_form.css') }}">
 
-<script>
-/* Garantir tooltips e segurança dos botões */
-document.addEventListener("DOMContentLoaded", () => {
-  // evita submits indevidos
-  document.querySelectorAll("button:not([type])").forEach(btn => {
-    btn.setAttribute("type", "button");
-  });
+  <!-- AutoNumeric -->
+  <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.5"></script>
 
-  // inicializa tooltips bootstrap
-  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-  tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
-});
-</script>
+  <!-- Módulos JS -->
+  <script src="{{ url_for('static', filename='js/produtos_form.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/produtos_autosave.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/produtos_historico.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/configs_modals.js') }}"></script>
 
-<style>
-/* ==============================
-   UI REFINADA – VISUAL GERAL
-============================== */
-.text-orange { color: #ff5e00 !important; }
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("[M4] produto_form HTML carregado ✅");
+      document.querySelectorAll("button:not([type])").forEach(btn => btn.setAttribute("type", "button"));
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
 
-input, select, textarea {
-  transition: border-color .2s ease, box-shadow .2s ease;
-}
-input:focus, select:focus, textarea:focus {
-  border-color: #ff5e00 !important;
-  box-shadow: 0 0 0 0.1rem rgba(255,94,0,.25);
-}
-.nav-tabs .nav-link.active {
-  color: #ff5e00 !important;
-  font-weight: 600;
-  border-color: #ff5e00 #ff5e00 #fff;
-}
-.btn-orange {
-  background-color: #ff5e00;
-  color: #fff;
-  border: none;
-}
-.btn-orange:hover {
-  background-color: #e65000;
-  color: #fff;
-}
-.table th, .table td { vertical-align: middle; }
-.table td.small { font-size: 0.85rem; }
-.table-bordered>tbody>tr>td, .table-bordered>thead>tr>th {
-  border-color: #ddd;
-}
+      // ⚙️ Inicialização do módulo de foto foi movida para produtos_form.js
+      // para garantir que o DOM esteja pronto antes de anexar eventos.
+      // O código de inicialização do módulo de foto foi removido daqui.
+    });
 
-/* Fade suave nas abas */
-.fade-in { animation: fadeIn .4s ease-in-out; }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-</style>
+    window.addEventListener("load", () => {
+      if (window.ProdutosForm?.init) window.ProdutosForm.init();
+      if (window.ConfigsModals?.init) window.ConfigsModals.init();
+    });
+
+    document.addEventListener('shown.bs.tab', evt => {
+      if (window.ProdutosForm?.reinitMasks) window.ProdutosForm.reinitMasks();
+      if (window.ProdutosForm?.refreshResumo) window.ProdutosForm.refreshResumo();
+    });
+  </script>
 {% endblock %}

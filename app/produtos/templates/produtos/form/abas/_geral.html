@@ -8,22 +8,67 @@
 </div>
 
 <div class="row g-3">
-  <!-- Código / SKU -->
-  <div class="col-md-3">
+  
+  {# ============================================================
+     BLOCO DA FOTO DO PRODUTO (upload e preview, SOMENTE NO FORM)
+     IDs: inputFotoProduto, btnSelecionarFoto, btnRemoverFoto, fotoProdutoPreview, inputFotoUrl
+     MOVIDO PARA DENTRO DA ABA GERAL
+  ============================================================ #}
+  <div class="col-md-4 order-md-2">
+    <div class="d-flex justify-content-center my-3">
+      <div class="position-relative rounded-4 shadow-sm border bg-light"
+           style="width:260px; height:260px; overflow:hidden;" id="fotoProdutoContainer"
+           onmouseenter="document.getElementById('fotoProdutoHoverOverlay').style.opacity = '1';"
+           onmouseleave="document.getElementById('fotoProdutoHoverOverlay').style.opacity = '0';">
+
+        <!-- Preview -->
+        <img id="fotoProdutoPreview"
+             data-produto-id="{{ produto.id or '' }}"
+             src="{{ produto.foto_url or url_for('static', filename='img/placeholder.jpg') }}"
+             class="w-100 h-100"
+             style="object-fit:cover;">
+
+        <!-- Overlay de Carregamento (Inicialmente oculto) -->
+        <div id="fotoProdutoOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center d-none" style="z-index:3; background-color: rgba(0, 0, 0, 0.5); border-radius: 0.5rem;">
+            <i class="fas fa-spinner fa-spin fa-2x text-white"></i>
+        </div>
+
+        <!-- Overlay de Hover para os Botões -->
+        <!-- O JS controlará a visibilidade deste bloco para o hover -->
+        <div id="fotoProdutoHoverOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center" style="z-index:2; background-color: rgba(0, 0, 0, 0.3); opacity: 0; transition: opacity 0.2s;">
+            <button type="button" id="btnSelecionarFoto" class="btn btn-sm btn-light shadow-sm">
+                <i class="fas fa-camera me-1"></i> Alterar foto
+            </button>
+            <button type="button" id="btnRemoverFoto" class="btn btn-sm btn-outline-danger mt-2 {% if not produto.foto_url %}d-none{% endif %}">
+                <i class="fas fa-trash me-1"></i> Remover
+            </button>
+        </div>
+
+        <!-- Inputs -->
+        <input type="file" id="inputFotoProduto" accept="image/*" class="d-none">
+        <input type="hidden" id="inputFotoUrl" name="foto_url" value="{{ produto.foto_url or '' }}">
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-8 order-md-1">
+    <div class="row g-3">
+	<!-- Código / SKU -->
+	  <div class="col-md-4">
     <label class="form-label fw-semibold">Código / SKU</label>
     <input type="text" id="codigo" name="codigo" class="form-control text-uppercase"
            placeholder="Ex: ABC123" value="{{ produto.codigo or '' }}" required>
   </div>
 
-  <!-- Nome -->
-  <div class="col-md-5">
+	<!-- Nome -->
+	  <div class="col-md-8">
     <label class="form-label fw-semibold">Nome do Produto</label>
     <input type="text" id="nome" name="nome" class="form-control"
            placeholder="Ex: Pistola Taurus G3C" value="{{ produto.nome or '' }}" required>
   </div>
 
-  <!-- Tipo -->
-  <div class="col-md-4">
+	<!-- Tipo -->
+	  <div class="col-md-6">
     <label class="form-label fw-semibold">Tipo</label>
     <div class="input-group">
       <select class="form-select" id="tipo_id" name="tipo_id">
@@ -38,8 +83,8 @@
     </div>
   </div>
 
-  <!-- Categoria -->
-  <div class="col-md-4">
+	<!-- Categoria -->
+	  <div class="col-md-6">
     <label class="form-label fw-semibold">Categoria</label>
     <div class="input-group">
       <select class="form-select" id="categoria_id" name="categoria_id">
@@ -54,8 +99,8 @@
     </div>
   </div>
 
-  <!-- Marca -->
-  <div class="col-md-4">
+	<!-- Marca -->
+	  <div class="col-md-6">
     <label class="form-label fw-semibold">Marca</label>
     <div class="input-group">
       <select class="form-select" id="marca_id" name="marca_id">
@@ -70,8 +115,8 @@
     </div>
   </div>
 
-  <!-- Calibre -->
-  <div class="col-md-4">
+	<!-- Calibre -->
+	  <div class="col-md-6">
     <label class="form-label fw-semibold">Calibre</label>
     <div class="input-group">
       <select class="form-select" id="calibre_id" name="calibre_id">
@@ -86,8 +131,8 @@
     </div>
   </div>
 
-  <!-- Funcionamento -->
-  <div class="col-md-4">
+	<!-- Funcionamento -->
+	  <div class="col-md-6">
     <label class="form-label fw-semibold">Funcionamento</label>
     <div class="input-group">
       <select class="form-select" id="funcionamento_id" name="funcionamento_id">
@@ -102,7 +147,12 @@
     </div>
   </div>
 
-  <!-- Descrição -->
+    </div>
+  </div>
+</div>
+
+<!-- Descrição (fora do row principal para ocupar 100% da largura) -->
+<div class="row g-3 mt-3">
   <div class="col-12">
     <label class="form-label fw-semibold">Descrição</label>
     <textarea name="descricao" rows="3" class="form-control"

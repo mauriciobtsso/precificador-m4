@@ -1,0 +1,3 @@
+﻿// Placeholder JS para funcionalidades gerais do estoque (filtros, ações em massa)
+// Ex.: fetch('/estoque/api/transferir') ...
+console.log('[M4] estoque_geral.js carregado');

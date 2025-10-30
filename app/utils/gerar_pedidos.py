@@ -1,42 +1,43 @@
+# app/utils/gerar_pedidos.py
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 )
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.utils import ImageReader
 from datetime import datetime
 import os
 
-# ---------------------------
-# Função auxiliar: formata moeda
-# ---------------------------
+
+# ====================================================
+# FUNÇÕES AUXILIARES
+# ====================================================
 def format_brl(value: float) -> str:
     """Formata número no padrão brasileiro de moeda (R$ 1.234,56)."""
     if value is None:
         value = 0.0
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# ---------------------------
-# Função auxiliar: carrega logo sem distorcer
-# ---------------------------
-def logo_flowable(path, max_w=140, max_h=48):
+
+def logo_flowable(path, max_w=120, max_h=46):
     """Carrega a imagem e redimensiona para caber no box (max_w x max_h)."""
     try:
         ir = ImageReader(path)
         iw, ih = ir.getSize()
         scale = min(max_w / iw, max_h / ih)
         w, h = iw * scale, ih * scale
-        return Image(path, width=w, height=h)
+        img = Image(path, width=w, height=h)
+        img.hAlign = 'LEFT'  # 🔧 força alinhamento total à esquerda
+        return img
     except Exception:
         return Paragraph(
             "[logo não encontrada em app/static/img/logo_pedido.png]",
             getSampleStyleSheet()['Normal']
         )
 
-# ---------------------------
+
 # Palavras-chave para classificar itens
-# ---------------------------
 MAPA_TIPOS = {
     "armas": ["rifl", "rifle", "pist", "pistola", "rev", "revolver", "car", "carabina", "esp", "espingarda"],
     "municoes": ["mun", "munição", "cart", "cartucho", "espol", "espoleta", "esto", "estojo", "polv", "pólvora"],
@@ -52,9 +53,10 @@ def identificar_tipo(descricao: str) -> str:
             return tipo
     return "outros"
 
-# ---------------------------
-# Função principal: gerar Pedido PDF
-# ---------------------------
+
+# ====================================================
+# FUNÇÃO PRINCIPAL — GERAR PEDIDO M4
+# ====================================================
 def gerar_pedido_m4(
     itens,
     cond_pagto="À vista",
@@ -70,10 +72,7 @@ def gerar_pedido_m4(
     fornecedor_cr="-",
     fornecedor_contato="-"
 ):
-    """
-    Gera o PDF do pedido de compra (pedido_m4.pdf).
-    Espera `itens` no formato [(codigo, descricao, quantidade, valor_unitario), ...].
-    """
+    """Gera o PDF do pedido de compra (pedido_m4.pdf)."""
     doc = SimpleDocTemplate(
         "pedido_m4.pdf",
         pagesize=A4,
@@ -81,35 +80,44 @@ def gerar_pedido_m4(
         topMargin=30, bottomMargin=30
     )
     styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='NormalSmall', fontSize=8, leading=10))
+    styles.add(ParagraphStyle(name='NormalLeft', alignment=0, fontSize=9, leading=11))
+    styles.add(ParagraphStyle(name='BoldLeft', alignment=0, fontSize=9, leading=11, spaceBefore=4, spaceAfter=2))
+    styles.add(ParagraphStyle(name='Tabela', fontSize=8, leading=9))
+
     story = []
 
-    # =======================
-    # Cabeçalho (logo + dados da loja)
-    # =======================
+    # ====================================================
+    # 01. CABEÇALHO (LOGO + DADOS LOJA)
+    # ====================================================
     logo_path = os.path.join("app", "static", "img", "logo_pedido.png")
-    logo = logo_flowable(logo_path, max_w=140, max_h=48)
+    logo = logo_flowable(logo_path, max_w=120, max_h=46)
 
     dados_loja = [
-        Paragraph("<b>M4 Tática Comércio e Serviços Ltda</b>", styles['Heading3']),
-        Paragraph("CNPJ: 41.654.218/0001-47  -  CR nº 635069 - 10ª RM", styles['Normal']),
-        Paragraph("Av. Universitária, 750, Lj 23 Edif Diamond Center, Teresina-PI, CEP 64049-494", styles['Normal']),
-        Paragraph("Tel: (86) 3025-5885  -  comercial@m4tatica.com.br", styles['Normal']),
+        Paragraph("<b>M4 TÁTICA COMÉRCIO E SERVIÇOS LTDA</b>", styles['BoldLeft']),
+        Paragraph("CNPJ: 41.654.218/0001-47  —  CR nº 635069 — 10ª RM", styles['NormalSmall']),
+        Paragraph("Av. Universitária, 750, Lj 23 Edif. Diamond Center, Teresina-PI, CEP 64049-494", styles['NormalSmall']),
+        Paragraph("Tel: (86) 3025-5885  |  comercial@m4tatica.com.br", styles['NormalSmall']),
     ]
 
-    cabecalho = Table([[logo, dados_loja]], colWidths=[70, 465])
+    # 🔧 Alinhamento refinado — elimina o espaço entre logo e texto
+    cabecalho = Table([[logo, dados_loja]], colWidths=[90, 450])
     cabecalho.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
     story.append(cabecalho)
-    story.append(Spacer(1, 12))
+    story.append(Spacer(1, 8))
 
-    # =======================
-    # Fornecedor + Dados do Pedido
-    # =======================
+    # ====================================================
+    # 02. FORNECEDOR (ESQUERDA) + 03. DADOS PEDIDO (DIREITA)
+    # ====================================================
+    story.append(Spacer(1, 14))  # 🔽 adiciona mais respiro após o cabeçalho
+
     numero_pedido = numero_pedido or datetime.now().strftime("%Y%m%d%H%M")
     data_pedido = data_pedido or datetime.now().strftime("%d/%m/%Y")
 
@@ -120,34 +128,38 @@ def gerar_pedido_m4(
     fornecedor_contato = fornecedor_contato or "-"
 
     bloco1 = [
-        Paragraph(f"<b>Fornecedor:</b> {fornecedor_nome}", styles['Normal']),
-        Paragraph(f"CNPJ: {fornecedor_cnpj}  -  {fornecedor_cr}", styles['Normal']),
-        Paragraph(f"Endereço: {fornecedor_endereco}", styles['Normal']),
-        Paragraph(f"Contato: {fornecedor_contato}", styles['Normal']),
+        Paragraph(f"<b>Fornecedor:</b> {fornecedor_nome}", styles['NormalLeft']),
+        Paragraph(f"CNPJ: {fornecedor_cnpj}  —  {fornecedor_cr}", styles['NormalLeft']),
+        Paragraph(f"Endereço: {fornecedor_endereco}", styles['NormalLeft']),
+        Paragraph(f"Contato: {fornecedor_contato}", styles['NormalLeft']),
     ]
 
     bloco2 = [
-        Paragraph(f"<b>Nº do Pedido:</b> {numero_pedido}", styles['Normal']),
-        Paragraph(f"<b>Data do Pedido:</b> {data_pedido}", styles['Normal']),
-        Paragraph(f"<b>Condição de Pagamento:</b> {cond_pagto}", styles['Normal']),
+        Paragraph(f"<b>Nº do Pedido:</b> {numero_pedido}", styles['NormalLeft']),
+        Paragraph(f"<b>Data do Pedido:</b> {data_pedido}", styles['NormalLeft']),
+        Paragraph(f"<b>Condição de Pagamento:</b> {cond_pagto}", styles['NormalLeft']),
     ]
 
-    tabela_dados = Table([[bloco1, bloco2]], colWidths=[310, 225])
+    # 🔧 alinhamento refinado: direita agora acompanha "Desc./Acrésc. Unit"
+    # A tabela total tem 525 pt (colWidths da tabela principal somam 560, menos padding)
+    # "Desc./Acrésc. Unit" começa aproximadamente no 480–490 pt da margem esquerda.
+    tabela_dados = Table([[bloco1, bloco2]], colWidths=[315, 215])
     tabela_dados.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),   # 🔽 empurra levemente para baixo
     ]))
     story.append(tabela_dados)
-    story.append(Spacer(1, 12))
+    story.append(Spacer(1, 6))
 
-    # =======================
-    # Tabela de Itens
-    # =======================
+    # ====================================================
+    # 04. TABELA DE ITENS (com quebra automática)
+    # ====================================================
     cabec = ["Código", "Descrição", "Qtd", "R$ Unitário", "Desc./Acrésc. Unit", "R$ Total"]
     data = [cabec]
-
     total_bruto = 0.0
     total_desc = 0.0
 
@@ -173,7 +185,7 @@ def gerar_pedido_m4(
 
         data.append([
             str(cod),
-            desc,
+            Paragraph(desc, styles['Tabela']),
             str(qtd),
             format_brl(unit),
             format_brl(desc_unit),
@@ -188,27 +200,34 @@ def gerar_pedido_m4(
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
         ('ALIGN', (2, 1), (2, -1), 'CENTER'),
         ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.4, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 3),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 3),
     ]))
     story.append(tabela)
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 12))
 
-    # =======================
-    # Totais
-    # =======================
+    # ====================================================
+    # 05. TOTAIS
+    # ====================================================
     total_final = total_bruto + total_desc
 
+    story.append(Paragraph("<b>Resumo Desc./Acresc.:</b>", styles['BoldLeft']))
     if modo == "unico":
-        story.append(Paragraph(f"<b>Percentual aplicado (único):</b> {perc_unico}%", styles['Normal']))
+        story.append(Paragraph(f"Percentual aplicado (único): {perc_unico}%", styles['NormalLeft']))
     else:
-        story.append(Paragraph(f"<b>Percentual aplicado - Armas:</b> {perc_armas}%", styles['Normal']))
-        story.append(Paragraph(f"<b>Percentual aplicado - Munições:</b> {perc_municoes}%", styles['Normal']))
-    story.append(Spacer(1, 6))
+        story.append(Paragraph(f"Percentual aplicado - Armas: {perc_armas}%", styles['NormalLeft']))
+        story.append(Paragraph(f"Percentual aplicado - Munições: {perc_municoes}%", styles['NormalLeft']))
+    story.append(Spacer(1, 8))
 
-    story.append(Paragraph(f"<b>Valor Total dos Produtos:</b> {format_brl(total_bruto)}", styles['Normal']))
-    story.append(Paragraph(f"<b>Diferença aplicada:</b> {format_brl(total_desc)}", styles['Normal']))
-    story.append(Paragraph(f"<b>Valor Total Final:</b> {format_brl(total_final)}", styles['Normal']))
+    story.append(Paragraph(f"<b>Valor Total dos Produtos:</b> {format_brl(total_bruto)}", styles['NormalLeft']))
+    story.append(Paragraph(f"<b>Diferença aplicada:</b> {format_brl(total_desc)}", styles['NormalLeft']))
+    story.append(Paragraph(f"<b>Valor Total Final:</b> {format_brl(total_final)}", styles['BoldLeft']))
+    story.append(Spacer(1, 20))
 
+    # ====================================================
+    # GERAR PDF
+    # ====================================================
     doc.build(story)
     print("pedido_m4.pdf gerado com sucesso!")

@@ -34,7 +34,12 @@ function initCepLookup() {
 
       const setValue = (name, val) => {
         const el = document.querySelector(`input[name='${name}']`);
-        if (el && (!el.value || el.value.trim() === "")) el.value = val || "";
+        if (!el) return;
+        // se o valor anterior veio de outro CEP, atualiza
+        if (!el.dataset.lastCep || el.dataset.lastCep !== cep) {
+          el.value = val || "";
+          el.dataset.lastCep = cep;
+        }
       };
 
       setValue("endereco", data.logradouro);

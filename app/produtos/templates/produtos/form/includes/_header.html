@@ -1,0 +1,81 @@
+<!-- ============================================================
+     CABEÇALHO DO PRODUTO — Sprint 6F (Visual + Responsivo)
+============================================================ -->
+<div class="produto-header container-fluid p-0 mb-3 border-bottom pb-2">
+  <div class="row align-items-center g-2 gy-3 gy-md-0">
+
+    <!-- =======================
+         COLUNA ESQUERDA (Título)
+    ======================== -->
+    <div class="col-12 col-md-6 d-flex flex-column flex-md-row align-items-md-center">
+      <div>
+        <h3 class="fw-bold mb-1 text-dark d-flex align-items-center">
+          <i class="fas fa-gun text-orange me-2 fs-5"></i>
+          {{ 'Editar Produto' if produto and produto.id else 'Novo Produto' }}
+        </h3>
+
+        {% if produto and produto.codigo %}
+        <small class="text-muted d-block lh-sm">
+          Código interno: <strong>{{ produto.codigo }}</strong>
+        </small>
+        {% endif %}
+
+        {% if produto %}
+        <small class="text-muted d-block lh-sm mt-1">
+          <i class="far fa-clock me-1"></i>
+          Última modificação:
+          {% if produto.atualizado_em %}
+          {{ produto.atualizado_em.strftime('%d/%m/%Y %Hh%M') }}
+          {% else %}
+          não há registro
+          {% endif %}
+        </small>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- =======================
+         COLUNA DIREITA (Resumo financeiro)
+    ======================== -->
+    {% if produto %}
+    <div class="col-12 col-md-6 text-md-end mt-2 mt-md-0">
+      <div class="resumo-financeiro bg-light border rounded-3 p-3 d-inline-block text-start text-md-end">
+        <div class="fw-semibold text-dark mb-1 d-flex align-items-center justify-content-md-end justify-content-start flex-wrap gap-1">
+          <i class="fas fa-coins text-warning me-1"></i>
+          <span id="resumo-preco-venda">Preço de venda: R$ 0,00</span>
+        </div>
+        <div class="small text-muted">
+          Custo total: <span id="resumo-custo-total">R$ 0,00</span> — 
+          Lucro líquido:
+          <span id="resumo-lucro" class="text-success">R$ 0,00 (0%)</span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- =======================
+       LINHA DE BOTÕES
+  ======================== -->
+  <div class="d-flex flex-wrap justify-content-start gap-2 mt-3">
+    {% if produto and produto.id %}
+    <a href="{{ url_for('produtos.gerenciar_produto', duplicar_de=produto.id) }}"
+       class="btn btn-outline-secondary btn-sm" title="Duplicar produto">
+      <i class="fas fa-clone me-1"></i>Duplicar
+    </a>
+
+    <form action="{{ url_for('produtos.excluir_produto', produto_id=produto.id) }}"
+          method="POST"
+          onsubmit="return confirm('Tem certeza que deseja excluir este produto?');"
+          class="d-inline">
+      <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir produto">
+        <i class="fas fa-trash"></i>
+      </button>
+    </form>
+    {% endif %}
+
+    <a href="{{ url_for('produtos.index') }}" class="btn btn-outline-dark btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Voltar
+    </a>
+  </div>
+</div>

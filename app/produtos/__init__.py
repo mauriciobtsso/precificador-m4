@@ -14,9 +14,9 @@ produtos_bp = Blueprint(
 )
 
 # ⚙️ IMPORTANTE:
-# O import deve vir DEPOIS da criação do blueprint
+# Os imports devem vir DEPOIS da criação do blueprint
 # e DEVE SER RELATIVO para evitar duplicação de módulos no SQLAlchemy
 try:
-    from . import routes  # ✅ import relativo (corrige o aviso)
+    from .routes import main, fotos, historico, autosave, tecnicos
 except Exception as e:
-    print(f"[AVISO] Falha ao importar rotas de produtos: {e}")
+    print(f"[AVISO] Falha ao importar submódulos de produtos: {e}")

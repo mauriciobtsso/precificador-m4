@@ -231,7 +231,7 @@ def novo_cliente():
                     cliente_id=cliente.id,
                     tipo="residencial",
                     cep=cep,
-                    endereco=endereco,
+                    logradouro=endereco,
                     numero=numero,
                     complemento=request.form.get("complemento"),
                     bairro=bairro,

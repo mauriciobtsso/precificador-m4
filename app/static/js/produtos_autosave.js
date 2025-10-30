@@ -1,146 +1,242 @@
-/* ==========================================================
-   PRODUTOS_AUTOSAVE.JS
-   - Auto-save inteligente para formulário de produto
-   ========================================================== */
+// ============================================================
+// MÓDULO: PRODUTOS_AUTOSAVE.JS — Sprint 6D (inteligente + UI)
+// ============================================================
+
 (() => {
-  console.log("[M4] produtos_autosave.js carregado");
+  console.log("[M4] produtos_autosave.js iniciado");
 
   const form = document.getElementById("produtoForm");
   if (!form) return;
 
-  const produtoId = form.dataset.produtoId || form.getAttribute("data-produto-id");
+  const produtoId = document.querySelector("[data-produto-id]")?.dataset?.produtoId;
   if (!produtoId) {
-    console.warn("[M4] Auto-save desativado (produto ainda não salvo)");
+    console.warn("[M4] Autosave desativado — produto ainda não salvo.");
     return;
   }
 
-  let timeout = null;
-  let saving = false;
+  let autosaveTimer = null;
+  let isSaving = false;
+  const delay = 1500; // 1.5 segundos de inatividade
 
-  const toastEl = document.getElementById("toastCategoria");
-  const toast = new bootstrap.Toast(toastEl);
+  // Cria elemento visual de status (fallback, caso header não exista)
+  const statusEl = document.createElement("div");
+  statusEl.className = "text-muted small mt-1";
+  statusEl.style.display = "none";
+  form.appendChild(statusEl);
 
-  function showToast(msg, color = "success", icon = "fa-check-circle") {
-    toastEl.className = `toast align-items-center text-bg-${color} border-0`;
-    toastEl.querySelector(".toast-body").innerHTML = `<i class="fas ${icon} me-2"></i>${msg}`;
-    toast.show();
-  }
+  // ============================================================
+  // TOAST DE CONFIRMAÇÃO GLOBAL
+  // ============================================================
+  const showToast = (message = "Alterações salvas com sucesso", type = "success") => {
+    const toastEl = document.getElementById("toastAutosave");
+    if (!toastEl) return;
 
-  async function autoSave() {
-    if (saving) return;
-    saving = true;
-    showToast("Salvando alterações...", "warning", "fa-spinner fa-spin");
+    // Ajusta cor conforme tipo
+    toastEl.classList.remove("text-bg-success", "text-bg-danger", "text-bg-warning");
+    if (type === "error") toastEl.classList.add("text-bg-danger");
+    else if (type === "warn") toastEl.classList.add("text-bg-warning");
+    else toastEl.classList.add("text-bg-success");
 
-    const formData = new FormData(form);
+    toastEl.querySelector(".toast-body").textContent = message;
+    const bsToast = new bootstrap.Toast(toastEl);
+    bsToast.show();
+  };
+
+  // ============================================================
+  // ÍCONE DE STATUS NO CABEÇALHO (opcional, com fallback)
+  // ============================================================
+  const iconEl = document.getElementById("autosave-icon");
+  const textEl = document.getElementById("autosave-text");
+
+  const setStatus = (state, msg = "") => {
+    // Header com ícone/texto (prioritário)
+    if (iconEl && textEl) {
+      iconEl.className = "fas me-1";
+      iconEl.style.transition = "color 0.3s ease";
+
+      switch (state) {
+        case "saving":
+          iconEl.classList.add("fa-circle-notch", "fa-spin", "text-warning");
+          textEl.textContent = msg || "Salvando...";
+          break;
+        case "success":
+          iconEl.classList.add("fa-check-circle", "text-success");
+          textEl.textContent = msg || "Alterações salvas";
+          break;
+        case "error":
+          iconEl.classList.add("fa-exclamation-circle", "text-danger");
+          textEl.textContent = msg || "Erro ao salvar";
+          break;
+        default:
+          iconEl.classList.add("fa-save", "text-muted");
+          textEl.textContent = msg || "";
+      }
+    } else {
+      // Fallback visual no final do form
+      if (state === "saving") {
+        statusEl.style.display = "inline-block";
+        statusEl.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Salvando...`;
+      } else if (state === "success") {
+        const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        statusEl.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i> Alterações salvas às ${hora}`;
+        setTimeout(() => (statusEl.style.display = "none"), 2500);
+      } else if (state === "error") {
+        statusEl.innerHTML = `<i class="fas fa-exclamation-circle text-danger me-1"></i> Erro ao salvar`;
+      }
+    }
+  };
+
+  // ============================================================
+  // FUNÇÕES AUXILIARES
+  // ============================================================
+  const marcarAbaAlterada = () => {
+    const activeTab = document.querySelector("#produtoTabs .nav-link.active");
+    if (activeTab && !activeTab.classList.contains("tab-changed")) {
+      activeTab.classList.add("tab-changed");
+      activeTab.innerHTML = activeTab.textContent + " <span class='text-warning'>•</span>";
+    }
+  };
+
+  const limparMarcador = () => {
+    document.querySelectorAll("#produtoTabs .nav-link").forEach(tab => {
+      tab.innerHTML = tab.textContent.replace(" •", "");
+      tab.classList.remove("tab-changed");
+    });
+  };
+
+  const coletarDados = () => {
+    const data = {};
+    form.querySelectorAll("input, select, textarea").forEach(el => {
+      if (el.name && el.value !== undefined) {
+        data[el.name] = el.value;
+      }
+    });
+    return data;
+  };
+
+  const atualizarUltimaModificacao = (texto) => {
+    const alvo = document.querySelector(".text-muted.small.mt-1");
+    if (alvo) alvo.innerHTML = `<i class="far fa-clock me-1"></i> Última modificação: ${texto}`;
+  };
+
+  // ============================================================
+  // MEMÓRIA LOCAL: último estado salvo do formulário
+  // ============================================================
+  let lastSavedData = coletarDados(); // semente inicial ao carregar a página
+
+  const houveMudanca = (curr, prev) => {
+    // compara por chave/valor de forma simples
+    const keys = new Set([...Object.keys(curr), ...Object.keys(prev)]);
+    for (const k of keys) {
+      if ((curr[k] ?? "") !== (prev[k] ?? "")) return true;
+    }
+    return false;
+  };
+
+  // ============================================================
+  // ENVIA AUTOSAVE VIA FETCH (com salvamento inteligente)
+  // ============================================================
+  const salvarAutomaticamente = async () => {
+    if (isSaving) return;
+
+    const data = coletarDados();
+
+    // Verifica se algo mudou desde o último salvamento
+    if (!houveMudanca(data, lastSavedData)) {
+      console.log("[M4] Nenhuma alteração detectada — autosave cancelado.");
+      return;
+    }
+
+    isSaving = true;
+    setStatus("saving"); // ícone/label no header
+    // fallback extra, caso não tenha header
+    statusEl.style.display = "inline-block";
+    statusEl.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Salvando...`;
+
     try {
-      const resp = await fetch(`/produtos/auto-save/${produtoId}`, {
+      console.log("[M4] Autosave enviado → campos:", Object.keys(data));
+
+      const resp = await fetch(`/produtos/autosave/${produtoId}`, {
         method: "POST",
-        body: formData
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
 
-      if (!resp.ok) throw new Error("Falha ao salvar.");
+      if (!resp.ok) throw new Error("Falha ao salvar no servidor");
 
-      const data = await resp.json();
-      if (data.success) {
-        showToast("Salvo automaticamente", "success", "fa-check-circle");
+      const result = await resp.json();
+
+      if (result.success) {
+        console.log("[M4] Autosave concluído ✅", result.updated);
+
+        const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        setStatus("success", `Salvo às ${hora}`);
+        statusEl.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i> Alterações salvas às ${hora}`;
+        setTimeout(() => (statusEl.style.display = "none"), 2500);
+        showToast(`✅ Alterações salvas às ${hora}`, "success");
+
+        atualizarUltimaModificacao(result.atualizado_em);
+        limparMarcador();
+
+        // Atualiza memória local com os valores recém-salvos
+        lastSavedData = { ...data };
+
+        // Atualiza histórico se a aba estiver ativa
+        const abaHistorico = document.querySelector("#abaHistorico.active");
+        if (abaHistorico && typeof refreshHistorico === "function") {
+          console.log("[M4] Atualizando histórico em tempo real...");
+          refreshHistorico(produtoId);
+        }
+        // Atualiza contador de histórico global
+        if (typeof refreshHistoricoCount === "function") {
+          refreshHistoricoCount(produtoId);
+        }
+
       } else {
-        showToast(data.error || "Erro ao salvar", "danger", "fa-triangle-exclamation");
+        console.warn("[M4] Autosave falhou ❌", result.error || result);
+        setStatus("error", "Erro ao salvar");
+        statusEl.innerHTML = `<i class="fas fa-exclamation-triangle text-warning me-1"></i> Falha ao salvar`;
       }
     } catch (err) {
-      console.error("[M4] Auto-save erro:", err);
-      showToast("Falha de conexão ou erro interno", "danger", "fa-exclamation-circle");
+      console.error("[M4] Erro no autosave:", err);
+      setStatus("error", "Erro ao salvar");
+      statusEl.innerHTML = `<i class="fas fa-exclamation-circle text-danger me-1"></i> Erro ao salvar`;
     } finally {
-      saving = false;
+      isSaving = false;
     }
-  }
+  };
 
-  function agendarAutoSave() {
-    clearTimeout(timeout);
-    timeout = setTimeout(autoSave, 1500); // debounce 1.5s
-  }
+  // ============================================================
+  // AGENDAMENTO (DEBOUNCE)
+  // ============================================================
+  const agendarAutosave = () => {
+    marcarAbaAlterada();
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(salvarAutomaticamente, delay);
+  };
 
-  // Observa todas as mudanças de campos
+  // ============================================================
+  // EVENTOS DE ALTERAÇÃO
+  // ============================================================
   form.querySelectorAll("input, select, textarea").forEach(el => {
-    el.addEventListener("input", agendarAutoSave);
-    el.addEventListener("change", agendarAutoSave);
+    el.addEventListener("change", agendarAutosave);
+    el.addEventListener("input", agendarAutosave);
   });
+
+  // ============================================================
+  // SALVA AO TROCAR DE ABA
+  // ============================================================
+  document.querySelectorAll("#produtoTabs .nav-link").forEach(tab => {
+    tab.addEventListener("click", () => {
+      if (!isSaving) salvarAutomaticamente();
+    });
+  });
+
+  // ============================================================
+  // SALVA ANTES DE SAIR DA PÁGINA
+  // ============================================================
+  window.addEventListener("beforeunload", () => {
+    if (!isSaving) salvarAutomaticamente();
+  });
+
 })();
-/* ==========================================================
-   UI REFINADA – Feedback visual de alterações e salvamento
-   ========================================================== */
-(() => {
-  const form = document.getElementById("produtoForm");
-  if (!form) return;
-
-  const statusBar = document.createElement("div");
-  statusBar.id = "statusBar";
-  statusBar.className = "status-bar text-muted small py-1 px-3";
-  statusBar.innerHTML = '<i class="fas fa-circle text-success me-1"></i><span>Status:</span> Nenhuma alteração pendente';
-  form.parentElement.appendChild(statusBar);
-
-  const toastEl = document.getElementById("toastCategoria");
-  const toast = new bootstrap.Toast(toastEl);
-  let pendingChanges = new Set();
-
-  function updateTabIndicators() {
-    document.querySelectorAll(".nav-link").forEach(tab => {
-      const target = tab.dataset.bsTarget;
-      if (pendingChanges.has(target)) {
-        tab.innerHTML = `${tab.innerHTML.replace("•", "")} <span class="text-orange fw-bold ms-1">•</span>`;
-      } else {
-        tab.innerHTML = tab.innerHTML.replace(" •", "");
-      }
-    });
-  }
-
-  function updateStatus(text, color = "muted", icon = "fa-circle") {
-    statusBar.innerHTML = `<i class="fas ${icon} text-${color} me-1"></i><span>Status:</span> ${text}`;
-  }
-
-  async function autoSaveWithUI() {
-    updateStatus("Salvando alterações...", "warning", "fa-spinner fa-spin");
-
-    const produtoId = form.dataset.produtoId || form.getAttribute("data-produto-id");
-    if (!produtoId) return;
-
-    const formData = new FormData(form);
-    try {
-      const resp = await fetch(`/produtos/auto-save/${produtoId}`, {
-        method: "POST",
-        body: formData
-      });
-      const data = await resp.json();
-
-      if (data.success) {
-        pendingChanges.clear();
-        updateTabIndicators();
-        updateStatus("Salvo automaticamente", "success", "fa-check-circle");
-      } else {
-        updateStatus("Erro ao salvar", "danger", "fa-triangle-exclamation");
-      }
-    } catch {
-      updateStatus("Falha de conexão", "danger", "fa-exclamation-circle");
-    }
-  }
-
-  let timeout = null;
-  form.querySelectorAll("input, select, textarea").forEach(el => {
-    el.addEventListener("input", () => {
-      const tabPane = el.closest(".tab-pane");
-      if (tabPane) pendingChanges.add("#" + tabPane.id);
-      updateTabIndicators();
-      updateStatus("Alterações pendentes...", "secondary", "fa-clock");
-      clearTimeout(timeout);
-      timeout = setTimeout(autoSaveWithUI, 1500);
-    });
-  });
-
-  // Limpa indicadores ao trocar de aba
-  document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
-    tab.addEventListener("shown.bs.tab", () => {
-      document.querySelector(tab.dataset.bsTarget)?.classList.add("fade-in");
-      setTimeout(() => document.querySelector(tab.dataset.bsTarget)?.classList.remove("fade-in"), 400);
-    });
-  });
-})();
-

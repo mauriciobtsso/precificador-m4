@@ -1,0 +1,18 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+  <h3>Estoque — Resumo</h3>
+  <div class='row g-3'>
+    <div class='col-md-3'><div class='card p-3'>Armas: <strong>{{ totais.armas }}</strong></div></div>
+    <div class='col-md-3'><div class='card p-3'>Munições: <strong>{{ totais.municoes }}</strong></div></div>
+    <div class='col-md-3'><div class='card p-3'>PCEs: <strong>{{ totais.pces }}</strong></div></div>
+    <div class='col-md-3'><div class='card p-3'>Outros: <strong>{{ totais.outros }}</strong></div></div>
+  </div>
+
+  <hr>
+  <div class='mt-3'>
+    <a class='btn btn-primary' href='{{ url_for(\"estoque.armas_listar\") }}'>Gerenciar Armas</a>
+    <a class='btn btn-primary' href='{{ url_for(\"estoque.municoes_listar\") }}'>Gerenciar Munições</a>
+    <a class='btn btn-primary' href='{{ url_for(\"estoque.pces_listar\") }}'>Outros PCEs</a>
+  </div>
+{% endblock %}

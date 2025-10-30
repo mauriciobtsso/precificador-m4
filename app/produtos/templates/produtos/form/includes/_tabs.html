@@ -1,0 +1,76 @@
+<!-- ============================================================
+     ABAS DO FORMULÁRIO DE PRODUTO — Sprint 6G (Corrigido)
+============================================================ -->
+<ul class="nav nav-tabs mb-3" id="produtoTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="tab-geral" data-bs-toggle="tab"
+            data-bs-target="#abaGeral" type="button" role="tab"
+            aria-controls="abaGeral" aria-selected="true">
+      <i class="fas fa-box me-1"></i> Geral
+    </button>
+  </li>
+
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-precos" data-bs-toggle="tab"
+            data-bs-target="#abaPrecos" type="button" role="tab"
+            aria-controls="abaPrecos" aria-selected="false">
+      <i class="fas fa-dollar-sign me-1"></i> Preços
+    </button>
+  </li>
+
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-estoque" data-bs-toggle="tab"
+            data-bs-target="#abaEstoque" type="button" role="tab"
+            aria-controls="abaEstoque" aria-selected="false">
+      <i class="fas fa-warehouse me-1"></i> Estoque
+    </button>
+  </li>
+
+  <!-- ✅ NOVA ABA ADICIONADA — Técnicos -->
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-tecnicos" data-bs-toggle="tab"
+            data-bs-target="#abaTecnicos" type="button" role="tab"
+            aria-controls="abaTecnicos" aria-selected="false">
+      <i class="fas fa-microscope me-1"></i> Técnicos
+    </button>
+  </li>
+
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-documentos" data-bs-toggle="tab"
+            data-bs-target="#abaDocumentos" type="button" role="tab"
+            aria-controls="abaDocumentos" aria-selected="false">
+      <i class="fas fa-file-alt me-1"></i> Documentos
+    </button>
+  </li>
+</ul>
+
+<!-- ============================================================
+     CONTEÚDO DAS ABAS
+============================================================ -->
+<div class="tab-content" id="produtoTabsContent">
+  <div class="tab-pane fade show active" id="abaGeral"
+       role="tabpanel" aria-labelledby="tab-geral">
+    {% include "produtos/form/abas/_geral.html" %}
+  </div>
+
+  <div class="tab-pane fade" id="abaPrecos"
+       role="tabpanel" aria-labelledby="tab-precos">
+    {% include "produtos/form/abas/_precos.html" %}
+  </div>
+
+  <div class="tab-pane fade" id="abaEstoque"
+       role="tabpanel" aria-labelledby="tab-estoque">
+    {% include "produtos/form/abas/_estoque.html" %}
+  </div>
+
+  <!-- ✅ ABA TÉCNICOS -->
+  <div class="tab-pane fade" id="abaTecnicos"
+       role="tabpanel" aria-labelledby="tab-tecnicos">
+    {% include "produtos/form/abas/_tecnicos.html" %}
+  </div>
+
+  <div class="tab-pane fade" id="abaDocumentos"
+       role="tabpanel" aria-labelledby="tab-documentos">
+    {% include "produtos/form/abas/_documentos.html" %}
+  </div>
+</div>

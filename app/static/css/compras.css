@@ -1,0 +1,150 @@
+/* ============================================================
+   MÓDULO: COMPRAS — NF de Compras (Visual Padrão M4)
+   ============================================================ */
+
+:root {
+  --m4-orange: #ff5e00;
+  --m4-green: #198754;
+  --m4-gray: #6c757d;
+  --m4-bg-light: #f8f9fa;
+  --m4-border-light: #dee2e6;
+}
+
+/* ------------------------------------------------------------
+   Cabeçalhos e títulos
+------------------------------------------------------------ */
+h3 i.text-orange {
+  color: var(--m4-orange) !important;
+}
+
+.container h3 {
+  font-size: 1.4rem;
+  border-bottom: 2px solid var(--m4-orange);
+  padding-bottom: .25rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ------------------------------------------------------------
+   Formulário de upload
+------------------------------------------------------------ */
+#formImportar {
+  background: var(--m4-bg-light);
+  border: 1px solid var(--m4-border-light);
+  border-radius: .5rem;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .05);
+}
+
+#formImportar .form-label {
+  font-weight: 500;
+  color: var(--m4-gray);
+}
+
+#formImportar input[type="file"] {
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------
+   Botões
+------------------------------------------------------------ */
+.btn-orange {
+  background-color: var(--m4-orange);
+  color: #fff;
+  border: none;
+  transition: all .3s ease;
+}
+
+.btn-orange:hover {
+  background-color: #e65000;
+  color: #fff;
+}
+
+.btn-success {
+  background-color: var(--m4-green);
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #157347;
+}
+
+.btn-outline-secondary {
+  color: var(--m4-gray);
+  border-color: var(--m4-gray);
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--m4-gray);
+  color: #fff;
+}
+
+/* ------------------------------------------------------------
+   Alertas e feedbacks
+------------------------------------------------------------ */
+#resultado .alert {
+  border-radius: .5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+
+#resultado .alert i {
+  font-size: 1rem;
+}
+
+/* ------------------------------------------------------------
+   Tabela de itens importados
+------------------------------------------------------------ */
+#wrapTabela {
+  background: #fff;
+  border: 1px solid var(--m4-border-light);
+  border-radius: .5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  padding: 1rem;
+}
+
+#tabelaItens thead th {
+  font-size: 0.85rem;
+  color: #555;
+  background: var(--m4-bg-light);
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--m4-border-light);
+}
+
+#tabelaItens td {
+  vertical-align: middle;
+  font-size: 0.9rem;
+}
+
+#tabelaItens tr:hover {
+  background-color: rgba(255,94,0,.05);
+}
+
+#tabelaItens .badge {
+  font-size: 0.75rem;
+  background-color: var(--m4-gray);
+}
+
+/* ------------------------------------------------------------
+   Resumo inferior
+------------------------------------------------------------ */
+#resumoImport {
+  font-size: 0.85rem;
+  color: var(--m4-gray);
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------
+   Responsividade
+------------------------------------------------------------ */
+@media (max-width: 768px) {
+  #formImportar {
+    padding: .75rem;
+  }
+
+  h3 {
+    font-size: 1.2rem;
+  }
+
+  #tabelaItens th, #tabelaItens td {
+    font-size: 0.85rem;
+  }
+}

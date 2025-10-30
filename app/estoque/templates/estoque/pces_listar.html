@@ -1,0 +1,19 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+  <h3>PCEs e Equipamentos</h3>
+  <table class='table table-sm'>
+    <thead><tr><th>#</th><th>Identificação</th><th>Produto</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for it in items %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ it.numero_serie or it.lote or '-' }}</td>
+          <td>{{ it.produto.nome if it.produto else '—' }}</td>
+          <td>{{ it.status }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan='4'>Nenhum item encontrado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

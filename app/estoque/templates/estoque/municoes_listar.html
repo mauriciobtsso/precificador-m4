@@ -1,0 +1,20 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+  <h3>Munições em Estoque</h3>
+  <table class='table table-sm'>
+    <thead><tr><th>#</th><th>Embalagem</th><th>Lote</th><th>Produto</th><th>Quantidade</th></tr></thead>
+    <tbody>
+      {% for m in municoes %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ m.numero_embalagem or '-' }}</td>
+          <td>{{ m.lote or '-' }}</td>
+          <td>{{ m.produto.nome if m.produto else '—' }}</td>
+          <td>{{ m.quantidade_disponivel or 0 }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan='5'>Nenhuma munição encontrada.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

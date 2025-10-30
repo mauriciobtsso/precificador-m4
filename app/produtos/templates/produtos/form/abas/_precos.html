@@ -1,104 +1,135 @@
 <!-- ============================================================
-     ABA: CUSTOS, IMPOSTOS E RESUMO
+     ABA: CUSTOS, IMPOSTOS E RESUMO — Fase 5.5 (Visual + UX)
 ============================================================ -->
-<div class="border-start border-4 border-orange ps-3 mb-3">
-  <h5 class="fw-semibold text-dark mb-0">
+<div class="m4-card border-start border-4 border-orange ps-3 pb-3 mb-4 rounded-3 shadow-sm bg-white">
+  <h5 class="fw-semibold text-dark mb-3">
     <i class="fas fa-coins me-2"></i>Custos e Impostos
   </h5>
-</div>
 
-<div class="row g-3">
-  <!-- Preço do fornecedor -->
-  <div class="col-md-4">
-    <label class="form-label fw-semibold">Preço fornecedor (R$)</label>
-    <input type="text" name="preco_fornecedor" id="in_preco_fornecedor"
-           class="form-control" inputmode="decimal"
-           value="{{ produto.preco_fornecedor if produto else '' }}">
-    <div class="form-text text-muted">
-      Atual: {{ (produto.preco_fornecedor|float)|currency if produto else 'R$ 0,00' }}
+  <div class="row g-3">
+    <!-- Preço do fornecedor -->
+    <div class="col-md-4">
+      <label class="form-label fw-semibold" data-bs-toggle="tooltip" title="Valor de compra antes de impostos e descontos.">
+        Preço fornecedor (R$)
+      </label>
+      <input type="text" name="preco_fornecedor" id="in_preco_fornecedor"
+             class="form-control" inputmode="decimal"
+             value="{{ produto.preco_fornecedor if produto else '' }}">
+      <div class="form-text text-muted text-end">
+        <span class="atual-valor">Atual: {{ (produto.preco_fornecedor|float)|currency if produto else 'R$ 0,00' }}</span>
+      </div>
     </div>
-  </div>
 
-  <!-- Desconto fornecedor -->
-  <div class="col-md-4">
-    <label class="form-label fw-semibold">Desconto fornecedor (%)</label>
-    <input type="number" step="0.01" min="0" name="desconto_fornecedor" id="in_desconto"
-           class="form-control"
-           value="{{ produto.desconto_fornecedor if produto else '' }}">
-    <div class="form-text text-muted">
-      Atual: <span id="out_desconto">{{ 'R$ 0,00' if not produto else ((produto.preco_fornecedor|float) * (1 - (produto.desconto_fornecedor|float)/100)) | currency }}</span>
+    <!-- Desconto fornecedor -->
+    <div class="col-md-4">
+      <label class="form-label fw-semibold" data-bs-toggle="tooltip" title="Percentual de desconto concedido pelo fornecedor.">
+        Desconto fornecedor (%)
+      </label>
+      <input type="number" step="0.01" min="0" name="desconto_fornecedor" id="in_desconto"
+             class="form-control"
+             value="{{ produto.desconto_fornecedor if produto else '' }}">
+      <div class="form-text text-muted text-end">
+        <span class="atual-valor">
+          Atual:
+          <span id="out_desconto">
+            {{ 'R$ 0,00' if not produto else ((produto.preco_fornecedor|float) * (1 - (produto.desconto_fornecedor|float)/100)) | currency }}
+          </span>
+        </span>
+      </div>
     </div>
-  </div>
 
-  <!-- Frete -->
-  <div class="col-md-4">
-    <label class="form-label fw-semibold">Frete (R$)</label>
-    <input type="text" name="frete" id="in_frete" class="form-control"
-           value="{{ produto.frete if produto else '' }}">
-    <div class="form-text text-muted">
-      Atual: <span id="out_frete">{{ (produto.frete|float)|currency if produto else 'R$ 0,00' }}</span>
+    <!-- Frete -->
+    <div class="col-md-4">
+      <label class="form-label fw-semibold" data-bs-toggle="tooltip" title="Custo de transporte até o estabelecimento.">
+        Frete (R$)
+      </label>
+      <input type="text" name="frete" id="in_frete" class="form-control"
+             value="{{ produto.frete if produto else '' }}">
+      <div class="form-text text-muted text-end">
+        <span class="atual-valor">
+          Atual: <span id="out_frete">{{ (produto.frete|float)|currency if produto else 'R$ 0,00' }}</span>
+        </span>
+      </div>
     </div>
-  </div>
 
-  <!-- Margem -->
-  <div class="col-md-4">
-    <label class="form-label fw-semibold">Margem (%)</label>
-    <input type="number" step="0.01" min="0" name="margem" id="in_margem"
-           class="form-control"
-           value="{{ produto.margem if produto else '' }}">
-  </div>
-
-  <!-- Lucro alvo -->
-  <div class="col-md-4">
-    <label class="form-label fw-semibold">Lucro alvo (R$)</label>
-    <input type="text" name="lucro_alvo" id="in_lucro_alvo"
-           class="form-control" inputmode="decimal"
-           value="{{ produto.lucro_alvo if produto else '' }}">
-  </div>
-
-  <!-- Preço final desejado -->
-  <div class="col-md-4">
-    <label class="form-label fw-semibold">Preço final desejado (R$)</label>
-    <input type="text" name="preco_final" id="in_preco_final"
-           class="form-control" inputmode="decimal"
-           value="{{ produto.preco_final if produto else '' }}">
-  </div>
-
-  <!-- IPI -->
-  <div class="col-md-3">
-    <label class="form-label fw-semibold">IPI</label>
-    <div class="input-group">
-      <select name="ipi_tipo" id="in_ipi_tipo" class="form-select" style="max-width: 180px;">
-        <option value="%_dentro" {% if (produto and produto.ipi_tipo == "%_dentro") or not produto %}selected{% endif %}>% (embutido)</option>
-        <option value="%" {% if produto and produto.ipi_tipo == "%" %}selected{% endif %}>% (por fora)</option>
-        <option value="R$" {% if produto and produto.ipi_tipo == "R$" %}selected{% endif %}>R$ (fixo)</option>
-      </select>
-      <input type="number" step="0.01" name="ipi" id="in_ipi" class="form-control"
-             value="{{ produto.ipi if produto else '' }}">
+    <!-- Margem -->
+    <div class="col-md-4">
+      <label class="form-label fw-semibold" data-bs-toggle="tooltip" title="Percentual de margem sobre o custo total.">
+        Margem (%)
+      </label>
+      <input type="number" step="0.01" min="0" name="margem" id="in_margem"
+             class="form-control"
+             value="{{ produto.margem if produto else '' }}">
     </div>
-    <div class="form-text text-muted">
-      Atual: <span id="out_ipi">{{ produto.valor_ipi|currency if produto else 'R$ 0,00' }}</span>
-    </div>
-  </div>
 
-  <!-- DIFAL -->
-  <div class="col-md-3">
-    <label class="form-label fw-semibold">DIFAL (%)</label>
-    <input type="number" step="0.01" name="difal" id="in_difal" class="form-control"
-           value="{{ produto.difal if produto else '' }}">
-    <div class="form-text text-muted">
-      Atual: <span id="out_difal">{{ produto.valor_difal|currency if produto else 'R$ 0,00' }}</span>
+    <!-- Lucro alvo -->
+    <div class="col-md-4">
+      <label class="form-label fw-semibold" data-bs-toggle="tooltip" title="Lucro líquido desejado em reais.">
+        Lucro alvo (R$)
+      </label>
+      <input type="text" name="lucro_alvo" id="in_lucro_alvo"
+             class="form-control" inputmode="decimal"
+             value="{{ produto.lucro_alvo if produto else '' }}">
     </div>
-  </div>
 
-  <!-- Imposto venda -->
-  <div class="col-md-3">
-    <label class="form-label fw-semibold">Imposto venda (%)</label>
-    <input type="number" step="0.01" name="imposto_venda" id="in_imposto_venda"
-           class="form-control"
-           value="{{ produto.imposto_venda if produto else '' }}">
-    <div class="form-text text-muted">
-      Atual: <span id="out_imposto">{{ ((produto.preco_final or 0) * (produto.imposto_venda or 0) / 100)|currency if produto else 'R$ 0,00' }}</span>
+    <!-- Preço final desejado -->
+    <div class="col-md-4">
+      <label class="form-label fw-semibold" data-bs-toggle="tooltip" title="Preço que você quer praticar na venda. Usado como referência para cálculos.">
+        Preço final desejado (R$)
+      </label>
+      <input type="text" name="preco_final" id="in_preco_final"
+             class="form-control" inputmode="decimal"
+             value="{{ produto.preco_final if produto else '' }}">
+    </div>
+
+    <!-- IPI -->
+    <div class="col-md-3">
+      <label class="form-label fw-semibold" data-bs-toggle="tooltip" title="Imposto sobre produtos industrializados. Pode ser embutido ou por fora.">
+        IPI
+      </label>
+      <div class="input-group">
+        <select name="ipi_tipo" id="in_ipi_tipo" class="form-select" style="max-width: 180px;">
+          <option value="%_dentro" {% if (produto and produto.ipi_tipo == "%_dentro") or not produto %}selected{% endif %}>% (embutido)</option>
+          <option value="%" {% if produto and produto.ipi_tipo == "%" %}selected{% endif %}>% (por fora)</option>
+          <option value="R$" {% if produto and produto.ipi_tipo == "R$" %}selected{% endif %}>R$ (fixo)</option>
+        </select>
+        <input type="number" step="0.01" name="ipi" id="in_ipi" class="form-control"
+               value="{{ produto.ipi if produto else '' }}">
+      </div>
+      <div class="form-text text-muted text-end">
+        <span class="atual-valor">
+          Atual: <span id="out_ipi">{{ produto.valor_ipi|currency if produto else 'R$ 0,00' }}</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- DIFAL -->
+    <div class="col-md-3">
+      <label class="form-label fw-semibold" data-bs-toggle="tooltip" title="Diferença de alíquota entre estados. Aplicado em vendas interestaduais.">
+        DIFAL (%)
+      </label>
+      <input type="number" step="0.01" name="difal" id="in_difal" class="form-control"
+             value="{{ produto.difal if produto else '' }}">
+      <div class="form-text text-muted text-end">
+        <span class="atual-valor">
+          Atual: <span id="out_difal">{{ produto.valor_difal|currency if produto else 'R$ 0,00' }}</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Imposto venda -->
+    <div class="col-md-3">
+      <label class="form-label fw-semibold" data-bs-toggle="tooltip" title="Percentual total de tributos sobre a venda.">
+        Imposto venda (%)
+      </label>
+      <input type="number" step="0.01" name="imposto_venda" id="in_imposto_venda"
+             class="form-control"
+             value="{{ produto.imposto_venda if produto else '' }}">
+      <div class="form-text text-muted text-end">
+        <span class="atual-valor">
+          Atual: <span id="out_imposto">{{ ((produto.preco_final or 0) * (produto.imposto_venda or 0) / 100)|currency if produto else 'R$ 0,00' }}</span>
+        </span>
+      </div>
     </div>
   </div>
 </div>
@@ -106,23 +137,27 @@
 <!-- ===========================
      RESUMO DO PRODUTO
 =========================== -->
-<div class="border-start border-4 border-orange ps-3 mt-4 mb-3">
-  <h5 class="fw-semibold text-dark mb-0">
+<div class="m4-card border-start border-4 border-orange ps-3 pt-2 pb-3 rounded-3 shadow-sm bg-white">
+  <h5 class="fw-semibold text-dark mb-3" data-bs-toggle="tooltip" title="Valores estimados, recalculados em tempo real.">
     <i class="fas fa-calculator me-2"></i>Resumo do Produto
   </h5>
-</div>
 
-<div class="row g-3">
-  <div class="col-md-4">
-    <label class="form-label text-muted small mb-1">Custo total (estimado)</label>
-    <input type="text" id="out_custo_total" class="form-control" value="-" readonly>
+  <div class="row g-3 resumo-produto">
+    <div class="col-md-4">
+      <label class="form-label text-muted small mb-1">Custo total (estimado)</label>
+      <input type="text" id="out_custo_total" class="form-control" value="R$ 0,00" readonly>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label text-muted small mb-1">Preço à vista (estimado)</label>
+      <input type="text" id="out_preco_a_vista" class="form-control" value="R$ 0,00" readonly>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label text-muted small mb-1">Lucro líquido (estimado)</label>
+      <input type="text" id="out_lucro_liquido" class="form-control" value="R$ 0,00" readonly>
+    </div>
   </div>
-  <div class="col-md-4">
-    <label class="form-label text-muted small mb-1">Preço à vista (estimado)</label>
-    <input type="text" id="out_preco_a_vista" class="form-control" value="-" readonly>
-  </div>
-  <div class="col-md-4">
-    <label class="form-label text-muted small mb-1">Lucro líquido (estimado)</label>
-    <input type="text" id="out_lucro_liquido" class="form-control" value="-" readonly>
-  </div>
+
+  <small class="d-block mt-2 text-center text-muted">
+    💡 Calculado automaticamente em tempo real.
+  </small>
 </div>

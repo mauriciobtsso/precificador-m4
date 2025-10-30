@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+  <h3 class="fw-bold mb-3 d-flex align-items-center">
+    <i class="fas fa-file-invoice me-2 text-orange"></i> Detalhes da NF {{ nf.numero or nf.chave }}
+  </h3>
+
+  <div class="card mb-3">
+    <div class="card-header bg-light">
+      <h5 class="mb-0">Dados Principais</h5>
+    </div>
+    <div class="card-body row">
+      <div class="col-md-6">
+        <p class="mb-1"><strong>Fornecedor:</strong> {{ nf.fornecedor or 'Não Informado' }}</p>
+        <p class="mb-1"><strong>Número:</strong> {{ nf.numero or 'N/A' }}</p>
+        <p class="mb-1"><strong>Chave:</strong> {{ nf.chave or 'N/A' }}</p>
+      </div>
+      <div class="col-md-6">
+        <p class="mb-1"><strong>Emissão:</strong> {{ nf.data_emissao.strftime('%d/%m/%Y') if nf.data_emissao else 'N/A' }}</p>
+        <p class="mb-1"><strong>Valor Total:</strong> {{ nf.valor_total|currency if nf.valor_total else 'R$ 0,00' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <h5 class="mt-4">Itens da Nota</h5>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Descrição</th>
+          <th>Marca</th>
+          <th>Modelo</th>
+          <th>Calibre</th>
+          <th>Lote/Série</th>
+          <th class="text-end">Qtd</th>
+          <th class="text-end">Vlr Unit.</th>
+          <th class="text-end">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in nf.itens %}
+        <tr>
+          <td>{{ item.descricao or '—' }}</td>
+          <td>{{ item.marca or '—' }}</td>
+          <td>{{ item.modelo or '—' }}</td>
+          <td>{{ item.calibre or '—' }}</td>
+          <td>{{ item.lote or '—' }}</td>
+          <td class="text-end">{{ item.quantidade }}</td>
+          <td class="text-end">{{ item.valor_unitario|currency }}</td>
+          <td class="text-end">{{ item.valor_total|currency }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="text-end mt-3">
+    <a href="{{ url_for('compras_nf.index') }}" class="btn btn-secondary">Voltar para a Lista</a>
+  </div>
+</div>
+{% endblock %}

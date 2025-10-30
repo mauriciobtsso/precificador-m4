@@ -1,0 +1,73 @@
+﻿{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/compras.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="fw-bold d-flex align-items-center mb-0">
+      <i class="fas fa-file-invoice me-2 text-orange"></i>
+      NFs de Compras Registradas
+    </h3>
+    <a href="{{ url_for('compras_nf.importar') }}" class="btn btn-orange">
+      <i class="fas fa-upload me-1"></i> Importar Nova NF
+    </a>
+  </div>
+
+  {% if nfs %}
+  <div class="table-responsive bg-white rounded shadow-sm p-3">
+    <table class="table table-striped align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Fornecedor</th>
+          <th>Número</th>
+          <th>Chave</th>
+          <th class="text-end">Total</th>
+          <th class="text-center">Data</th>
+          <th class="text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for nf in nfs %}
+        <tr>
+          <td class="fw-semibold text-muted">{{ nf.id }}</td>
+          <td>{{ nf.fornecedor or 'Fornecedor não informado' }}</td>
+          <td>{{ nf.numero or '—' }}</td>
+          <td style="max-width: 240px; overflow: hidden; text-overflow: ellipsis;">
+            {{ nf.chave or '—' }}
+          </td>
+          <td class="text-end fw-semibold">
+            {{ nf.valor_total|currency if nf.valor_total else 'R$ 0,00' }}
+          </td>
+          <td class="text-center small text-muted">
+            {{ nf.criado_em.strftime('%d/%m/%Y %H:%M') if nf.criado_em else '' }}
+          </td>
+          <td class="text-center">
+            <div class="btn-group btn-group-sm" role="group">
+              <a href="{{ url_for('compras_nf.view', nf_id=nf.id) }}" class="btn btn-outline-primary" title="Visualizar Detalhes">
+                <i class="fas fa-eye"></i>
+              </a>
+              <a href="{{ url_for('compras_nf.edit', nf_id=nf.id) }}" class="btn btn-outline-secondary" title="Editar NF">
+                <i class="fas fa-edit"></i>
+              </a>
+              <a href="{{ url_for('compras_nf.delete', nf_id=nf.id) }}" class="btn btn-outline-danger" title="Excluir NF" onclick="return confirm('Tem certeza que deseja excluir a NF {{ nf.numero or nf.chave }}?');">
+                <i class="fas fa-trash-alt"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info mt-3" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    Nenhuma NF registrada até o momento.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

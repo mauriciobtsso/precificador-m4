@@ -5,9 +5,10 @@
 from app import db
 from sqlalchemy import func
 from datetime import datetime
+import pytz
 from flask_login import current_user
 
-# Importações dos módulos auxiliares
+# Importações auxiliares
 from app.produtos.categorias.models import CategoriaProduto
 from app.produtos.configs.models import (
     MarcaProduto,
@@ -16,6 +17,15 @@ from app.produtos.configs.models import (
     FuncionamentoProduto,
 )
 
+# ======================================================
+# FUSO HORÁRIO PADRÃO LOCAL
+# ======================================================
+TZ_FORTALEZA = pytz.timezone("America/Fortaleza")
+
+def now_local():
+    """Retorna o horário atual no fuso de Teresina (UTC-3)."""
+    return datetime.now(TZ_FORTALEZA)
+
 
 # ======================================================
 # MODELO PRINCIPAL: PRODUTO
@@ -23,6 +33,7 @@ from app.produtos.configs.models import (
 class Produto(db.Model):
     __tablename__ = "produtos"
 
+    foto_url = db.Column(db.String(512), nullable=True)
     id = db.Column(db.Integer, primary_key=True)
     codigo = db.Column(db.String(50), unique=True, nullable=False)  # SKU
     nome = db.Column(db.String(255), nullable=False)
@@ -81,8 +92,8 @@ class Produto(db.Model):
     # ============================
     # AUDITORIA
     # ============================
-    criado_em = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+    criado_em = db.Column(db.DateTime(timezone=True), default=now_local)
+    atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=now_local, default=now_local)
 
     # ============================
     # RELAÇÃO COM HISTÓRICO
@@ -168,7 +179,7 @@ class ProdutoHistorico(db.Model):
         nullable=True,
     )
     usuario_nome = db.Column(db.String(120))
-    data_modificacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_modificacao = db.Column(db.DateTime(timezone=True), default=now_local)
 
     produto = db.relationship("Produto", back_populates="historicos")
 

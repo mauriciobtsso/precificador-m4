@@ -1,0 +1,43 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/compras.css') }}">
+<div class="container py-4">
+  <h3 class="fw-bold mb-3 d-flex align-items-center">
+    <i class="fas fa-upload me-2 text-orange"></i> Importar NF de Compras (XML)
+  </h3>
+
+  <form id="formImportar" method="POST" enctype="multipart/form-data" class="mb-3">
+    <div class="mb-3">
+      <label for="xml" class="form-label">Selecione o arquivo XML</label>
+      <input type="file" name="xml" id="xml" accept=".xml" class="form-control" required>
+    </div>
+    <button id="btnImportar" type="submit" class="btn btn-orange">
+      <i class="fas fa-cloud-upload-alt me-1"></i> Enviar e Processar
+    </button>
+  </form>
+
+  <div id="resultado" class="mt-3"></div>
+
+  <div id="wrapTabela" class="table-responsive mt-3 d-none">
+    <table id="tabelaItens" class="table table-sm table-striped align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th><th>Descrição</th><th>Marca</th><th>Modelo</th>
+          <th>Calibre</th><th>Lote/Série</th>
+          <th class="text-end">Qtd</th><th class="text-end">Vlr Unit.</th><th class="text-end">Total</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyItens"></tbody>
+    </table>
+    <div class="text-end">
+      <small id="resumoImport" class="text-muted"></small>
+    </div>
+    <div class="text-end mt-3">
+      <button id="btnSalvarNF" class="btn btn-success d-none">
+        <i class="fas fa-save me-1"></i> Salvar NF no Sistema
+      </button>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/compras_importar.js') }}"></script>
+{% endblock %}
