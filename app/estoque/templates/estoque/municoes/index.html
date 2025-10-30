@@ -1,1 +1,64 @@
-﻿
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-semibold text-dark mb-0">
+    <i class="fas fa-bullseye text-warning me-2"></i> Munições
+  </h4>
+  <a href="{{ url_for('estoque.municoes_nova') }}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i> Nova entrada
+  </a>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <div class="row g-2 mb-3">
+      <div class="col-md-6">
+        <input type="text" class="form-control" placeholder="Buscar por calibre, lote ou fornecedor...">
+      </div>
+      <div class="col-md-3 ms-auto text-end">
+        <button class="btn btn-outline-secondary"><i class="fas fa-filter me-1"></i> Filtros</button>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Calibre</th>
+            <th>Lote</th>
+            <th>Nº Embalagem</th>
+            <th>Qtd. Embalagem</th>
+            <th>Fornecedor</th>
+            <th>Status</th>
+            <th>Entrada</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>.380 ACP</td>
+            <td>0385 FAG72</td>
+            <td>119516804</td>
+            <td>50 und</td>
+            <td>CBC</td>
+            <td><span class="badge bg-success">Disponível</span></td>
+            <td>12/10/2025</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></button>
+              <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+console.log("[M4] Estoque → Munições carregado");
+</script>
+{% endblock %}

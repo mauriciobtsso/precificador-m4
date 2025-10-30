@@ -2,9 +2,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h4 class="fw-semibold text-dark mb-0">
-    <i class="fas fa-box text-secondary me-2"></i> Itens Não Controlados
+    <i class="fas fa-cog text-info me-2"></i> PCEs (Peças Controladas)
   </h4>
-  <a href="{{ url_for('estoque.nao_controlados_nova') }}" class="btn btn-primary">
+  <a href="{{ url_for('estoque.pces_nova') }}" class="btn btn-primary">
     <i class="fas fa-plus me-1"></i> Nova entrada
   </a>
 </div>
@@ -13,7 +13,7 @@
   <div class="card-body">
     <div class="row g-2 mb-3">
       <div class="col-md-6">
-        <input type="text" class="form-control" placeholder="Buscar por nome, categoria ou fornecedor...">
+        <input type="text" class="form-control" placeholder="Buscar por peça, número de série ou fornecedor...">
       </div>
       <div class="col-md-3 ms-auto text-end">
         <button class="btn btn-outline-secondary"><i class="fas fa-filter me-1"></i> Filtros</button>
@@ -25,10 +25,11 @@
         <thead class="table-light">
           <tr>
             <th>#</th>
-            <th>Produto</th>
-            <th>Categoria</th>
+            <th>Descrição</th>
+            <th>Nº Série</th>
+            <th>Tipo</th>
             <th>Fornecedor</th>
-            <th>Estoque Atual</th>
+            <th>Status</th>
             <th>Entrada</th>
             <th>Ações</th>
           </tr>
@@ -36,11 +37,12 @@
         <tbody>
           <tr>
             <td>1</td>
-            <td>Coldre KYDEX Taurus G3C</td>
-            <td>Acessórios</td>
-            <td>Invictus</td>
-            <td>12</td>
-            <td>09/10/2025</td>
+            <td>Ferrolho CBC .22</td>
+            <td>FRL223456</td>
+            <td>Componente</td>
+            <td>CBC</td>
+            <td><span class="badge bg-success">Disponível</span></td>
+            <td>18/10/2025</td>
             <td>
               <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></button>
               <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
@@ -55,6 +57,6 @@
 
 {% block scripts %}
 <script>
-console.log("[M4] Estoque → Não Controlados carregado");
+console.log("[M4] Estoque → PCEs carregado");
 </script>
 {% endblock %}

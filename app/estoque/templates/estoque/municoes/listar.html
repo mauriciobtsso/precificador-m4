@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="fas fa-bullseye me-2 text-primary"></i>Estoque — Munições</h4>
+    <a href="{{ url_for('estoque.municoes_novo') }}" class="btn btn-success">
+      <i class="fas fa-plus me-1"></i> Nova Munição
+    </a>
+  </div>
+
+  {% if itens %}
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Produto</th>
+          <th>Lote</th>
+          <th>Embalagem</th>
+          <th>Qtd</th>
+          <th>Fornecedor</th>
+          <th>Status</th>
+          <th>Entrada</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in itens %}
+        <tr>
+          <td>{{ i.id }}</td>
+          <td>{{ i.produto.nome if i.produto else '-' }}</td>
+          <td>{{ i.lote or '-' }}</td>
+          <td>{{ i.numero_embalagem or '-' }}</td>
+          <td>{{ i.quantidade }}</td>
+          <td>{{ i.fornecedor.nome if i.fornecedor else '-' }}</td>
+          <td><span class="badge bg-secondary">{{ i.status|capitalize }}</span></td>
+          <td>{{ i.data_entrada.strftime('%d/%m/%Y') if i.data_entrada else '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="alert alert-info">Nenhuma munição cadastrada no estoque.</div>
+  {% endif %}
+</div>
+{% endblock %}
