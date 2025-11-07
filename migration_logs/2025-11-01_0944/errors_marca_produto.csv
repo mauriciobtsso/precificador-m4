@@ -1,0 +1,6 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO marca_produto (id, nome, descricao, criado_em, atualizado_em) VALUES (%(id)s, %(nome)s, %(descricao)s, %(criado_em)s, %(atualizado_em)s)]
+[parameters: {'id': 7, 'nome': 'Fire Eagle', 'descricao': 'Marca nacional focada na produção de carabinas táticas (PCC) de alta performance para o tiro esportivo, especialmente o IPSC.', 'criado_em': datetime.datetime(2025, 10, 16, 14, 32, 24, 197180), 'atualizado_em': datetime.datetime(2025, 10, 17, 17, 19, 8, 339860)}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=7

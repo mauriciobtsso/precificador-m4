@@ -1,0 +1,4 @@
+error,row_json
+"batch_error:(builtins.TypeError) Not a boolean value: 'False'
+[SQL: INSERT INTO vendas (id, cliente_id, vendedor, status, status_financeiro, data_abertura, data_fechamento, data_quitacao, valor_total, nf_numero, nf_valor, teve_devolucao, created_at, updated_at) VALUES (%(id)s, %(cliente_id)s, %(vendedor)s, %(status)s, %(status_financeiro)s, %(data_abertura)s, %(data_fechamento)s, %(data_quitacao)s, %(valor_total)s, %(nf_numero)s, %(nf_valor)s, %(teve_devolucao)s, %(created_at)s, %(updated_at)s)]
+[parameters: [{'cliente_id': '3', 'created_at': '2025-09-27T14:53:55.400700', 'data_abertura': '2025-09-22T11:53:57.159397', 'data_fechamento': '2025-09-23T11:53:57 ... (135 characters truncated) ...  'status_financeiro': 'pago', 'teve_devolucao': 'False', 'updated_at': '2025-09-27T14:53:55.400700', 'valor_total': '1234.56', 'vendedor': 'Mauricio'}]]",batch_size=1

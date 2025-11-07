@@ -1,0 +1,2 @@
+error,row_json
+fk_missing,"{""caminho_arquivo"": ""clientes/5/documentos/CNH_Digital_-_MAURICIO.jpg"", ""categoria"": ""CNH"", ""cliente_id"": 5, ""created_at"": ""2025-10-09T20:40:20.062874"", ""data_emissao"": ""2011-12-19"", ""data_upload"": ""2025-10-09T20:40:20.059450"", ""data_validade"": ""2031-08-06"", ""emissor"": ""DETRAN"", ""id"": 34, ""mime_type"": null, ""nome_original"": null, ""numero_documento"": ""05381937205"", ""observacoes"": ""A"", ""tipo"": ""CNH"", ""updated_at"": ""2025-10-09T20:40:20.062881"", ""validade_indeterminada"": false}"

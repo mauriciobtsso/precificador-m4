@@ -4,7 +4,7 @@
 
 from flask import Blueprint
 
-# Cria o blueprint principal do módulo
+# Cria o blueprint principal
 produtos_bp = Blueprint(
     "produtos",
     __name__,
@@ -13,10 +13,27 @@ produtos_bp = Blueprint(
     static_folder="static"
 )
 
-# ⚙️ IMPORTANTE:
-# Os imports devem vir DEPOIS da criação do blueprint
-# e DEVE SER RELATIVO para evitar duplicação de módulos no SQLAlchemy
-try:
-    from .routes import main, fotos, historico, autosave, tecnicos
-except Exception as e:
-    print(f"[AVISO] Falha ao importar submódulos de produtos: {e}")
+# ======================================================
+# Importação segura e com log individual
+# ======================================================
+def importar_modulo(nome):
+    """Importa submódulos e mostra log claro no console."""
+    try:
+        __import__(f"app.produtos.routes.{nome}")
+        print(f"[M4:PRODUTOS] ✅ Rotas '{nome}' carregadas.")
+    except Exception as e:
+        print(f"[M4:PRODUTOS] ⚠️ Falha ao importar '{nome}': {e}")
+
+# Lista dos submódulos ativos do pacote
+submodulos = [
+    "main",
+    "fotos",
+    "historico",
+    "autosave",
+    "tecnicos",
+    "configs",
+    "importar",  # 🚀 Importação CSV de produtos
+]
+
+for nome in submodulos:
+    importar_modulo(nome)

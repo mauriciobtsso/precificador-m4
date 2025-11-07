@@ -1,0 +1,2 @@
+error,row_json
+fk_missing,"{""cliente_id"": 5, ""data_envio"": ""2025-10-13T20:34:25.956197"", ""erro"": null, ""id"": 4, ""meio"": ""sistema"", ""mensagem"": ""CRAF de MAURICIO BATISTA DE SOUSA vencido em 12/10/2025"", ""nivel"": ""alto"", ""status"": ""lido"", ""tipo"": ""arma""}"

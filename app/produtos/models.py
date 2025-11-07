@@ -180,6 +180,7 @@ class ProdutoHistorico(db.Model):
     )
     usuario_nome = db.Column(db.String(120))
     data_modificacao = db.Column(db.DateTime(timezone=True), default=now_local)
+    origem = db.Column(db.String(20), nullable=False, default="manual")  # ← NOVO CAMPO
 
     produto = db.relationship("Produto", back_populates="historicos")
 

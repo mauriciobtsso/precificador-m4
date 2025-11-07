@@ -1,0 +1,2 @@
+row_json
+"{""cliente_id"": 3, ""created_at"": ""2025-09-27T14:53:55.400700"", ""data_abertura"": ""2025-09-22T11:53:57.159397"", ""data_fechamento"": ""2025-09-23T11:53:57.159403"", ""data_quitacao"": ""2025-09-24T11:53:57.159404"", ""id"": 693, ""nf_numero"": ""NF123"", ""nf_valor"": 1234.56, ""status"": ""fechada"", ""status_financeiro"": ""pago"", ""teve_devolucao"": false, ""updated_at"": ""2025-09-27T14:53:55.400700"", ""valor_total"": 1234.56, ""vendedor"": ""Mauricio""}"

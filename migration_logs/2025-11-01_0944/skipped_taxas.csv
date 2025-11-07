@@ -1,0 +1,13 @@
+row_json
+"{""id"": 13, ""juros"": 1.09, ""numero_parcelas"": 0}"
+"{""id"": 1, ""juros"": 3.48, ""numero_parcelas"": 1}"
+"{""id"": 2, ""juros"": 5.1, ""numero_parcelas"": 2}"
+"{""id"": 4, ""juros"": 6.79, ""numero_parcelas"": 4}"
+"{""id"": 5, ""juros"": 7.61, ""numero_parcelas"": 5}"
+"{""id"": 6, ""juros"": 8.43, ""numero_parcelas"": 6}"
+"{""id"": 7, ""juros"": 9.25, ""numero_parcelas"": 7}"
+"{""id"": 8, ""juros"": 10.07, ""numero_parcelas"": 8}"
+"{""id"": 9, ""juros"": 10.89, ""numero_parcelas"": 9}"
+"{""id"": 10, ""juros"": 11.71, ""numero_parcelas"": 10}"
+"{""id"": 11, ""juros"": 12.53, ""numero_parcelas"": 11}"
+"{""id"": 12, ""juros"": 13.35, ""numero_parcelas"": 12}"

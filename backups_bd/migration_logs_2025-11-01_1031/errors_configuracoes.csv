@@ -1,0 +1,6 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO configuracoes (id, chave, valor) VALUES (%(id)s, %(chave)s, %(valor)s)]
+[parameters: {'id': '2', 'chave': 'debito_percent', 'valor': '1.09'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=3

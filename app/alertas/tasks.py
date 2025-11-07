@@ -1,5 +1,6 @@
 # ===========================
 # ALERTAS - AGENDADOR DIÁRIO (Sprint 4.3 - v4 Estável)
+# + Ajuste Automático de Sequências (Sprint 6G)
 # ===========================
 
 from datetime import datetime
@@ -72,13 +73,69 @@ def verificar_alertas_diarios(app=None):
             ctx.pop()
 
 
+# ============================================================
+# 🔹 Função auxiliar: corrigir_todas_as_sequencias()
+# ============================================================
+from sqlalchemy import text
+
+TABELAS_SEQUENCIAS = [
+    "produtos",
+    "categoria_produto",
+    "marca_produto",
+    "tipo_produto",
+    "calibre_produto",
+    "funcionamento_produto",
+]
+
+def corrigir_todas_as_sequencias():
+    """
+    Corrige automaticamente as sequências (auto-increment) das tabelas
+    relacionadas a produtos e configurações, prevenindo erros de
+    'duplicate key value violates unique constraint'.
+    Executada diariamente às 03:00 via APScheduler.
+    """
+    try:
+        from app import db
+        total_corrigidas = 0
+        falhas = []
+
+        for tabela in TABELAS_SEQUENCIAS:
+            try:
+                sql = text(f"""
+                    SELECT setval(
+                        pg_get_serial_sequence('{tabela}', 'id'),
+                        COALESCE((SELECT MAX(id) FROM {tabela}), 1),
+                        TRUE
+                    );
+                """)
+                db.session.execute(sql)
+                db.session.commit()
+                current_app.logger.info(f"[AUTOSEQ] Sequência corrigida para '{tabela}' ✅")
+                total_corrigidas += 1
+            except Exception as e:
+                db.session.rollback()
+                falhas.append((tabela, str(e)))
+                current_app.logger.error(f"[AUTOSEQ] Falha ao corrigir sequência de '{tabela}': {e}")
+
+        resumo = f"{total_corrigidas} sequência(s) corrigida(s) às {datetime.now():%d/%m/%Y %H:%M:%S}"
+        if falhas:
+            resumo += f" — Falhas em: {', '.join(t for t, _ in falhas)}"
+        current_app.logger.info(f"[AUTOSEQ] {resumo}")
+
+    except Exception as e:
+        current_app.logger.error(f"[AUTOSEQ] Erro geral no ajuste automático de sequências: {e}")
+        traceback.print_exc()
+
+
 # -----------------------------------------------------
 # 🔹 Função: iniciar_scheduler()
 # -----------------------------------------------------
 def iniciar_scheduler(app):
     """
     Configura e inicia o APScheduler integrado ao Flask.
-    Executa a verificação diariamente às 06:00 (horário do servidor).
+    Executa:
+      • Verificação de alertas às 06:00
+      • Ajuste de sequências às 03:00
     """
 
     scheduler = BackgroundScheduler(timezone="America/Sao_Paulo")
@@ -87,7 +144,7 @@ def iniciar_scheduler(app):
     for job in scheduler.get_jobs():
         scheduler.remove_job(job.id)
 
-    # Adiciona a tarefa diária
+    # === 1️⃣ Verificação de alertas diários ===
     scheduler.add_job(
         func=lambda: verificar_alertas_diarios(app),
         trigger="cron",
@@ -97,8 +154,18 @@ def iniciar_scheduler(app):
         replace_existing=True,
     )
 
+    # === 2️⃣ Ajuste automático de sequências ===
+    scheduler.add_job(
+        func=corrigir_todas_as_sequencias,
+        trigger="cron",
+        hour=3,
+        minute=0,
+        id="ajuste_sequencias_diario",
+        replace_existing=True,
+    )
+
     scheduler.start()
-    print("Agendador de alertas iniciado (executa diariamente às 06:00).")
+    print("🕒 Agendador iniciado: alertas (06:00) e ajuste de sequências (03:00).")
     return scheduler
 
 
@@ -116,3 +183,6 @@ if __name__ == "__main__":
     with app.app_context():
         print("⚙️ Executando verificação manual de alertas...")
         verificar_alertas_diarios(app)
+
+        print("⚙️ Executando ajuste manual de sequências...")
+        corrigir_todas_as_sequencias()

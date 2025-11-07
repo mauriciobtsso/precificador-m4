@@ -11,3 +11,4 @@ from .autosave import *
 from .tecnicos import *
 from .configs import *
 from .utils import *
+from .importar import *

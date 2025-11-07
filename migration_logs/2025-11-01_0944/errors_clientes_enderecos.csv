@@ -1,0 +1,6 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO clientes_enderecos (id, cliente_id, cep, logradouro, numero, complemento, bairro, cidade, estado, tipo, created_at, updated_at) VALUES (%(id)s, %(cliente_id)s, %(cep)s, %(logradouro)s, %(numero)s, %(complemento)s, %(bairro)s, %(cidade)s, %(estado)s, %(tipo)s, %(created_at)s, %(updated_at)s)]
+[parameters: {'id': 560, 'cliente_id': 971, 'cep': '64055420', 'logradouro': 'Rua Melvin Jones', 'numero': None, 'complemento': 'PIÇARREIRA', 'bairro': 'Piçarreira', 'cidade': 'Teresina', 'estado': 'PI', 'tipo': 'residencial', 'created_at': None, 'updated_at': datetime.datetime(2025, 9, 30, 19, 0, 5, 889848)}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=513

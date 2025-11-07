@@ -18,8 +18,12 @@ class MarcaProduto(db.Model):
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __repr__(self):
-        return f"<MarcaProduto {self.nome}>"
+def __repr__(self):
+    try:
+        nome = object.__getattribute__(self, "nome")
+    except Exception:
+        nome = None
+    return f"<{self.__class__.__name__} {nome or 'sem_nome'}>"
 
 
 # ------------------------------
@@ -34,8 +38,12 @@ class CalibreProduto(db.Model):
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __repr__(self):
-        return f"<CalibreProduto {self.nome}>"
+def __repr__(self):
+    try:
+        nome = object.__getattribute__(self, "nome")
+    except Exception:
+        nome = None
+    return f"<{self.__class__.__name__} {nome or 'sem_nome'}>"
 
 
 # ------------------------------
@@ -50,9 +58,12 @@ class TipoProduto(db.Model):
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __repr__(self):
-        return f"<TipoProduto {self.nome}>"
-
+def __repr__(self):
+    try:
+        nome = object.__getattribute__(self, "nome")
+    except Exception:
+        nome = None
+    return f"<{self.__class__.__name__} {nome or 'sem_nome'}>"
 
 # ------------------------------
 # FUNCIONAMENTO
@@ -66,5 +77,9 @@ class FuncionamentoProduto(db.Model):
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __repr__(self):
-        return f"<FuncionamentoProduto {self.nome}>"
+def __repr__(self):
+    try:
+        nome = object.__getattribute__(self, "nome")
+    except Exception:
+        nome = None
+    return f"<{self.__class__.__name__} {nome or 'sem_nome'}>"

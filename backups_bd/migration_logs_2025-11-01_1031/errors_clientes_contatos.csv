@@ -1,0 +1,11 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO clientes_contatos (id, cliente_id, tipo, valor, created_at, updated_at) VALUES (%(id)s, %(cliente_id)s, %(tipo)s, %(valor)s, %(created_at)s, %(updated_at)s)]
+[parameters: {'id': '15', 'cliente_id': '3', 'tipo': 'email', 'valor': 'comercial@m4tatica.com.br', 'created_at': '2025-10-02T12:44:59.266503', 'updated_at': '2025-10-02T12:44:59.266776'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO clientes_contatos (id, cliente_id, tipo, valor, created_at, updated_at) VALUES (%(id)s, %(cliente_id)s, %(tipo)s, %(valor)s, %(created_at)s, %(updated_at)s)]
+[parameters: {'id': '1012', 'cliente_id': '966', 'tipo': 'telefone', 'valor': '(86) 99835-7713', 'created_at': '2025-10-02T12:49:53.636966', 'updated_at': '2025-10-02T12:49:53.636978'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=774

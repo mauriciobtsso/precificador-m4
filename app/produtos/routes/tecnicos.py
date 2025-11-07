@@ -5,48 +5,48 @@ from .. import produtos_bp
 from app.produtos.models import Produto
 
 # ======================
-# IMPORTAR PRODUTOS VIA PLANILHA
+# IMPORTAR PRODUTOS VIA PLANILHA (DESATIVADO — substituído por routes/importar.py)
 # ======================
-@produtos_bp.route("/importar", methods=["GET", "POST"])
-@login_required
-def importar_produtos():
-    if request.method == "POST":
-        arquivo = request.files.get("arquivo")
-        if not arquivo:
-            flash("Nenhum arquivo selecionado.", "warning")
-            return redirect(url_for("produtos.importar_produtos"))
-
-        try:
-            from app.services.importacao import importar_produtos_planilha
-            qtd, erros = importar_produtos_planilha(arquivo)
-            flash(f"✅ {qtd} produtos importados com sucesso!", "success")
-            if erros:
-                flash(f"⚠️ Alguns produtos apresentaram erros: {', '.join(erros)}", "warning")
-        except Exception as e:
-            current_app.logger.error(f"Erro ao importar produtos: {e}")
-            flash("❌ Erro ao processar a planilha de produtos.", "danger")
-
-        return redirect(url_for("produtos.index"))
-
-    return render_template("produtos/importar.html")
+# @produtos_bp.route("/importar", methods=["GET", "POST"])
+# @login_required
+# def importar_produtos():
+#     if request.method == "POST":
+#         arquivo = request.files.get("arquivo")
+#         if not arquivo:
+#             flash("Nenhum arquivo selecionado.", "warning")
+#             return redirect(url_for("produtos.importar_produtos"))
+#
+#         try:
+#             # from app.services.importacao import importar_produtos_planilha
+#             qtd, erros = importar_produtos_planilha(arquivo)
+#             flash(f"✅ {qtd} produtos importados com sucesso!", "success")
+#             if erros:
+#                 flash(f"⚠️ Alguns produtos apresentaram erros: {', '.join(erros)}", "warning")
+#         except Exception as e:
+#             current_app.logger.error(f"Erro ao importar produtos: {e}")
+#             flash("❌ Erro ao processar a planilha de produtos.", "danger")
+#
+#         return redirect(url_for("produtos.index"))
+#
+#     return render_template("produtos/importar.html")
 
 
 # ======================
 # BAIXAR EXEMPLO CSV
 # ======================
-@produtos_bp.route("/exemplo_csv")
-@login_required
-def exemplo_csv():
-    exemplo = io.StringIO()
-    exemplo.write("codigo,nome,tipo,marca,calibre,preco_fornecedor,desconto_fornecedor,margem,ipi,ipi_tipo,difal,imposto_venda\n")
-    exemplo.write("ABC123,Exemplo de Produto,Arma de Fogo,Taurus,9mm,3500,5,25,0,%_dentro,5,8\n")
-    exemplo.seek(0)
-    return send_file(
-        io.BytesIO(exemplo.getvalue().encode("utf-8")),
-        as_attachment=True,
-        download_name="modelo_produtos.csv",
-        mimetype="text/csv"
-    )
+# @produtos_bp.route("/exemplo_csv")
+# @login_required
+# def exemplo_csv():
+#     exemplo = io.StringIO()
+#     exemplo.write("codigo,nome,tipo,marca,calibre,preco_fornecedor,desconto_fornecedor,margem,ipi,ipi_tipo,difal,imposto_venda\n")
+#     exemplo.write("ABC123,Exemplo de Produto,Arma de Fogo,Taurus,9mm,3500,5,25,0,%_dentro,5,8\n")
+#     exemplo.seek(0)
+#     return send_file(
+#         io.BytesIO(exemplo.getvalue().encode("utf-8")),
+#         as_attachment=True,
+#         download_name="modelo_produtos.csv",
+#         mimetype="text/csv"
+#     )
 
 
 # ======================

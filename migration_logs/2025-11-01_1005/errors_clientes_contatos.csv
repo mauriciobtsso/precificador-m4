@@ -1,0 +1,5 @@
+error,row_json
+fk_missing,"{""cliente_id"": 5, ""created_at"": ""2025-10-02T12:02:59.143143"", ""id"": 11, ""tipo"": ""email"", ""updated_at"": ""2025-10-02T12:44:59.854487"", ""valor"": ""mauriciobts@icloud.com""}"
+fk_missing,"{""cliente_id"": 1011, ""created_at"": ""2025-10-02T12:50:20.248367"", ""id"": 1102, ""tipo"": ""telefone"", ""updated_at"": ""2025-10-02T12:50:20.248375"", ""valor"": ""(48) 3432-0010""}"
+fk_missing,"{""cliente_id"": 1011, ""created_at"": ""2025-10-02T12:50:20.536906"", ""id"": 1103, ""tipo"": ""email"", ""updated_at"": ""2025-10-02T12:50:20.536930"", ""valor"": ""contabilidade@paveibrasil.com.br""}"
+fk_missing,"{""cliente_id"": 5, ""created_at"": ""2025-10-02T14:35:47.917684"", ""id"": 1790, ""tipo"": ""celular"", ""updated_at"": ""2025-10-02T14:35:47.917709"", ""valor"": ""(86) 99804-6326""}"

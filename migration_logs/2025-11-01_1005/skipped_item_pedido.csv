@@ -1,0 +1,4 @@
+row_json
+"{""codigo"": ""TAU001"", ""descricao"": ""PIST TAURUS G2C"", ""id"": 65, ""pedido_id"": 19, ""quantidade"": 1, ""valor_unitario"": 3200.0}"
+"{""codigo"": ""CBC001"", ""descricao"": ""RIFLE 7022"", ""id"": 66, ""pedido_id"": 19, ""quantidade"": 1, ""valor_unitario"": 2550.0}"
+"{""codigo"": ""CBC002"", ""descricao"": ""MUN 9MM"", ""id"": 67, ""pedido_id"": 19, ""quantidade"": 100, ""valor_unitario"": 4.29}"

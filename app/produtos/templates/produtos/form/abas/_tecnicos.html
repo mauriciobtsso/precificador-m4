@@ -1,22 +1,18 @@
 <!-- ============================================================
-     ABA TÉCNICOS — Sprint 6G (Revisada para include direto)
+     ABA TÉCNICOS — Refino Visual e Mobile
 ============================================================ -->
 
-<!-- =======================
-     ESPECIFICAÇÕES PRINCIPAIS
-======================== -->
+<!-- ESPECIFICAÇÕES PRINCIPAIS -->
 <div class="m4-card mb-4">
   <h5><i class="fas fa-info-circle me-2"></i>Especificações principais</h5>
-  <div class="row g-3">
-    
-    <div class="col-md-4">
-      <label class="form-label">Número de série</label>
-      <input type="text" name="numero_serie" id="in_numero_serie"
-             class="form-control" placeholder="Ex.: ABC12345" maxlength="50">
+  <div class="row g-4">
+    <div class="col-12 col-sm-6 col-lg-4">
+      <label class="form-label small fw-semibold">Número de série</label>
+      <input type="text" name="numero_serie" id="in_numero_serie" class="form-control" placeholder="Ex.: ABC12345" maxlength="50">
     </div>
 
-    <div class="col-md-4">
-      <label class="form-label">Tipo de arma</label>
+    <div class="col-12 col-sm-6 col-lg-4">
+      <label class="form-label small fw-semibold">Tipo de arma</label>
       <select name="tipo_produto" id="in_tipo_produto" class="form-select">
         <option value="">Selecione...</option>
         <option>Pistola</option>
@@ -29,14 +25,13 @@
       </select>
     </div>
 
-    <div class="col-md-4">
-      <label class="form-label">Calibre</label>
-      <input type="text" name="calibre" id="in_calibre"
-             class="form-control" placeholder="Ex.: 9 mm, .380 ACP, .40 S&W">
+    <div class="col-12 col-sm-6 col-lg-4">
+      <label class="form-label small fw-semibold">Calibre</label>
+      <input type="text" name="calibre" id="in_calibre" class="form-control" placeholder="Ex.: 9 mm, .380 ACP, .40 S&W">
     </div>
 
-    <div class="col-md-4">
-      <label class="form-label">Funcionamento</label>
+    <div class="col-12 col-sm-6 col-lg-4">
+      <label class="form-label small fw-semibold">Funcionamento</label>
       <select name="funcionamento" id="in_funcionamento" class="form-select">
         <option value="">Selecione...</option>
         <option>Semiautomática</option>
@@ -48,86 +43,61 @@
       </select>
     </div>
 
-    <div class="col-md-4">
-      <label class="form-label">Capacidade (tiros)</label>
-      <input type="number" name="capacidade" id="in_capacidade"
-             class="form-control" min="1" placeholder="Ex.: 15">
+    <div class="col-12 col-sm-6 col-lg-4">
+      <label class="form-label small fw-semibold">Capacidade (tiros)</label>
+      <input type="number" name="capacidade" id="in_capacidade" class="form-control" min="1" placeholder="Ex.: 15">
     </div>
 
-    <div class="col-md-4">
-      <label class="form-label">Origem / País</label>
-      <input type="text" name="origem" id="in_origem"
-             class="form-control" placeholder="Ex.: Brasil, EUA, Turquia...">
+    <div class="col-12 col-sm-6 col-lg-4">
+      <label class="form-label small fw-semibold">Origem / País</label>
+      <input type="text" name="origem" id="in_origem" class="form-control" placeholder="Ex.: Brasil, EUA, Turquia...">
     </div>
-
   </div>
 </div>
 
-<!-- =======================
-     DADOS BALÍSTICOS / TÉCNICOS
-======================== -->
+<!-- DADOS BALÍSTICOS -->
 <div class="m4-card mb-4">
   <h5><i class="fas fa-bullseye me-2"></i>Dados balísticos / técnicos</h5>
-  <div class="row g-3">
-
-    <div class="col-md-3">
-      <label class="form-label">Comprimento do cano (mm)</label>
-      <input type="number" step="0.1" name="comprimento_cano" id="in_comprimento_cano"
-             class="form-control" placeholder="Ex.: 115">
+  <div class="row g-4">
+    <div class="col-12 col-sm-6 col-lg-3">
+      <label class="form-label small fw-semibold">Comprimento do cano (mm)</label>
+      <input type="number" step="0.1" name="comprimento_cano" id="in_comprimento_cano" class="form-control" placeholder="Ex.: 115">
     </div>
-
-    <div class="col-md-3">
-      <label class="form-label">Comprimento total (mm)</label>
-      <input type="number" step="0.1" name="comprimento_total" id="in_comprimento_total"
-             class="form-control" placeholder="Ex.: 200">
+    <div class="col-12 col-sm-6 col-lg-3">
+      <label class="form-label small fw-semibold">Comprimento total (mm)</label>
+      <input type="number" step="0.1" name="comprimento_total" id="in_comprimento_total" class="form-control" placeholder="Ex.: 200">
     </div>
-
-    <div class="col-md-3">
-      <label class="form-label">Peso (g)</label>
-      <input type="number" step="0.1" name="peso" id="in_peso"
-             class="form-control" placeholder="Ex.: 940">
+    <div class="col-12 col-sm-6 col-lg-3">
+      <label class="form-label small fw-semibold">Peso (g)</label>
+      <input type="number" step="0.1" name="peso" id="in_peso" class="form-control" placeholder="Ex.: 940">
     </div>
-
-    <div class="col-md-3">
-      <label class="form-label">Acabamento / Cor</label>
-      <input type="text" name="acabamento" id="in_acabamento"
-             class="form-control" placeholder="Ex.: Inox, Fosco, Preto...">
+    <div class="col-12 col-sm-6 col-lg-3">
+      <label class="form-label small fw-semibold">Acabamento / Cor</label>
+      <input type="text" name="acabamento" id="in_acabamento" class="form-control" placeholder="Ex.: Inox, Fosco, Preto...">
     </div>
-
   </div>
 </div>
 
-<!-- =======================
-     DOCUMENTAÇÃO E CONTROLE
-======================== -->
+<!-- DOCUMENTAÇÃO -->
 <div class="m4-card mb-4">
   <h5><i class="fas fa-file-alt me-2"></i>Documentação e controle</h5>
-  <div class="row g-3">
-
-    <div class="col-md-4">
-      <label class="form-label">Registro SIGMA / CRAF</label>
-      <input type="text" name="registro_sigma" id="in_registro_sigma"
-             class="form-control" placeholder="Ex.: SIGMA 1234567">
+  <div class="row g-4">
+    <div class="col-12 col-sm-6 col-lg-4">
+      <label class="form-label small fw-semibold">Registro SIGMA / CRAF</label>
+      <input type="text" name="registro_sigma" id="in_registro_sigma" class="form-control" placeholder="Ex.: SIGMA 1234567">
     </div>
-
-    <div class="col-md-4">
-      <label class="form-label">Número do CR (se aplicável)</label>
-      <input type="text" name="numero_cr" id="in_numero_cr"
-             class="form-control" placeholder="Ex.: 123456/2025">
+    <div class="col-12 col-sm-6 col-lg-4">
+      <label class="form-label small fw-semibold">Número do CR (se aplicável)</label>
+      <input type="text" name="numero_cr" id="in_numero_cr" class="form-control" placeholder="Ex.: 123456/2025">
     </div>
-
-    <div class="col-md-4">
-      <label class="form-label">Validade do registro</label>
-      <input type="date" name="validade_registro" id="in_validade_registro"
-             class="form-control">
+    <div class="col-12 col-sm-6 col-lg-4">
+      <label class="form-label small fw-semibold">Validade do registro</label>
+      <input type="date" name="validade_registro" id="in_validade_registro" class="form-control">
     </div>
-
     <div class="col-12">
-      <label class="form-label">Observações técnicas</label>
-      <textarea name="observacoes_tecnicas" id="in_observacoes_tecnicas"
-                class="form-control" rows="3"
+      <label class="form-label small fw-semibold">Observações técnicas</label>
+      <textarea name="observacoes_tecnicas" id="in_observacoes_tecnicas" class="form-control" rows="3"
                 placeholder="Anotações, números de lote, observações de manutenção, etc."></textarea>
     </div>
-
   </div>
 </div>

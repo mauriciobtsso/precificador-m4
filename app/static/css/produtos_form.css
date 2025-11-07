@@ -1,10 +1,10 @@
 /* ============================================================
-   ESTILOS GERAIS — MÓDULO PRODUTOS (Sprint 6F Visual + UX)
+   ESTILOS GERAIS — MÓDULO PRODUTOS (Sprint 6G Visual + UX)
 ============================================================ */
 
-/* ============================================================
-   VARIÁVEIS PRINCIPAIS — Tokens M4
-============================================================ */
+/* =========================
+   VARIÁVEIS M4
+========================= */
 :root {
   --m4-orange: #ff5e00;
   --m4-orange-dark: #e65000;
@@ -20,34 +20,41 @@
   --m4-gap-lg: 1.5rem;
 }
 
-/* ============================================================
+/* =========================
    GLOBAIS + TRANSIÇÕES
-============================================================ */
+========================= */
 .text-orange { color: var(--m4-orange) !important; }
 
 input, select, textarea {
-  transition: border-color .2s ease, box-shadow .2s ease;
+  transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
 }
+
 input:focus, select:focus, textarea:focus {
   border-color: var(--m4-orange) !important;
   box-shadow: 0 0 0 0.1rem rgba(255,94,0,.25);
 }
 
-/* ============================================================
-   CABEÇALHO DO PRODUTO — Sprint 6F
-============================================================ */
-.produto-header {
-  background-color: transparent;
+/* Campos readonly */
+input[readonly], textarea[readonly] {
+  background-color: #f2f2f2 !important;
+  color: #555;
+  cursor: default;
+  border-color: #e0e0e0;
 }
 
-.produto-header h3 {
-  font-size: 1.4rem;
-  line-height: 1.2;
+/* Tema escuro para campos readonly */
+[data-bs-theme="dark"] input[readonly],
+[data-bs-theme="dark"] textarea[readonly] {
+  background-color: #2a2a2a !important;
+  color: #cfcfcf;
+  border-color: #3a3a3a;
 }
 
-.produto-header small {
-  font-size: 0.83rem;
-}
+/* =========================
+   CABEÇALHO DO PRODUTO
+========================= */
+.produto-header h3 { font-size: 1.4rem; line-height: 1.2; }
+.produto-header small { font-size: 0.83rem; }
 
 .resumo-financeiro {
   min-width: 280px;
@@ -57,26 +64,12 @@ input:focus, select:focus, textarea:focus {
   line-height: 1.3;
   box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
+.resumo-financeiro span { white-space: nowrap; }
 
-.resumo-financeiro span {
-  white-space: nowrap;
-}
-
-/* RESPONSIVIDADE do cabeçalho */
-@media (max-width: 1200px) {
-  .resumo-financeiro {
-    width: 100%;
-  }
-}
-
+/* RESPONSIVIDADE DO CABEÇALHO */
 @media (max-width: 992px) {
-  .produto-header .col-md-6 {
-    text-align: left !important;
-  }
-  .resumo-financeiro {
-    display: block;
-    text-align: left;
-  }
+  .produto-header .col-md-6 { text-align: left !important; }
+  .resumo-financeiro { width: 100%; text-align: left; }
 }
 
 /* Tema escuro */
@@ -85,16 +78,12 @@ input:focus, select:focus, textarea:focus {
   border-color: #3a3d41;
   color: #f1f1f1;
 }
-[data-bs-theme="dark"] .resumo-financeiro .text-muted {
-  color: #b6b8ba !important;
-}
-[data-bs-theme="dark"] .produto-header h3 {
-  color: #fff;
-}
+[data-bs-theme="dark"] .resumo-financeiro .text-muted { color: #b6b8ba !important; }
+[data-bs-theme="dark"] .produto-header h3 { color: #fff; }
 
-/* ============================================================
-   Abas, botões e cartões (mantidos e refinados)
-============================================================ */
+/* =========================
+   Abas e Botões
+========================= */
 .nav-tabs .nav-link {
   min-width: 120px;
   text-align: center;
@@ -102,36 +91,26 @@ input:focus, select:focus, textarea:focus {
 }
 .nav-tabs .nav-link:hover {
   color: var(--m4-orange) !important;
-  background-color: rgba(255,94,0,.05);
+  background-color: rgba(255,94,0,.08);
 }
 .nav-tabs .nav-link.active {
   color: var(--m4-orange) !important;
   font-weight: 600;
   border-color: var(--m4-orange) var(--m4-orange) #fff;
 }
-.nav-tabs .nav-link::after { display: none !important; }
 
-/* Botão padrão laranja */
+/* Botão laranja */
 .btn-orange {
   background-color: var(--m4-orange);
   color: #fff;
   border: none;
   transition: all .3s ease;
 }
-.btn-orange:hover {
-  background-color: var(--m4-orange-dark);
-  color: #fff;
-}
+.btn-orange:hover { background-color: var(--m4-orange-dark); color: #fff; }
 
 /* Feedback no botão salvar */
-#btnSalvarProduto {
-  min-width: 140px;
-  transition: all 0.3s ease;
-}
-#btnSalvarProduto.is-saving {
-  background-color: #ffc107 !important;
-  color: #212529 !important;
-}
+#btnSalvarProduto { min-width: 140px; transition: all 0.3s ease; }
+#btnSalvarProduto.is-saving { background-color: #ffc107 !important; color: #212529 !important; }
 #btnSalvarProduto.is-saved {
   background-color: var(--m4-green) !important;
   color: #fff !important;
@@ -143,9 +122,9 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0.4rem rgba(220,53,69,.4);
 }
 
-/* ============================================================
-   Cards, campos e tooltips (mantidos)
-============================================================ */
+/* =========================
+   Cards e Tooltips
+========================= */
 .m4-card {
   background-color: #fff;
   border-radius: var(--m4-card-radius);
@@ -154,23 +133,21 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid #f0f0f0;
   margin-bottom: var(--m4-gap-lg);
 }
-.m4-card h5 {
-  display: flex;
-  align-items: center;
-  font-weight: 600;
-  margin-bottom: var(--m4-gap-md);
+
+[data-bs-theme="dark"] .m4-card {
+  background-color: #2a2d31;
+  border-color: #3b3d41;
+  color: #f1f1f1;
+  box-shadow: none;
 }
-.m4-card h5 i { color: var(--m4-orange); }
+
+[data-bs-theme="dark"] .m4-card h5 i { color: var(--m4-orange); }
 
 [data-bs-toggle="tooltip"] { cursor: help; }
 
-/* ============================================================
-   Resumo dos campos de cálculo
-============================================================ */
-.valor-positivo { color: var(--m4-green) !important; font-weight: 600; }
-.valor-negativo { color: var(--m4-red) !important; font-weight: 600; }
-.valor-neutro   { color: var(--m4-gray) !important; font-weight: 500; }
-
+/* =========================
+   Campos de cálculo (readonly)
+========================= */
 #out_custo_total,
 #out_preco_a_vista,
 #out_lucro_liquido {
@@ -184,9 +161,17 @@ input:focus, select:focus, textarea:focus {
   transition: color .3s ease, transform .2s ease, opacity .3s ease;
 }
 
-/* ============================================================
-   Feedback visual (mantido)
-============================================================ */
+[data-bs-theme="dark"] #out_custo_total,
+[data-bs-theme="dark"] #out_preco_a_vista,
+[data-bs-theme="dark"] #out_lucro_liquido {
+  background-color: #2a2a2a;
+  border-color: #3b3b3b;
+  color: #f1f1f1;
+}
+
+/* =========================
+   Feedback visual
+========================= */
 .feedback-alterado { animation: flashFeedback 0.8s ease-in-out; }
 @keyframes flashFeedback {
   0% { background-color: #fff3cd; }
@@ -204,27 +189,37 @@ input:focus, select:focus, textarea:focus {
   100% { background-color: #f8f9fa; }
 }
 
-/* ============================================================
-   FOTO DO PRODUTO (mantido das fases 5.6B–6E)
-============================================================ */
-.produto-foto-wrapper {
-  width: 220px;
-  height: 220px;
+/* =========================
+   FOTO DO PRODUTO
+========================= */
+#fotoProdutoContainer {
+  width: 260px;
+  height: 260px;
   border-radius: 1rem;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,.12);
-  transition: transform .3s ease;
+  transition: transform 0.3s ease;
 }
-.produto-foto-wrapper:hover { transform: scale(1.02); }
-.produto-foto { object-fit: cover; width: 100%; height: 100%; }
+#fotoProdutoContainer:hover { transform: scale(1.02); }
 
-/* ============================================================
-   AJUSTES FINAIS DE RESPONSIVIDADE GERAL
-============================================================ */
-@media (max-width: 1024px) {
-  .resumo-produto input.form-control[readonly] {
-    font-size: 0.9rem;
-    height: 38px;
-  }
+#fotoProdutoPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: #f9f9f9;
+  transition: transform 0.25s ease-in-out;
+}
+#fotoProdutoPreview:hover { transform: scale(1.03); }
+
+/* =========================
+   RESPONSIVIDADE GERAL
+========================= */
+@media (max-width: 768px) {
   .m4-card { padding: .75rem; }
+  label.form-label { font-size: 0.85rem; }
+  input, select, textarea { font-size: 0.9rem; }
+}
+
+@media (max-width: 480px) {
+  #fotoProdutoContainer { width: 100%; height: auto; aspect-ratio: 1/1; }
 }

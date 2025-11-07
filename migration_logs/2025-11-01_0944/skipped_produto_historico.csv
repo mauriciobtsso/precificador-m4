@@ -1,0 +1,6 @@
+row_json
+"{""campo"": ""preco_fornecedor"", ""data_modificacao"": ""2025-10-18T12:39:03.835503"", ""id"": 10, ""produto_id"": 235, ""usuario_id"": 1, ""usuario_nome"": ""admin"", ""valor_antigo"": ""3391.00"", ""valor_novo"": ""3392""}"
+"{""campo"": ""frete"", ""data_modificacao"": ""2025-10-18T12:39:03.835853"", ""id"": 11, ""produto_id"": 235, ""usuario_id"": 1, ""usuario_nome"": ""admin"", ""valor_antigo"": ""365.00"", ""valor_novo"": ""365""}"
+"{""campo"": ""lucro_alvo"", ""data_modificacao"": ""2025-10-18T12:39:03.836089"", ""id"": 12, ""produto_id"": 235, ""usuario_id"": 1, ""usuario_nome"": ""admin"", ""valor_antigo"": ""0.00"", ""valor_novo"": ""0""}"
+"{""campo"": ""preco_final"", ""data_modificacao"": ""2025-10-18T12:39:03.836389"", ""id"": 13, ""produto_id"": 235, ""usuario_id"": 1, ""usuario_nome"": ""admin"", ""valor_antigo"": ""5790.00"", ""valor_novo"": ""5790""}"
+"{""campo"": ""preco_fornecedor"", ""data_modificacao"": ""2025-10-18T12:39:28.422113"", ""id"": 14, ""produto_id"": 235, ""usuario_id"": 1, ""usuario_nome"": ""admin"", ""valor_antigo"": ""3392"", ""valor_novo"": ""3391.00""}"

@@ -1,0 +1,2 @@
+error,row_json
+fk_missing,"{""assunto"": null, ""cliente_id"": 5, ""data"": ""2025-09-27T11:07:30.682646"", ""id"": 1, ""mensagem"": ""Teste"", ""tipo"": ""whatsapp""}"

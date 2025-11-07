@@ -1,5 +1,5 @@
 <!-- ============================================================
-     ABA: DADOS GERAIS
+     ABA: DADOS GERAIS (refinada - compatível desktop/mobile)
 ============================================================ -->
 <div class="border-start border-4 border-orange ps-3 mb-3">
   <h5 class="fw-semibold text-dark mb-0">
@@ -7,41 +7,40 @@
   </h5>
 </div>
 
-<div class="row g-3">
-  
-  {# ============================================================
-     BLOCO DA FOTO DO PRODUTO (upload e preview, SOMENTE NO FORM)
-     IDs: inputFotoProduto, btnSelecionarFoto, btnRemoverFoto, fotoProdutoPreview, inputFotoUrl
-     MOVIDO PARA DENTRO DA ABA GERAL
-  ============================================================ #}
-  <div class="col-md-4 order-md-2">
-    <div class="d-flex justify-content-center my-3">
-      <div class="position-relative rounded-4 shadow-sm border bg-light"
-           style="width:260px; height:260px; overflow:hidden;" id="fotoProdutoContainer"
-           onmouseenter="document.getElementById('fotoProdutoHoverOverlay').style.opacity = '1';"
-           onmouseleave="document.getElementById('fotoProdutoHoverOverlay').style.opacity = '0';">
+<div class="row g-4 align-items-start">
+  <!-- Foto do produto -->
+  <div class="col-12 col-md-4 order-md-2">
+    <div class="d-flex justify-content-center mb-3 mb-md-0">
+      <div id="fotoProdutoContainer"
+           class="position-relative rounded-4 shadow-sm border bg-light w-100"
+           style="max-width:280px; aspect-ratio:1/1; overflow:hidden;"
+           onmouseenter="document.getElementById('fotoProdutoHoverOverlay').style.opacity='1';"
+           onmouseleave="document.getElementById('fotoProdutoHoverOverlay').style.opacity='0';">
 
-        <!-- Preview -->
         <img id="fotoProdutoPreview"
              data-produto-id="{{ produto.id or '' }}"
              src="{{ produto.foto_url or url_for('static', filename='img/placeholder.jpg') }}"
              class="w-100 h-100"
-             style="object-fit:cover;">
+             style="object-fit:contain; background-color:#f9f9f9;">
 
-        <!-- Overlay de Carregamento (Inicialmente oculto) -->
-        <div id="fotoProdutoOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center d-none" style="z-index:3; background-color: rgba(0, 0, 0, 0.5); border-radius: 0.5rem;">
-            <i class="fas fa-spinner fa-spin fa-2x text-white"></i>
+        <!-- Overlay de carregamento -->
+        <div id="fotoProdutoOverlay"
+             class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center d-none"
+             style="z-index:3; background-color:rgba(0,0,0,0.5); border-radius:0.5rem;">
+          <i class="fas fa-spinner fa-spin fa-2x text-white"></i>
         </div>
 
-        <!-- Overlay de Hover para os Botões -->
-        <!-- O JS controlará a visibilidade deste bloco para o hover -->
-        <div id="fotoProdutoHoverOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center" style="z-index:2; background-color: rgba(0, 0, 0, 0.3); opacity: 0; transition: opacity 0.2s;">
-            <button type="button" id="btnSelecionarFoto" class="btn btn-sm btn-light shadow-sm">
-                <i class="fas fa-camera me-1"></i> Alterar foto
-            </button>
-            <button type="button" id="btnRemoverFoto" class="btn btn-sm btn-outline-danger mt-2 {% if not produto.foto_url %}d-none{% endif %}">
-                <i class="fas fa-trash me-1"></i> Remover
-            </button>
+        <!-- Overlay hover -->
+        <div id="fotoProdutoHoverOverlay"
+             class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center"
+             style="z-index:2; background-color:rgba(0,0,0,0.35); opacity:0; transition:opacity .2s;">
+          <button type="button" id="btnSelecionarFoto" class="btn btn-sm btn-light shadow-sm mb-2">
+            <i class="fas fa-camera me-1"></i>Alterar foto
+          </button>
+          <button type="button" id="btnRemoverFoto"
+                  class="btn btn-sm btn-outline-danger {% if not produto.foto_url %}d-none{% endif %}">
+            <i class="fas fa-trash me-1"></i>Remover
+          </button>
         </div>
 
         <!-- Inputs -->
@@ -50,112 +49,115 @@
       </div>
     </div>
   </div>
-  
-  <div class="col-md-8 order-md-1">
+
+  <!-- Campos principais -->
+  <div class="col-12 col-md-8 order-md-1">
     <div class="row g-3">
-	<!-- Código / SKU -->
-	  <div class="col-md-4">
-    <label class="form-label fw-semibold">Código / SKU</label>
-    <input type="text" id="codigo" name="codigo" class="form-control text-uppercase"
-           placeholder="Ex: ABC123" value="{{ produto.codigo or '' }}" required>
-  </div>
+      <!-- Código / SKU -->
+      <div class="col-12 col-sm-6 col-lg-4">
+        <label class="form-label fw-semibold small">Código / SKU</label>
+        <input type="text" id="codigo" name="codigo"
+               class="form-control text-uppercase"
+               placeholder="Ex: ABC123"
+               value="{{ produto.codigo or '' }}" required>
+      </div>
 
-	<!-- Nome -->
-	  <div class="col-md-8">
-    <label class="form-label fw-semibold">Nome do Produto</label>
-    <input type="text" id="nome" name="nome" class="form-control"
-           placeholder="Ex: Pistola Taurus G3C" value="{{ produto.nome or '' }}" required>
-  </div>
+      <!-- Nome -->
+      <div class="col-12 col-sm-6 col-lg-8">
+        <label class="form-label fw-semibold small">Nome do Produto</label>
+        <input type="text" id="nome" name="nome"
+               class="form-control"
+               placeholder="Ex: Pistola Taurus G3C"
+               value="{{ produto.nome or '' }}" required>
+      </div>
 
-	<!-- Tipo -->
-	  <div class="col-md-6">
-    <label class="form-label fw-semibold">Tipo</label>
-    <div class="input-group">
-      <select class="form-select" id="tipo_id" name="tipo_id">
-        <option value="">Selecione...</option>
-        {% for t in tipos %}
-          <option value="{{ t.id }}" {% if produto and produto.tipo_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
-        {% endfor %}
-      </select>
-      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoTipo">
-        <i class="fas fa-cog"></i>
-      </button>
-    </div>
-  </div>
+      <!-- Tipo -->
+      <div class="col-12 col-md-6">
+        <label class="form-label fw-semibold small">Tipo</label>
+        <div class="input-group">
+          <select class="form-select" id="tipo_id" name="tipo_id">
+            <option value="">Selecione...</option>
+            {% for t in tipos %}
+              <option value="{{ t.id }}" {% if produto and produto.tipo_id==t.id %}selected{% endif %}>{{ t.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoTipo">
+            <i class="fas fa-cog"></i>
+          </button>
+        </div>
+      </div>
 
-	<!-- Categoria -->
-	  <div class="col-md-6">
-    <label class="form-label fw-semibold">Categoria</label>
-    <div class="input-group">
-      <select class="form-select" id="categoria_id" name="categoria_id">
-        <option value="">Selecione...</option>
-        {% for c in categorias %}
-          <option value="{{ c.id }}" {% if produto and produto.categoria_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
-        {% endfor %}
-      </select>
-      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaCategoria">
-        <i class="fas fa-cog"></i>
-      </button>
-    </div>
-  </div>
+      <!-- Categoria -->
+      <div class="col-12 col-md-6">
+        <label class="form-label fw-semibold small">Categoria</label>
+        <div class="input-group">
+          <select class="form-select" id="categoria_id" name="categoria_id">
+            <option value="">Selecione...</option>
+            {% for c in categorias %}
+              <option value="{{ c.id }}" {% if produto and produto.categoria_id==c.id %}selected{% endif %}>{{ c.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaCategoria">
+            <i class="fas fa-cog"></i>
+          </button>
+        </div>
+      </div>
 
-	<!-- Marca -->
-	  <div class="col-md-6">
-    <label class="form-label fw-semibold">Marca</label>
-    <div class="input-group">
-      <select class="form-select" id="marca_id" name="marca_id">
-        <option value="">Selecione...</option>
-        {% for m in marcas %}
-          <option value="{{ m.id }}" {% if produto and produto.marca_id == m.id %}selected{% endif %}>{{ m.nome }}</option>
-        {% endfor %}
-      </select>
-      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaMarca">
-        <i class="fas fa-cog"></i>
-      </button>
-    </div>
-  </div>
+      <!-- Marca -->
+      <div class="col-12 col-md-6">
+        <label class="form-label fw-semibold small">Marca</label>
+        <div class="input-group">
+          <select class="form-select" id="marca_id" name="marca_id">
+            <option value="">Selecione...</option>
+            {% for m in marcas %}
+              <option value="{{ m.id }}" {% if produto and produto.marca_id==m.id %}selected{% endif %}>{{ m.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovaMarca">
+            <i class="fas fa-cog"></i>
+          </button>
+        </div>
+      </div>
 
-	<!-- Calibre -->
-	  <div class="col-md-6">
-    <label class="form-label fw-semibold">Calibre</label>
-    <div class="input-group">
-      <select class="form-select" id="calibre_id" name="calibre_id">
-        <option value="">Selecione...</option>
-        {% for c in calibres %}
-          <option value="{{ c.id }}" {% if produto and produto.calibre_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
-        {% endfor %}
-      </select>
-      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoCalibre">
-        <i class="fas fa-cog"></i>
-      </button>
-    </div>
-  </div>
+      <!-- Calibre -->
+      <div class="col-12 col-md-6">
+        <label class="form-label fw-semibold small">Calibre</label>
+        <div class="input-group">
+          <select class="form-select" id="calibre_id" name="calibre_id">
+            <option value="">Selecione...</option>
+            {% for c in calibres %}
+              <option value="{{ c.id }}" {% if produto and produto.calibre_id==c.id %}selected{% endif %}>{{ c.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoCalibre">
+            <i class="fas fa-cog"></i>
+          </button>
+        </div>
+      </div>
 
-	<!-- Funcionamento -->
-	  <div class="col-md-6">
-    <label class="form-label fw-semibold">Funcionamento</label>
-    <div class="input-group">
-      <select class="form-select" id="funcionamento_id" name="funcionamento_id">
-        <option value="">Selecione...</option>
-        {% for f in funcionamentos %}
-          <option value="{{ f.id }}" {% if produto and produto.funcionamento_id == f.id %}selected{% endif %}>{{ f.nome }}</option>
-        {% endfor %}
-      </select>
-      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoFuncionamento">
-        <i class="fas fa-cog"></i>
-      </button>
-    </div>
-  </div>
-
+      <!-- Funcionamento -->
+      <div class="col-12 col-md-6">
+        <label class="form-label fw-semibold small">Funcionamento</label>
+        <div class="input-group">
+          <select class="form-select" id="funcionamento_id" name="funcionamento_id">
+            <option value="">Selecione...</option>
+            {% for f in funcionamentos %}
+              <option value="{{ f.id }}" {% if produto and produto.funcionamento_id==f.id %}selected{% endif %}>{{ f.nome }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoFuncionamento">
+            <i class="fas fa-cog"></i>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Descrição (fora do row principal para ocupar 100% da largura) -->
+<!-- Descrição -->
 <div class="row g-3 mt-3">
   <div class="col-12">
-    <label class="form-label fw-semibold">Descrição</label>
-    <textarea name="descricao" rows="3" class="form-control"
-              placeholder="Descrição breve do produto">{{ produto.descricao or '' }}</textarea>
+    <label class="form-label fw-semibold small">Descrição</label>
+    <textarea name="descricao" rows="3" class="form-control" placeholder="Descrição breve do produto">{{ produto.descricao or '' }}</textarea>
   </div>
 </div>
