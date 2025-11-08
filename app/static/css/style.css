@@ -389,6 +389,179 @@ body {
   }
 }
 
+/* ==============================
+   Sidebar dentro do Offcanvas
+============================== */
+.offcanvas #sidebar .nav-link span {
+  display: inline !important;
+}
+
+.offcanvas #sidebar .nav-link {
+  justify-content: flex-start;
+  text-align: left;
+  font-size: 0.95rem;
+  padding: 0.75rem 1rem;
+}
+
+.offcanvas #sidebar .nav-link i {
+  width: 22px;
+  text-align: center;
+  margin-right: 0.5rem;
+}
+
+/* =======================================
+   Ajuste de alinhamento da barra superior
+======================================= */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
+/* Alinha logo + nome + botão menu */
+.navbar .navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+/* Ícones à direita (notificação, user, logout) */
+.navbar .d-flex.align-items-center {
+  gap: 0.4rem;
+}
+
+/* Botão hamburguer – remove contorno e centraliza */
+.navbar .btn[data-bs-toggle="offcanvas"] {
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.6rem;
+}
+
+/* Corrige hover */
+.navbar .btn[data-bs-toggle="offcanvas"]:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Texto Sistema M4 ajustado */
+.navbar-brand.h6 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  color: #212529;
+}
+
+/* Ícone da engrenagem azul */
+.navbar-brand .fa-cogs {
+  font-size: 1.2rem;
+}
+
+/* Ajuste responsivo do topo */
+@media (max-width: 768px) {
+  .navbar {
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+
+  .navbar .navbar-brand.h6 {
+    font-size: 1rem;
+  }
+
+  .navbar .d-flex.align-items-center {
+    gap: 0.3rem;
+  }
+}
+
+/* =======================================
+   Ajuste de alinhamento da barra superior
+======================================= */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
+/* Bloco esquerdo (botão menu + título) */
+.navbar .navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+/* Ícones da direita */
+.navbar .d-flex.align-items-center {
+  gap: 0.5rem;
+}
+
+/* Botão hamburguer */
+.navbar .btn[data-bs-toggle="offcanvas"] {
+  border: none;
+  background: transparent;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.navbar .btn[data-bs-toggle="offcanvas"]:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Texto e ícone principal */
+.navbar-brand.h6 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  color: #212529;
+}
+
+.navbar-brand .fa-cogs {
+  font-size: 1.2rem;
+  color: #0d6efd; /* azul do Bootstrap, mantém leve destaque */
+}
+
+/* Botões de notificação, usuário e logout */
+.navbar .btn-outline-danger {
+  border-width: 1.5px;
+  padding: 0.35rem 0.55rem;
+}
+
+.navbar .btn-outline-danger i {
+  font-size: 1rem;
+}
+
+/* Ajuste responsivo */
+@media (max-width: 768px) {
+  .navbar {
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+
+  .navbar .navbar-brand.h6 {
+    font-size: 1rem;
+  }
+
+  .navbar .d-flex.align-items-center {
+    gap: 0.3rem;
+  }
+}
+
+
+
 /* ----------- Tabelas viram cards no mobile ----------- */
 @media (max-width: 768px) {
   table {
@@ -934,5 +1107,36 @@ body {
 /* Linha guia sutil */
 #submenuProdutos ul.nav {
   border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+/* ===========================
+   Sidebar Offcanvas (mobile)
+=========================== */
+@media (max-width: 768px) {
+  #sidebar {
+    width: 100%;
+    min-height: auto;
+  }
+
+  .offcanvas {
+    width: 250px !important; /* largura do menu lateral */
+  }
+
+  .offcanvas-body {
+    padding: 0;
+  }
+}
+
+/* ===========================
+   Ajuste visual do botão menu
+=========================== */
+.navbar .btn[data-bs-toggle="offcanvas"] {
+  border: none;
+  font-size: 1.2rem;
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+}
+
+.navbar .btn[data-bs-toggle="offcanvas"]:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 

@@ -40,212 +40,252 @@
       background-color: rgba(255, 255, 255, 0.1);
       border-radius: 6px;
     }
+
+    /* ====== Offcanvas sidebar (mobile) ====== */
+    @media (max-width: 768px) {
+      #sidebar {
+        width: 100%;
+        min-height: auto;
+      }
+
+      .offcanvas {
+        width: 250px !important;
+      }
+
+      .offcanvas-body {
+        padding: 0;
+      }
+    }
   </style>
 </head>
 
 <body>
   <div class="d-flex">
-    <!-- Sidebar -->
-    <nav id="sidebar" class="bg-dark text-white p-3">
-      <div class="text-center mb-4">
-        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo"
-             class="img-fluid mb-2" style="max-height: 60px;">
+
+    <!-- =================================================== -->
+    <!-- Sidebar fixa (desktop) / Offcanvas (mobile) -->
+    <!-- =================================================== -->
+    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="offcanvasSidebar"
+         aria-labelledby="offcanvasSidebarLabel">
+      <div class="offcanvas-header border-bottom border-secondary">
+        <h6 class="offcanvas-title" id="offcanvasSidebarLabel">
+          <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="img-fluid" style="max-height: 40px;">
+        </h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
       </div>
 
-      <ul class="nav flex-column">
-
-        <!-- Dashboard -->
-        <li class="nav-item">
-          <a class="nav-link text-white {% if request.endpoint == 'main.dashboard' %}active border-start border-3 border-primary{% endif %}"
-             href="{{ url_for('main.dashboard') }}">
-            <i class="fas fa-chart-line"></i> <span>Dashboard</span>
-          </a>
-        </li>
-
-        <!-- ========================== -->
-        <!-- Submenu: PRODUTOS -->
-        <!-- ========================== -->
-        {% set produtos_ativo = (
-          request.endpoint and (
-            'produtos' in request.endpoint or
-            'produtos_configs' in request.endpoint
-          )
-        ) %}
-        <li class="nav-item">
-          <a class="nav-link text-white d-flex justify-content-between align-items-center"
-             data-bs-toggle="collapse"
-             href="#submenuProdutos"
-             role="button"
-             aria-expanded="{{ 'true' if produtos_ativo else 'false' }}"
-             aria-controls="submenuProdutos">
-            <span><i class="fas fa-box-open"></i> Produtos</span>
-            <i class="fas fa-chevron-down small"></i>
-          </a>
-
-          <div class="collapse ps-3 {% if produtos_ativo %}show{% endif %}" id="submenuProdutos" data-bs-parent="#sidebar">
-            <ul class="nav flex-column border-start border-secondary ms-2 ps-2 mt-2">
-              <li class="nav-item mb-1">
-                <a class="nav-link text-white {% if request.endpoint and 'produtos.index' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
-                   href="{{ url_for('produtos.index') }}">
-                  <i class="fas fa-list me-1"></i> Catálogo
-                </a>
-              </li>
-
-              <li class="nav-item mb-1">
-                <a class="nav-link text-white {% if request.endpoint and 'produtos_configs' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
-                   href="{{ url_for('produtos_configs.index') }}">
-                  <i class="fas fa-sliders-h me-1"></i> Configurações
-                </a>
-              </li>
-            </ul>
+      <div class="offcanvas-body p-0">
+        <nav id="sidebar" class="p-3">
+          <div class="text-center mb-4 d-none d-md-block">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo"
+                 class="img-fluid mb-2" style="max-height: 60px;">
           </div>
-        </li>
 
-        <!-- ========================== -->
-        <!-- Submenu: COMPRAS -->
-        <!-- ========================== -->
-        {% set compras_ativo = (
-          request.endpoint and (
-            'pedidos' in request.endpoint or
-            'compras' in request.endpoint
-          )
-        ) %}
-        <li class="nav-item">
-          <a class="nav-link text-white d-flex justify-content-between align-items-center"
-             data-bs-toggle="collapse"
-             href="#submenuCompras"
-             role="button"
-             aria-expanded="{{ 'true' if compras_ativo else 'false' }}"
-             aria-controls="submenuCompras">
-            <span><i class="fas fa-file-invoice-dollar"></i> Compras</span>
-            <i class="fas fa-chevron-down small"></i>
-          </a>
+          <ul class="nav flex-column">
 
-          <div class="collapse ps-3 {% if compras_ativo %}show{% endif %}" id="submenuCompras" data-bs-parent="#sidebar">
-            <ul class="nav flex-column border-start border-secondary ms-2 ps-2 mt-2">
-              <li class="nav-item mb-1">
-                <a class="nav-link text-white {% if request.endpoint and 'pedidos' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
-                   href="{{ url_for('pedidos.listar_pedidos') }}">
-                  <i class="fas fa-clipboard-list me-1"></i> Pedidos
-                </a>
-              </li>
-              <li class="nav-item mb-1">
-                <a class="nav-link text-white {% if request.endpoint and 'compras' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
-                   href="{{ url_for('compras_nf.index') }}">
-                  <i class="fas fa-file-invoice me-1"></i> Notas Fiscais
-                </a>
-              </li>
-            </ul>
-          </div>
-        </li>
+            <!-- Dashboard -->
+            <li class="nav-item">
+              <a class="nav-link text-white {% if request.endpoint == 'main.dashboard' %}active border-start border-3 border-primary{% endif %}"
+                 href="{{ url_for('main.dashboard') }}">
+                <i class="fas fa-chart-line"></i> <span>Dashboard</span>
+              </a>
+            </li>
 
-        <!-- ========================== -->
-        <!-- Submenu: ESTOQUE -->
-        <!-- ========================== -->
-        {% set estoque_ativo = (
-          request.endpoint and (
-            'estoque.armas' in request.endpoint or
-            'estoque.municoes' in request.endpoint or
-            'estoque.pces' in request.endpoint or
-            'estoque.nao_controlados' in request.endpoint
-          )
-        ) %}
-        <li class="nav-item">
-          <a class="nav-link text-white d-flex justify-content-between align-items-center"
-             data-bs-toggle="collapse"
-             href="#submenuEstoque"
-             role="button"
-             aria-expanded="{{ 'true' if estoque_ativo else 'false' }}"
-             aria-controls="submenuEstoque">
-            <span><i class="fas fa-warehouse"></i> Estoque</span>
-            <i class="fas fa-chevron-down small"></i>
-          </a>
+            <!-- ========================== -->
+            <!-- Submenu: PRODUTOS -->
+            <!-- ========================== -->
+            {% set produtos_ativo = (
+              request.endpoint and (
+                'produtos' in request.endpoint or
+                'produtos_configs' in request.endpoint
+              )
+            ) %}
+            <li class="nav-item">
+              <a class="nav-link text-white d-flex justify-content-between align-items-center"
+                 data-bs-toggle="collapse"
+                 href="#submenuProdutos"
+                 role="button"
+                 aria-expanded="{{ 'true' if produtos_ativo else 'false' }}"
+                 aria-controls="submenuProdutos">
+                <span><i class="fas fa-box-open"></i> Produtos</span>
+                <i class="fas fa-chevron-down small"></i>
+              </a>
 
-          <div class="collapse ps-3 {% if estoque_ativo %}show{% endif %}" id="submenuEstoque" data-bs-parent="#sidebar">
-            <ul class="nav flex-column border-start border-secondary ms-2 ps-2 mt-2">
-              <li class="nav-item mb-1">
-                <a class="nav-link text-white {% if request.endpoint and 'estoque.armas' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
-                   href="{{ url_for('estoque.armas_listar') }}">
-                  <i class="fas fa-crosshairs me-1"></i> Armas
-                </a>
-              </li>
-              <li class="nav-item mb-1">
-                <a class="nav-link text-white {% if request.endpoint and 'estoque.municoes' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
-                   href="{{ url_for('estoque.municoes_listar') }}">
-                  <i class="fas fa-bullseye me-1"></i> Munições
-                </a>
-              </li>
-              <li class="nav-item mb-1">
-                <a class="nav-link text-white {% if request.endpoint and 'estoque.pces' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
-                   href="{{ url_for('estoque.pces_listar') }}">
-                  <i class="fas fa-cog me-1"></i> PCEs
-                </a>
-              </li>
-              <li class="nav-item mb-1">
-                <a class="nav-link text-white {% if request.endpoint and 'estoque.nao_controlados' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
-                   href="{{ url_for('estoque.nao_controlados_listar') }}">
-                  <i class="fas fa-box me-1"></i> Não Controlados
-                </a>
-              </li>
-            </ul>
-          </div>
-        </li>
+              <div class="collapse ps-3 {% if produtos_ativo %}show{% endif %}" id="submenuProdutos" data-bs-parent="#sidebar">
+                <ul class="nav flex-column border-start border-secondary ms-2 ps-2 mt-2">
+                  <li class="nav-item mb-1">
+                    <a class="nav-link text-white {% if request.endpoint and 'produtos.index' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('produtos.index') }}">
+                      <i class="fas fa-list me-1"></i> Catálogo
+                    </a>
+                  </li>
 
-        <!-- ========================== -->
-        <!-- Outros Menus -->
-        <!-- ========================== -->
-        <li class="nav-item">
-          <a class="nav-link text-white {% if request.endpoint == 'clientes.lista' %}active border-start border-3 border-primary{% endif %}"
-             href="{{ url_for('clientes.index') }}">
-            <i class="fas fa-users"></i> <span>Clientes</span>
-          </a>
-        </li>
+                  <li class="nav-item mb-1">
+                    <a class="nav-link text-white {% if request.endpoint and 'produtos_configs' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('produtos_configs.index') }}">
+                      <i class="fas fa-sliders-h me-1"></i> Configurações
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </li>
 
-        <li class="nav-item">
-          <a class="nav-link text-white {% if request.endpoint == 'main.vendas' %}active border-start border-3 border-primary{% endif %}"
-             href="{{ url_for('vendas.vendas') }}">
-            <i class="fas fa-shopping-cart"></i> <span>Vendas</span>
-          </a>
-        </li>
+            <!-- ========================== -->
+            <!-- Submenu: COMPRAS -->
+            <!-- ========================== -->
+            {% set compras_ativo = (
+              request.endpoint and (
+                'pedidos' in request.endpoint or
+                'compras' in request.endpoint
+              )
+            ) %}
+            <li class="nav-item">
+              <a class="nav-link text-white d-flex justify-content-between align-items-center"
+                 data-bs-toggle="collapse"
+                 href="#submenuCompras"
+                 role="button"
+                 aria-expanded="{{ 'true' if compras_ativo else 'false' }}"
+                 aria-controls="submenuCompras">
+                <span><i class="fas fa-file-invoice-dollar"></i> Compras</span>
+                <i class="fas fa-chevron-down small"></i>
+              </a>
 
-        <li class="nav-item">
-          <a class="nav-link text-white {% if request.endpoint == 'taxas.listar' %}active border-start border-3 border-primary{% endif %}"
-             href="{{ url_for('taxas.listar') }}">
-            <i class="fas fa-percent"></i> <span>Taxas</span>
-          </a>
-        </li>
+              <div class="collapse ps-3 {% if compras_ativo %}show{% endif %}" id="submenuCompras" data-bs-parent="#sidebar">
+                <ul class="nav flex-column border-start border-secondary ms-2 ps-2 mt-2">
+                  <li class="nav-item mb-1">
+                    <a class="nav-link text-white {% if request.endpoint and 'pedidos' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('pedidos.listar_pedidos') }}">
+                      <i class="fas fa-clipboard-list me-1"></i> Pedidos
+                    </a>
+                  </li>
+                  <li class="nav-item mb-1">
+                    <a class="nav-link text-white {% if request.endpoint and 'compras' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('compras_nf.index') }}">
+                      <i class="fas fa-file-invoice me-1"></i> Notas Fiscais
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </li>
 
-        <li class="nav-item">
-          <a class="nav-link text-white {% if request.endpoint == 'main.parcelamento_index' %}active border-start border-3 border-primary{% endif %}"
-             href="{{ url_for('main.parcelamento_index') }}">
-            <i class="fas fa-credit-card"></i> <span>Parcelamento</span>
-          </a>
-        </li>
+            <!-- ========================== -->
+            <!-- Submenu: ESTOQUE -->
+            <!-- ========================== -->
+            {% set estoque_ativo = (
+              request.endpoint and (
+                'estoque.armas' in request.endpoint or
+                'estoque.municoes' in request.endpoint or
+                'estoque.pces' in request.endpoint or
+                'estoque.nao_controlados' in request.endpoint
+              )
+            ) %}
+            <li class="nav-item">
+              <a class="nav-link text-white d-flex justify-content-between align-items-center"
+                 data-bs-toggle="collapse"
+                 href="#submenuEstoque"
+                 role="button"
+                 aria-expanded="{{ 'true' if estoque_ativo else 'false' }}"
+                 aria-controls="submenuEstoque">
+                <span><i class="fas fa-warehouse"></i> Estoque</span>
+                <i class="fas fa-chevron-down small"></i>
+              </a>
 
-        <li class="nav-item">
-          <a class="nav-link text-white {% if request.endpoint == 'main.usuarios' %}active border-start border-3 border-primary{% endif %}"
-             href="{{ url_for('main.usuarios') }}">
-            <i class="fas fa-user-cog"></i> <span>Usuários</span>
-          </a>
-        </li>
+              <div class="collapse ps-3 {% if estoque_ativo %}show{% endif %}" id="submenuEstoque" data-bs-parent="#sidebar">
+                <ul class="nav flex-column border-start border-secondary ms-2 ps-2 mt-2">
+                  <li class="nav-item mb-1">
+                    <a class="nav-link text-white {% if request.endpoint and 'estoque.armas' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('estoque.armas_listar') }}">
+                      <i class="fas fa-crosshairs me-1"></i> Armas
+                    </a>
+                  </li>
+                  <li class="nav-item mb-1">
+                    <a class="nav-link text-white {% if request.endpoint and 'estoque.municoes' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('estoque.municoes_listar') }}">
+                      <i class="fas fa-bullseye me-1"></i> Munições
+                    </a>
+                  </li>
+                  <li class="nav-item mb-1">
+                    <a class="nav-link text-white {% if request.endpoint and 'estoque.pces' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('estoque.pces_listar') }}">
+                      <i class="fas fa-cog me-1"></i> PCEs
+                    </a>
+                  </li>
+                  <li class="nav-item mb-1">
+                    <a class="nav-link text-white {% if request.endpoint and 'estoque.nao_controlados' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('estoque.nao_controlados_listar') }}">
+                      <i class="fas fa-box me-1"></i> Não Controlados
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </li>
 
-        <li class="nav-item">
-          <a class="nav-link text-white {% if request.endpoint == 'main.configuracoes' %}active border-start border-3 border-primary{% endif %}"
-             href="{{ url_for('main.configuracoes') }}">
-            <i class="fas fa-cogs"></i> <span>Configurações</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
+            <!-- ========================== -->
+            <!-- Outros Menus -->
+            <!-- ========================== -->
+            <li class="nav-item">
+              <a class="nav-link text-white {% if request.endpoint == 'clientes.lista' %}active border-start border-3 border-primary{% endif %}"
+                 href="{{ url_for('clientes.index') }}">
+                <i class="fas fa-users"></i> <span>Clientes</span>
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link text-white {% if request.endpoint == 'main.vendas' %}active border-start border-3 border-primary{% endif %}"
+                 href="{{ url_for('vendas.vendas') }}">
+                <i class="fas fa-shopping-cart"></i> <span>Vendas</span>
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link text-white {% if request.endpoint == 'taxas.listar' %}active border-start border-3 border-primary{% endif %}"
+                 href="{{ url_for('taxas.listar') }}">
+                <i class="fas fa-percent"></i> <span>Taxas</span>
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link text-white {% if request.endpoint == 'main.parcelamento_index' %}active border-start border-3 border-primary{% endif %}"
+                 href="{{ url_for('main.parcelamento_index') }}">
+                <i class="fas fa-credit-card"></i> <span>Parcelamento</span>
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link text-white {% if request.endpoint == 'main.usuarios' %}active border-start border-3 border-primary{% endif %}"
+                 href="{{ url_for('main.usuarios') }}">
+                <i class="fas fa-user-cog"></i> <span>Usuários</span>
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link text-white {% if request.endpoint == 'main.configuracoes' %}active border-start border-3 border-primary{% endif %}"
+                 href="{{ url_for('main.configuracoes') }}">
+                <i class="fas fa-cogs"></i> <span>Configurações</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
 
     <!-- ========================== -->
     <!-- Topbar e Conteúdo -->
     <!-- ========================== -->
     <div class="flex-grow-1">
       <nav class="navbar navbar-light bg-white px-3 shadow-sm sticky-top">
-        <span class="navbar-brand mb-0 h6 fw-semibold text-dark">
-          <i class="fas fa-cogs me-2 text-primary"></i> Sistema M4
-        </span>
+        <div class="d-flex align-items-center">
+          <!-- Botão hamburguer (mobile) -->
+          <button class="btn btn-outline-dark d-md-none me-2" type="button"
+                  data-bs-toggle="offcanvas" data-bs-target="#offcanvasSidebar" aria-controls="offcanvasSidebar">
+            <i class="fas fa-bars"></i>
+          </button>
+
+          <span class="navbar-brand mb-0 h6 fw-semibold text-dark">
+            <i class="fas fa-cogs me-2 text-primary"></i> Sistema M4
+          </span>
+        </div>
+
         <div class="d-flex align-items-center">
           <a href="{{ url_for('notificacoes.index') }}"
              class="btn btn-outline-danger btn-sm position-relative me-2"
@@ -352,11 +392,12 @@
         parents.querySelectorAll(".collapse.show").forEach(open => {
           if (open !== target) new bootstrap.Collapse(open, { toggle: true });
         });
-        const isOpen = target.classList.contains("show");
-        localStorage.setItem("submenu_aberto", isOpen ? "" : targetId);
-      });
-    });
+       
+<script>
+document.querySelectorAll('#offcanvasSidebar a.nav-link').forEach(link => {
+  link.addEventListener('click', () => {
+    const offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById('offcanvasSidebar'));
+    if (offcanvas) offcanvas.hide();
   });
-  </script>
-</body>
-</html>
+});
+</script>
