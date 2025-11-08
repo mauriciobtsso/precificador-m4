@@ -1140,3 +1140,62 @@ body {
   background: rgba(0, 0, 0, 0.05);
 }
 
+/* ==============================
+   Sidebar fixa no desktop
+============================== */
+@media (min-width: 769px) {
+  /* Mostra a sidebar sempre visível */
+  .offcanvas.offcanvas-start {
+    position: static;
+    transform: none !important;
+    visibility: visible !important;
+    background: transparent;
+    border-right: 1px solid #343a40;
+  }
+
+  /* Remove backdrop e sombra no desktop */
+  .offcanvas-backdrop {
+    display: none !important;
+  }
+
+  /* Ajusta o corpo da offcanvas para ocupar toda a altura */
+  .offcanvas-body {
+    display: block !important;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  /* Remove o botão de fechar no desktop */
+  .offcanvas-header {
+    display: none;
+  }
+}
+/* =======================================
+   Refinamento visual – layout desktop
+======================================= */
+@media (min-width: 769px) {
+  /* Sidebar fixa ajustada */
+  .offcanvas.offcanvas-start {
+    background-color: #1c1c1c !important; /* mesmo tom do restante */
+    border-right: 1px solid rgba(255,255,255,0.05);
+    width: 240px !important;
+  }
+
+  /* Espaçamento do conteúdo */
+  .flex-grow-1 .container-fluid {
+    padding-left: 2rem !important; /* respira do menu */
+    padding-right: 2rem !important;
+  }
+
+  /* Alinhamento da navbar */
+  .navbar {
+    margin-left: 0;
+    border-bottom: 1px solid #dee2e6;
+    box-shadow: none;
+  }
+
+  /* Fundo do corpo da página */
+  body {
+    background-color: #f8f9fa;
+  }
+}
