@@ -12,7 +12,8 @@ from colorama import Fore, Style, init
 from app import db
 from app.clientes.models import Cliente
 from app.produtos.models import Produto
-from app.models import Venda, ItemVenda, PedidoCompra, ItemPedido
+from app.vendas.models import Venda, ItemVenda
+from app.models import PedidoCompra, ItemPedido
 
 # Inicializa colorama (cores no console)
 init(autoreset=True)

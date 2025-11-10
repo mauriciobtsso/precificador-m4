@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Central de Importações — M4{% endblock %}
+{% block content %}
+
+<div class="container-fluid py-4 px-3">
+
+  <!-- Cabeçalho -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap mb-4">
+    <h4 class="fw-semibold text-primary mb-0">
+      <i class="bi bi-diagram-3 me-2"></i> Central de Importações
+    </h4>
+    <a href="{{ url_for('importacoes.exportar_csv', tipo=tipo, data_ini=data_ini, data_fim=data_fim) }}"
+       class="btn btn-outline-primary shadow-sm">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> Exportar CSV
+    </a>
+  </div>
+
+  <!-- Cards de Acesso Rápido -->
+  <div class="row g-4 mb-5">
+    <!-- Importar Produtos -->
+    <div class="col-md-3 col-sm-6">
+      <a href="{{ url_for('produtos.importar_produtos') }}" class="text-decoration-none">
+        <div class="card shadow-sm border-0 rounded-4 h-100 hover-shadow">
+          <div class="card-body text-center py-5">
+            <div class="mb-3">
+              <i class="bi bi-box-seam display-5 text-primary"></i>
+            </div>
+            <h5 class="fw-semibold text-dark">Importar Produtos</h5>
+            <p class="text-muted small mb-0">Atualize o catálogo de produtos.</p>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Importar Clientes -->
+    <div class="col-md-3 col-sm-6">
+      <a href="{{ url_for('main.importar', tipo='clientes') }}" class="text-decoration-none">
+        <div class="card shadow-sm border-0 rounded-4 h-100 hover-shadow">
+          <div class="card-body text-center py-5">
+            <div class="mb-3">
+              <i class="bi bi-people-fill display-5 text-success"></i>
+            </div>
+            <h5 class="fw-semibold text-dark">Importar Clientes</h5>
+            <p class="text-muted small mb-0">Cadastre ou atualize clientes via planilha.</p>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Importar Vendas -->
+    <div class="col-md-3 col-sm-6">
+      <a href="{{ url_for('main.importar', tipo='vendas') }}" class="text-decoration-none">
+        <div class="card shadow-sm border-0 rounded-4 h-100 hover-shadow">
+          <div class="card-body text-center py-5">
+            <div class="mb-3">
+              <i class="bi bi-cart-check-fill display-5 text-warning"></i>
+            </div>
+            <h5 class="fw-semibold text-dark">Importar Vendas</h5>
+            <p class="text-muted small mb-0">Envie registros de pedidos e transações.</p>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Importar Notas Fiscais -->
+    <div class="col-md-3 col-sm-6">
+      <a href="{{ url_for('compras_nf.importar') }}" class="text-decoration-none">
+        <div class="card shadow-sm border-0 rounded-4 h-100 hover-shadow">
+          <div class="card-body text-center py-5">
+            <div class="mb-3">
+              <i class="bi bi-file-earmark-text-fill display-5 text-info"></i>
+            </div>
+            <h5 class="fw-semibold text-dark">Importar NFs</h5>
+            <p class="text-muted small mb-0">Importe notas fiscais XML ou PDF.</p>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <form method="get" class="card shadow-sm border-0 rounded-4 mb-4">
+    <div class="card-body row g-3 align-items-end">
+
+      <div class="col-md-4 col-lg-3">
+        <label class="form-label fw-semibold text-secondary">Tipo</label>
+        <select name="tipo" class="form-select">
+          <option value="">Todos</option>
+          <option value="produtos" {% if tipo == 'produtos' %}selected{% endif %}>Produtos</option>
+          <option value="clientes" {% if tipo == 'clientes' %}selected{% endif %}>Clientes</option>
+          <option value="vendas" {% if tipo == 'vendas' %}selected{% endif %}>Vendas</option>
+          <option value="nfs" {% if tipo == 'nfs' %}selected{% endif %}>Notas Fiscais</option>
+        </select>
+      </div>
+
+      <div class="col-md-4 col-lg-3">
+        <label class="form-label fw-semibold text-secondary">Data Inicial</label>
+        <input type="date" name="data_ini" class="form-control" value="{{ request.args.get('data_ini','') }}">
+      </div>
+
+      <div class="col-md-4 col-lg-3">
+        <label class="form-label fw-semibold text-secondary">Data Final</label>
+        <input type="date" name="data_fim" class="form-control" value="{{ request.args.get('data_fim','') }}">
+      </div>
+
+      <div class="col-12 col-md-4 col-lg-3 d-flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary shadow-sm flex-grow-1 flex-md-grow-0">
+          <i class="bi bi-search me-1"></i> Filtrar
+        </button>
+        <a href="{{ url_for('importacoes.listar') }}" class="btn btn-outline-secondary shadow-sm flex-grow-1 flex-md-grow-0">
+          <i class="bi bi-x-circle me-1"></i> Limpar
+        </a>
+      </div>
+
+    </div>
+  </form>
+
+  <!-- Histórico de Importações -->
+  <h5 class="fw-semibold text-secondary mb-3">Histórico de Importações</h5>
+  <div class="card shadow-sm border-0 rounded-4 bg-body-tertiary">
+    <div class="card-body p-4">
+      {% include "importacoes/_tabela.html" %}
+    </div>
+  </div>
+
+  <!-- Paginação -->
+  {% if pagination and pagination.pages > 1 %}
+  <nav class="mt-4">
+    <ul class="pagination justify-content-center">
+      {% if pagination.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('importacoes.listar', page=pagination.prev_num, tipo=tipo, data_ini=data_ini, data_fim=data_fim) }}">
+          &laquo; Anterior
+        </a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">&laquo; Anterior</span></li>
+      {% endif %}
+
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          {% if p == pagination.page %}
+          <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+          {% else %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('importacoes.listar', page=p, tipo=tipo, data_ini=data_ini, data_fim=data_fim) }}">{{ p }}</a>
+          </li>
+          {% endif %}
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+
+      {% if pagination.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('importacoes.listar', page=pagination.next_num, tipo=tipo, data_ini=data_ini, data_fim=data_fim) }}">
+          Próximo &raquo;
+        </a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">Próximo &raquo;</span></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+
+</div>
+
+{% endblock %}

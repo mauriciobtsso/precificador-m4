@@ -1,0 +1,101 @@
+/* ============================================================
+   MÓDULO: IMPORTAÇÕES — Estilos Específicos
+   ============================================================ */
+
+/* ----- Ajustes gerais ----- */
+.card {
+  border-radius: 1rem !important;
+}
+
+/* Cards de acesso rápido */
+.card.hover-shadow {
+  transition: all 0.25s ease-in-out;
+}
+
+.card.hover-shadow:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+/* Ícones dos cards */
+.card .display-5 {
+  line-height: 1;
+  transition: transform 0.25s ease;
+}
+
+.card:hover .display-5 {
+  transform: scale(1.1);
+}
+
+/* Botão Exportar CSV */
+.btn-outline-primary {
+  border-width: 1.5px;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--bs-primary);
+  color: #fff !important;
+}
+
+/* Filtros */
+form.card {
+  background-color: #fff;
+}
+
+form.card .form-label {
+  font-size: 0.9rem;
+}
+
+/* Tabela de histórico */
+.table {
+  font-size: 0.9rem;
+}
+
+.table thead th {
+  font-weight: 600;
+  color: #555;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f6f8fa !important;
+}
+
+/* Paginação */
+.pagination .page-link {
+  border-radius: 8px;
+  margin: 0 3px;
+  font-weight: 500;
+  color: #495057;
+  transition: all 0.2s ease-in-out;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+  color: #fff !important;
+}
+
+.pagination .page-link:hover {
+  background-color: #e9ecef;
+  color: #212529;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .card-body.py-5 {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+  }
+
+  .card .display-5 {
+    font-size: 2.4rem !important;
+  }
+
+  .pagination .page-link {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.65rem;
+  }
+}

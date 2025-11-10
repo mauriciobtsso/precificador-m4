@@ -1,51 +1,112 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-receipt"></i> Detalhe da Venda #{{ venda.id }}</h2>
-    <a href="{{ url_for('vendas.vendas') }}" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-arrow-left"></i> Voltar
-    </a>
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h2 class="fw-semibold text-dark mb-0">
+    <i class="fas fa-receipt text-danger me-2"></i> Detalhe da Venda #{{ venda.id }}
+  </h2>
+  <a href="{{ url_for('vendas.vendas') }}" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+    <i class="fas fa-arrow-left me-1"></i> Voltar
+  </a>
 </div>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <h5 class="card-title">Informações da Venda</h5>
-        <p><strong>Cliente:</strong> {{ cliente.nome if cliente else "Não identificado" }}</p>
-        <p><strong>Data abertura:</strong> {{ venda.data_abertura.strftime("%d/%m/%Y %H:%M") if venda.data_abertura else "-" }}</p>
-        <p><strong>Status:</strong> {{ venda.status or "-" }}</p>
-        <p><strong>Valor total:</strong> {{ venda.valor_total|currency }}</p>
+<!-- ===========================================
+     INFORMAÇÕES DA VENDA
+=========================================== -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+  <div class="card-body">
+    <div class="row g-3 mb-3">
+      <div class="col-md-3">
+        <small class="text-muted d-block">Cliente</small>
+        <span class="fw-semibold">{{ venda.cliente_nome or venda.cliente.nome }}</span>
+      </div>
+      <div class="col-md-2">
+        <small class="text-muted d-block">Documento</small>
+        <span>{{ venda.documento_cliente or venda.cliente.documento or "—" }}</span>
+      </div>
+      <div class="col-md-2">
+        <small class="text-muted d-block">Data</small>
+        <span>{{ venda.data_fechamento.strftime("%d/%m/%Y") if venda.data_fechamento else "—" }}</span>
+      </div>
+      <div class="col-md-2">
+        <small class="text-muted d-block">Vendedor</small>
+        <span>{{ venda.vendedor or "—" }}</span>
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted d-block">Status</small>
+        <span class="badge bg-light text-dark border">{{ venda.status or "—" }}</span>
+      </div>
     </div>
+
+    <hr class="my-3">
+
+    <div class="row g-3 text-dark">
+      <div class="col-md-3">
+        <small class="text-muted d-block">Valor Total</small>
+        <span class="fw-bold text-success fs-6">{{ venda.valor_total|currency }}</span>
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted d-block">Desconto</small>
+        {% if venda.desconto_valor %}
+          <span class="fw-semibold text-danger">
+            -{{ venda.desconto_valor|currency }}
+            {% if venda.desconto_percentual %} ({{ venda.desconto_percentual }}%) {% endif %}
+          </span>
+        {% else %}
+          <span>—</span>
+        {% endif %}
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted d-block">Valor Recebido</small>
+        <span class="fw-semibold">{{ venda.valor_recebido|currency if venda.valor_recebido else "—" }}</span>
+      </div>
+      <div class="col-md-3">
+        <small class="text-muted d-block">Valor Faltante</small>
+        <span class="fw-semibold text-warning">{{ venda.valor_faltante|currency if venda.valor_faltante else "—" }}</span>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <h5 class="card-title">Itens da Venda</h5>
-        <table class="table table-striped mb-0">
-            <thead>
-                <tr>
-                    <th>Produto</th>
-                    <th style="width: 120px;">Qtd</th>
-                    <th style="width: 160px;">Preço unitário</th>
-                    <th style="width: 160px;">Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in itens %}
-                <tr>
-                    <td>{{ item.produto_nome }}</td>
-                    <td>{{ item.quantidade }}</td>
-                    <td>{{ item.preco_unitario|currency }}</td>
-                    <td>{{ (item.quantidade * item.preco_unitario)|currency }}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="4" class="text-center text-muted py-4">
-                        Nenhum item nesta venda.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<!-- ===========================================
+     ITENS DA VENDA
+=========================================== -->
+<div class="card shadow-sm border-0 rounded-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-semibold text-dark mb-0">
+        <i class="fas fa-box-open text-danger me-2"></i>Itens da Venda
+      </h5>
+      <span class="text-muted small">Total de itens: {{ venda.qtd_total_itens or itens|length }}</span>
     </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Produto</th>
+            <th class="text-center" style="width: 100px;">Qtd</th>
+            <th class="text-end" style="width: 160px;">Preço Unitário</th>
+            <th class="text-end" style="width: 160px;">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in itens %}
+          <tr>
+            <td>{{ item.produto_nome }}</td>
+            <td class="text-center">{{ item.quantidade }}</td>
+            <td class="text-end">{{ item.valor_unitario|currency }}</td>
+            <td class="text-end fw-semibold">{{ (item.quantidade * item.valor_unitario)|currency }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="text-center text-muted py-4">
+              Nenhum item nesta venda.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 {% endblock %}

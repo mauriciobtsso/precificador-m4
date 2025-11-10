@@ -1,7 +1,7 @@
 from flask import render_template, request
 from flask_login import login_required
 from app.extensions import db
-from app.models import Venda, ItemVenda
+from app.vendas.models import Venda, ItemVenda
 from app.clientes.models import Cliente
 from . import vendas_bp
 from datetime import datetime, timedelta

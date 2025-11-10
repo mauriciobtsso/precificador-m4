@@ -1,0 +1,41 @@
+{% if logs and logs|length > 0 %}
+<div class="table-responsive border rounded-4 shadow-sm bg-white overflow-auto">
+  <table class="table table-hover align-middle mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>Data/Hora</th>
+        <th>Usuário</th>
+        <th>Tipo</th>
+        <th>Novos</th>
+        <th>Atualizados</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for imp in logs %}
+      <tr>
+        <td class="text-nowrap">{{ imp.data_hora.strftime('%d/%m/%Y %H:%M') if imp.data_hora else '-' }}</td>
+        <td>{{ imp.usuario or '-' }}</td>
+        <td>
+          <span class="badge 
+            {% if imp.tipo == 'produtos' %}bg-primary
+            {% elif imp.tipo == 'clientes' %}bg-success
+            {% elif imp.tipo == 'vendas' %}bg-warning text-dark
+            {% else %}bg-secondary{% endif %}">
+            {{ imp.tipo|capitalize }}
+          </span>
+        </td>
+        <td class="text-success fw-semibold">{{ imp.novos }}</td>
+        <td class="text-warning fw-semibold">{{ imp.atualizados }}</td>
+        <td class="fw-semibold">{{ imp.total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="alert alert-secondary rounded-3 border-0 mb-0">
+  <i class="bi bi-info-circle me-2 text-primary"></i>
+  Nenhuma importação encontrada.
+</div>
+{% endif %}

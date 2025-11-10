@@ -165,7 +165,7 @@ def iniciar_scheduler(app):
     )
 
     scheduler.start()
-    print("🕒 Agendador iniciado: alertas (06:00) e ajuste de sequências (03:00).")
+    print("Agendador iniciado: alertas (06:00) e ajuste de sequências (03:00).")
     return scheduler
 
 

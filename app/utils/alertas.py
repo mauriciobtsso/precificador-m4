@@ -4,7 +4,7 @@
 
 from datetime import datetime, timedelta
 from app.clientes.models import Cliente, Documento, Arma, Processo
-from app.models import Venda
+from app.vendas.models import Venda
 from app.extensions import db
 
 

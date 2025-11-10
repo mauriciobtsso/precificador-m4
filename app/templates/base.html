@@ -167,6 +167,12 @@
                 </ul>
               </div>
             </li>
+                  <li class="nav-item">
+                    <a class="nav-link text-white {% if request.endpoint and 'importacoes' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('importacoes.listar') }}">
+                      <i class="fas fa-file-import"></i> <span>Importações</span>
+                    </a>
+                  </li>
 
             <!-- ========================== -->
             <!-- Submenu: ESTOQUE -->

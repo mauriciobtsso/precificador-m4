@@ -20,9 +20,11 @@ def importar_modulo(nome):
     """Importa submódulos e mostra log claro no console."""
     try:
         __import__(f"app.produtos.routes.{nome}")
-        print(f"[M4:PRODUTOS] ✅ Rotas '{nome}' carregadas.")
+        # print(f"[M4:PRODUTOS] ✅ Rotas '{nome}' carregadas.")
     except Exception as e:
-        print(f"[M4:PRODUTOS] ⚠️ Falha ao importar '{nome}': {e}")
+        print(f"[M4:PRODUTOS] Falha ao importar '{nome}': {e}")
+        pass
+
 
 # Lista dos submódulos ativos do pacote
 submodulos = [

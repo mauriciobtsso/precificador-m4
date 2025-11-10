@@ -117,6 +117,7 @@ def create_app():
     from app.alertas import alertas_bp
     from app.notificacoes import notificacoes_bp
     from app.compras import compras_nf_bp
+    from app.importacoes import importacoes_bp
 
     app.register_blueprint(uploads_bp, url_prefix="/uploads")
     app.register_blueprint(main)
@@ -131,6 +132,7 @@ def create_app():
     app.register_blueprint(alertas_bp)
     app.register_blueprint(notificacoes_bp)
     app.register_blueprint(compras_nf_bp)
+    app.register_blueprint(importacoes_bp)
 
     # =========================================================
     # AGENDADOR DE ALERTAS

@@ -21,7 +21,7 @@ from app import db
 from app.utils.db_helpers import get_or_404
 from app.utils.r2_helpers import gerar_link_r2
 from app.utils.storage import get_s3, get_bucket, deletar_arquivo
-from app.models import Venda
+from app.vendas.models import Venda
 from app.produtos.models import Produto
 
 from app.clientes.models import (

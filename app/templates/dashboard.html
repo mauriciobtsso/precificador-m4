@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- =======================
+<!-- ===========================
      CABEÇALHO DO DASHBOARD
-======================= -->
+=========================== -->
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-  <h2 class="fw-semibold mb-2">
+  <h2 class="fw-semibold mb-2 text-dark">
     <i class="fas fa-chart-line text-danger me-2"></i> Painel de Controle M4
   </h2>
 
-  <div class="d-flex align-items-center gap-2">
-    <div class="input-group input-group-sm" style="width: 260px;">
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <div class="input-group input-group-sm" style="width: 260px; max-width: 100%;">
       <input
         type="text"
         class="form-control"
@@ -27,289 +27,138 @@
   </div>
 </div>
 
-
-<!-- =======================
-     ALERTAS INTELIGENTES
-======================= -->
-<div class="card shadow-sm border-0 mb-4">
-  <div class="card-header bg-light d-flex justify-content-between align-items-center">
-    <div>
-      <i class="fas fa-bell text-danger me-2"></i>
-      <strong>Alertas do Sistema</strong>
-    </div>
-    <button class="btn btn-sm btn-outline-secondary" id="btnAtualizarAlertas" title="Atualizar agora">
-      <i class="fas fa-sync-alt"></i>
-    </button>
-  </div>
-
-  <div class="card-body" id="dashboard-alertas">
-    <div class="text-center text-muted py-3">
-      <div class="spinner-border text-secondary me-2" role="status"></div>
-      Carregando alertas...
-    </div>
-  </div>
-</div>
-
-
-<!-- =======================
-     CARDS DE RESUMO
-======================= -->
+<!-- ===========================
+     SEÇÃO DE RESUMO PRINCIPAL
+=========================== -->
 <div id="dashboard-resumo" class="row g-3 mb-4">
-  <!-- Populado dinamicamente via JS -->
-  <div class="text-center text-muted py-3">
+  <div class="col-12 text-center text-muted py-3">
     <div class="spinner-border text-secondary me-2" role="status"></div>
     Carregando resumo...
   </div>
 </div>
 
-
-<!-- =======================
-     TIMELINE DE EVENTOS
-======================= -->
-<div class="card shadow-sm border-0 mb-4">
-  <div class="card-header bg-light">
-    <i class="fas fa-stream text-primary me-2"></i>
-    <strong>Atividades Recentes</strong>
+<!-- ===========================
+     SEÇÃO DE GRÁFICOS
+=========================== -->
+<div class="row g-4 mb-4">
+  <!-- Gráfico de Documentos -->
+  <div class="col-12 col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-light py-2 d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-semibold small">
+          <i class="fas fa-file-medical text-success me-2"></i> Documentos
+        </h6>
+      </div>
+      <div class="card-body text-center py-3 d-flex justify-content-center align-items-center">
+        <canvas id="chartDocs" height="120" style="max-width:200px;"></canvas>
+      </div>
+    </div>
   </div>
 
-  <div class="card-body" id="dashboard-timeline">
-    <div class="text-center text-muted py-3">
-      <div class="spinner-border text-secondary me-2" role="status"></div>
+  <!-- Gráfico de Produtos -->
+  <div class="col-12 col-md-8">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-light py-2 d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-semibold small">
+          <i class="fas fa-chart-pie text-danger me-2"></i> Produtos por Categoria
+        </h6>
+      </div>
+      <div class="card-body py-3">
+        <canvas id="chartArmas" height="160"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===========================
+     SEÇÃO DE ATIVIDADES RECENTES
+=========================== -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-light py-2 d-flex align-items-center justify-content-between flex-wrap">
+    <h6 class="mb-0 fw-semibold small">
+      <i class="fas fa-stream text-primary me-2"></i> Atividades Recentes
+    </h6>
+    <button class="btn btn-sm btn-outline-secondary mt-2 mt-sm-0" id="btnAtualizarTimeline" title="Atualizar agora">
+      <i class="fas fa-sync-alt fa-sm"></i>
+    </button>
+  </div>
+  <div class="card-body py-2 small" id="dashboard-timeline"
+       style="max-height: 280px; overflow-y: auto;">
+    <div class="text-center text-muted py-2">
+      <div class="spinner-border text-secondary me-2" role="status" style="width: 1rem; height: 1rem;"></div>
       Carregando eventos...
     </div>
   </div>
 </div>
 
-
-<!-- =======================
-     INDICADORES GRÁFICOS
-======================= -->
-<div class="row g-3">
-  <div class="col-md-6">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-light">
-        <i class="fas fa-chart-bar text-info me-2"></i> Documentos por Status
-      </div>
-      <div class="card-body">
-        <canvas id="chartDocs" height="200"></canvas>
-      </div>
-    </div>
+<!-- ===========================
+     SEÇÃO DE ALERTAS
+=========================== -->
+<div class="card shadow-sm border-0 mb-5">
+  <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center flex-wrap">
+    <h6 class="mb-0 fw-semibold small">
+      <i class="fas fa-bell text-danger me-2"></i> Alertas do Sistema
+    </h6>
+    <button class="btn btn-sm btn-outline-secondary mt-2 mt-sm-0" id="btnAtualizarAlertas" title="Atualizar agora">
+      <i class="fas fa-sync-alt fa-sm"></i>
+    </button>
   </div>
-
-  <div class="col-md-6">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-light">
-        <i class="fas fa-chart-pie text-danger me-2"></i> Produtos por Categoria
-      </div>
-      <div class="card-body">
-        <canvas id="chartArmas" height="200"></canvas>
-      </div>
+  <div class="card-body py-3 small" id="dashboard-alertas">
+    <div class="text-center text-muted py-2">
+      <div class="spinner-border text-secondary me-2" role="status" style="width: 1rem; height: 1rem;"></div>
+      Carregando alertas...
     </div>
   </div>
 </div>
 
 {% endblock %}
 
-
 {% block scripts %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-
-  // ======================
-  // Alternar modo escuro (persistente)
-  // ======================
-  const toggle = document.getElementById("toggleTheme");
-  const body = document.body;
-  const icon = toggle?.querySelector("i");
-
-  // Aplica tema salvo
-  if (localStorage.getItem("temaM4") === "escuro") {
-    body.classList.add("dark-mode");
-    icon?.classList.replace("fa-moon", "fa-sun");
+<style>
+/* ============================
+   AJUSTES VISUAIS GERAIS
+============================ */
+@media (max-width: 768px) {
+  h2.fw-semibold {
+    font-size: 1.2rem;
   }
 
-  toggle?.addEventListener("click", () => {
-    const modoEscuro = body.classList.toggle("dark-mode");
-    if (modoEscuro) {
-      localStorage.setItem("temaM4", "escuro");
-      icon?.classList.replace("fa-moon", "fa-sun");
-    } else {
-      localStorage.setItem("temaM4", "claro");
-      icon?.classList.replace("fa-sun", "fa-moon");
-    }
-  });
-
-
-  // ======================
-  // Atualização automática (Resumo e Timeline)
-  // ======================
-  const atualizarSecao = async (url, seletor) => {
-    try {
-      const resp = await fetch(url);
-      const html = await resp.text();
-      document.querySelector(seletor).innerHTML = html;
-    } catch (e) {
-      console.error(`Erro ao atualizar ${seletor}:`, e);
-    }
-  };
-
-  atualizarSecao("/dashboard/api/resumo", "#dashboard-resumo");
-  atualizarSecao("/dashboard/api/timeline", "#dashboard-timeline");
-
-  setInterval(() => {
-    atualizarSecao("/dashboard/api/resumo", "#dashboard-resumo");
-    atualizarSecao("/dashboard/api/timeline", "#dashboard-timeline");
-  }, 60000);
-
-
-  // ======================
-  // ALERTAS INTELIGENTES
-  // ======================
-  const containerAlertas = document.querySelector("#dashboard-alertas");
-  const btnAtualizar = document.querySelector("#btnAtualizarAlertas");
-
-  async function carregarAlertas() {
-    try {
-      const resp = await fetch("/api/alertas");
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-      const lista = Array.isArray(data?.data) ? data.data : [];
-
-      if (lista.length === 0) {
-        containerAlertas.innerHTML = `
-          <div class="text-center text-muted py-3 fade-in">
-            <i class="fas fa-check-circle text-success me-2"></i>
-            Nenhum alerta ativo. Tudo em dia!
-          </div>`;
-        return;
-      }
-
-      renderizarAlertas(lista);
-
-    } catch (err) {
-      console.error("⚠️ Falha ao carregar alertas:", err);
-      containerAlertas.innerHTML = `
-        <div class="text-center text-danger py-3 fade-in">
-          <i class="fas fa-triangle-exclamation me-2"></i>
-          Erro ao carregar alertas ou servidor indisponível.
-        </div>`;
-    }
+  #dashboard-resumo .card {
+    margin-bottom: 0.5rem;
   }
 
-  function renderizarAlertas(alertas) {
-    const nivelClasse = {
-      alto: "bg-danger-subtle border-danger text-danger-emphasis",
-      medio: "bg-warning-subtle border-warning text-warning-emphasis",
-      baixo: "bg-success-subtle border-success text-success-emphasis",
-    };
-
-    const icones = {
-      documento: "fa-file-shield",
-      arma: "fa-gun",
-      processo: "fa-clipboard-list",
-      cr: "fa-id-card",
-    };
-
-    containerAlertas.innerHTML = alertas.map((a) => {
-      const nivel = nivelClasse[a.nivel] || "bg-light border-secondary";
-      const icon = icones[a.tipo] || "fa-info-circle";
-      const dias = a.dias_restantes != null
-        ? (a.dias_restantes < 0
-            ? `${Math.abs(a.dias_restantes)} dia(s) vencido`
-            : `vence em ${a.dias_restantes} dia(s)`)
-        : "—";
-
-      const tooltip = `
-        <strong>Tipo:</strong> ${a.subtipo || a.tipo}<br>
-        <strong>Cliente:</strong> ${a.cliente}<br>
-        <strong>Validade:</strong> ${a.data}<br>
-        <strong>Status:</strong> ${
-          a.dias_restantes < 0
-            ? "Vencido"
-            : "A vencer (" + dias + ")"
-        }
-      `;
-
-      const lido = a.lido || false;
-      const classeLido = lido
-        ? "alert-card-read opacity-75"
-        : "alert-card-unread border-2 shadow-sm";
-
-      return `
-        <div class="alert-card card mb-2 border ${nivel} ${classeLido} fade-in"
-             data-id="${a.id || 0}"
-             data-lido="${lido}"
-             data-bs-toggle="tooltip"
-             data-bs-html="true"
-             data-bs-title="${tooltip}">
-          <div class="card-body p-2 d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-2">
-              <i class="fas ${icon} fs-5"></i>
-              <div>
-                <div class="fw-semibold small">${a.mensagem}</div>
-                <div class="text-muted small">${dias}</div>
-              </div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <a href="/clientes/${a.cliente_id}"
-                 class="btn btn-sm btn-outline-primary"
-                 title="Ver cliente">
-                 <i class="fas fa-user"></i>
-              </a>
-              <button class="btn btn-sm btn-outline-success btn-marcar-lido"
-                      title="Marcar como lido">
-                      <i class="fas fa-check"></i>
-              </button>
-            </div>
-          </div>
-        </div>`;
-    }).join("");
-
-    // Ativa tooltips
-    const tooltipTriggerList = [].slice.call(
-      containerAlertas.querySelectorAll('[data-bs-toggle="tooltip"]')
-    );
-    tooltipTriggerList.map((el) => new bootstrap.Tooltip(el));
-
-    // Marcar como lido (integração real)
-    containerAlertas.querySelectorAll(".btn-marcar-lido").forEach((btn) => {
-      btn.addEventListener("click", async (e) => {
-        const card = e.target.closest(".alert-card");
-        const id = card.dataset.id;
-
-        if (!id || id === "0") {
-          card.classList.remove("alert-card-unread");
-          card.classList.add("alert-card-read", "opacity-75");
-          return;
-        }
-
-        try {
-          const resp = await fetch(`/notificacoes/api/${id}/lida`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-          });
-          const result = await resp.json();
-
-          if (result.success) {
-            card.classList.remove("alert-card-unread");
-            card.classList.add("alert-card-read", "opacity-75");
-            card.dataset.lido = "true";
-          }
-        } catch (err) {
-          console.error("Erro ao marcar como lido:", err);
-        }
-      });
-    });
+  .card-header h6 {
+    font-size: 0.9rem !important;
   }
 
-  // Carregamento inicial e atualização
-  carregarAlertas();
-  btnAtualizar?.addEventListener("click", carregarAlertas);
-  setInterval(carregarAlertas, 60000);
-});
-</script>
+  .card-body {
+    padding: 0.75rem !important;
+  }
+
+  #chartDocs {
+    max-width: 160px !important;
+    height: 100px !important;
+  }
+
+  #dashboard-timeline {
+    max-height: 220px !important;
+  }
+}
+
+/* Scrollbar suave na timeline */
+#dashboard-timeline::-webkit-scrollbar {
+  width: 6px;
+}
+#dashboard-timeline::-webkit-scrollbar-thumb {
+  background-color: #b5b5b5;
+  border-radius: 4px;
+}
+#dashboard-timeline::-webkit-scrollbar-thumb:hover {
+  background-color: #888;
+}
+</style>
 {% endblock %}

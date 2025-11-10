@@ -4,7 +4,8 @@ import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from app import db
-from app.models import Cliente, Venda, Documento
+from app.models import Cliente, Documento
+from app.vendas.models import Venda
 from app.services.storage import upload_file, delete_file  # helper para R2
 from werkzeug.utils import secure_filename
 

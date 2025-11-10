@@ -150,58 +150,58 @@ class Configuracao(db.Model):
             if not cls.query.filter_by(chave=k).first():
                 db.session.add(cls(chave=k, valor=v))
 
-
+# >>> MOVIDO PARA app/vendas/models.py <<<
 # =========================
 # Venda
 # =========================
-class Venda(db.Model):
-    __tablename__ = "vendas"
-
-    id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)
-
-    vendedor = db.Column(db.String(100))
-    status = db.Column(db.String(50))
-    status_financeiro = db.Column(db.String(50))
-    data_abertura = db.Column(db.DateTime)
-    data_fechamento = db.Column(db.DateTime)
-    data_quitacao = db.Column(db.DateTime)
-    valor_total = db.Column(db.Float, nullable=False)
-
-    nf_numero = db.Column(db.String(50))
-    nf_valor = db.Column(db.Float)
-    teve_devolucao = db.Column(db.Boolean, default=False)
-
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    updated_at = db.Column(
-        db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp()
-    )
-
-    # Relacionamentos
-    itens = db.relationship("ItemVenda", backref="venda", lazy=True, cascade="all, delete-orphan")
-    cliente = db.relationship("Cliente", back_populates="vendas")
-
-    def __repr__(self):
-        return f"<Venda {self.id} - Cliente {self.cliente_id}>"
-
-
+# class Venda(db.Model):
+#     __tablename__ = "vendas"
+# 
+#     id = db.Column(db.Integer, primary_key=True)
+#     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)
+# 
+#     vendedor = db.Column(db.String(100))
+#     status = db.Column(db.String(50))
+#     status_financeiro = db.Column(db.String(50))
+#     data_abertura = db.Column(db.DateTime)
+#     data_fechamento = db.Column(db.DateTime)
+#     data_quitacao = db.Column(db.DateTime)
+#     valor_total = db.Column(db.Float, nullable=False)
+# 
+#     nf_numero = db.Column(db.String(50))
+#     nf_valor = db.Column(db.Float)
+#     teve_devolucao = db.Column(db.Boolean, default=False)
+# 
+#     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+#     updated_at = db.Column(
+#         db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp()
+#     )
+# 
+#     # Relacionamentos
+#     itens = db.relationship("ItemVenda", backref="venda", lazy=True, cascade="all, delete-orphan")
+#     cliente = db.relationship("Cliente", back_populates="vendas")
+# 
+#     def __repr__(self):
+#         return f"<Venda {self.id} - Cliente {self.cliente_id}>"
+# 
+# 
 # =========================
 # Item de Venda
 # =========================
-class ItemVenda(db.Model):
-    __tablename__ = "itens_venda"
-
-    id = db.Column(db.Integer, primary_key=True)
-    venda_id = db.Column(db.Integer, db.ForeignKey("vendas.id", ondelete="CASCADE"), nullable=False)
-
-    produto_nome = db.Column(db.String(200), nullable=False)
-    categoria = db.Column(db.String(100))
-    quantidade = db.Column(db.Integer, default=1)
-    valor_unitario = db.Column(db.Float, nullable=False)
-    valor_total = db.Column(db.Float, nullable=False)
-
-    def __repr__(self):
-        return f"<ItemVenda {self.id} - {self.produto_nome}>"
+# class ItemVenda(db.Model):
+#     __tablename__ = "itens_venda"
+# 
+#     id = db.Column(db.Integer, primary_key=True)
+#     venda_id = db.Column(db.Integer, db.ForeignKey("vendas.id", ondelete="CASCADE"), nullable=False)
+# 
+#     produto_nome = db.Column(db.String(200), nullable=False)
+#     categoria = db.Column(db.String(100))
+#     quantidade = db.Column(db.Integer, default=1)
+#     valor_unitario = db.Column(db.Float, nullable=False)
+#     valor_total = db.Column(db.Float, nullable=False)
+# 
+#     def __repr__(self):
+#         return f"<ItemVenda {self.id} - {self.produto_nome}>"
 
 
 # =========================
