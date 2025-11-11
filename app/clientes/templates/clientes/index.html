@@ -1,128 +1,240 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <h2><i class="fas fa-users"></i> Clientes</h2>
+  <h2><i class="fas fa-users"></i> Clientes</h2>
 
-    <!-- 🔍 Busca -->
-    <form class="row g-2 mb-3 align-items-center" method="GET" action="{{ url_for('clientes.index') }}">
-        <div class="col-12 col-md-6">
-            <input type="text" class="form-control" name="q"
-                   placeholder="Buscar por nome ou CPF/CNPJ"
-                   value="{{ q }}">
-        </div>
-        <div class="col-6 col-md-2">
-            <button class="btn btn-primary w-100"><i class="fas fa-search"></i> Buscar</button>
-        </div>
-        <div class="col-6 col-md-2">
-            <a href="{{ url_for('clientes.novo_cliente') }}" class="btn btn-success w-100">
-                <i class="fas fa-plus"></i> Cadastrar
-            </a>
-        </div>
-    </form>
+  <!-- 🔍 Busca -->
+  <form
+    id="formBuscaClientes"
+    class="row g-2 mb-3 align-items-center"
+    method="GET"
+    action="{{ url_for('clientes.index') }}"
+  >
+    <div class="col-12 col-md-6">
+      <input
+        type="text"
+        class="form-control"
+        name="q"
+        id="campoBuscaClientes"
+        placeholder="Buscar por nome, CPF/CNPJ, telefone ou e-mail"
+        value="{{ q }}"
+        autocomplete="off"
+      />
+    </div>
+    <div class="col-6 col-md-2">
+      <button class="btn btn-primary w-100" type="submit">
+        <i class="fas fa-search"></i> Buscar
+      </button>
+    </div>
+    <div class="col-6 col-md-2">
+      <a href="{{ url_for('clientes.novo_cliente') }}" class="btn btn-success w-100">
+        <i class="fas fa-plus"></i> Cadastrar
+      </a>
+    </div>
+  </form>
 
+  <!-- Spinner dinâmico -->
+  <div id="spinnerClientes" class="text-center my-3 d-none">
+    <div
+      class="spinner-border text-danger"
+      role="status"
+      style="width: 2.5rem; height: 2.5rem"
+    >
+      <span class="visually-hidden">Carregando...</span>
+    </div>
+  </div>
+
+  <!-- 📋 Lista de resultados -->
+  <div id="clientesLista">
     <!-- 🖥️ Tabela (Desktop) -->
     <div class="table-responsive-sm d-none d-md-block">
-        <table class="table table-striped align-middle">
-            <thead>
-                <tr>
-                    <th style="width: 30%;">Nome</th>
-                    <th style="width: 20%;">CPF/CNPJ</th>
-                    <th style="width: 20%;">Telefone</th>
-                    <th style="width: 20%;">Email</th>
-                    <th style="width: 10%;" class="text-center">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for cliente in clientes %}
-                <tr>
-                    <td>{{ cliente.nome }}</td>
-                    <td>{{ cliente.documento or "—" }}</td>
-                    <td>{{ cliente.telefone_principal or "—" }}</td>
-                    <td>{{ cliente.email_principal or "—" }}</td>
-                    <td class="text-center">
-                        <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" 
-                           class="btn btn-sm btn-info">
-                            <i class="fas fa-eye"></i> Detalhes
-                        </a>
-                    </td>
-                </tr>
+      <table class="table table-striped align-middle">
+        <thead>
+          <tr>
+            <th style="width: 30%">Nome</th>
+            <th style="width: 20%">CPF/CNPJ</th>
+            <th style="width: 20%">Telefone</th>
+            <th style="width: 20%">Email</th>
+            <th style="width: 10%" class="text-center">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cliente in clientes %}
+          <tr>
+            <td>{{ cliente.nome }}</td>
+            <td>
+              {% if cliente.documento %}
+                {% set doc = cliente.documento.replace('.', '').replace('-', '').replace('/', '') %}
+                {% if doc|length == 11 %}
+                  {{ doc[:3] }}.{{ doc[3:6] }}.{{ doc[6:9] }}-{{ doc[9:] }}
+                {% elif doc|length == 14 %}
+                  {{ doc[:2] }}.{{ doc[2:5] }}.{{ doc[5:8] }}/{{ doc[8:12] }}-{{ doc[12:] }}
                 {% else %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted">Nenhum cliente encontrado.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                  {{ cliente.documento }}
+                {% endif %}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
+            <td>{{ cliente.telefone_principal or "—" }}</td>
+            <td>{{ cliente.email_principal or "—" }}</td>
+            <td class="text-center">
+              <a
+                href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}"
+                class="btn btn-sm btn-info"
+              >
+                <i class="fas fa-eye"></i> Detalhes
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">
+              Nenhum cliente encontrado.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
 
 <!-- 📱 Lista (Mobile) -->
 <div class="d-block d-md-none">
   <div class="list-group list-group-flush">
     {% for cliente in clientes %}
-    <!-- Adicionada a classe 'mobile-list-item' -->
-    <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-2 mobile-list-item">
-      
-      <!-- Adicionada a classe 'info-column' -->
+    <div
+      class="list-group-item d-flex align-items-center justify-content-between py-2 px-2 mobile-list-item"
+    >
       <div class="flex-grow-1 pe-2 info-column">
         <div class="fw-bold text-primary small text-truncate">
           {{ cliente.nome }}
         </div>
-        <div class="text-muted small text-truncate">{{ cliente.documento or '---' }}</div>
-        <div class="small text-truncate">
-          <i class="fas fa-phone fa-xs text-secondary me-1"></i> 
-          {{ cliente.telefone_principal or 'sem telefone' }}
+
+        <div class="text-muted small text-truncate">
+          {% if cliente.documento %}
+            {% set doc = cliente.documento.replace('.', '').replace('-', '').replace('/', '') %}
+            {% if doc|length == 11 %}
+              {{ doc[:3] }}.{{ doc[3:6] }}.{{ doc[6:9] }}-{{ doc[9:] }}
+            {% elif doc|length == 14 %}
+              {{ doc[:2] }}.{{ doc[2:5] }}.{{ doc[5:8] }}/{{ doc[8:12] }}-{{ doc[12:] }}
+            {% else %}
+              {{ cliente.documento }}
+            {% endif %}
+          {% else %}
+            ---
+          {% endif %}
         </div>
+
         <div class="small text-truncate">
-          <i class="fas fa-envelope fa-xs text-secondary me-1"></i> 
-          {{ cliente.email_principal or 'sem e-mail' }}
+          <i class="fas fa-phone fa-xs text-secondary me-1"></i>
+          {{ cliente.telefone_principal or "sem telefone" }}
+        </div>
+
+        <div class="small text-truncate">
+          <i class="fas fa-envelope fa-xs text-secondary me-1"></i>
+          {{ cliente.email_principal or "sem e-mail" }}
         </div>
       </div>
 
-      <!-- Botão detalhes pequeno -->
-      <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" 
-         class="btn btn-sm btn-outline-primary rounded-circle flex-shrink-0"
-         title="Ver detalhes"
-         style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+      <a
+        href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}"
+        class="btn btn-sm btn-outline-primary rounded-circle flex-shrink-0"
+        title="Ver detalhes"
+        style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;"
+      >
         <i class="fas fa-eye"></i>
       </a>
     </div>
     {% else %}
-    <p class="text-center text-muted small my-2">Nenhum cliente encontrado.</p>
+    <p class="text-center text-muted small my-2">
+      Nenhum cliente encontrado.
+    </p>
     {% endfor %}
   </div>
 </div>
 
-
-<!-- Paginação -->
-{% if pagination.pages > 1 %}
-<nav aria-label="Navegação de página">
-  <ul class="pagination justify-content-center">
-    <!-- Anterior -->
-    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-      <a class="page-link" href="{{ url_for('clientes.index', page=pagination.prev_num, q=q) }}" tabindex="-1">
-        &laquo; Anterior
-      </a>
-    </li>
-
-    <!-- Números -->
-    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-      {% if p %}
-        <li class="page-item {% if p == pagination.page %}active{% endif %}">
-          <a class="page-link" href="{{ url_for('clientes.index', page=p, q=q) }}">{{ p }}</a>
+    <!-- Paginação -->
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Navegação de página">
+      <ul class="pagination justify-content-center">
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+          <a
+            class="page-link"
+            href="{{ url_for('clientes.index', page=pagination.prev_num, q=q) }}"
+            tabindex="-1"
+            >&laquo; Anterior</a
+          >
         </li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link">…</span></li>
-      {% endif %}
-    {% endfor %}
 
-    <!-- Próximo -->
-    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-      <a class="page-link" href="{{ url_for('clientes.index', page=pagination.next_num, q=q) }}">
-        Próximo &raquo;
-      </a>
-    </li>
-  </ul>
-</nav>
-{% endif %}
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+        <li class="page-item {% if p == pagination.page %}active{% endif %}">
+          <a
+            class="page-link"
+            href="{{ url_for('clientes.index', page=p, q=q) }}"
+            >{{ p }}</a
+          >
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">…</span>
+        </li>
+        {% endif %}
+        {% endfor %}
 
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+          <a
+            class="page-link"
+            href="{{ url_for('clientes.index', page=pagination.next_num, q=q) }}"
+            >Próximo &raquo;</a
+          >
+        </li>
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ==========================
+     JS Busca AJAX com Debounce
+========================== -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const input = document.getElementById("campoBuscaClientes");
+  const lista = document.getElementById("clientesLista");
+  const spinner = document.getElementById("spinnerClientes");
+
+  let debounceTimer;
+
+  input.addEventListener("input", function () {
+    const valor = input.value.trim();
+
+    // só inicia busca com 2+ caracteres
+    if (valor.length < 2) return;
+
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      spinner.classList.remove("d-none");
+      lista.style.opacity = "0.5";
+
+      fetch(`?q=${encodeURIComponent(valor)}&ajax=1`, {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      })
+        .then((res) => res.text())
+        .then((html) => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const novaLista = doc.getElementById("clientesLista").innerHTML;
+          lista.innerHTML = novaLista;
+        })
+        .catch((err) => console.error("Erro ao buscar clientes:", err))
+        .finally(() => {
+          spinner.classList.add("d-none");
+          lista.style.opacity = "1";
+        });
+    }, 700); // 700ms delay — evita disparar a cada tecla
+  });
+});
+</script>
 {% endblock %}

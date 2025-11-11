@@ -25,19 +25,18 @@
   </div>
 </div>
 
-<!-- Contador e controle de exibição -->
+<!-- Contador e controle -->
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
   <span class="badge bg-light text-dark border">
     {{ pagination.total }} resultado{{ '' if pagination.total == 1 else 's' }}
   </span>
 
-  <!-- Controle de quantidade por página -->
-  <form method="get" class="d-flex align-items-center gap-2">
+  <form id="formPerPage" method="get" class="d-flex align-items-center gap-2">
     {% for key, value in request.args.items() if key not in ['per_page', 'page'] %}
       <input type="hidden" name="{{ key }}" value="{{ value }}">
     {% endfor %}
     <label for="per_page" class="text-muted small mb-0">Mostrar:</label>
-    <select name="per_page" id="per_page" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+    <select name="per_page" id="per_page" class="form-select form-select-sm" style="width:auto;">
       <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
       <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
       <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
@@ -73,10 +72,15 @@
   </div>
 
   <div id="filtros" class="collapse show card-body border-top">
-    <form method="GET" class="row g-2">
+    <form id="formFiltros" method="GET" class="row g-2">
       <div class="col-md-3">
-        <input type="text" name="termo" value="{{ request.args.get('termo','') }}"
-               class="form-control" placeholder="Buscar por código ou nome">
+        <div class="input-group">
+          <input type="text" name="termo" value="{{ request.args.get('termo','') }}"
+                 class="form-control" placeholder="Buscar por código ou nome" id="inTermo" autocomplete="off">
+          <span class="input-group-text bg-white border-start-0" id="spinnerBusca" style="display:none;">
+            <div class="spinner-inline"></div>
+          </span>
+        </div>
       </div>
 
       <div class="col-md-2">
@@ -126,8 +130,8 @@
         </select>
       </div>
 
-      <div class="col-md-12 col-lg-1">
-        <button type="submit" class="btn text-white w-100" style="background:#ff5e00;border-color:#ff5e00">
+      <div class="col-md-12 col-lg-1 d-grid">
+        <button type="submit" class="btn text-white" style="background:#ff5e00;border-color:#ff5e00">
           <i class="fas fa-search"></i>
         </button>
       </div>
@@ -136,128 +140,41 @@
 </div>
 
 <!-- =======================
-     TABELA (DESKTOP)
+     LISTA + PAGINAÇÃO
 ======================= -->
-<div class="card shadow-sm d-none d-md-block">
-  <div class="card-body p-0">
-    <table class="table table-sm table-hover mb-0 align-middle table-clean">
-      <thead>
-        <tr class="text-uppercase small">
-          <th class="text-start">Código</th>
-          <th class="text-start">Nome</th>
-          <th class="text-end">À Vista</th>
-          <th class="text-center">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for produto in produtos %}
-        <tr>
-          <td>{{ produto.codigo or '-' }}</td>
-          <td class="text-truncate" style="max-width:320px;">{{ produto.nome }}</td>
-          <td class="text-end">{{ produto.preco_a_vista|currency }}</td>
-          <td class="text-center">
-            <div class="btn-group btn-group-sm" role="group">
-              <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}" class="btn btn-light"><i class="fas fa-credit-card"></i></a>
-              <a href="{{ url_for('produtos.gerenciar_produto', duplicar_de=produto.id) }}" class="btn btn-light"><i class="fas fa-copy"></i></a>
-              <a href="{{ url_for('produtos.gerenciar_produto', produto_id=produto.id) }}" class="btn btn-light"><i class="fas fa-pen"></i></a>
-              <button class="btn btn-light btn-whatsapp" data-produto-id="{{ produto.id }}"><i class="fab fa-whatsapp text-success"></i></button>
-              <button class="btn btn-light text-danger btn-excluir" data-id="{{ produto.id }}" data-nome="{{ produto.nome }}"><i class="fas fa-trash"></i></button>
-            </div>
-          </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="4" class="text-center text-muted py-3">Nenhum produto encontrado.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+<div id="produtosLista" class="fade-in">
+  {% include 'produtos/_lista.html' %}
 </div>
 
 <!-- =======================
-     CARDS (MOBILE)
+     MODAL EXCLUIR (persistente no DOM)
 ======================= -->
-<div class="d-md-none">
-  <div class="row g-3">
-    {% for produto in produtos %}
-    <div class="col-12">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start">
-            <h6 class="card-title mb-1 text-truncate" style="max-width:250px;">
-              <i class="fas fa-box-open me-1 text-dark"></i>{{ produto.nome }}
-            </h6>
-            <span class="badge bg-secondary">{{ produto.codigo or '-' }}</span>
-          </div>
-          <p class="mb-1 text-primary"><strong>À vista:</strong> {{ produto.preco_a_vista|currency }}</p>
-          <div class="d-flex gap-2">
-            <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}" class="btn btn-sm btn-outline-dark flex-fill"><i class="fas fa-credit-card"></i></a>
-            <a href="{{ url_for('produtos.gerenciar_produto', duplicar_de=produto.id) }}" class="btn btn-sm btn-outline-secondary flex-fill"><i class="fas fa-copy"></i></a>
-            <a href="{{ url_for('produtos.gerenciar_produto', produto_id=produto.id) }}" class="btn btn-sm btn-outline-secondary flex-fill"><i class="fas fa-pen"></i></a>
-            <button class="btn btn-sm btn-success flex-fill btn-whatsapp" data-produto-id="{{ produto.id }}"><i class="fab fa-whatsapp"></i></button>
-            <button class="btn btn-sm btn-outline-danger flex-fill btn-excluir" data-id="{{ produto.id }}" data-nome="{{ produto.nome }}"><i class="fas fa-trash"></i></button>
-          </div>
+<div class="modal fade" id="modalExcluirProduto" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-trash text-danger me-2"></i> Confirmar exclusão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">Tem certeza que deseja excluir o produto abaixo?</p>
+        <div class="border rounded p-2 bg-light">
+          <div><strong>Nome:</strong> <span id="ex_nome">—</span></div>
+          <div><strong>Código:</strong> <span id="ex_sku">—</span></div>
         </div>
+        <small class="text-muted d-block mt-2">Esta ação não pode ser desfeita.</small>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" id="ex_btn_confirmar" class="btn btn-danger">
+          <i class="fas fa-trash-alt me-1"></i> Excluir
+        </button>
       </div>
     </div>
-    {% else %}
-    <div class="text-center text-muted">Nenhum produto encontrado.</div>
-    {% endfor %}
   </div>
 </div>
 
-<!-- =======================
-     PAGINAÇÃO (COMPATÍVEL)
-======================= -->
-{% if pagination.pages > 1 %}
-  {% set query_params = request.args.to_dict(flat=True) %}
-  <nav aria-label="Paginação de produtos" class="mt-4">
-    <ul class="pagination justify-content-center flex-wrap mb-0">
-
-      {# Botão anterior #}
-      {% if pagination.has_prev %}
-        {% set query_params = query_params.copy() %}
-        {% set _ = query_params.update({'page': pagination.prev_num}) %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('produtos.index') }}?{{ query_params|urlencode }}">
-            <i class="fas fa-chevron-left"></i>
-          </a>
-        </li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-left"></i></span></li>
-      {% endif %}
-
-      {# Páginas #}
-      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-        {% if p %}
-          {% set query_params = request.args.to_dict(flat=True) %}
-          {% set _ = query_params.update({'page': p}) %}
-          <li class="page-item {% if p == pagination.page %}active{% endif %}">
-            <a class="page-link" href="{{ url_for('produtos.index') }}?{{ query_params|urlencode }}">{{ p }}</a>
-          </li>
-        {% else %}
-          <li class="page-item disabled"><span class="page-link">…</span></li>
-        {% endif %}
-      {% endfor %}
-
-      {# Próximo #}
-      {% if pagination.has_next %}
-        {% set query_params = request.args.to_dict(flat=True) %}
-        {% set _ = query_params.update({'page': pagination.next_num}) %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('produtos.index') }}?{{ query_params|urlencode }}">
-            <i class="fas fa-chevron-right"></i>
-          </a>
-        </li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-right"></i></span></li>
-      {% endif %}
-    </ul>
-  </nav>
-{% endif %}
-
-<!-- =======================
-     TOAST: CÓPIA COM SUCESSO
-======================= -->
+<!-- Toast de cópia -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080;">
   <div id="toast-copy" class="toast align-items-center text-bg-success border-0" role="alert">
     <div class="d-flex">
@@ -267,34 +184,6 @@
   </div>
 </div>
 
-<!-- =======================
-     MODAL: EXCLUIR
-======================= -->
-<div class="modal fade" id="modalExcluirProduto" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header border-0">
-        <h5 class="modal-title"><i class="fas fa-triangle-exclamation text-danger me-2"></i> Confirmar exclusão</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p class="mb-1">Tem certeza que deseja excluir este produto?</p>
-        <div class="p-2 rounded" style="background:#f7f7f7">
-          <div><strong>Nome:</strong> <span id="ex_nome">—</span></div>
-          <div><strong>Código:</strong> <span id="ex_sku">—</span></div>
-        </div>
-      </div>
-      <div class="modal-footer border-0">
-        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <a href="#" id="ex_btn_confirmar" class="btn btn-danger"><i class="fas fa-trash me-1"></i> Excluir</a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- =======================
-     ESTILO
-======================= -->
 <style>
 .table-clean thead th {
   background:#fafafa;font-weight:600;font-size:.85rem;border-bottom:1px solid #eee;
@@ -304,71 +193,156 @@
 .page-link { color:#ff5e00;border:none; }
 .page-item.active .page-link { background:#ff5e00;border:none;color:#fff; }
 .btn-light:hover { background:rgba(0,0,0,.04); }
+
+.fade-in { opacity:1; transition:opacity .2s ease-in-out; }
+.fade-in.loading { opacity:.4; pointer-events:none; }
+.spinner-inline {
+  width:20px;height:20px;border:2px solid #ccc;border-top-color:#ff5e00;
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
-<!-- =======================
-     SCRIPTS
-======================= -->
 <script>
-/* WhatsApp: duplo clique */
-document.addEventListener("click", async function(e) {
-  const btn = e.target.closest(".btn-whatsapp");
-  if (!btn) return;
-  e.preventDefault();
+(function(){
+  const listaEl=document.getElementById('produtosLista');
+  const formFiltros=document.getElementById('formFiltros');
+  const perPageSel=document.getElementById('per_page');
+  const formPerPage=document.getElementById('formPerPage');
+  const inTermo=document.getElementById('inTermo');
+  const spinner=document.getElementById('spinnerBusca');
 
-  const textoJaCarregado = btn.getAttribute("data-texto-completo");
-
-  if (textoJaCarregado) {
-    try {
-      await navigator.clipboard.writeText(textoJaCarregado);
-      const toastEl = document.getElementById("toast-copy");
-      new bootstrap.Toast(toastEl).show();
-      btn.removeAttribute("data-texto-completo");
-      btn.innerHTML = '<i class="fab fa-whatsapp" style="color:#25D366"></i>';
-    } catch {
-      alert("Erro ao copiar. Permissão negada.");
-    }
-    return;
+  function serializeForm(form){
+    const fd=new FormData(form),params=new URLSearchParams();
+    for(const [k,v] of fd.entries()){ if(v!==null && v!=="") params.append(k,v); }
+    return params;
   }
 
-  if (!btn.hasAttribute("data-loading")) {
-    btn.setAttribute("data-loading", "true");
-    const id = btn.getAttribute("data-produto-id");
-    const original = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    try {
-      const r = await fetch(`/api/produto/${id}/whatsapp`);
-      if (!r.ok) throw new Error();
-      const d = await r.json();
-      btn.setAttribute("data-texto-completo", d.texto_completo);
-      btn.innerHTML = '<i class="fas fa-copy"></i> Toque para copiar';
-    } catch {
-      alert("Erro ao gerar simulação.");
-      btn.innerHTML = original;
-    } finally {
-      btn.removeAttribute("data-loading");
+  async function carregarLista(params,push=true){
+    try{
+      spinner.style.display='inline-block';
+      listaEl.classList.add('loading');
+      params.set('ajax','1');
+      const url=`${window.location.pathname}?${params.toString()}`;
+      const resp=await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!resp.ok)throw new Error();
+      const html=await resp.text();
+      listaEl.innerHTML=html;
+      if(push)history.pushState(null,'',`${window.location.pathname}?${params.toString().replace(/(&)?ajax=1/,'')}`);
+      listaEl.classList.remove('loading');
+      spinner.style.display='none';
+      bindInteracoesLista(); // reanexa eventos após render
+    }catch(e){
+      listaEl.classList.remove('loading');
+      spinner.style.display='none';
+      console.warn('[M4] Erro AJAX',e);
     }
   }
-});
 
-/* Modal de exclusão */
-document.addEventListener("click", function(e) {
-  const btn = e.target.closest(".btn-excluir");
-  if (!btn) return;
-  document.getElementById("ex_nome").textContent = btn.getAttribute("data-nome") || "—";
-  document.getElementById("ex_sku").textContent = btn.getAttribute("data-sku") || "—";
-  const id = btn.getAttribute("data-id");
-  const href = `/produtos/${id}/excluir`;
-  const confirmBtn = document.getElementById("ex_btn_confirmar");
-  const newBtn = confirmBtn.cloneNode(true);
-  confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
-  newBtn.addEventListener("click", async (ev) => {
-    ev.preventDefault();
-    const resp = await fetch(href, { method:"POST", headers:{"X-Requested-With":"XMLHttpRequest"} });
-    if (resp.ok) location.reload(); else alert("Erro ao excluir.");
+  function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
+
+  if(inTermo){
+    inTermo.addEventListener('input',debounce(()=>{
+      const termo=inTermo.value.trim();
+      if(termo.length===0||termo.length>=2){
+        const params=serializeForm(formFiltros);params.set('page','1');carregarLista(params);
+      }
+    },700));
+  }
+
+  if(formFiltros){
+    formFiltros.addEventListener('change',ev=>{
+      if(ev.target.tagName==='SELECT'){const p=serializeForm(formFiltros);p.set('page','1');carregarLista(p);}
+    });
+    formFiltros.addEventListener('submit',ev=>{
+      ev.preventDefault();const p=serializeForm(formFiltros);p.set('page','1');carregarLista(p);
+    });
+  }
+
+  if(perPageSel&&formPerPage){
+    perPageSel.addEventListener('change',()=>{
+      const p=serializeForm(formPerPage);p.set('page','1');carregarLista(p);
+    });
+  }
+
+  function bindInteracoesLista(){
+    // Paginação AJAX
+    listaEl.querySelectorAll('.pagination a.page-link').forEach(a=>{
+      a.addEventListener('click',ev=>{
+        ev.preventDefault();
+        const u=new URL(a.href,window.location.origin);
+        const params=u.searchParams;
+        carregarLista(params);
+      });
+    });
+
+    // WhatsApp (cópia com toast)
+    listaEl.querySelectorAll(".btn-whatsapp").forEach(btn=>{
+      btn.addEventListener("click",async e=>{
+        e.preventDefault();
+        const textoJa=btn.getAttribute("data-texto-completo");
+        if(textoJa){
+          try{
+            await navigator.clipboard.writeText(textoJa);
+            new bootstrap.Toast(document.getElementById("toast-copy")).show();
+            btn.removeAttribute("data-texto-completo");
+            btn.innerHTML='<i class="fab fa-whatsapp text-success"></i>';
+          }catch{ alert("Erro ao copiar. Verifique permissões do navegador."); }
+          return;
+        }
+        if(!btn.hasAttribute("data-loading")){
+          btn.setAttribute("data-loading","true");
+          const id=btn.getAttribute("data-produto-id");
+          const original=btn.innerHTML;
+          btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';
+          try{
+            const r=await fetch(`/api/produto/${id}/whatsapp`);
+            if(!r.ok)throw new Error();
+            const d=await r.json();
+            btn.setAttribute("data-texto-completo",d.texto_completo);
+            btn.innerHTML='<i class="fas fa-copy"></i> Copiar';
+          }catch{
+            alert("Erro ao gerar simulação.");
+            btn.innerHTML=original;
+          }finally{
+            btn.removeAttribute("data-loading");
+          }
+        }
+      });
+    });
+
+    // Excluir (usa modal persistente deste arquivo)
+    listaEl.querySelectorAll(".btn-excluir").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        document.getElementById("ex_nome").textContent=btn.getAttribute("data-nome")||"—";
+        document.getElementById("ex_sku").textContent=btn.getAttribute("data-sku")||"—";
+        const id=btn.getAttribute("data-id");
+        const href=`/produtos/${id}/excluir`;
+        const confirmBtn=document.getElementById("ex_btn_confirmar");
+        const novo=confirmBtn.cloneNode(true);             // limpa listeners antigos
+        confirmBtn.parentNode.replaceChild(novo,confirmBtn);
+        novo.addEventListener("click",async(ev)=>{
+          ev.preventDefault();
+          try{
+            const r=await fetch(href,{method:"POST",headers:{"X-Requested-With":"XMLHttpRequest"}});
+            if(r.ok){ location.reload(); }
+            else { alert("Erro ao excluir."); }
+          }catch{ alert("Erro ao excluir."); }
+        });
+        new bootstrap.Modal(document.getElementById("modalExcluirProduto")).show();
+      });
+    });
+  }
+
+  // Primeira ligação
+  bindInteracoesLista();
+
+  // Navegação do navegador
+  window.addEventListener('popstate',()=>{
+    const p=new URLSearchParams(window.location.search);
+    carregarLista(p,false);
   });
-  new bootstrap.Modal(document.getElementById("modalExcluirProduto")).show();
-});
+})();
 </script>
 
 {% endblock %}

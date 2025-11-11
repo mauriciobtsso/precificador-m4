@@ -3,7 +3,7 @@
 # ======================
 
 from app import db
-from sqlalchemy import func
+from sqlalchemy import func, Index
 from datetime import datetime
 import pytz
 from flask_login import current_user
@@ -32,26 +32,35 @@ def now_local():
 # ======================================================
 class Produto(db.Model):
     __tablename__ = "produtos"
+    __table_args__ = (
+        # Índices compostos e individuais para otimizar filtros e buscas
+        Index("idx_produto_nome", "nome"),
+        Index("idx_produto_codigo", "codigo"),
+        Index("idx_produto_categoria", "categoria_id"),
+        Index("idx_produto_marca", "marca_id"),
+        Index("idx_produto_calibre", "calibre_id"),
+        Index("idx_produto_tipo", "tipo_id"),
+    )
 
     foto_url = db.Column(db.String(512), nullable=True)
     id = db.Column(db.Integer, primary_key=True)
-    codigo = db.Column(db.String(50), unique=True, nullable=False)  # SKU
-    nome = db.Column(db.String(255), nullable=False)
+    codigo = db.Column(db.String(50), unique=True, nullable=False, index=True)  # SKU
+    nome = db.Column(db.String(255), nullable=False, index=True)
     descricao = db.Column(db.Text, nullable=True)
 
     # ============================
     # RELACIONAMENTOS (FKs)
     # ============================
-    categoria_id = db.Column(db.Integer, db.ForeignKey("categoria_produto.id"))
+    categoria_id = db.Column(db.Integer, db.ForeignKey("categoria_produto.id"), index=True)
     categoria = db.relationship("CategoriaProduto", backref="produtos")
 
-    marca_id = db.Column(db.Integer, db.ForeignKey("marca_produto.id"), nullable=True)
+    marca_id = db.Column(db.Integer, db.ForeignKey("marca_produto.id"), nullable=True, index=True)
     marca_rel = db.relationship("MarcaProduto", backref="produtos")
 
-    calibre_id = db.Column(db.Integer, db.ForeignKey("calibre_produto.id"), nullable=True)
+    calibre_id = db.Column(db.Integer, db.ForeignKey("calibre_produto.id"), nullable=True, index=True)
     calibre_rel = db.relationship("CalibreProduto", backref="produtos")
 
-    tipo_id = db.Column(db.Integer, db.ForeignKey("tipo_produto.id"), nullable=True)
+    tipo_id = db.Column(db.Integer, db.ForeignKey("tipo_produto.id"), nullable=True, index=True)
     tipo_rel = db.relationship("TipoProduto", backref="produtos")
 
     funcionamento_id = db.Column(db.Integer, db.ForeignKey("funcionamento_produto.id"), nullable=True)
@@ -92,8 +101,8 @@ class Produto(db.Model):
     # ============================
     # AUDITORIA
     # ============================
-    criado_em = db.Column(db.DateTime(timezone=True), default=now_local)
-    atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=now_local, default=now_local)
+    criado_em = db.Column(db.DateTime(timezone=True), default=now_local, index=True)
+    atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=now_local, default=now_local, index=True)
 
     # ============================
     # RELAÇÃO COM HISTÓRICO
@@ -169,6 +178,7 @@ class ProdutoHistorico(db.Model):
         db.Integer,
         db.ForeignKey("produtos.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     campo = db.Column(db.String(100), nullable=False)
     valor_antigo = db.Column(db.Text)
@@ -177,10 +187,11 @@ class ProdutoHistorico(db.Model):
         db.Integer,
         db.ForeignKey("users.id"),  # ✅ referência correta para tabela 'users'
         nullable=True,
+        index=True,
     )
     usuario_nome = db.Column(db.String(120))
-    data_modificacao = db.Column(db.DateTime(timezone=True), default=now_local)
-    origem = db.Column(db.String(20), nullable=False, default="manual")  # ← NOVO CAMPO
+    data_modificacao = db.Column(db.DateTime(timezone=True), default=now_local, index=True)
+    origem = db.Column(db.String(20), nullable=False, default="manual", index=True)
 
     produto = db.relationship("Produto", back_populates="historicos")
 

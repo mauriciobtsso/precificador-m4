@@ -97,6 +97,9 @@ def index():
     page = request.args.get("page", 1, type=int)
     q = request.args.get("q", "").strip()
 
+    # ======================
+    # Subqueries de telefone e e-mail principais
+    # ======================
     tel_sq = (
         db.session.query(
             ContatoCliente.cliente_id,
@@ -125,6 +128,9 @@ def index():
     )
     email_alias = aliased(email_sq)
 
+    # ======================
+    # Query principal de clientes
+    # ======================
     query = (
         db.session.query(
             Cliente,
@@ -133,8 +139,12 @@ def index():
         )
         .outerjoin(tel_alias, (Cliente.id == tel_alias.c.cliente_id) & (tel_alias.c.rn == 1))
         .outerjoin(email_alias, (Cliente.id == email_alias.c.cliente_id) & (email_alias.c.rn == 1))
+        .group_by(Cliente.id, tel_alias.c.telefone_principal, email_alias.c.email_principal)
     )
 
+    # ======================
+    # Filtros de busca (AJAX / texto)
+    # ======================
     if q:
         q_digits = "".join(filter(str.isdigit, q))
 
@@ -148,7 +158,11 @@ def index():
         if q_digits:
             search_filter = or_(
                 search_filter,
-                func.replace(func.replace(func.replace(Cliente.documento, ".", ""), "-", ""), "/", "").ilike(f"%{q_digits}%")
+                func.replace(
+                    func.replace(func.replace(Cliente.documento, ".", ""), "-", ""),
+                    "/",
+                    ""
+                ).ilike(f"%{q_digits}%")
             )
             search_filter = or_(
                 search_filter,
@@ -156,21 +170,70 @@ def index():
                     func.replace(
                         func.replace(
                             func.replace(tel_alias.c.telefone_principal, "(", ""), ")", ""
-                        ), "-", ""
-                    ), " ", ""
+                        ),
+                        "-",
+                        ""
+                    ),
+                    " ",
+                    ""
                 ).ilike(f"%{q_digits}%")
             )
 
         query = query.filter(search_filter)
 
-    clientes_pagination = query.order_by(Cliente.nome.asc()).paginate(page=page, per_page=20, error_out=False)
+    # ==========================================
+    # Remove duplicidades causadas pelos joins
+    # ==========================================
+    clientes_pagination = (
+        query.order_by(Cliente.id)
+        .distinct(Cliente.id)
+        .order_by(Cliente.nome.asc())
+        .paginate(page=page, per_page=20, error_out=False)
+    )
 
+    # ======================
+    # Monta lista final
+    # ======================
     clientes_list = []
     for cliente, telefone, email in clientes_pagination.items:
         cliente.telefone_principal = telefone
         cliente.email_principal = email
         clientes_list.append(cliente)
 
+    # ------------------------------------------
+    # AJAX: retorna somente a lista de clientes
+    # ------------------------------------------
+    if request.args.get("ajax"):
+        return render_template(
+            "clientes/index.html",
+            clientes=clientes_list,
+            pagination=clientes_pagination,
+            q=q,
+            _partial=True
+        )
+
+    # Renderização completa
+    return render_template(
+        "clientes/index.html",
+        clientes=clientes_list,
+        pagination=clientes_pagination,
+        q=q,
+    )
+
+    # ------------------------------------------
+    # AJAX: retorna somente a lista de clientes
+    # ------------------------------------------
+    if request.args.get("ajax"):
+        # Renderiza apenas o trecho da lista de clientes (sem layout base)
+        return render_template(
+            "clientes/index.html",
+            clientes=clientes_list,
+            pagination=clientes_pagination,
+            q=q,
+            _partial=True  # marcador opcional se quiser usar condicional no template
+        )
+
+    # Renderização completa (página inteira)
     return render_template(
         "clientes/index.html",
         clientes=clientes_list,

@@ -1,10 +1,11 @@
-from flask import render_template, request, redirect, url_for, flash, current_app
+from flask import render_template, request, redirect, url_for, flash, current_app, make_response
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from decimal import Decimal, InvalidOperation
 from datetime import datetime, timezone
 import pytz
+import time
 
 from app import db
 from .. import produtos_bp
@@ -14,33 +15,95 @@ from app.produtos.configs.models import (
     MarcaProduto, CalibreProduto, TipoProduto, FuncionamentoProduto
 )
 
+# ============================================================
+#  Cache leve em memória para fragmentos da listagem (AJAX)
+#  - Apenas para listagem SEM filtros (home de produtos)
+#  - TTL curto para não "congelar" preços/estoque
+# ============================================================
+_LIST_CACHE = {}  # key -> (expires_epoch, html)
+_LIST_CACHE_TTL = 60  # segundos
 
-# ======================
-# LISTAGEM DE PRODUTOS — Sprint 4B + Paginação M4
-# ======================
+
+def _cache_key_for_list(page: int, per_page: int, ordenar: str) -> str:
+    return f"nofilter:p={page}:pp={per_page}:ord={ordenar}"
+
+
+def _get_cached_fragment(page: int, per_page: int, ordenar: str):
+    key = _cache_key_for_list(page, per_page, ordenar)
+    item = _LIST_CACHE.get(key)
+    now = time.time()
+    if item and item[0] > now:
+        return item[1]
+    if item:
+        # expirado
+        _LIST_CACHE.pop(key, None)
+    return None
+
+
+def _set_cached_fragment(page: int, per_page: int, ordenar: str, html: str):
+    key = _cache_key_for_list(page, per_page, ordenar)
+    _LIST_CACHE[key] = (time.time() + _LIST_CACHE_TTL, html)
+
+
+# ============================================================
+# LISTAGEM DE PRODUTOS — com filtros, busca, ordenação e paginação
+# - compatível com resposta parcial (AJAX) para _lista.html
+# - otimizações:
+#   * validação/normalização de parâmetros
+#   * consulta enxuta (sem joins desnecessários)
+#   * cache leve do fragmento quando não há filtros
+# ============================================================
 @produtos_bp.route("/", endpoint="index")
 @login_required
 def index():
-    """Listagem de produtos com filtros, busca, ordenação e paginação."""
-    termo = request.args.get("termo", "").strip()
-    tipo = request.args.get("tipo", type=int)
-    categoria = request.args.get("categoria", type=int)
-    marca = request.args.get("marca", type=int)
-    calibre = request.args.get("calibre", type=int)
-    ordenar = request.args.get("ordenar", "nome_asc")
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
+    # -----------------------------
+    # 1) Parâmetros validados
+    # -----------------------------
+    raw_termo = (request.args.get("termo") or "").strip()
+    termo = raw_termo if raw_termo else ""
 
+    def _to_int(qs_name):
+        try:
+            v = request.args.get(qs_name, type=int)
+            return v if v and v > 0 else None
+        except Exception:
+            return None
+
+    tipo = _to_int("tipo")
+    categoria = _to_int("categoria")
+    marca = _to_int("marca")
+    calibre = _to_int("calibre")
+
+    ordenar = request.args.get("ordenar", "nome_asc")
+    ordem_map = {
+        "nome_asc": Produto.nome.asc(),
+        "nome_desc": Produto.nome.desc(),
+        "preco_asc": Produto.preco_a_vista.asc(),
+        "preco_desc": Produto.preco_a_vista.desc(),
+        "lucro_asc": Produto.lucro_liquido_real.asc(),
+        "lucro_desc": Produto.lucro_liquido_real.desc(),
+        "atualizado_em_desc": Produto.atualizado_em.desc(),
+    }
+    ordem = ordem_map.get(ordenar, Produto.nome.asc())
+
+    # limites sensatos
+    page = request.args.get("page", 1, type=int) or 1
+    per_page = request.args.get("per_page", 20, type=int) or 20
+    if per_page < 10:
+        per_page = 10
+    if per_page > 100:
+        per_page = 100
+
+    # -----------------------------
+    # 2) Montagem de consulta
+    #    (sem joinedload — listagem não precisa)
+    # -----------------------------
     query = Produto.query
 
-    # 🔍 Busca inteligente (nome ou código)
+    # 🔍 Busca por nome ou código (case-insensitive)
     if termo:
-        query = query.filter(
-            or_(
-                Produto.nome.ilike(f"%{termo}%"),
-                Produto.codigo.ilike(f"%{termo}%")
-            )
-        )
+        like = f"%{termo}%"
+        query = query.filter(or_(Produto.nome.ilike(like), Produto.codigo.ilike(like)))
 
     # 🎯 Filtros opcionais
     if tipo:
@@ -52,28 +115,58 @@ def index():
     if calibre:
         query = query.filter(Produto.calibre_id == calibre)
 
-    # ↕️ Ordenação dinâmica
-    ordem_map = {
-        "nome_asc": Produto.nome.asc(),
-        "nome_desc": Produto.nome.desc(),
-        "preco_asc": Produto.preco_a_vista.asc(),
-        "preco_desc": Produto.preco_a_vista.desc(),
-        "lucro_asc": Produto.lucro_liquido_real.asc(),
-        "lucro_desc": Produto.lucro_liquido_real.desc(),
-        "atualizado_em_desc": Produto.atualizado_em.desc(),
-    }
-    query = query.order_by(ordem_map.get(ordenar, Produto.nome.asc()))
+    # ↕️ Ordenação
+    query = query.order_by(ordem)
 
-    # 📄 Paginação (mantendo filtros)
+    # -----------------------------
+    # 3) Paginação
+    # -----------------------------
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     produtos = pagination.items
 
-    # 🔄 Listas dinâmicas (para selects de filtro)
+    # -----------------------------
+    # 4) Listas para filtros (mantidas completas)
+    # -----------------------------
     tipos = TipoProduto.query.order_by(TipoProduto.nome.asc()).all()
     categorias = CategoriaProduto.query.order_by(CategoriaProduto.nome.asc()).all()
     marcas = MarcaProduto.query.order_by(MarcaProduto.nome.asc()).all()
     calibres = CalibreProduto.query.order_by(CalibreProduto.nome.asc()).all()
 
+    # -----------------------------
+    # 5) Resposta parcial (AJAX) com cache leve quando NÃO há filtros
+    # -----------------------------
+    wants_fragment = request.args.get("ajax") == "1" or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    has_any_filter = any([
+        bool(termo), bool(tipo), bool(categoria),
+        bool(marca), bool(calibre)
+    ])
+
+    if wants_fragment:
+        if not has_any_filter:
+            cached = _get_cached_fragment(page, per_page, ordenar)
+            if cached:
+                # Garante que o fragmento seja retornado com cabeçalhos adequados
+                resp = make_response(cached)
+                resp.headers["Cache-Control"] = "no-store"
+                return resp
+
+        html = render_template(
+            "produtos/_lista.html",
+            produtos=produtos,
+            pagination=pagination,
+            per_page=per_page,
+            request=request,
+        )
+        if not has_any_filter:
+            _set_cached_fragment(page, per_page, ordenar, html)
+        resp = make_response(html)
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+
+    # -----------------------------
+    # 6) Página completa
+    # -----------------------------
     return render_template(
         "produtos/index.html",
         produtos=produtos,
@@ -86,15 +179,17 @@ def index():
     )
 
 
-# ======================
+# ============================================================
 # CADASTRAR / EDITAR PRODUTO
-# ======================
+# - Mantém lógica atual de auditoria e cálculo
+# - joinedload apenas no histórico (uso no form)
+# ============================================================
 @produtos_bp.route("/novo", methods=["GET", "POST"])
 @produtos_bp.route("/<int:produto_id>/editar", methods=["GET", "POST"])
 @login_required
 def gerenciar_produto(produto_id=None):
-    """Cria ou edita um produto com relacionamentos e auditoria."""
     duplicar_de = request.args.get("duplicar_de", type=int)
+
     if duplicar_de:
         produto_ref = Produto.query.get(duplicar_de)
         if produto_ref:
@@ -139,7 +234,7 @@ def gerenciar_produto(produto_id=None):
 
     if request.method == "POST":
         data = request.form
-        foto_atual = produto.foto_url
+        foto_atual = getattr(produto, "foto_url", None)
 
         def to_int(value):
             try:
@@ -172,6 +267,7 @@ def gerenciar_produto(produto_id=None):
         produto.tipo_id = to_int(data.get("tipo_id"))
         produto.funcionamento_id = to_int(data.get("funcionamento_id"))
 
+        # Código único
         existente = (
             Produto.query.filter(Produto.codigo == codigo)
             .filter(Produto.id != produto.id if produto.id else True)
@@ -184,7 +280,7 @@ def gerenciar_produto(produto_id=None):
         produto.codigo = codigo
         produto.nome = nome
         produto.descricao = descricao
-        produto.foto_url = data.get("foto_url") or produto.foto_url
+        produto.foto_url = data.get("foto_url") or foto_atual
 
         produto.preco_fornecedor = to_decimal(data.get("preco_fornecedor"))
         produto.desconto_fornecedor = to_decimal(data.get("desconto_fornecedor"))
@@ -197,18 +293,16 @@ def gerenciar_produto(produto_id=None):
         produto.imposto_venda = to_decimal(data.get("imposto_venda"))
         produto.ipi_tipo = data.get("ipi_tipo", "%_dentro")
 
-        if not data.get("foto_url"):
-            produto.foto_url = foto_atual
-
         try:
+            # Recalcula se existir método
             if hasattr(produto, "calcular_precos"):
                 produto.calcular_precos()
 
             db.session.add(produto)
-            db.session.flush()
+            db.session.flush()  # garante produto.id
 
+            # Auditoria
             registros = []
-
             if not produto_id:
                 registros.append(ProdutoHistorico(
                     produto_id=produto.id,
@@ -255,6 +349,8 @@ def gerenciar_produto(produto_id=None):
                 db.session.add_all(registros)
 
             db.session.commit()
+            # Invalida cache da listagem sem filtros (dados mudaram)
+            _LIST_CACHE.clear()
             flash("✅ Produto salvo com sucesso!", "success")
             return redirect(url_for("produtos.index"))
 
@@ -263,7 +359,8 @@ def gerenciar_produto(produto_id=None):
             current_app.logger.error(f"Erro ao salvar produto: {e}")
             flash("❌ Ocorreu um erro ao salvar o produto.", "danger")
 
-    if produto and produto.atualizado_em:
+    # Conversão de timezone do campo atualizado_em (exibição amigável)
+    if getattr(produto, "atualizado_em", None):
         try:
             fuso_fortaleza = pytz.timezone("America/Fortaleza")
             if produto.atualizado_em.tzinfo is None:
@@ -284,9 +381,11 @@ def gerenciar_produto(produto_id=None):
     )
 
 
-# ======================
+# ============================================================
 # EXCLUIR PRODUTO
-# ======================
+# - Mantém compatibilidade com chamada via fetch (AJAX)
+# - Limpa cache da listagem sem filtros após exclusão
+# ============================================================
 @produtos_bp.route("/<int:produto_id>/excluir", methods=["POST"])
 @login_required
 def excluir_produto(produto_id):
@@ -294,6 +393,8 @@ def excluir_produto(produto_id):
     try:
         db.session.delete(produto)
         db.session.commit()
+        # Invalida cache, pois a listagem mudou
+        _LIST_CACHE.clear()
         flash("🗑️ Produto excluído com sucesso!", "success")
     except Exception as e:
         db.session.rollback()
