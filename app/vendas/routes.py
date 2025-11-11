@@ -1,4 +1,4 @@
-from flask import render_template, request
+from flask import render_template, request, url_for
 from flask_login import login_required
 from app.extensions import db
 from app.vendas.models import Venda, ItemVenda
@@ -8,9 +8,15 @@ from datetime import datetime, timedelta
 from sqlalchemy import extract
 
 
+# =========================
+# Listagem de Vendas
+# =========================
 @vendas_bp.route("/", methods=["GET", "POST"])
 @login_required
 def vendas():
+    page = request.args.get("page", 1, type=int)
+    per_page = 50  # limite padrão de registros por página
+
     query = Venda.query.join(Cliente, isouter=True)
 
     # --- Filtros ---
@@ -41,11 +47,20 @@ def vendas():
             fim = datetime.strptime(data_fim, "%Y-%m-%d") + timedelta(days=1)
             query = query.filter(Venda.data_abertura >= inicio, Venda.data_abertura < fim)
         except Exception:
-            pass  # podemos adicionar flash depois se quiser feedback
+            pass  # futuro: adicionar flash para feedback ao usuário
 
-    todas_vendas = query.order_by(Venda.data_abertura.desc()).all()
+    # --- Paginação ---
+    vendas_paginadas = query.order_by(Venda.data_abertura.desc()).paginate(page=page, per_page=per_page)
 
-    return render_template("vendas/index.html", vendas=todas_vendas)
+    return render_template(
+        "vendas/index.html",
+        vendas=vendas_paginadas,
+        cliente_nome=cliente_nome,
+        status=status,
+        periodo=periodo,
+        data_inicio=data_inicio,
+        data_fim=data_fim
+    )
 
 
 # =========================
