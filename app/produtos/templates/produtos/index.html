@@ -12,34 +12,41 @@
     <small class="text-muted">Gerencie, simule e compartilhe valores rapidamente.</small>
   </div>
   <div class="d-flex gap-2">
-    <a href="{{ url_for('produtos.gerenciar_produto') }}"
-       class="btn btn-sm text-white shadow-sm"
-       style="background:#ff5e00;border-color:#ff5e00"
-       title="Cadastrar novo produto" data-bs-toggle="tooltip">
+    <a href="{{ url_for('produtos.gerenciar_produto') }}" class="btn btn-sm text-white shadow-sm"
+       style="background:#ff5e00;border-color:#ff5e00">
       <i class="fas fa-plus me-1"></i> Novo
     </a>
-    <a href="{{ url_for('produtos.importar_produtos') }}"
-       class="btn btn-sm btn-outline-secondary shadow-sm"
-       title="Importar planilha de produtos" data-bs-toggle="tooltip">
+    <a href="{{ url_for('produtos.importar_produtos') }}" class="btn btn-sm btn-outline-secondary shadow-sm">
       <i class="fas fa-file-upload me-1"></i> Importar
     </a>
-    <a href="{{ url_for('main.parcelamento_rapido') }}"
-       class="btn btn-sm btn-outline-dark shadow-sm"
-       title="Simulação rápida" data-bs-toggle="tooltip">
+    <a href="{{ url_for('main.parcelamento_rapido') }}" class="btn btn-sm btn-outline-dark shadow-sm">
       <i class="fas fa-calculator me-1"></i> Simular
     </a>
   </div>
 </div>
 
-<!-- Contador de resultados -->
-<div class="mb-3">
+<!-- Contador e controle de exibição -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
   <span class="badge bg-light text-dark border">
-    {{ produtos|length }} resultado{{ '' if (produtos|length) == 1 else 's' }}
+    {{ pagination.total }} resultado{{ '' if pagination.total == 1 else 's' }}
   </span>
+
+  <!-- Controle de quantidade por página -->
+  <form method="get" class="d-flex align-items-center gap-2">
+    {% for key, value in request.args.items() if key not in ['per_page', 'page'] %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
+    <label for="per_page" class="text-muted small mb-0">Mostrar:</label>
+    <select name="per_page" id="per_page" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+      <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+      <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+      <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+    </select>
+  </form>
 </div>
 
 <!-- =======================
-     FILTROS (COLAPSÁVEIS)
+     FILTROS
 ======================= -->
 <div class="card shadow-sm mb-3 border-0">
   <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -48,7 +55,6 @@
       <strong>Filtros</strong>
     </div>
     <div class="d-flex align-items-center gap-2">
-      {# inclui calibre no detector de filtros ativos #}
       {% set tem_filtro = request.args.get('termo')
                           or request.args.get('tipo')
                           or request.args.get('marca')
@@ -73,52 +79,41 @@
                class="form-control" placeholder="Buscar por código ou nome">
       </div>
 
-<!-- =======================
-     FILTROS (REVISAO COMPLETA)
-======================= -->
-<div class="col-md-2">
-  <select name="tipo" class="form-select">
-    <option value="">— Tipo —</option>
-    {% for t in tipos %}
-      <option value="{{ t.id }}" {% if request.args.get('tipo')|int == t.id %}selected{% endif %}>
-        {{ t.nome }}
-      </option>
-    {% endfor %}
-  </select>
-</div>
+      <div class="col-md-2">
+        <select name="tipo" class="form-select">
+          <option value="">— Tipo —</option>
+          {% for t in tipos %}
+            <option value="{{ t.id }}" {% if request.args.get('tipo')|int == t.id %}selected{% endif %}>{{ t.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-<div class="col-md-2">
-  <select name="marca" class="form-select">
-    <option value="">— Marca —</option>
-    {% for m in marcas %}
-      <option value="{{ m.id }}" {% if request.args.get('marca')|int == m.id %}selected{% endif %}>
-        {{ m.nome }}
-      </option>
-    {% endfor %}
-  </select>
-</div>
+      <div class="col-md-2">
+        <select name="marca" class="form-select">
+          <option value="">— Marca —</option>
+          {% for m in marcas %}
+            <option value="{{ m.id }}" {% if request.args.get('marca')|int == m.id %}selected{% endif %}>{{ m.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-<div class="col-md-2">
-  <select name="categoria" class="form-select">
-    <option value="">— Categoria —</option>
-    {% for c in categorias %}
-      <option value="{{ c.id }}" {% if request.args.get('categoria')|int == c.id %}selected{% endif %}>
-        {{ c.nome }}
-      </option>
-    {% endfor %}
-  </select>
-</div>
+      <div class="col-md-2">
+        <select name="categoria" class="form-select">
+          <option value="">— Categoria —</option>
+          {% for c in categorias %}
+            <option value="{{ c.id }}" {% if request.args.get('categoria')|int == c.id %}selected{% endif %}>{{ c.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-<div class="col-md-2">
-  <select name="calibre" class="form-select">
-    <option value="">— Calibre —</option>
-    {% for cal in calibres %}
-      <option value="{{ cal.id }}" {% if request.args.get('calibre')|int == cal.id %}selected{% endif %}>
-        {{ cal.nome }}
-      </option>
-    {% endfor %}
-  </select>
-</div>
+      <div class="col-md-2">
+        <select name="calibre" class="form-select">
+          <option value="">— Calibre —</option>
+          {% for cal in calibres %}
+            <option value="{{ cal.id }}" {% if request.args.get('calibre')|int == cal.id %}selected{% endif %}>{{ cal.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
       <div class="col-md-1">
         <select name="ordenar" class="form-select">
@@ -132,9 +127,7 @@
       </div>
 
       <div class="col-md-12 col-lg-1">
-        <button type="submit" class="btn text-white w-100"
-                style="background:#ff5e00;border-color:#ff5e00"
-                title="Aplicar filtros" data-bs-toggle="tooltip">
+        <button type="submit" class="btn text-white w-100" style="background:#ff5e00;border-color:#ff5e00">
           <i class="fas fa-search"></i>
         </button>
       </div>
@@ -159,48 +152,21 @@
       <tbody>
         {% for produto in produtos %}
         <tr>
-          <td class="text-start">{{ produto.codigo or '-' }}</td>
-          <td class="text-start text-truncate" style="max-width: 320px;">{{ produto.nome }}</td>
+          <td>{{ produto.codigo or '-' }}</td>
+          <td class="text-truncate" style="max-width:320px;">{{ produto.nome }}</td>
           <td class="text-end">{{ produto.preco_a_vista|currency }}</td>
           <td class="text-center">
             <div class="btn-group btn-group-sm" role="group">
-              <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}"
-                 class="btn btn-light" title="Parcelamento" data-bs-toggle="tooltip">
-                <i class="fas fa-credit-card"></i>
-              </a>
-
-              <a href="{{ url_for('produtos.gerenciar_produto', duplicar_de=produto.id) }}"
-                 class="btn btn-light" title="Duplicar" data-bs-toggle="tooltip">
-                <i class="fas fa-copy"></i>
-              </a>
-
-              <a href="{{ url_for('produtos.gerenciar_produto', produto_id=produto.id) }}"
-                 class="btn btn-light" title="Editar" data-bs-toggle="tooltip">
-                <i class="fas fa-pen"></i>
-              </a>
-
-              <button type="button"
-                      class="btn btn-light btn-whatsapp"
-                      data-produto-id="{{ produto.id }}"
-                      title="Gerar simulação e copiar" data-bs-toggle="tooltip">
-                <i class="fab fa-whatsapp" style="color:#25D366"></i>
-              </button>
-
-              <button type="button"
-                      class="btn btn-light text-danger btn-excluir"
-                      data-id="{{ produto.id }}"
-                      data-nome="{{ produto.nome }}"
-                      data-sku="{{ produto.codigo or '-' }}"
-                      title="Excluir" data-bs-toggle="tooltip">
-                <i class="fas fa-trash"></i>
-              </button>
+              <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}" class="btn btn-light"><i class="fas fa-credit-card"></i></a>
+              <a href="{{ url_for('produtos.gerenciar_produto', duplicar_de=produto.id) }}" class="btn btn-light"><i class="fas fa-copy"></i></a>
+              <a href="{{ url_for('produtos.gerenciar_produto', produto_id=produto.id) }}" class="btn btn-light"><i class="fas fa-pen"></i></a>
+              <button class="btn btn-light btn-whatsapp" data-produto-id="{{ produto.id }}"><i class="fab fa-whatsapp text-success"></i></button>
+              <button class="btn btn-light text-danger btn-excluir" data-id="{{ produto.id }}" data-nome="{{ produto.nome }}"><i class="fas fa-trash"></i></button>
             </div>
           </td>
         </tr>
         {% else %}
-        <tr>
-          <td colspan="4" class="text-center text-muted py-3">Nenhum produto encontrado.</td>
-        </tr>
+        <tr><td colspan="4" class="text-center text-muted py-3">Nenhum produto encontrado.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -210,37 +176,84 @@
 <!-- =======================
      CARDS (MOBILE)
 ======================= -->
-<div class="d-block d-md-none">
+<div class="d-md-none">
   <div class="row g-3">
     {% for produto in produtos %}
     <div class="col-12">
       <div class="card shadow-sm">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
-            <h6 class="card-title mb-1 text-truncate" style="max-width: 250px;">
+            <h6 class="card-title mb-1 text-truncate" style="max-width:250px;">
               <i class="fas fa-box-open me-1 text-dark"></i>{{ produto.nome }}
             </h6>
             <span class="badge bg-secondary">{{ produto.codigo or '-' }}</span>
           </div>
           <p class="mb-1 text-primary"><strong>À vista:</strong> {{ produto.preco_a_vista|currency }}</p>
           <div class="d-flex gap-2">
-            <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}"
-               class="btn btn-sm btn-outline-dark flex-fill"><i class="fas fa-credit-card"></i></a>
-            <a href="{{ url_for('produtos.gerenciar_produto', duplicar_de=produto.id) }}"
-               class="btn btn-sm btn-outline-secondary flex-fill"><i class="fas fa-copy"></i></a>
-            <a href="{{ url_for('produtos.gerenciar_produto', produto_id=produto.id) }}"
-               class="btn btn-sm btn-outline-secondary flex-fill"><i class="fas fa-pen"></i></a>
-            <button type="button" class="btn btn-sm btn-success flex-fill btn-whatsapp"
-                    data-produto-id="{{ produto.id }}"><i class="fab fa-whatsapp"></i></button>
-            <button type="button" class="btn btn-sm btn-outline-danger flex-fill btn-excluir"
-                    data-id="{{ produto.id }}" data-nome="{{ produto.nome }}"><i class="fas fa-trash"></i></button>
+            <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}" class="btn btn-sm btn-outline-dark flex-fill"><i class="fas fa-credit-card"></i></a>
+            <a href="{{ url_for('produtos.gerenciar_produto', duplicar_de=produto.id) }}" class="btn btn-sm btn-outline-secondary flex-fill"><i class="fas fa-copy"></i></a>
+            <a href="{{ url_for('produtos.gerenciar_produto', produto_id=produto.id) }}" class="btn btn-sm btn-outline-secondary flex-fill"><i class="fas fa-pen"></i></a>
+            <button class="btn btn-sm btn-success flex-fill btn-whatsapp" data-produto-id="{{ produto.id }}"><i class="fab fa-whatsapp"></i></button>
+            <button class="btn btn-sm btn-outline-danger flex-fill btn-excluir" data-id="{{ produto.id }}" data-nome="{{ produto.nome }}"><i class="fas fa-trash"></i></button>
           </div>
         </div>
       </div>
     </div>
+    {% else %}
+    <div class="text-center text-muted">Nenhum produto encontrado.</div>
     {% endfor %}
   </div>
 </div>
+
+<!-- =======================
+     PAGINAÇÃO (COMPATÍVEL)
+======================= -->
+{% if pagination.pages > 1 %}
+  {% set query_params = request.args.to_dict(flat=True) %}
+  <nav aria-label="Paginação de produtos" class="mt-4">
+    <ul class="pagination justify-content-center flex-wrap mb-0">
+
+      {# Botão anterior #}
+      {% if pagination.has_prev %}
+        {% set query_params = query_params.copy() %}
+        {% set _ = query_params.update({'page': pagination.prev_num}) %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('produtos.index') }}?{{ query_params|urlencode }}">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-left"></i></span></li>
+      {% endif %}
+
+      {# Páginas #}
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          {% set query_params = request.args.to_dict(flat=True) %}
+          {% set _ = query_params.update({'page': p}) %}
+          <li class="page-item {% if p == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('produtos.index') }}?{{ query_params|urlencode }}">{{ p }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+
+      {# Próximo #}
+      {% if pagination.has_next %}
+        {% set query_params = request.args.to_dict(flat=True) %}
+        {% set _ = query_params.update({'page': pagination.next_num}) %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('produtos.index') }}?{{ query_params|urlencode }}">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-right"></i></span></li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
 
 <!-- =======================
      TOAST: CÓPIA COM SUCESSO
@@ -248,11 +261,8 @@
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080;">
   <div id="toast-copy" class="toast align-items-center text-bg-success border-0" role="alert">
     <div class="d-flex">
-      <div class="toast-body">
-        <i class="fas fa-check-circle me-2"></i> Simulação copiada com sucesso!
-      </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto"
-              data-bs-dismiss="toast" aria-label="Close"></button>
+      <div class="toast-body"><i class="fas fa-check-circle me-2"></i> Simulação copiada com sucesso!</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
     </div>
   </div>
 </div>
@@ -276,9 +286,7 @@
       </div>
       <div class="modal-footer border-0">
         <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <a href="#" id="ex_btn_confirmar" class="btn btn-danger">
-          <i class="fas fa-trash me-1"></i> Excluir
-        </a>
+        <a href="#" id="ex_btn_confirmar" class="btn btn-danger"><i class="fas fa-trash me-1"></i> Excluir</a>
       </div>
     </div>
   </div>
@@ -288,26 +296,21 @@
      ESTILO
 ======================= -->
 <style>
-  .table-clean thead th {
-    background:#fafafa;
-    font-weight:600;
-    font-size:.85rem;
-    border-bottom:1px solid #eee;
-  }
-  .table-clean tbody td {
-    vertical-align:middle;
-    font-size:.9rem;
-    white-space:nowrap;
-  }
-  .table-clean tbody tr:hover { background-color:#f6f9fc; }
-  .btn-light:hover { background:rgba(0,0,0,.04); }
+.table-clean thead th {
+  background:#fafafa;font-weight:600;font-size:.85rem;border-bottom:1px solid #eee;
+}
+.table-clean tbody td { vertical-align:middle;font-size:.9rem; }
+.table-clean tbody tr:hover { background-color:#f6f9fc; }
+.page-link { color:#ff5e00;border:none; }
+.page-item.active .page-link { background:#ff5e00;border:none;color:#fff; }
+.btn-light:hover { background:rgba(0,0,0,.04); }
 </style>
 
 <!-- =======================
      SCRIPTS
 ======================= -->
 <script>
-/* WhatsApp: duplo clique (iOS-friendly) */
+/* WhatsApp: duplo clique */
 document.addEventListener("click", async function(e) {
   const btn = e.target.closest(".btn-whatsapp");
   if (!btn) return;
@@ -315,7 +318,6 @@ document.addEventListener("click", async function(e) {
 
   const textoJaCarregado = btn.getAttribute("data-texto-completo");
 
-  // ETAPA 2 — já carregou: copiar
   if (textoJaCarregado) {
     try {
       await navigator.clipboard.writeText(textoJaCarregado);
@@ -323,81 +325,49 @@ document.addEventListener("click", async function(e) {
       new bootstrap.Toast(toastEl).show();
       btn.removeAttribute("data-texto-completo");
       btn.innerHTML = '<i class="fab fa-whatsapp" style="color:#25D366"></i>';
-      btn.title = "Gerar simulação e copiar";
-    } catch (err) {
-      console.error("Falha ao copiar:", err);
-      alert("Erro ao copiar. A permissão pode ter sido negada.");
+    } catch {
+      alert("Erro ao copiar. Permissão negada.");
     }
     return;
   }
 
-  // ETAPA 1 — buscar texto
   if (!btn.hasAttribute("data-loading")) {
     btn.setAttribute("data-loading", "true");
-    const produtoId = btn.getAttribute("data-produto-id");
-    const originalIcon = btn.innerHTML;
-
+    const id = btn.getAttribute("data-produto-id");
+    const original = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    btn.title = "Gerando simulação...";
-
     try {
-      const response = await fetch(`/api/produto/${produtoId}/whatsapp`);
-      if (!response.ok) throw new Error(`Erro na API: ${response.statusText}`);
-      const data = await response.json();
-      btn.setAttribute("data-texto-completo", data.texto_completo);
+      const r = await fetch(`/api/produto/${id}/whatsapp`);
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      btn.setAttribute("data-texto-completo", d.texto_completo);
       btn.innerHTML = '<i class="fas fa-copy"></i> Toque para copiar';
-      btn.title = "Toque novamente para copiar o texto";
-    } catch (error) {
-      console.error("Erro ao gerar simulação:", error);
+    } catch {
       alert("Erro ao gerar simulação.");
-      btn.innerHTML = originalIcon;
+      btn.innerHTML = original;
     } finally {
       btn.removeAttribute("data-loading");
     }
   }
 });
 
-/* Excluir: abre modal e injeta dados */
+/* Modal de exclusão */
 document.addEventListener("click", function(e) {
   const btn = e.target.closest(".btn-excluir");
   if (!btn) return;
-
+  document.getElementById("ex_nome").textContent = btn.getAttribute("data-nome") || "—";
+  document.getElementById("ex_sku").textContent = btn.getAttribute("data-sku") || "—";
   const id = btn.getAttribute("data-id");
-  const nome = btn.getAttribute("data-nome");
-  const sku = btn.getAttribute("data-sku");
-
-  document.getElementById("ex_nome").textContent = nome || "—";
-  document.getElementById("ex_sku").textContent = sku || "—";
-
   const href = `/produtos/${id}/excluir`;
   const confirmBtn = document.getElementById("ex_btn_confirmar");
-
-  // Remove event listeners antigos
-  const newConfirmBtn = confirmBtn.cloneNode(true);
-  confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-
-  // Novo comportamento: envia POST corretamente
-  newConfirmBtn.addEventListener("click", function (ev) {
+  const newBtn = confirmBtn.cloneNode(true);
+  confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+  newBtn.addEventListener("click", async (ev) => {
     ev.preventDefault();
-    fetch(href, {
-      method: "POST",
-      headers: { "X-Requested-With": "XMLHttpRequest" }
-    })
-    .then(resp => {
-      if (resp.ok) {
-        location.reload();
-      } else {
-        alert("Erro ao excluir o produto. Tente novamente.");
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      alert("Falha de conexão ao excluir o produto.");
-    });
+    const resp = await fetch(href, { method:"POST", headers:{"X-Requested-With":"XMLHttpRequest"} });
+    if (resp.ok) location.reload(); else alert("Erro ao excluir.");
   });
-
-  const modal = new bootstrap.Modal(document.getElementById("modalExcluirProduto"));
-  modal.show();
+  new bootstrap.Modal(document.getElementById("modalExcluirProduto")).show();
 });
 </script>
 

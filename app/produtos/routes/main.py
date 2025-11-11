@@ -1,6 +1,7 @@
 from flask import render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
+from sqlalchemy import or_
 from decimal import Decimal, InvalidOperation
 from datetime import datetime, timezone
 import pytz
@@ -13,26 +14,29 @@ from app.produtos.configs.models import (
     MarcaProduto, CalibreProduto, TipoProduto, FuncionamentoProduto
 )
 
+
 # ======================
-# LISTAGEM DE PRODUTOS — Sprint 4B
+# LISTAGEM DE PRODUTOS — Sprint 4B + Paginação M4
 # ======================
 @produtos_bp.route("/", endpoint="index")
 @login_required
 def index():
-    """Listagem com filtros dinâmicos, busca por nome/código e ordenação."""
+    """Listagem de produtos com filtros, busca, ordenação e paginação."""
     termo = request.args.get("termo", "").strip()
     tipo = request.args.get("tipo", type=int)
     categoria = request.args.get("categoria", type=int)
     marca = request.args.get("marca", type=int)
     calibre = request.args.get("calibre", type=int)
     ordenar = request.args.get("ordenar", "nome_asc")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 20, type=int)
 
     query = Produto.query
 
     # 🔍 Busca inteligente (nome ou código)
     if termo:
         query = query.filter(
-            db.or_(
+            or_(
                 Produto.nome.ilike(f"%{termo}%"),
                 Produto.codigo.ilike(f"%{termo}%")
             )
@@ -60,7 +64,9 @@ def index():
     }
     query = query.order_by(ordem_map.get(ordenar, Produto.nome.asc()))
 
-    produtos = query.all()
+    # 📄 Paginação (mantendo filtros)
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    produtos = pagination.items
 
     # 🔄 Listas dinâmicas (para selects de filtro)
     tipos = TipoProduto.query.order_by(TipoProduto.nome.asc()).all()
@@ -71,10 +77,12 @@ def index():
     return render_template(
         "produtos/index.html",
         produtos=produtos,
+        pagination=pagination,
         tipos=tipos,
         categorias=categorias,
         marcas=marcas,
         calibres=calibres,
+        per_page=per_page,
     )
 
 
@@ -85,9 +93,7 @@ def index():
 @produtos_bp.route("/<int:produto_id>/editar", methods=["GET", "POST"])
 @login_required
 def gerenciar_produto(produto_id=None):
-    """Cria ou edita um produto com relacionamentos de tipo/marca/calibre/funcionamento."""
-
-    # 🔁 DUPLICAR PRODUTO
+    """Cria ou edita um produto com relacionamentos e auditoria."""
     duplicar_de = request.args.get("duplicar_de", type=int)
     if duplicar_de:
         produto_ref = Produto.query.get(duplicar_de)
@@ -116,7 +122,6 @@ def gerenciar_produto(produto_id=None):
             flash("⚠️ Produto de origem não encontrado para duplicação.", "warning")
             produto = Produto()
     else:
-        # ✅ Carrega o produto com histórico incluído na edição
         if produto_id:
             produto = (
                 Produto.query.options(joinedload(Produto.historicos))
@@ -126,19 +131,15 @@ def gerenciar_produto(produto_id=None):
         else:
             produto = Produto()
 
-    # Dados auxiliares para selects
     categorias = CategoriaProduto.query.order_by(CategoriaProduto.nome.asc()).all()
     marcas = MarcaProduto.query.order_by(MarcaProduto.nome.asc()).all()
     calibres = CalibreProduto.query.order_by(CalibreProduto.nome.asc()).all()
     tipos = TipoProduto.query.order_by(TipoProduto.nome.asc()).all()
     funcionamentos = FuncionamentoProduto.query.order_by(FuncionamentoProduto.nome.asc()).all()
 
-    # ======================
-    # SALVAR PRODUTO (POST)
-    # ======================
     if request.method == "POST":
         data = request.form
-        foto_atual = produto.foto_url  # ✅ mantém a foto existente antes da atualização
+        foto_atual = produto.foto_url
 
         def to_int(value):
             try:
@@ -152,7 +153,6 @@ def gerenciar_produto(produto_id=None):
             except InvalidOperation:
                 return Decimal(0)
 
-        # 🔎 snapshot antes das mudanças (para diffs)
         campos_auditados = [
             "codigo", "nome", "descricao",
             "categoria_id", "marca_id", "calibre_id", "tipo_id", "funcionamento_id",
@@ -162,7 +162,6 @@ def gerenciar_produto(produto_id=None):
         ]
         antes = {c: getattr(produto, c, None) for c in campos_auditados}
 
-        # Campos básicos
         codigo = (data.get("codigo") or "").strip().upper()
         nome = (data.get("nome") or "").strip()
         descricao = (data.get("descricao") or "").strip() or None
@@ -173,7 +172,6 @@ def gerenciar_produto(produto_id=None):
         produto.tipo_id = to_int(data.get("tipo_id"))
         produto.funcionamento_id = to_int(data.get("funcionamento_id"))
 
-        # Verifica duplicidade de SKU
         existente = (
             Produto.query.filter(Produto.codigo == codigo)
             .filter(Produto.id != produto.id if produto.id else True)
@@ -188,7 +186,6 @@ def gerenciar_produto(produto_id=None):
         produto.descricao = descricao
         produto.foto_url = data.get("foto_url") or produto.foto_url
 
-        # Valores numéricos
         produto.preco_fornecedor = to_decimal(data.get("preco_fornecedor"))
         produto.desconto_fornecedor = to_decimal(data.get("desconto_fornecedor"))
         produto.frete = to_decimal(data.get("frete"))
@@ -200,20 +197,16 @@ def gerenciar_produto(produto_id=None):
         produto.imposto_venda = to_decimal(data.get("imposto_venda"))
         produto.ipi_tipo = data.get("ipi_tipo", "%_dentro")
 
-        # ✅ preserva a foto existente caso o campo não venha do formulário
         if not data.get("foto_url"):
             produto.foto_url = foto_atual
 
         try:
-            # Cálculo automático dos preços
             if hasattr(produto, "calcular_precos"):
                 produto.calcular_precos()
 
-            # Persiste o produto e garante o ID para auditar
             db.session.add(produto)
-            db.session.flush()  # 👈 garante produto.id
+            db.session.flush()
 
-            # 🔐 auditoria de criação/edição + diffs
             registros = []
 
             if not produto_id:
@@ -229,9 +222,6 @@ def gerenciar_produto(produto_id=None):
                     data_modificacao=datetime.utcnow(),
                 ))
 
-            # ===============================
-            # FORMATAÇÃO DE HISTÓRICO (% vs R$)
-            # ===============================
             campos_percentuais = ["ipi", "ipi_tipo", "difal", "imposto_venda"]
 
             def normalizar_valor(v, campo_nome):
@@ -245,7 +235,6 @@ def gerenciar_produto(produto_id=None):
                 except (ValueError, TypeError):
                     return str(v)
 
-            # Compara diffs campo a campo
             depois = {c: getattr(produto, c, None) for c in campos_auditados}
             for campo in campos_auditados:
                 a, d = antes.get(campo), depois.get(campo)
@@ -265,9 +254,7 @@ def gerenciar_produto(produto_id=None):
             if registros:
                 db.session.add_all(registros)
 
-            # commit final
             db.session.commit()
-
             flash("✅ Produto salvo com sucesso!", "success")
             return redirect(url_for("produtos.index"))
 
@@ -276,12 +263,8 @@ def gerenciar_produto(produto_id=None):
             current_app.logger.error(f"Erro ao salvar produto: {e}")
             flash("❌ Ocorreu um erro ao salvar o produto.", "danger")
 
-    # ======================
-    # RENDERIZAÇÃO FINAL
-    # ======================
     if produto and produto.atualizado_em:
         try:
-            # converte UTC → horário de Fortaleza
             fuso_fortaleza = pytz.timezone("America/Fortaleza")
             if produto.atualizado_em.tzinfo is None:
                 produto.atualizado_em = produto.atualizado_em.replace(tzinfo=timezone.utc)
