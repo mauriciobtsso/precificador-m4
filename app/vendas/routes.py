@@ -1,4 +1,4 @@
-from flask import render_template, request, url_for
+from flask import render_template, request
 from flask_login import login_required
 from app.extensions import db
 from app.vendas.models import Venda, ItemVenda
@@ -9,14 +9,13 @@ from sqlalchemy import extract
 
 
 # =========================
-# Listagem de Vendas
+# LISTAGEM DE VENDAS + RESUMO
 # =========================
 @vendas_bp.route("/", methods=["GET", "POST"])
 @login_required
 def vendas():
     page = request.args.get("page", 1, type=int)
-    per_page = 50  # limite padrão de registros por página
-
+    per_page = 50
     query = Venda.query.join(Cliente, isouter=True)
 
     # --- Filtros ---
@@ -28,12 +27,10 @@ def vendas():
 
     if cliente_nome:
         query = query.filter(Cliente.nome.ilike(f"%{cliente_nome}%"))
-
     if status:
         query = query.filter(Venda.status.ilike(f"%{status}%"))
 
     hoje = datetime.today()
-
     if periodo == "7d":
         query = query.filter(Venda.data_abertura >= hoje - timedelta(days=7))
     elif periodo == "mes":
@@ -47,24 +44,41 @@ def vendas():
             fim = datetime.strptime(data_fim, "%Y-%m-%d") + timedelta(days=1)
             query = query.filter(Venda.data_abertura >= inicio, Venda.data_abertura < fim)
         except Exception:
-            pass  # futuro: adicionar flash para feedback ao usuário
+            pass
 
     # --- Paginação ---
     vendas_paginadas = query.order_by(Venda.data_abertura.desc()).paginate(page=page, per_page=per_page)
 
+    # --- Resumo agregado ---
+    vendas_filtradas = query.all()
+    total_vendas = len(vendas_filtradas)
+    soma_total = sum(v.valor_total or 0 for v in vendas_filtradas)
+    soma_descontos = sum(v.desconto_valor or 0 for v in vendas_filtradas)
+    soma_recebido = sum(v.valor_recebido or 0 for v in vendas_filtradas)
+    media_venda = soma_total / total_vendas if total_vendas > 0 else 0
+
+    resumo = {
+        "total_vendas": total_vendas,
+        "soma_total": soma_total,
+        "soma_descontos": soma_descontos,
+        "soma_recebido": soma_recebido,
+        "media_venda": media_venda,
+    }
+
     return render_template(
         "vendas/index.html",
         vendas=vendas_paginadas,
+        resumo=resumo,
         cliente_nome=cliente_nome,
         status=status,
         periodo=periodo,
         data_inicio=data_inicio,
-        data_fim=data_fim
+        data_fim=data_fim,
     )
 
 
 # =========================
-# Detalhe de Venda
+# DETALHE DE VENDA
 # =========================
 @vendas_bp.route("/<int:venda_id>")
 @login_required
