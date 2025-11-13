@@ -1,55 +1,148 @@
 # ===========================
-# ALERTAS - AGENDADOR DIÁRIO (Sprint 4.3 - v4 Estável)
-# + Ajuste Automático de Sequências (Sprint 6G)
+# ALERTAS - AGENDADOR DIÁRIO
+# + Keep-Alive Render
+# + Retry robusto para DB (Locaweb)
 # ===========================
 
 from datetime import datetime
 import time
 import traceback
+import os
+import requests
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import current_app
+
+from sqlalchemy import text
+from sqlalchemy import exc as sa_exc
 
 from app.extensions import db
 from app.utils.alertas import gerar_alertas_gerais
 from app.alertas.notificacoes import enviar_notificacao
 
 
-# -----------------------------------------------------
-# 🔹 Função principal: verificar_alertas_diarios()
-# -----------------------------------------------------
+# ---------------------------------------------------------
+# Helper robusto: executar ação com retry e backoff
+# ---------------------------------------------------------
+def executar_com_retry(acao, descricao="acao", tentativas=3, pausa_inicial=2):
+    """
+    Executa a função `acao` com retry em caso de erros de conexão/SSL com o banco.
+    - descarta conexões quebradas (db.engine.dispose)
+    - faz rollback da sessão atual
+    - aplica backoff exponencial entre as tentativas
+    """
+    pausa = pausa_inicial
+
+    for tentativa in range(1, tentativas + 1):
+        try:
+            inicio = time.time()
+            resultado = acao()
+            duracao = time.time() - inicio
+
+            if current_app:
+                current_app.logger.info(
+                    f"[RETRY] '{descricao}' concluída na tentativa {tentativa}/{tentativas} "
+                    f"({duracao:.2f}s)."
+                )
+
+            return resultado
+
+        except sa_exc.OperationalError as e:
+            # Erros típicos: SSL error, connection reset, timeout, bad record mac, etc.
+            msg = str(e).lower()
+            if current_app:
+                current_app.logger.warning(
+                    f"[RETRY] Erro operacional ao executar '{descricao}' "
+                    f"(tentativa {tentativa}/{tentativas}): {e}"
+                )
+
+            db.session.rollback()
+            # descarta pool atual para forçar novas conexões limpas
+            try:
+                db.engine.dispose()
+            except Exception:
+                pass
+
+            if tentativa >= tentativas:
+                if current_app:
+                    current_app.logger.error(
+                        f"[RETRY] Todas as tentativas falharam para '{descricao}'."
+                    )
+                raise
+
+            time.sleep(pausa)
+            pausa *= 2  # backoff exponencial (2s, 4s, 8s...)
+
+        except Exception as e:
+            # Outros erros não relacionados a conexão: não faz sentido tentar novamente
+            db.session.rollback()
+            if current_app:
+                current_app.logger.error(
+                    f"[RETRY] Erro não esperado em '{descricao}': {e}",
+                    exc_info=True,
+                )
+            raise
+
+
+# ---------------------------------------------------------
+# Keep-Alive para impedir Render de dormir
+# ---------------------------------------------------------
+def manter_render_vivo():
+    url = os.getenv("RENDER_PING_URL", "https://precificador-m4.onrender.com/health")
+    try:
+        requests.head(url, timeout=5)
+        print(f"[KEEP-ALIVE] Ping enviado para {url}")
+        if current_app:
+            current_app.logger.info(f"[KEEP-ALIVE] Ping enviado para {url}")
+    except Exception as e:
+        print(f"[KEEP-ALIVE] Falha ao pingar Render: {e}")
+        if current_app:
+            current_app.logger.warning(f"[KEEP-ALIVE] Falha ao pingar Render: {e}")
+
+
+# ---------------------------------------------------------
+# Verificação diária de alertas (robusta)
+# ---------------------------------------------------------
 def verificar_alertas_diarios(app=None):
     """
     Executa verificação automática de alertas e registra notificações.
-    Pode ser executada manualmente ou via agendador APScheduler.
+    Protegida com retry robusto contra falhas temporárias de conexão.
     """
-
     ctx = None
     if app:
         try:
             ctx = app.app_context()
             ctx.push()
         except Exception:
-            pass  # já dentro do contexto
+            pass
 
     inicio = datetime.now()
     print(f"[{inicio:%Y-%m-%d %H:%M:%S}] 🔄 Iniciando verificação diária de alertas...")
+    if current_app:
+        current_app.logger.info("🔄 Iniciando verificação diária de alertas...")
 
     try:
         total_novos = 0
         inicio_exec = time.time()
 
-        # 1️⃣ Gera alertas consolidados do sistema
-        resultado = gerar_alertas_gerais()
+        # Geração de alertas com retry robusto
+        resultado = executar_com_retry(
+            gerar_alertas_gerais,
+            descricao="gerar_alertas_gerais",
+            tentativas=3,
+            pausa_inicial=3,
+        )
 
-        # ✅ Suporte a retorno paginado (dict com "data")
         if isinstance(resultado, dict) and "data" in resultado:
             alertas = resultado["data"]
         else:
             alertas = resultado or []
 
         print(f"   ➜ {len(alertas)} alertas encontrados para análise.")
+        if current_app:
+            current_app.logger.info(f"[ALERTAS] {len(alertas)} alertas encontrados.")
 
-        # 2️⃣ Processa cada alerta individualmente
+        # Processamento de alertas
         for alerta in alertas:
             try:
                 registro = enviar_notificacao(alerta, meio="sistema")
@@ -58,26 +151,41 @@ def verificar_alertas_diarios(app=None):
             except Exception as e:
                 print(f"   ⚠️ Erro ao registrar alerta: {e}")
                 traceback.print_exc()
+                if current_app:
+                    current_app.logger.error(
+                        f"[ALERTAS] Erro ao registrar alerta: {e}",
+                        exc_info=True,
+                    )
 
-        # 3️⃣ Finaliza e exibe resumo
         fim = datetime.now()
         duracao = time.time() - inicio_exec
-        print(f"[{fim:%Y-%m-%d %H:%M:%S}] ✅ {total_novos} novas notificações registradas ({duracao:.1f}s)")
+        print(
+            f"[{fim:%Y-%m-%d %H:%M:%S}] ✅ {total_novos} novas notificações "
+            f"registradas ({duracao:.1f}s)"
+        )
+        if current_app:
+            current_app.logger.info(
+                f"[ALERTAS] ✅ {total_novos} novas notificações registradas "
+                f"({duracao:.1f}s)"
+            )
 
-    except Exception as e:
+    except Exception:
         print("❌ Erro na verificação diária de alertas:")
         traceback.print_exc()
+        if current_app:
+            current_app.logger.error(
+                "❌ Erro na verificação diária de alertas:",
+                exc_info=True,
+            )
 
     finally:
         if ctx:
             ctx.pop()
 
 
-# ============================================================
-# 🔹 Função auxiliar: corrigir_todas_as_sequencias()
-# ============================================================
-from sqlalchemy import text
-
+# ---------------------------------------------------------
+# Ajuste automático de sequências
+# ---------------------------------------------------------
 TABELAS_SEQUENCIAS = [
     "produtos",
     "categoria_produto",
@@ -87,20 +195,21 @@ TABELAS_SEQUENCIAS = [
     "funcionamento_produto",
 ]
 
+
 def corrigir_todas_as_sequencias():
     """
     Corrige automaticamente as sequências (auto-increment) das tabelas
-    relacionadas a produtos e configurações, prevenindo erros de
-    'duplicate key value violates unique constraint'.
-    Executada diariamente às 03:00 via APScheduler.
+    relacionadas a produtos e configurações.
+    Também usa retry para evitar falhas temporárias de conexão.
     """
     try:
-        from app import db
+        from app import db  # import tardio para evitar ciclos
+
         total_corrigidas = 0
         falhas = []
 
         for tabela in TABELAS_SEQUENCIAS:
-            try:
+            def acao_corrigir():
                 sql = text(f"""
                     SELECT setval(
                         pg_get_serial_sequence('{tabela}', 'id'),
@@ -110,41 +219,64 @@ def corrigir_todas_as_sequencias():
                 """)
                 db.session.execute(sql)
                 db.session.commit()
-                current_app.logger.info(f"[AUTOSEQ] Sequência corrigida para '{tabela}' ✅")
+
+            try:
+                executar_com_retry(
+                    acao_corrigir,
+                    descricao=f"ajuste_sequencia_{tabela}",
+                    tentativas=3,
+                    pausa_inicial=2,
+                )
+                msg_ok = f"[AUTOSEQ] Sequência corrigida para '{tabela}' ✅"
+                print(msg_ok)
+                if current_app:
+                    current_app.logger.info(msg_ok)
                 total_corrigidas += 1
+
             except Exception as e:
                 db.session.rollback()
                 falhas.append((tabela, str(e)))
-                current_app.logger.error(f"[AUTOSEQ] Falha ao corrigir sequência de '{tabela}': {e}")
+                msg_err = f"[AUTOSEQ] Falha ao corrigir sequência de '{tabela}': {e}"
+                print(msg_err)
+                if current_app:
+                    current_app.logger.error(msg_err, exc_info=True)
 
-        resumo = f"{total_corrigidas} sequência(s) corrigida(s) às {datetime.now():%d/%m/%Y %H:%M:%S}"
+        resumo = (
+            f"{total_corrigidas} sequência(s) corrigida(s) às "
+            f"{datetime.now():%d/%m/%Y %H:%M:%S}"
+        )
         if falhas:
             resumo += f" — Falhas em: {', '.join(t for t, _ in falhas)}"
-        current_app.logger.info(f"[AUTOSEQ] {resumo}")
+
+        print(f"[AUTOSEQ] {resumo}")
+        if current_app:
+            current_app.logger.info(f"[AUTOSEQ] {resumo}")
 
     except Exception as e:
-        current_app.logger.error(f"[AUTOSEQ] Erro geral no ajuste automático de sequências: {e}")
+        msg = f"[AUTOSEQ] Erro geral no ajuste automático de sequências: {e}"
+        print(msg)
         traceback.print_exc()
+        if current_app:
+            current_app.logger.error(msg, exc_info=True)
 
 
-# -----------------------------------------------------
-# 🔹 Função: iniciar_scheduler()
-# -----------------------------------------------------
+# ---------------------------------------------------------
+# Iniciar Scheduler
+# ---------------------------------------------------------
 def iniciar_scheduler(app):
     """
     Configura e inicia o APScheduler integrado ao Flask.
-    Executa:
       • Verificação de alertas às 06:00
       • Ajuste de sequências às 03:00
+      • Keep-alive a cada 10 minutos
     """
-
     scheduler = BackgroundScheduler(timezone="America/Sao_Paulo")
 
-    # Remove tarefas antigas duplicadas
+    # Remove jobs antigos (evita duplicidade em hot-reload)
     for job in scheduler.get_jobs():
         scheduler.remove_job(job.id)
 
-    # === 1️⃣ Verificação de alertas diários ===
+    # Verificação de alertas diários
     scheduler.add_job(
         func=lambda: verificar_alertas_diarios(app),
         trigger="cron",
@@ -154,7 +286,7 @@ def iniciar_scheduler(app):
         replace_existing=True,
     )
 
-    # === 2️⃣ Ajuste automático de sequências ===
+    # Ajuste automático de sequências
     scheduler.add_job(
         func=corrigir_todas_as_sequencias,
         trigger="cron",
@@ -164,19 +296,32 @@ def iniciar_scheduler(app):
         replace_existing=True,
     )
 
+    # Keep-alive Render
+    scheduler.add_job(
+        func=manter_render_vivo,
+        trigger="interval",
+        minutes=10,
+        id="manter_render_vivo",
+        replace_existing=True,
+    )
+
     scheduler.start()
-    print("Agendador iniciado: alertas (06:00) e ajuste de sequências (03:00).")
+    print(
+        "Agendador iniciado: alertas (06:00), ajuste de sequências (03:00) "
+        "e keep-alive (10 min)."
+    )
+    if current_app:
+        current_app.logger.info(
+            "Scheduler iniciado: alertas (06:00), auto-sequência (03:00), "
+            "keep-alive (10 min)."
+        )
     return scheduler
 
 
-# -----------------------------------------------------
-# 🔹 Execução manual (CLI)
-# -----------------------------------------------------
+# ---------------------------------------------------------
+# Execução manual (CLI)
+# ---------------------------------------------------------
 if __name__ == "__main__":
-    """
-    Permite execução manual via terminal:
-    > py -m app.alertas.tasks
-    """
     from app import create_app
 
     app = create_app()
@@ -186,3 +331,6 @@ if __name__ == "__main__":
 
         print("⚙️ Executando ajuste manual de sequências...")
         corrigir_todas_as_sequencias()
+
+        print("⚙️ Executando keep-alive...")
+        manter_render_vivo()
