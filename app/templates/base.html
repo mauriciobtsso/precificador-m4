@@ -258,15 +258,15 @@
             </li>
 
             <li class="nav-item">
-              <a class="nav-link text-white {% if request.endpoint == 'main.usuarios' %}active border-start border-3 border-primary{% endif %}"
-                 href="{{ url_for('main.usuarios') }}">
+              <a class="nav-link text-white {% if request.endpoint == 'admin.usuarios' %}active border-start border-3 border-primary{% endif %}"
+                 href="{{ url_for('admin.usuarios') }}">
                 <i class="fas fa-user-cog"></i> <span>Usuários</span>
               </a>
             </li>
 
             <li class="nav-item">
-              <a class="nav-link text-white {% if request.endpoint == 'main.configuracoes' %}active border-start border-3 border-primary{% endif %}"
-                 href="{{ url_for('main.configuracoes') }}">
+              <a class="nav-link text-white {% if request.endpoint == 'admin.configuracoes' %}active border-start border-3 border-primary{% endif %}"
+                 href="{{ url_for('admin.configuracoes') }}">
                 <i class="fas fa-cogs"></i> <span>Configurações</span>
               </a>
             </li>

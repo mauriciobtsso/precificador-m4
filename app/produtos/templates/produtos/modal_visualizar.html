@@ -1,0 +1,109 @@
+<div class="modal fade" id="modalVisualizarProduto" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-fullscreen-md-down">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-eye text-primary me-2"></i> Visualizar Produto
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        
+        <style>
+          .tabela-compacta th, 
+          .tabela-compacta td {
+            padding-top: 4px !important;
+            padding-bottom: 4px !important;
+            padding-left: 8px !important;  /* Espaçamento lateral interno */
+            padding-right: 8px !important;
+            vertical-align: middle;
+            line-height: 1.2;
+          }
+        </style>
+
+        <div id="vp_area_print">
+          
+          <div class="row g-3 justify-content-center">
+            <div class="col-md-5 text-center">
+              <img
+                id="vp_foto"
+                src="/static/img/placeholder.jpg"
+                class="img-fluid rounded shadow-sm"
+                style="background:#fff; max-height: 200px; object-fit: contain;"
+                crossorigin="anonymous"
+                alt="Foto do produto"
+              >
+            </div>
+
+            <div class="col-md-7">
+              <h4 id="vp_nome" class="fw-semibold mb-1"></h4>
+              <p id="vp_codigo" class="text-muted small mb-2"></p>
+
+              <div class="mb-3 small">
+                <div><strong>Categoria:</strong> <span id="vp_categoria">-</span></div>
+                <div><strong>Marca:</strong> <span id="vp_marca">-</span></div>
+                <div><strong>Calibre:</strong> <span id="vp_calibre">-</span></div>
+                <div><strong>Tipo:</strong> <span id="vp_tipo">-</span></div>
+                <div><strong>Funcionamento:</strong> <span id="vp_funcionamento">-</span></div>
+              </div>
+              
+              <div id="vp_descricao" class="small text-muted border-top pt-2"></div>
+            </div>
+          </div>
+
+          <hr class="my-3">
+
+          <div class="row text-center g-2 justify-content-center">
+            <div class="col-6 col-md-5">
+              <div class="p-3 rounded bg-light shadow-sm h-100 d-flex flex-column justify-content-center">
+                <div class="text-muted small fst-italic">À Vista</div>
+                <div id="vp_preco_avista" class="fw-bold fs-5 text-dark text-nowrap"></div>
+              </div>
+            </div>
+
+            <div class="col-6 col-md-5">
+              <div class="p-3 rounded bg-light shadow-sm h-100 d-flex flex-column justify-content-center">
+                <div class="text-muted small fst-italic">Parcelado em</div>
+                <div id="vp_preco_parcelado" class="fw-bold fs-6 text-dark"></div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-3">
+
+          <div class="mb-4 text-center">
+            <h6 class="fw-bold mb-2 small text-secondary text-start mx-auto" style="max-width: 600px;">
+              <i class="fas fa-list-ol me-1"></i> Tabela de Parcelamento
+            </h6>
+            
+            <div class="table-responsive border rounded mx-auto" style="max-width: 600px;">
+              <table class="table table-sm table-striped mb-0 tabela-compacta" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                  <tr>
+                    <th class="text-start ps-3" style="width: 30%;">Condição</th>
+                    <th class="text-center" style="width: 35%;">Parcela</th>
+                    <th class="text-end pe-3" style="width: 35%;">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="vp_parcelas">
+                  </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="height: 50px;"></div>
+
+        </div> </div>
+
+      <div class="modal-footer bg-light">
+        <button id="vp_btn_print" class="btn btn-dark shadow-sm">
+          <i class="fas fa-camera me-2"></i> Gerar Print
+        </button>
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+
+    </div>
+  </div>
+</div>

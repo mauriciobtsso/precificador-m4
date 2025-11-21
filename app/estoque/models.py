@@ -2,6 +2,7 @@
 from datetime import datetime
 from app.produtos.models import Produto
 from app.clientes.models import Cliente
+from app.utils.datetime import now_local  # ✔️ Padronização de horário aplicada
 
 class ItemEstoque(db.Model):
     __tablename__ = "estoque_itens"
@@ -16,7 +17,10 @@ class ItemEstoque(db.Model):
     numero_embalagem = db.Column(db.String(50), nullable=True)
     quantidade = db.Column(db.Integer, default=1)
     status = db.Column(db.String(30), default="disponivel", nullable=False)
-    data_entrada = db.Column(db.Date, default=datetime.utcnow)
+
+    # ✔️ Ajuste conforme OPÇÃO B (sem alterar tipo da coluna)
+    data_entrada = db.Column(db.Date, default=lambda: now_local().date())
+
     observacoes = db.Column(db.Text, nullable=True)
 
     produto = db.relationship("Produto", backref="itens_estoque")

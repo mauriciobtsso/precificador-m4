@@ -3,23 +3,8 @@
 # ============================================================
 
 from app import db
-from datetime import datetime
-import pytz
+from app.utils.datetime import now_local
 
-# ============================================================
-# FUSO HORÁRIO PADRÃO (Teresina)
-# ============================================================
-TZ_FORTALEZA = pytz.timezone("America/Fortaleza")
-
-
-def now_local():
-    """Retorna horário atual no fuso de Teresina (UTC-3)."""
-    return datetime.now(TZ_FORTALEZA)
-
-
-# ============================================================
-# MODELO: ImportacaoLog
-# ============================================================
 class ImportacaoLog(db.Model):
     __tablename__ = "importacoes_log"
 
@@ -32,7 +17,6 @@ class ImportacaoLog(db.Model):
     total = db.Column(db.Integer, nullable=False, default=0)
 
     def to_dict(self):
-        """Converte para dicionário serializável (para APIs e JSON)."""
         return {
             "id": self.id,
             "tipo": self.tipo,

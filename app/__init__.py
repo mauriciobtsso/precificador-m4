@@ -15,6 +15,11 @@ from app.produtos.configs import models as configs_models
 
 load_dotenv()
 
+# =========================================================
+# FUSO HORÁRIO PADRÃO — agora movido para app/utils/datetime.py
+# =========================================================
+from app.utils.datetime import now_local
+
 
 # =========================================================
 # LOGGING
@@ -105,6 +110,7 @@ def create_app():
     # REGISTRO DE BLUEPRINTS
     # =========================================================
     from app.main import main
+    from app.admin import admin_bp
     from app.clientes.routes import clientes_bp
     from app.vendas import vendas_bp
     from app.produtos import produtos_bp
@@ -133,6 +139,7 @@ def create_app():
     app.register_blueprint(notificacoes_bp)
     app.register_blueprint(compras_nf_bp)
     app.register_blueprint(importacoes_bp)
+    app.register_blueprint(admin_bp, url_prefix="/admin")
 
     # =========================================================
     # AGENDADOR DE ALERTAS

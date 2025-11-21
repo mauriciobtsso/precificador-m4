@@ -15,6 +15,12 @@ from app.produtos.configs.models import (
     MarcaProduto, CalibreProduto, TipoProduto, FuncionamentoProduto
 )
 
+from app.models import Taxa
+import app.utils.parcelamento as parc
+
+from urllib.parse import urlparse
+from app.utils.r2_helpers import gerar_link_r2
+
 # ============================================================
 #  Cache leve em memória para fragmentos da listagem (AJAX)
 #  - Apenas para listagem SEM filtros (home de produtos)
@@ -115,7 +121,7 @@ def index():
     if calibre:
         query = query.filter(Produto.calibre_id == calibre)
 
-    # ↕️ Ordenação
+    #↕️ Ordenação
     query = query.order_by(ordem)
 
     # -----------------------------
@@ -401,3 +407,91 @@ def excluir_produto(produto_id):
         current_app.logger.error(f"Erro ao excluir produto: {e}")
         flash("❌ Erro ao excluir produto.", "danger")
     return redirect(url_for("produtos.index"))
+
+# ============================================================
+# VISUALIZAR PRODUTO (AJAX)
+# ============================================================
+@produtos_bp.route("/<int:produto_id>/visualizar", methods=["GET"])
+@login_required
+def visualizar_produto(produto_id):
+    # 1. Busca o produto com os relacionamentos
+    produto = (
+        Produto.query
+        .options(
+            joinedload(Produto.categoria),
+            joinedload(Produto.marca_rel),
+            joinedload(Produto.calibre_rel),
+            joinedload(Produto.tipo_rel),
+            joinedload(Produto.funcionamento_rel),
+        )
+        .filter_by(id=produto_id)
+        .first_or_404()
+    )
+
+    # Função auxiliar de formatação
+    def currency(val):
+        try:
+            v = float(val or 0)
+        except Exception:
+            v = 0.0
+        return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    # 2. Lógica da Foto (Proxy - Bala de Prata)
+    url_imagem = "/static/img/placeholder.jpg"
+    if produto.foto_url:
+        try:
+            parsed = urlparse(produto.foto_url)
+            key = parsed.path.lstrip('/') 
+            if key:
+                # Gera URL apontando para o Proxy no app/main/routes.py
+                url_imagem = url_for('main.imagem_proxy', key=key)
+        except Exception:
+            pass
+
+    # 3. Cálculos de Preço e Parcelamento
+    valor_base = float(produto.preco_final or produto.preco_a_vista or 0.0)
+    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+    linhas_raw = parc.gerar_linhas_parcelas(valor_base, taxas)
+
+    preco_avista = valor_base
+    parcelas_fmt = []
+    parcela_12x_val = None
+
+    for l in linhas_raw:
+        rot = l.get("rotulo") or ""
+        parcela_val = l.get("parcela") or 0
+        total_val = l.get("total") or 0
+
+        parcelas_fmt.append({
+            "rotulo": rot,
+            "parcela": currency(parcela_val),
+            "total": currency(total_val),
+        })
+
+        if rot == "12x":
+            parcela_12x_val = parcela_val
+
+    parcelado_label = "-"
+    if parcela_12x_val is not None:
+        parcelado_label = f"12x de {currency(parcela_12x_val)}"
+
+    # 4. Retorno COMPLETO dos dados
+    return {
+        "id": produto.id,
+        "codigo": produto.codigo or "-",
+        "nome": produto.nome,
+        "descricao": produto.descricao or "",
+        
+        # URL da imagem tratada pelo Proxy
+        "foto_url": url_imagem,
+
+        "categoria": produto.categoria.nome if produto.categoria else "-",
+        "marca": produto.marca_rel.nome if produto.marca_rel else "-",
+        "calibre": produto.calibre_rel.nome if produto.calibre_rel else "-",
+        "tipo": produto.tipo_rel.nome if produto.tipo_rel else "-",
+        "funcionamento": produto.funcionamento_rel.nome if produto.funcionamento_rel else "-",
+
+        "preco_avista": currency(preco_avista),
+        "parcelado_label": parcelado_label,
+        "parcelas": parcelas_fmt,
+    }

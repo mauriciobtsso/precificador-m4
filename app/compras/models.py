@@ -6,6 +6,7 @@ from app import db
 from datetime import datetime
 from decimal import Decimal
 import uuid
+from app.utils.datetime import now_local  # ✔️ Padronização do horário
 
 
 # ============================================================
@@ -16,12 +17,16 @@ class CompraNF(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(50))
+
     # ⚙️ permite vazio (None) e evita erro de duplicidade
     chave = db.Column(db.String(200), unique=True, nullable=True, index=True)
+
     fornecedor = db.Column(db.String(120))
     data_emissao = db.Column(db.DateTime)
     valor_total = db.Column(db.Numeric(12, 2))
-    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # ✔️ Padronização aplicada
+    criado_em = db.Column(db.DateTime, default=now_local)
 
     # relacionamento
     itens = db.relationship("CompraItem", back_populates="nf", cascade="all, delete-orphan")
@@ -50,6 +55,7 @@ class CompraItem(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     nf_id = db.Column(db.Integer, db.ForeignKey("compra_nf.id", ondelete="CASCADE"))
+
     descricao = db.Column(db.String(250))
     marca = db.Column(db.String(100))
     modelo = db.Column(db.String(100))
@@ -74,4 +80,4 @@ class CompraItem(db.Model):
             self.valor_total = Decimal(0)
 
     def __repr__(self):
-        return f"<CompraItem id={self.id} desc='{self.descricao}' q={self.quantidade}>"
+        return f"<CompraItem id={self.id} desc='{self.descricao}' q={self.quantidade}'>"

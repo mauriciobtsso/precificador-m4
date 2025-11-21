@@ -6,6 +6,7 @@ from flask import render_template, jsonify, request
 from app.notificacoes import notificacoes_bp
 from app.alertas.notificacoes import listar_notificacoes
 from flask_login import login_required
+from app.utils.datetime import now_local  # <-- ADICIONADO
 
 
 # -------------------------
@@ -69,6 +70,7 @@ def marcar_notificacao_lida(notificacao_id):
         "status": notif.status,
         "data_envio": notif.data_envio.isoformat()
     })
+
 # ======================
 # Marcar notificação como lida (AJAX)
 # ======================
@@ -86,7 +88,7 @@ def marcar_como_lida(notificacao_id):
 
     if notif.status != "lido":
         notif.status = "lido"
-        notif.data_envio = notif.data_envio or datetime.utcnow()
+        notif.data_envio = notif.data_envio or now_local()  # <-- TROCA APLICADA
         db.session.commit()
 
     return jsonify({
@@ -95,4 +97,3 @@ def marcar_como_lida(notificacao_id):
         "status": notif.status,
         "mensagem": notif.mensagem,
     })
-

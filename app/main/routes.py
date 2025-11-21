@@ -25,10 +25,19 @@ from app.produtos.categorias.models import CategoriaProduto
 from app.vendas.models import Venda, ItemVenda
 from app.clientes.models import Cliente
 from app.models import (
-    User, Configuracao,
+    User,
     PedidoCompra, ItemPedido, Taxa, Notificacao
 )
 from app.clientes.models import Cliente
+from app.services.dashboard_service import (
+    get_dashboard_context,
+    get_dashboard_resumo,
+    get_dashboard_timeline
+)
+
+from flask import Response, stream_with_context, abort
+import mimetypes
+from app.utils.storage import get_s3, get_bucket
 
 # =====================================================
 # Rotas principais
@@ -68,67 +77,8 @@ def logout():
 @main.route("/dashboard")
 @login_required
 def dashboard():
-    hoje = datetime.today()
-
-    produtos = Produto.query.all()
-    total_vendas_mes = (
-        db.session.query(func.sum(Venda.valor_total))
-        .filter(extract("year", Venda.data_abertura) == hoje.year)
-        .filter(extract("month", Venda.data_abertura) == hoje.month)
-        .scalar() or 0
-    )
-    ticket_medio = (
-        db.session.query(func.sum(Venda.valor_total) / func.count(Venda.id))
-        .scalar() or 0
-    )
-
-    top_clientes = (
-        db.session.query(Cliente.nome, func.sum(Venda.valor_total).label("total"))
-        .join(Venda, Cliente.id == Venda.cliente_id)
-        .group_by(Cliente.id)
-        .order_by(func.sum(Venda.valor_total).desc())
-        .limit(5)
-        .all()
-    )
-
-    produto_mais_vendido = (
-        db.session.query(ItemVenda.produto_nome, func.sum(ItemVenda.quantidade).label("qtd"))
-        .group_by(ItemVenda.produto_nome)
-        .order_by(func.sum(ItemVenda.quantidade).desc())
-        .first()
-    )
-
-    vendas_por_mes = (
-        db.session.query(
-            extract("month", Venda.data_abertura).label("mes"),
-            func.sum(Venda.valor_total).label("total"),
-        )
-        .filter(Venda.data_abertura >= hoje - timedelta(days=180))
-        .group_by(extract("month", Venda.data_abertura))
-        .order_by(extract("month", Venda.data_abertura))
-        .all()
-    )
-
-    mapa_meses = [
-        "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-        "Jul", "Ago", "Set", "Out", "Nov", "Dez"
-    ]
-    meses_nomes = [mapa_meses[int(m) - 1] for m, _ in vendas_por_mes]
-    totais = [float(total) for _, total in vendas_por_mes]
-
-    notificacoes_pendentes = Notificacao.query.filter_by(status="enviado").count()
-
-    return render_template(
-        "dashboard.html",
-        produtos=produtos,
-        total_vendas_mes=total_vendas_mes,
-        top_clientes=top_clientes,
-        produto_mais_vendido=produto_mais_vendido,
-        ticket_medio=ticket_medio,
-        meses=meses_nomes,
-        totais=totais,
-        notificacoes_pendentes=notificacoes_pendentes,
-    )
+    context = get_dashboard_context()
+    return render_template("dashboard.html", **context)
 
 # ============================================================
 # APIs do Dashboard (Resumo e Timeline)
@@ -139,61 +89,9 @@ from flask import jsonify
 @main.route("/dashboard/api/resumo")
 @login_required
 def dashboard_api_resumo():
-    """Retorna dados agregados para os KPIs e gráficos."""
     try:
-        # Totais básicos
-        total_produtos = db.session.query(func.count(Produto.id)).scalar() or 0
-        total_clientes = db.session.query(func.count(Cliente.id)).scalar() or 0
-
-        # Documentos (simples: ativos e vencidos)
-        documentos_validos = db.session.query(func.count(Venda.id))\
-            .filter(Venda.data_fechamento >= datetime.today() - timedelta(days=365)).scalar() or 0
-        documentos_vencidos = db.session.query(func.count(Venda.id))\
-            .filter(Venda.data_fechamento < datetime.today() - timedelta(days=365)).scalar() or 0
-
-        # Vendas e ticket médio
-        vendas_mes = (
-            db.session.query(func.sum(Venda.valor_total))
-            .filter(extract("month", Venda.data_abertura) == datetime.today().month)
-            .filter(extract("year", Venda.data_abertura) == datetime.today().year)
-            .scalar()
-            or 0
-        )
-
-        ticket_medio = (
-            db.session.query(func.sum(Venda.valor_total) / func.count(Venda.id))
-            .filter(extract("month", Venda.data_abertura) == datetime.today().month)
-            .filter(extract("year", Venda.data_abertura) == datetime.today().year)
-            .scalar()
-            or 0
-        )
-
-        # Produtos por categoria (para o gráfico)
-        try:
-            categorias_data = (
-                db.session.query(
-                    func.coalesce(CategoriaProduto.nome, "Sem categoria").label("nome"),
-                    func.count(Produto.id).label("total")
-                )
-                .outerjoin(CategoriaProduto, CategoriaProduto.id == Produto.categoria_id)
-                .group_by(CategoriaProduto.nome)
-                .order_by(func.count(Produto.id).desc())
-                .all()
-            )
-        except Exception:
-            categorias_data = []
-
-        categorias = [{"nome": nome or "Sem categoria", "total": int(total)} for nome, total in categorias_data]
-
-        return jsonify({
-            "produtos_total": total_produtos,
-            "clientes_total": total_clientes,
-            "documentos_validos": documentos_validos,
-            "documentos_vencidos": documentos_vencidos,
-            "vendas_mes": float(vendas_mes),
-            "ticket_medio": float(ticket_medio),
-            "categorias": categorias
-        })
+        data = get_dashboard_resumo()
+        return jsonify(data)
     except Exception as e:
         current_app.logger.error(f"Erro no dashboard_api_resumo: {e}")
         return jsonify({"error": str(e)}), 500
@@ -202,56 +100,9 @@ def dashboard_api_resumo():
 @main.route("/dashboard/api/timeline")
 @login_required
 def dashboard_api_timeline():
-    """Retorna eventos recentes para a timeline."""
     try:
-        eventos = []
-
-        # Últimas vendas
-        ultimas_vendas = (
-            db.session.query(Venda)
-            .order_by(Venda.data_abertura.desc())
-            .limit(5)
-            .all()
-        )
-        for v in ultimas_vendas:
-            eventos.append({
-                "tipo": "venda",
-                "descricao": f"Venda #{v.id} registrada no valor de R$ {v.valor_total:.2f}",
-                "data": v.data_abertura.isoformat()
-            })
-
-        # Últimos produtos cadastrados
-        ultimos_produtos = (
-            db.session.query(Produto)
-            .order_by(Produto.criado_em.desc())
-            .limit(5)
-            .all()
-        )
-        for p in ultimos_produtos:
-            eventos.append({
-                "tipo": "produto",
-                "descricao": f"Produto '{p.nome}' cadastrado.",
-                "data": p.criado_em.isoformat() if p.criado_em else None
-            })
-
-        # Últimos clientes
-        ultimos_clientes = (
-            db.session.query(Cliente)
-            .order_by(Cliente.id.desc())
-            .limit(5)
-            .all()
-        )
-        for c in ultimos_clientes:
-            eventos.append({
-                "tipo": "cliente",
-                "descricao": f"Novo cliente cadastrado: {c.nome}",
-                "data": datetime.today().isoformat()
-            })
-
-        # Ordena por data decrescente
-        eventos.sort(key=lambda x: x["data"], reverse=True)
-
-        return jsonify({"eventos": eventos[:10]})
+        data = get_dashboard_timeline()
+        return jsonify(data)
     except Exception as e:
         current_app.logger.error(f"Erro no dashboard_api_timeline: {e}")
         return jsonify({"error": str(e)}), 500
@@ -293,72 +144,72 @@ def parcelamento_rapido():
                            resultado=resultado, preco_base=preco_base, texto_whats=texto_whats)
 
 # --- Configurações ---
-@main.route("/configuracoes")
-@login_required
-def configuracoes():
-    configs = Configuracao.query.all()
-    return render_template("configuracoes.html", configs=configs)
+#@main.route("/configuracoes")
+#@login_required
+#def configuracoes():
+#    configs = Configuracao.query.all()
+#    return render_template("configuracoes.html", configs=configs)
 
-@main.route("/configuracao/nova", methods=["GET", "POST"])
-@main.route("/configuracao/editar/<int:config_id>", methods=["GET", "POST"])
-@login_required
-def gerenciar_configuracao(config_id=None):
-    config = Configuracao.query.get(config_id) if config_id else None
-    if request.method == "POST":
-        chave, valor = request.form.get("chave"), request.form.get("valor")
-        if not config:
-            config = Configuracao(chave=chave, valor=valor)
-            db.session.add(config)
-        else:
-            config.chave, config.valor = chave, valor
-        db.session.commit()
-        flash("Configuração salva com sucesso!", "success")
-        return redirect(url_for("main.configuracoes"))
-    return render_template("configuracao_form.html", config=config)
+#@main.route("/configuracao/nova", methods=["GET", "POST"])
+#@main.route("/configuracao/editar/<int:config_id>", methods=["GET", "POST"])
+#@login_required
+#def gerenciar_configuracao(config_id=None):
+#    config = Configuracao.query.get(config_id) if config_id else None
+#    if request.method == "POST":
+#        chave, valor = request.form.get("chave"), request.form.get("valor")
+#        if not config:
+#            config = Configuracao(chave=chave, valor=valor)
+#            db.session.add(config)
+#        else:
+#            config.chave, config.valor = chave, valor
+#        db.session.commit()
+#        flash("Configuração salva com sucesso!", "success")
+#        return redirect(url_for("main.configuracoes"))
+#    return render_template("configuracao_form.html", config=config)
 
-@main.route("/configuracao/excluir/<int:config_id>")
-@login_required
-def excluir_configuracao(config_id):
-    config = Configuracao.query.get_or_404(config_id)
-    db.session.delete(config)
-    db.session.commit()
-    flash("Configuração excluída com sucesso!", "success")
-    return redirect(url_for("main.configuracoes"))
+#@main.route("/configuracao/excluir/<int:config_id>")
+#@login_required
+#def excluir_configuracao(config_id):
+#    config = Configuracao.query.get_or_404(config_id)
+#    db.session.delete(config)
+#    db.session.commit()
+#    flash("Configuração excluída com sucesso!", "success")
+#    return redirect(url_for("main.configuracoes"))
 
 # --- Usuários ---
-@main.route("/usuarios")
-@login_required
-def usuarios():
-    users = User.query.all()
-    return render_template("usuarios.html", users=users)
+#@main.route("/usuarios")
+#@login_required
+#def usuarios():
+#    users = User.query.all()
+#    return render_template("usuarios.html", users=users)
+#
+#@main.route("/usuario/novo", methods=["GET", "POST"])
+#@main.route("/usuario/editar/<int:user_id>", methods=["GET", "POST"])
+#@login_required
+#def gerenciar_usuario(user_id=None):
+#    user = User.query.get(user_id) if user_id else None
+#    if request.method == "POST":
+#        username, password = request.form.get("username"), request.form.get("password")
+#        if not user:
+#            user = User(username=username, password=password)
+#            db.session.add(user)
+#        else:
+#            user.username = username
+#            if password:
+#                user.password = password
+#        db.session.commit()
+#        flash("Usuário salvo com sucesso!", "success")
+#        return redirect(url_for("main.usuarios"))
+#    return render_template("usuario_form.html", user=user)
 
-@main.route("/usuario/novo", methods=["GET", "POST"])
-@main.route("/usuario/editar/<int:user_id>", methods=["GET", "POST"])
-@login_required
-def gerenciar_usuario(user_id=None):
-    user = User.query.get(user_id) if user_id else None
-    if request.method == "POST":
-        username, password = request.form.get("username"), request.form.get("password")
-        if not user:
-            user = User(username=username, password=password)
-            db.session.add(user)
-        else:
-            user.username = username
-            if password:
-                user.password = password
-        db.session.commit()
-        flash("Usuário salvo com sucesso!", "success")
-        return redirect(url_for("main.usuarios"))
-    return render_template("usuario_form.html", user=user)
-
-@main.route("/usuario/excluir/<int:user_id>")
-@login_required
-def excluir_usuario(user_id):
-    user = User.query.get_or_404(user_id)
-    db.session.delete(user)
-    db.session.commit()
-    flash("Usuário excluído com sucesso!", "success")
-    return redirect(url_for("main.usuarios"))
+#@main.route("/usuario/excluir/<int:user_id>")
+#@login_required
+#def excluir_usuario(user_id):
+#    user = User.query.get_or_404(user_id)
+#    db.session.delete(user)
+#    db.session.commit()
+#    flash("Usuário excluído com sucesso!", "success")
+#    return redirect(url_for("main.usuarios"))
 
 # --- Health Check ---
 @main.route("/health", methods=["GET", "HEAD"])
@@ -412,6 +263,44 @@ def api_produto_whatsapp(produto_id):
     valor_base, linhas = gerar_linhas_por_produto(produto)
     texto_whats = gerar_texto_whatsapp(produto, valor_base, linhas)
     return jsonify({"texto_completo": texto_whats})
+
+# ============================================================
+# PROXY DE IMAGEM (NOVA ROTA - ADICIONE ISSO)
+# ============================================================
+@main.route("/imagem-proxy")
+@login_required
+def imagem_proxy():
+    """
+    Baixa a imagem do R2 pelo backend e serve para o frontend
+    como se fosse um arquivo local. Resolve problemas de CORS/Print.
+    """
+    key = request.args.get("key")
+    if not key:
+        return abort(404)
+
+    try:
+        s3 = get_s3()
+        bucket = get_bucket()
+        
+        # Obtém o objeto do R2 (sem baixar tudo pra RAM de uma vez)
+        file_obj = s3.get_object(Bucket=bucket, Key=key)
+        
+        # Tenta identificar o tipo do arquivo (imagem/jpeg, png, etc)
+        content_type = file_obj.get('ContentType') or mimetypes.guess_type(key)[0] or 'application/octet-stream'
+        
+        # Retorna os dados em streaming
+        return Response(
+            stream_with_context(file_obj['Body'].iter_chunks()),
+            content_type=content_type,
+            headers={
+                "Cache-Control": "public, max-age=31536000", # Cache longo para performance
+                "Access-Control-Allow-Origin": "*" # Garante permissão extra
+            }
+        )
+    except Exception as e:
+        current_app.logger.error(f"Erro no proxy de imagem: {e}")
+        # Se der erro (ex: imagem não existe), retorna o placeholder
+        return redirect("/static/img/placeholder.jpg")
 
 # --- Context Processor Global ---
 @main.app_context_processor

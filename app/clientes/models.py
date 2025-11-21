@@ -1,5 +1,6 @@
 from app.extensions import db
 from datetime import datetime
+from app.utils.datetime import now_local
 
 # =========================
 # Cliente
@@ -33,7 +34,7 @@ class Cliente(db.Model):
     # Registros (CR, SIGMA, SINARM)
     cr = db.Column(db.String(30))
     cr_emissor = db.Column(db.String(100))
-    data_validade_cr = db.Column(db.Date)  # Para alertas de vencimento
+    data_validade_cr = db.Column(db.Date)
     sigma = db.Column(db.String(50))
     sinarm = db.Column(db.String(50))
     inscricao_estadual = db.Column(db.String(50))
@@ -52,8 +53,8 @@ class Cliente(db.Model):
     atirador_n3 = db.Column(db.Boolean, default=False)
 
     # Controle
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=now_local)
+    updated_at = db.Column(db.DateTime, default=now_local, onupdate=now_local)
 
     # Relacionamentos
     documentos = db.relationship("Documento", back_populates="cliente", cascade="all, delete-orphan")
@@ -97,8 +98,8 @@ class EnderecoCliente(db.Model):
     estado = db.Column(db.String(50))
     tipo = db.Column(db.String(50), default="residencial")
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=now_local)
+    updated_at = db.Column(db.DateTime, default=now_local, onupdate=now_local)
 
     cliente = db.relationship("Cliente", back_populates="enderecos")
 
@@ -115,11 +116,11 @@ class ContatoCliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
 
-    tipo = db.Column(db.String(50))  # telefone, celular, email
+    tipo = db.Column(db.String(50))
     valor = db.Column(db.String(150))
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=now_local)
+    updated_at = db.Column(db.DateTime, default=now_local, onupdate=now_local)
 
     cliente = db.relationship("Cliente", back_populates="contatos")
 
@@ -139,7 +140,6 @@ class Documento(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # FK para o cliente
     cliente_id = db.Column(
         db.Integer,
         db.ForeignKey("clientes.id", ondelete="CASCADE"),
@@ -147,59 +147,50 @@ class Documento(db.Model):
         index=True,
     )
 
-    # Tipo genérico (mantido por compatibilidade antiga)
-    tipo = db.Column(db.String(50), nullable=False)  # RG, CNH, CR, CRAF, NF etc.
+    tipo = db.Column(db.String(50), nullable=False)
 
-    # === NOVOS CAMPOS (para OCR, controle e padronização) ===
-    categoria = db.Column(db.String(50), nullable=True, index=True)  # ex: CR, CRAF, RG...
-    emissor = db.Column(db.String(50), nullable=True)                # ex: SINARM, SIGMA, SSP...
+    categoria = db.Column(db.String(50), nullable=True, index=True)
+    emissor = db.Column(db.String(50), nullable=True)
     numero_documento = db.Column(db.String(100), nullable=True, index=True)
     data_emissao = db.Column(db.Date, nullable=True)
     data_validade = db.Column(db.Date, nullable=True)
     validade_indeterminada = db.Column(db.Boolean, default=False, nullable=False)
 
-    # === ARQUIVO E METADADOS ===
-    nome_original = db.Column(db.Text)                # Nome original do arquivo enviado
-    caminho_arquivo = db.Column(db.Text, nullable=False)  # Caminho interno no R2
+    nome_original = db.Column(db.Text)
+    caminho_arquivo = db.Column(db.Text, nullable=False)
     mime_type = db.Column(db.String(100))
-    data_upload = db.Column(db.DateTime, default=datetime.utcnow)
+    data_upload = db.Column(db.DateTime, default=now_local)
 
     observacoes = db.Column(db.Text, nullable=True)
 
-    # === AUDITORIA ===
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=now_local)
     updated_at = db.Column(
-        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+        db.DateTime, nullable=False, default=now_local, onupdate=now_local
     )
 
-    # === RELACIONAMENTO ===
     cliente = db.relationship(
         "Cliente",
         back_populates="documentos",
         lazy="joined",
     )
 
-    # === MÉTODOS AUXILIARES ===
     def __repr__(self):
         return f"<Documento id={self.id} tipo={self.tipo} cliente={self.cliente_id}>"
 
     @property
     def arquivo_enviado(self) -> bool:
-        """Retorna True se o documento tiver um arquivo associado."""
         return bool(self.caminho_arquivo)
 
     @property
     def esta_vencido(self) -> bool:
-        """Indica se o documento tem validade e já venceu."""
         if self.data_validade and not self.validade_indeterminada:
-            return self.data_validade < datetime.utcnow().date()
+            return self.data_validade < now_local().date()
         return False
 
     @property
     def dias_para_vencer(self):
-        """Retorna os dias restantes para o vencimento."""
         if self.data_validade and not self.validade_indeterminada:
-            delta = (self.data_validade - datetime.utcnow().date()).days
+            delta = (self.data_validade - now_local().date()).days
             return delta
         return None
 
@@ -213,23 +204,23 @@ class Arma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
 
-
-    tipo = db.Column(db.String(50))                  # ex: "pistola"
-    funcionamento = db.Column(db.String(50))         # ex: "semi_automatica"
+    tipo = db.Column(db.String(50))
+    funcionamento = db.Column(db.String(50))
     marca = db.Column(db.String(100))
     modelo = db.Column(db.String(100))
     calibre = db.Column(db.String(50))
     numero_serie = db.Column(db.String(100), unique=True)
-    emissor_craf = db.Column(db.String(50))          # ex: "sigma"
-    numero_sigma = db.Column(db.String(50))          # Nº Sigma / Registro
+    emissor_craf = db.Column(db.String(50))
+    numero_sigma = db.Column(db.String(50))
     categoria_adquirente = db.Column(db.String(60))
     validade_indeterminada = db.Column(db.Boolean, default=False)
     data_validade_craf = db.Column(db.Date)
     caminho_craf = db.Column(db.Text)
     data_aquisicao = db.Column(db.Date, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=now_local)
+    updated_at = db.Column(db.DateTime, default=now_local, onupdate=now_local)
+
     cliente = db.relationship("Cliente", back_populates="armas")
 
     def __repr__(self):
@@ -244,10 +235,10 @@ class Comunicacao(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
-    tipo = db.Column(db.String(50), nullable=False)  # whatsapp, email
+    tipo = db.Column(db.String(50), nullable=False)
     assunto = db.Column(db.String(150))
     mensagem = db.Column(db.Text, nullable=False)
-    data = db.Column(db.DateTime, default=datetime.utcnow)
+    data = db.Column(db.DateTime, default=now_local)
 
     cliente = db.relationship("Cliente", back_populates="comunicacoes")
 
@@ -263,10 +254,10 @@ class Processo(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
-    tipo = db.Column(db.String(100), nullable=False)      # Ex: Aquisição de arma
-    status = db.Column(db.String(50), default="em_andamento")  # em_andamento, concluido, cancelado
+    tipo = db.Column(db.String(100), nullable=False)
+    status = db.Column(db.String(50), default="em_andamento")
     descricao = db.Column(db.Text)
-    data = db.Column(db.DateTime, default=datetime.utcnow)
+    data = db.Column(db.DateTime, default=now_local)
 
     cliente = db.relationship("Cliente", back_populates="processos")
 

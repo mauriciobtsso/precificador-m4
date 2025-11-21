@@ -5,6 +5,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from app.utils.datetime import now_local
 import os
 import tempfile
 
@@ -17,7 +18,7 @@ from app.uploads.parsers import (
     parse_rg,
     parse_documento_ocr
 )
-
+from app.utils.datetime import now_local
 uploads_bp = Blueprint("uploads", __name__)
 
 # ==========================
@@ -41,7 +42,7 @@ def _upload_to_r2(file_storage, cliente_id, subpasta):
     s3 = get_s3()
     bucket = get_bucket()
     nome_seguro = secure_filename(file_storage.filename)
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    timestamp = now_local().strftime("%Y%m%d_%H%M%S")
     key = f"clientes/{cliente_id}/{subpasta}/{timestamp}_{nome_seguro}"
     file_storage.seek(0)
     s3.upload_fileobj(file_storage, bucket, key)

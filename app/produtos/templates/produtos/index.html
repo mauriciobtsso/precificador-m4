@@ -4,6 +4,7 @@
 <!-- =======================
      CABEÇALHO
 ======================= -->
+
 <div class="d-flex justify-content-between align-items-center mb-2">
   <div>
     <h2 class="fw-semibold mb-0">
@@ -26,6 +27,7 @@
 </div>
 
 <!-- Contador e controle -->
+
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
   <span class="badge bg-light text-dark border">
     {{ pagination.total }} resultado{{ '' if pagination.total == 1 else 's' }}
@@ -47,6 +49,7 @@
 <!-- =======================
      FILTROS
 ======================= -->
+
 <div class="card shadow-sm mb-3 border-0">
   <div class="card-header bg-white d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
@@ -142,19 +145,21 @@
 <!-- =======================
      LISTA + PAGINAÇÃO
 ======================= -->
+
 <div id="produtosLista" class="fade-in">
   {% include 'produtos/_lista.html' %}
 </div>
 
 <!-- =======================
-     MODAL EXCLUIR (persistente no DOM)
+     MODAL EXCLUIR
 ======================= -->
+
 <div class="modal fade" id="modalExcluirProduto" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title"><i class="fas fa-trash text-danger me-2"></i> Confirmar exclusão</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <p class="mb-1">Tem certeza que deseja excluir o produto abaixo?</p>
@@ -165,8 +170,8 @@
         <small class="text-muted d-block mt-2">Esta ação não pode ser desfeita.</small>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" id="ex_btn_confirmar" class="btn btn-danger">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button id="ex_btn_confirmar" class="btn btn-danger">
           <i class="fas fa-trash-alt me-1"></i> Excluir
         </button>
       </div>
@@ -175,14 +180,19 @@
 </div>
 
 <!-- Toast de cópia -->
+
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080;">
   <div id="toast-copy" class="toast align-items-center text-bg-success border-0" role="alert">
     <div class="d-flex">
       <div class="toast-body"><i class="fas fa-check-circle me-2"></i> Simulação copiada com sucesso!</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
     </div>
   </div>
 </div>
+
+<!-- =======================
+     STYLE LOCAL
+======================= -->
 
 <style>
 .table-clean thead th {
@@ -203,70 +213,102 @@
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
+<!-- =======================
+     SCRIPT PRINCIPAL
+======================= -->
+
 <script>
 (function(){
-  const listaEl=document.getElementById('produtosLista');
-  const formFiltros=document.getElementById('formFiltros');
-  const perPageSel=document.getElementById('per_page');
-  const formPerPage=document.getElementById('formPerPage');
-  const inTermo=document.getElementById('inTermo');
-  const spinner=document.getElementById('spinnerBusca');
+  const listaEl = document.getElementById('produtosLista');
+  const formFiltros = document.getElementById('formFiltros');
+  const perPageSel = document.getElementById('per_page');
+  const formPerPage = document.getElementById('formPerPage');
+  const inTermo = document.getElementById('inTermo');
+  const spinner = document.getElementById('spinnerBusca');
 
   function serializeForm(form){
-    const fd=new FormData(form),params=new URLSearchParams();
-    for(const [k,v] of fd.entries()){ if(v!==null && v!=="") params.append(k,v); }
+    const fd = new FormData(form);
+    const params = new URLSearchParams();
+    for (const [k,v] of fd.entries()){
+      if (v !== null && v !== "") params.append(k,v);
+    }
     return params;
   }
 
-  async function carregarLista(params,push=true){
+  async function carregarLista(params, push=true){
     try{
-      spinner.style.display='inline-block';
+      if (spinner) spinner.style.display='inline-block';
       listaEl.classList.add('loading');
       params.set('ajax','1');
-      const url=`${window.location.pathname}?${params.toString()}`;
-      const resp=await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest'}});
-      if(!resp.ok)throw new Error();
-      const html=await resp.text();
-      listaEl.innerHTML=html;
-      if(push)history.pushState(null,'',`${window.location.pathname}?${params.toString().replace(/(&)?ajax=1/,'')}`);
+      const url = `${window.location.pathname}?${params.toString()}`;
+      const resp = await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!resp.ok) throw new Error();
+      const html = await resp.text();
+      listaEl.innerHTML = html;
+      if(push){
+        const clean = params.toString().replace(/(&)?ajax=1/,'');
+        history.pushState(null,'',`${window.location.pathname}?${clean}`);
+      }
       listaEl.classList.remove('loading');
-      spinner.style.display='none';
-      bindInteracoesLista(); // reanexa eventos após render
+      if (spinner) spinner.style.display='none';
+      bindInteracoesLista();
     }catch(e){
       listaEl.classList.remove('loading');
-      spinner.style.display='none';
-      console.warn('[M4] Erro AJAX',e);
+      if (spinner) spinner.style.display='none';
+      console.warn('[M4] Erro AJAX', e);
     }
   }
 
-  function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
+  function debounce(fn,ms){
+    let t;
+    return (...a)=>{
+      clearTimeout(t);
+      t=setTimeout(()=>fn(...a),ms);
+    };
+  }
 
   if(inTermo){
     inTermo.addEventListener('input',debounce(()=>{
       const termo=inTermo.value.trim();
       if(termo.length===0||termo.length>=2){
-        const params=serializeForm(formFiltros);params.set('page','1');carregarLista(params);
+        const params=serializeForm(formFiltros);
+        params.set('page','1');
+        carregarLista(params);
       }
     },700));
   }
 
   if(formFiltros){
     formFiltros.addEventListener('change',ev=>{
-      if(ev.target.tagName==='SELECT'){const p=serializeForm(formFiltros);p.set('page','1');carregarLista(p);}
+      if(ev.target.tagName==='SELECT'){
+        const p=serializeForm(formFiltros);
+        p.set('page','1');
+        carregarLista(p);
+      }
     });
     formFiltros.addEventListener('submit',ev=>{
-      ev.preventDefault();const p=serializeForm(formFiltros);p.set('page','1');carregarLista(p);
+      ev.preventDefault();
+      const p=serializeForm(formFiltros);
+      p.set('page','1');
+      carregarLista(p);
     });
   }
 
-  if(perPageSel&&formPerPage){
+  if(perPageSel && formPerPage){
     perPageSel.addEventListener('change',()=>{
-      const p=serializeForm(formPerPage);p.set('page','1');carregarLista(p);
+      const p=serializeForm(formPerPage);
+      p.set('page','1');
+      carregarLista(p);
     });
   }
 
+
+  /* ===========================================================
+     FUNÇÃO PRINCIPAL — INTERAÇÃO COM A LISTA
+  =========================================================== */
   function bindInteracoesLista(){
-    // Paginação AJAX
+
+    /* PAGINAÇÃO */
     listaEl.querySelectorAll('.pagination a.page-link').forEach(a=>{
       a.addEventListener('click',ev=>{
         ev.preventDefault();
@@ -276,7 +318,7 @@
       });
     });
 
-    // WhatsApp (cópia com toast)
+    /* BOTÃO WHATSAPP */
     listaEl.querySelectorAll(".btn-whatsapp").forEach(btn=>{
       btn.addEventListener("click",async e=>{
         e.preventDefault();
@@ -287,7 +329,9 @@
             new bootstrap.Toast(document.getElementById("toast-copy")).show();
             btn.removeAttribute("data-texto-completo");
             btn.innerHTML='<i class="fab fa-whatsapp text-success"></i>';
-          }catch{ alert("Erro ao copiar. Verifique permissões do navegador."); }
+          }catch{
+            alert("Erro ao copiar. Verifique permissões do navegador.");
+          }
           return;
         }
         if(!btn.hasAttribute("data-loading")){
@@ -297,7 +341,7 @@
           btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';
           try{
             const r=await fetch(`/api/produto/${id}/whatsapp`);
-            if(!r.ok)throw new Error();
+            if(!r.ok) throw new Error();
             const d=await r.json();
             btn.setAttribute("data-texto-completo",d.texto_completo);
             btn.innerHTML='<i class="fas fa-copy"></i> Copiar';
@@ -311,15 +355,15 @@
       });
     });
 
-    // Excluir (usa modal persistente deste arquivo)
+    /* BOTÃO EXCLUIR */
     listaEl.querySelectorAll(".btn-excluir").forEach(btn=>{
       btn.addEventListener("click",()=>{
-        document.getElementById("ex_nome").textContent=btn.getAttribute("data-nome")||"—";
-        document.getElementById("ex_sku").textContent=btn.getAttribute("data-sku")||"—";
-        const id=btn.getAttribute("data-id");
-        const href=`/produtos/${id}/excluir`;
-        const confirmBtn=document.getElementById("ex_btn_confirmar");
-        const novo=confirmBtn.cloneNode(true);             // limpa listeners antigos
+        document.getElementById("ex_nome").textContent = btn.getAttribute("data-nome") || "—";
+        document.getElementById("ex_sku").textContent = btn.getAttribute("data-sku") || "—";
+        const id = btn.getAttribute("data-id");
+        const href = `/produtos/${id}/excluir`;
+        const confirmBtn = document.getElementById("ex_btn_confirmar");
+        const novo = confirmBtn.cloneNode(true);
         confirmBtn.parentNode.replaceChild(novo,confirmBtn);
         novo.addEventListener("click",async(ev)=>{
           ev.preventDefault();
@@ -332,17 +376,130 @@
         new bootstrap.Modal(document.getElementById("modalExcluirProduto")).show();
       });
     });
+
+    /* BOTÃO VISUALIZAR */
+    listaEl.querySelectorAll(".btn-visualizar").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const id = btn.dataset.produtoId;
+        const r = await fetch(`/produtos/${id}/visualizar`);
+        if (!r.ok){
+          alert("Erro ao buscar produto.");
+          return;
+        }
+        const p = await r.json();
+
+        console.debug("[M4] visualizar_produto:", p);
+        console.debug("[M4] URL da foto recebida:", p.foto_url);
+
+        // FOTO
+        const img = document.getElementById("vp_foto");
+        if (img) {
+          img.removeAttribute('crossorigin'); // REMOVER ESTA LINHA SE EXISTIR
+          img.src = "";
+  
+          if (p.foto_url) {
+            img.src = p.foto_url; // A URL já vem pronta do proxy
+            img.onerror = () => { img.src = "/static/img/placeholder.jpg"; };
+          } else {
+            img.src = "/static/img/placeholder.jpg";
+          }
+        }
+        // DADOS
+        document.getElementById("vp_nome").textContent = p.nome || "";
+        document.getElementById("vp_codigo").textContent = p.codigo ? `Código: ${p.codigo}` : "";
+        document.getElementById("vp_categoria").textContent = p.categoria || "-";
+        document.getElementById("vp_marca").textContent = p.marca || "-";
+        document.getElementById("vp_calibre").textContent = p.calibre || "-";
+        document.getElementById("vp_tipo").textContent = p.tipo || "-";
+        document.getElementById("vp_funcionamento").textContent = p.funcionamento || "-";
+        document.getElementById("vp_descricao").textContent = p.descricao || "";
+
+        // PREÇOS
+        document.getElementById("vp_preco_avista").textContent = p.preco_avista || "R$ 0,00";
+        document.getElementById("vp_preco_parcelado").textContent = p.parcelado_label || "-";
+
+        // PARCELAS
+        const corpo = document.getElementById("vp_parcelas");
+        if (corpo) {
+          corpo.innerHTML = "";
+          (p.parcelas || []).forEach(l => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${l.rotulo}</td>
+              <td>${l.parcela}</td>
+              <td class="text-end pe-3">${l.total}</td>
+            `;
+            corpo.appendChild(tr);
+          });
+        }
+
+        new bootstrap.Modal(document.getElementById("modalVisualizarProduto")).show();
+      });
+    });
   }
 
-  // Primeira ligação
+
+  /* ======================================
+     CHAMADA INICIAL
+  ====================================== */
   bindInteracoesLista();
 
-  // Navegação do navegador
+
   window.addEventListener('popstate',()=>{
     const p=new URLSearchParams(window.location.search);
     carregarLista(p,false);
   });
+
 })();
+</script>
+
+{% include 'produtos/modal_visualizar.html' %}
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<script>
+document.getElementById("vp_btn_print").addEventListener("click", async () => {
+  const originalArea = document.getElementById("vp_area_print");
+  
+  // 1. Clona a área para limpar interferência do Modal
+  const clone = originalArea.cloneNode(true);
+  clone.style.position = "absolute";
+  clone.style.top = "-9999px"; // Esconde da visão do usuário, mas deixa renderizável
+  clone.style.left = "0";
+  clone.style.width = "800px"; 
+  clone.style.backgroundColor = "#ffffff";
+  clone.style.padding = "20px";
+  
+  document.body.appendChild(clone);
+
+  try {
+      const canvas = await html2canvas(clone, { 
+          scale: 2, 
+          backgroundColor: "#ffffff",
+          useCORS: true,     // Pega a foto do Proxy
+          allowTaint: false,
+          logging: false,
+          windowWidth: 800,
+          windowHeight: clone.scrollHeight
+      });
+
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ficha_produto.png";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+  } catch (e) {
+      console.error("Erro print:", e);
+  } finally {
+      document.body.removeChild(clone);
+  }
+});
+
 </script>
 
 {% endblock %}

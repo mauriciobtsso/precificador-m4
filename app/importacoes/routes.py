@@ -10,6 +10,7 @@ import csv
 from app import db
 from app.importacoes import importacoes_bp
 from app.importacoes.models import ImportacaoLog
+from app.utils.datetime import now_local
 
 
 # ============================================================

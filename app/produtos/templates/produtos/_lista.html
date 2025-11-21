@@ -27,6 +27,11 @@
                 <a href="{{ url_for('produtos.gerenciar_produto', duplicar_de=produto.id) }}" class="btn btn-light btn-sm" title="Duplicar">
                   <i class="fas fa-copy"></i>
                 </a>
+                <button class="btn btn-light btn-sm btn-visualizar" 
+                        data-produto-id="{{ produto.id }}" 
+                        title="Visualizar">
+                  <i class="fas fa-eye"></i>
+                </button>
                 <a href="{{ url_for('produtos.gerenciar_produto', produto_id=produto.id) }}" class="btn btn-light btn-sm" title="Editar">
                   <i class="fas fa-pen"></i>
                 </a>
@@ -84,6 +89,10 @@
             </a>
             <button class="btn btn-sm btn-success flex-fill btn-whatsapp" data-produto-id="{{ produto.id }}">
               <i class="fab fa-whatsapp"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-primary flex-fill btn-visualizar" 
+                    data-produto-id="{{ produto.id }}">
+              <i class="fas fa-eye"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger flex-fill btn-excluir"
                     data-id="{{ produto.id }}"

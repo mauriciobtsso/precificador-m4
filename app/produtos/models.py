@@ -9,6 +9,7 @@ import pytz
 from flask_login import current_user
 
 # Importações auxiliares
+from app.utils.datetime import now_local
 from app.produtos.categorias.models import CategoriaProduto
 from app.produtos.configs.models import (
     MarcaProduto,
@@ -18,22 +19,11 @@ from app.produtos.configs.models import (
 )
 
 # ======================================================
-# FUSO HORÁRIO PADRÃO LOCAL
-# ======================================================
-TZ_FORTALEZA = pytz.timezone("America/Fortaleza")
-
-def now_local():
-    """Retorna o horário atual no fuso de Teresina (UTC-3)."""
-    return datetime.now(TZ_FORTALEZA)
-
-
-# ======================================================
 # MODELO PRINCIPAL: PRODUTO
 # ======================================================
 class Produto(db.Model):
     __tablename__ = "produtos"
     __table_args__ = (
-        # Índices compostos e individuais para otimizar filtros e buscas
         Index("idx_produto_nome", "nome"),
         Index("idx_produto_codigo", "codigo"),
         Index("idx_produto_categoria", "categoria_id"),
@@ -44,13 +34,10 @@ class Produto(db.Model):
 
     foto_url = db.Column(db.String(512), nullable=True)
     id = db.Column(db.Integer, primary_key=True)
-    codigo = db.Column(db.String(50), unique=True, nullable=False, index=True)  # SKU
+    codigo = db.Column(db.String(50), unique=True, nullable=False, index=True)
     nome = db.Column(db.String(255), nullable=False, index=True)
     descricao = db.Column(db.Text, nullable=True)
 
-    # ============================
-    # RELACIONAMENTOS (FKs)
-    # ============================
     categoria_id = db.Column(db.Integer, db.ForeignKey("categoria_produto.id"), index=True)
     categoria = db.relationship("CategoriaProduto", backref="produtos")
 
@@ -66,47 +53,29 @@ class Produto(db.Model):
     funcionamento_id = db.Column(db.Integer, db.ForeignKey("funcionamento_produto.id"), nullable=True)
     funcionamento_rel = db.relationship("FuncionamentoProduto", backref="produtos")
 
-    # ============================
-    # CAMPOS ANTIGOS (LEGADO)
-    # ============================
     tipo = db.Column(db.String(80), nullable=True)
     marca = db.Column(db.String(80), nullable=True)
     calibre = db.Column(db.String(50), nullable=True)
 
-    # ============================
-    # CUSTOS E IMPOSTOS
-    # ============================
     preco_fornecedor = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     desconto_fornecedor = db.Column(db.Numeric(5, 2), nullable=True, default=0)
     frete = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     margem = db.Column(db.Numeric(5, 2), nullable=True, default=0)
     ipi = db.Column(db.Numeric(10, 2), nullable=True, default=0)
-    ipi_tipo = db.Column(db.String(10), nullable=True, default="%")  # "%", "%_dentro", "R$"
+    ipi_tipo = db.Column(db.String(10), nullable=True, default="%")
     difal = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     imposto_venda = db.Column(db.Numeric(10, 2), nullable=True, default=0)
 
-    # ============================
-    # CÁLCULOS DERIVADOS
-    # ============================
     custo_total = db.Column(db.Numeric(12, 2), nullable=True, default=0)
     preco_a_vista = db.Column(db.Numeric(12, 2), nullable=True, default=0)
     lucro_liquido_real = db.Column(db.Numeric(12, 2), nullable=True, default=0)
 
-    # ============================
-    # OBJETIVOS
-    # ============================
     lucro_alvo = db.Column(db.Numeric(12, 2), nullable=True)
     preco_final = db.Column(db.Numeric(12, 2), nullable=True)
 
-    # ============================
-    # AUDITORIA
-    # ============================
     criado_em = db.Column(db.DateTime(timezone=True), default=now_local, index=True)
     atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=now_local, default=now_local, index=True)
 
-    # ============================
-    # RELAÇÃO COM HISTÓRICO
-    # ============================
     historicos = db.relationship(
         "ProdutoHistorico",
         back_populates="produto",
@@ -114,11 +83,7 @@ class Produto(db.Model):
         lazy=True,
     )
 
-    # ======================
-    # MÉTODOS AUXILIARES
-    # ======================
     def calcular_precos(self):
-        """Cálculo completo de custo total, preço sugerido e lucro líquido."""
         preco_fornecedor = float(self.preco_fornecedor or 0)
         desconto = float(self.desconto_fornecedor or 0)
         frete = float(self.frete or 0)
@@ -185,7 +150,7 @@ class ProdutoHistorico(db.Model):
     valor_novo = db.Column(db.Text)
     usuario_id = db.Column(
         db.Integer,
-        db.ForeignKey("users.id"),  # ✅ referência correta para tabela 'users'
+        db.ForeignKey("users.id"),
         nullable=True,
         index=True,
     )
