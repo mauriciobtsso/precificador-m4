@@ -106,3 +106,73 @@ def venda_detalhe(venda_id):
         cliente=cliente,
         itens=itens
     )
+
+from flask import jsonify
+from app.services.venda_service import VendaService
+from app.produtos.models import Produto
+from app.estoque.models import ItemEstoque
+
+# --- TELA DE NOVA VENDA ---
+@vendas_bp.route("/nova", methods=["GET", "POST"])
+@login_required
+def nova_venda():
+    if request.method == "POST":
+        dados = request.get_json()
+        try:
+            venda = VendaService.criar_venda(dados, current_user)
+            return jsonify({"success": True, "venda_id": venda.id})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 400
+            
+    return render_template("vendas/form.html") # Criaremos este arquivo
+
+# --- APIS INTERNAS PARA O JAVASCRIPT ---
+
+@vendas_bp.route("/api/clientes")
+@login_required
+def api_buscar_clientes():
+    termo = request.args.get("q", "")
+    # CORREÇÃO: Trocamos Cliente.cpf por Cliente.documento
+    clientes = Cliente.query.filter(
+        (Cliente.nome.ilike(f"%{termo}%")) | 
+        (Cliente.documento.ilike(f"%{termo}%"))
+    ).limit(10).all()
+    
+    return jsonify([{
+        "id": c.id, 
+        "nome": c.nome, 
+        "documento": c.documento, # Retorna o CPF/CNPJ correto
+        "cr": c.cr # CORREÇÃO: Trocamos cr_numero por cr
+    } for c in clientes])
+
+@vendas_bp.route("/api/produtos")
+@login_required
+def api_buscar_produtos():
+    termo = request.args.get("q", "")
+    produtos = Produto.query.filter(
+        (Produto.nome.ilike(f"%{termo}%")) | 
+        (Produto.codigo.ilike(f"%{termo}%"))
+    ).limit(10).all()
+    
+    return jsonify([{
+        "id": p.id,
+        "nome": p.nome,
+        "preco": float(p.preco_a_vista or 0),
+        # Aqui poderíamos somar o estoque total
+        "estoque": 10 # Placeholder
+    } for p in produtos])
+
+@vendas_bp.route("/api/estoque/<int:produto_id>")
+@login_required
+def api_buscar_estoque_produto(produto_id):
+    """Retorna apenas os seriais DISPONÍVEIS deste produto"""
+    itens = ItemEstoque.query.filter_by(
+        produto_id=produto_id, 
+        status="disponivel"
+    ).all()
+    
+    return jsonify([{
+        "id": i.id,
+        "serial": i.numero_serie,
+        "lote": i.lote
+    } for i in itens])
