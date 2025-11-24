@@ -5,7 +5,8 @@ from app.vendas.models import Venda, ItemVenda
 from app.clientes.models import Cliente
 from . import vendas_bp
 from datetime import datetime, timedelta
-from sqlalchemy import extract
+# ADICIONADO: 'func' para agregações no banco
+from sqlalchemy import extract, func
 
 
 # =========================
@@ -46,15 +47,27 @@ def vendas():
         except Exception:
             pass
 
-    # --- Paginação ---
+    # --- Paginação (Query 1: Apenas os itens da página atual) ---
     vendas_paginadas = query.order_by(Venda.data_abertura.desc()).paginate(page=page, per_page=per_page)
 
-    # --- Resumo agregado ---
-    vendas_filtradas = query.all()
-    total_vendas = len(vendas_filtradas)
-    soma_total = sum(v.valor_total or 0 for v in vendas_filtradas)
-    soma_descontos = sum(v.desconto_valor or 0 for v in vendas_filtradas)
-    soma_recebido = sum(v.valor_recebido or 0 for v in vendas_filtradas)
+    # --- Resumo agregado OTIMIZADO (Query 2: Soma direta no Banco) ---
+    # Antes: query.all() -> Carregava TUDO na RAM -> Python somava. (RISCO DE CRASH)
+    # Agora: query.with_entities(...) -> Banco soma e retorna só os números. (PERFORMANCE PURA)
+    
+    resumo_dados = query.with_entities(
+        func.count(Venda.id).label('total'),
+        func.sum(Venda.valor_total).label('soma_total'),
+        func.sum(Venda.desconto_valor).label('soma_descontos'),
+        func.sum(Venda.valor_recebido).label('soma_recebido')
+    ).first()
+
+    # Extração segura (se não houver vendas, retorna 0)
+    total_vendas = resumo_dados.total or 0
+    soma_total = resumo_dados.soma_total or 0
+    soma_descontos = resumo_dados.soma_descontos or 0
+    soma_recebido = resumo_dados.soma_recebido or 0
+    
+    # Cálculo de média seguro (evita divisão por zero)
     media_venda = soma_total / total_vendas if total_vendas > 0 else 0
 
     resumo = {

@@ -460,23 +460,85 @@
 <script>
 document.getElementById("vp_btn_print").addEventListener("click", async () => {
   const originalArea = document.getElementById("vp_area_print");
-  
-  // 1. Clona a área para limpar interferência do Modal
+
+  // 1. CLONAR A ÁREA
   const clone = originalArea.cloneNode(true);
+
+  // Configuração da "Folha de Papel"
   clone.style.position = "absolute";
-  clone.style.top = "-9999px"; // Esconde da visão do usuário, mas deixa renderizável
+  clone.style.top = "-9999px"; 
   clone.style.left = "0";
   clone.style.width = "800px"; 
+  clone.style.minHeight = "1123px"; // Altura A4
   clone.style.backgroundColor = "#ffffff";
-  clone.style.padding = "20px";
+  clone.style.padding = "40px"; 
+  clone.style.fontFamily = "sans-serif"; // Garante fonte limpa
+
+  // ==================================================================
+  // NOVO: CABEÇALHO INSTITUCIONAL (HEADER)
+  // ==================================================================
+  const headerDiv = document.createElement('div');
+  headerDiv.style.display = "flex";
+  headerDiv.style.justifyContent = "space-between"; // Logo na esquerda, Título na direita
+  headerDiv.style.alignItems = "center";
+  headerDiv.style.marginBottom = "20px";
+  headerDiv.style.borderBottom = "2px solid #eee"; // Linha divisória fina
+  headerDiv.style.paddingBottom = "15px";
+
+  // --- 1. LOGO (Esquerda) ---
+  const logo = document.createElement('img');
+  // AJUSTE O CAMINHO DA SUA LOGO AQUI
+  logo.src = "/static/img/logo_ficha.png"; 
+  logo.style.height = "50px"; // Altura fixa elegante
+  logo.style.objectFit = "contain";
   
+  // --- 2. TÍTULO/DATA (Direita) ---
+  const titleBlock = document.createElement('div');
+  titleBlock.style.textAlign = "right";
+  titleBlock.innerHTML = `
+    <h5 style="margin:0; font-weight:bold; color:#333; text-transform:uppercase;">Ficha Técnica</h5>
+    <small style="color:#777; font-size: 0.75rem;">Gerado em ${new Date().toLocaleDateString('pt-BR')}</small>
+  `;
+
+  headerDiv.appendChild(logo);
+  headerDiv.appendChild(titleBlock);
+
+  // INSERE O CABEÇALHO NO TOPO DO CLONE (Antes de tudo)
+  clone.insertBefore(headerDiv, clone.firstChild);
+
+
+  // ==================================================================
+  // RODAPÉ: AVISO LEGAL
+  // ==================================================================
+  const footerDiv = document.createElement('div');
+  footerDiv.style.marginTop = "40px";
+  footerDiv.style.paddingTop = "15px";
+  footerDiv.style.borderTop = "1px solid #eee";
+  footerDiv.style.textAlign = "center";
+  
+  footerDiv.innerHTML = `
+    <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 5px;">
+      <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+      <strong>Aviso:</strong> Os valores apresentados poderão sofrer alterações sem aviso prévio.
+    </div>
+    <div style="font-size: 0.7rem; color: #adb5bd;">
+      M4 Tática • Simulação de Parcelamento.
+    </div>
+  `;
+
+  clone.appendChild(footerDiv);
+
+  // 3. RENDERIZAR
   document.body.appendChild(clone);
 
   try {
-      const canvas = await html2canvas(clone, { 
+      // Delay para garantir que a logo do cabeçalho carregue
+      await new Promise(r => setTimeout(r, 200)); 
+
+      const canvas = await html2canvas(clone, {
           scale: 2, 
           backgroundColor: "#ffffff",
-          useCORS: true,     // Pega a foto do Proxy
+          useCORS: true,
           allowTaint: false,
           logging: false,
           windowWidth: 800,
@@ -484,22 +546,22 @@ document.getElementById("vp_btn_print").addEventListener("click", async () => {
       });
 
       canvas.toBlob(blob => {
-        if (!blob) return;
+        if (!blob) { alert("Erro ao gerar imagem."); return; }
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "ficha_produto.png";
+        a.download = `Ficha_M4_${new Date().getTime()}.png`;
         a.click();
         URL.revokeObjectURL(url);
       });
 
   } catch (e) {
       console.error("Erro print:", e);
+      alert("Erro ao gerar print.");
   } finally {
       document.body.removeChild(clone);
   }
 });
-
 </script>
 
 {% endblock %}
