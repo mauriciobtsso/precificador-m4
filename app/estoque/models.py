@@ -2,7 +2,7 @@
 from datetime import datetime
 from app.produtos.models import Produto
 from app.clientes.models import Cliente
-from app.utils.datetime import now_local  # ✔️ Padronização de horário aplicada
+from app.utils.datetime import now_local
 
 class ItemEstoque(db.Model):
     __tablename__ = "estoque_itens"
@@ -14,17 +14,21 @@ class ItemEstoque(db.Model):
     tipo_item = db.Column(db.String(20), nullable=False)  # arma, municao, pce, nao_controlado
     numero_serie = db.Column(db.String(100), nullable=True)
     lote = db.Column(db.String(50), nullable=True)
-    numero_embalagem = db.Column(db.String(50), nullable=True)
+    
+    # Campo para o scanner
+    numero_embalagem = db.Column(db.String(100), nullable=True, index=True)
+    
     quantidade = db.Column(db.Integer, default=1)
     status = db.Column(db.String(30), default="disponivel", nullable=False)
 
-    # ✔️ Ajuste conforme OPÇÃO B (sem alterar tipo da coluna)
     data_entrada = db.Column(db.Date, default=lambda: now_local().date())
 
     observacoes = db.Column(db.Text, nullable=True)
 
     produto = db.relationship("Produto", backref="itens_estoque")
-    fornecedor = db.relationship("Cliente", backref="itens_fornecidos")
+    
+    # CORREÇÃO AQUI: Usando back_populates explícito
+    fornecedor = db.relationship("Cliente", back_populates="itens_fornecidos")
 
     def __repr__(self):
         nome = self.produto.nome if self.produto else "Desconhecido"

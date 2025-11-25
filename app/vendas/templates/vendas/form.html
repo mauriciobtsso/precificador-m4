@@ -3,142 +3,242 @@
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h4 text-gray-800"><i class="fas fa-cart-plus me-2"></i>Nova Venda</h2>
-        <a href="{{ url_for('vendas.vendas') }}" class="btn btn-outline-secondary btn-sm">Voltar</a>
+        <div>
+             <h2 class="h4 text-dark mb-0"><i class="fas fa-cash-register me-2 text-primary"></i>Nova Venda</h2>
+             <p class="text-muted small mb-0">Lançamento de pedido e reserva de estoque</p>
+        </div>
+        <a href="{{ url_for('vendas.vendas') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
     </div>
 
-    <form id="formVenda">
-        <div class="row">
+    <form id="formVenda" class="needs-validation" novalidate>
+        <div class="row g-4">
             <div class="col-lg-8">
                 
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">1. Cliente</h6>
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 border-bottom-0">
+                        <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-user me-2"></i>Identificação do Cliente</h6>
                     </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-12">
-                                <label>Buscar Cliente (Nome ou CPF/CNPJ)</label>
-                                <div class="input-group">
-                                    <input type="text" id="busca_cliente" class="form-control" placeholder="Digite para buscar..." autocomplete="off">
-                                    <input type="hidden" name="cliente_id" id="cliente_id">
-                                    <button class="btn btn-outline-secondary" type="button" id="btnNovoCliente"><i class="fas fa-plus"></i> Novo</button>
+                    <div class="card-body pt-0">
+                        
+                        <div id="area_busca_cliente" class="position-relative mb-0">
+                             <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                <input type="text" id="busca_cliente" class="form-control border-start-0 bg-light" placeholder="Pesquisar cliente por Nome, CPF ou CNPJ..." autocomplete="off">
+                                <button class="btn btn-primary" type="button" id="btnNovoCliente"><i class="fas fa-plus me-1"></i> Novo</button>
+                            </div>
+                            <div id="lista_clientes" class="list-group position-absolute w-100 shadow-lg" style="z-index: 1050; display:none; top: 100%;"></div>
+                            <input type="hidden" name="cliente_id" id="cliente_id">
+                            <input type="hidden" id="cliente_doc">
+                            <input type="hidden" id="cliente_cr">
+                        </div>
+
+                        <div id="info_cliente_selecionado" class="alert alert-primary d-flex align-items-center p-3 mb-0 shadow-sm" style="display:none !important;">
+                            <div class="rounded-circle bg-white text-primary p-2 me-3">
+                                <i class="fas fa-user fa-lg"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="alert-heading fw-bold mb-1" id="txt_cliente_nome">Nome do Cliente</h6>
+                                <div class="d-flex gap-3 text-muted small">
+                                    <span><i class="far fa-id-card me-1"></i> <span id="txt_cliente_doc">---</span></span>
+                                    <span><i class="fas fa-id-badge me-1"></i> CR: <span id="txt_cliente_cr">---</span></span>
                                 </div>
-                                <div id="lista_clientes" class="list-group position-absolute w-100" style="z-index: 1000; display:none;"></div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="small text-muted">Documento</label>
-                                <input type="text" id="cliente_doc" class="form-control form-control-sm bg-light" readonly>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="small text-muted">CR</label>
-                                <input type="text" id="cliente_cr" class="form-control form-control-sm bg-light" readonly>
-                            </div>
+                            <button type="button" class="btn btn-sm btn-light text-primary border" onclick="limparCliente()">
+                                <i class="fas fa-sync-alt me-1"></i> Trocar
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 font-weight-bold text-primary">2. Produtos / Armas</h6>
+                <div class="card border-0 shadow-sm mb-4">
+                     <div class="card-header bg-white py-3 border-bottom-0">
+                        <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-box-open me-2"></i>Adicionar Produtos</h6>
                     </div>
-                    <div class="card-body bg-light border-bottom">
-                        <div class="row g-2 align-items-end">
+                    <div class="card-body pt-0">
+                        
+                        <div class="position-relative mb-3">
+                             <label class="form-label small text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Buscar Produto</label>
+                             <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                                <input type="text" id="busca_produto" class="form-control" placeholder="Digite nome, código ou SKU..." autocomplete="off">
+                            </div>
+                            <div id="lista_produtos" class="list-group position-absolute w-100 shadow" style="z-index: 1050; display:none; top: 100%;"></div>
+                            <input type="hidden" id="temp_produto_id">
+                        </div>
+
+                        <div class="row g-3 align-items-end mb-3 bg-light p-3 rounded-3 border mx-0">
                             
                             <div class="col-md-5">
-                                <label class="small fw-bold">Produto</label>
-                                <input type="text" id="busca_produto" class="form-control" placeholder="Busque por nome ou SKU...">
-                                <input type="hidden" id="temp_produto_id">
-                                <div id="lista_produtos" class="list-group position-absolute" style="z-index: 1000; width:90%; display:none;"></div>
-                            </div>
-                            
-                            <div class="col-md-3" id="div_serial_wrapper" style="opacity: 0.5; pointer-events: none;">
-                                <label class="small fw-bold">Nº Série / Estoque</label>
-                                <select id="temp_serial_id" class="form-select">
-                                    <option value="">Selecione o produto...</option>
-                                </select>
-                            </div>
+                                <div id="placeholder_selecao">
+                                    <label class="form-label small fw-bold text-muted">Detalhes</label>
+                                    <input type="text" class="form-control bg-white" disabled placeholder="Selecione um produto...">
+                                </div>
 
-                            <div class="col-md-3" id="div_craf_wrapper" style="display:none;">
-                                <label class="small fw-bold text-danger">Vincular CRAF (Cliente)</label>
-                                <select id="temp_craf_id" class="form-select border-danger">
-                                    <option value="">Selecione a arma...</option>
-                                </select>
+                                <div id="div_serial_wrapper" style="display:none;">
+                                    <label class="form-label small fw-bold text-dark">Serial / Estoque</label>
+                                    <select id="temp_serial_id" class="form-select bg-white">
+                                        <option value="">Selecione...</option>
+                                    </select>
+                                </div>
+
+                                <div id="div_municao_wrapper" style="display:none;">
+                                    <div class="mb-2">
+                                         <label class="form-label small fw-bold text-primary"><i class="fas fa-barcode me-1"></i>Lote / Scanner</label>
+                                         <div class="input-group input-group-sm">
+                                            <input type="text" id="scan_lote" class="form-control border-primary" placeholder="Bipe a caixa aqui...">
+                                            <input type="hidden" id="temp_lote_estoque_id">
+                                         </div>
+                                         <div id="feedback_lote" class="form-text text-primary lh-1 mt-1" style="font-size: 0.75rem;"></div>
+                                    </div>
+                                    <div>
+                                        <label class="form-label small fw-bold text-danger">Vincular CRAF</label>
+                                        <select id="temp_craf_id" class="form-select form-select-sm border-danger bg-white"></select>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="col-md-2">
-                                <label class="small fw-bold">Preço Unit.</label>
-                                <input type="number" id="temp_preco" class="form-control" step="0.01">
+                                <label class="form-label small fw-bold">Qtd</label>
+                                <input type="number" id="temp_quantidade" class="form-control text-center" value="1" min="1">
                             </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">Valor Unit. (R$)</label>
+                                <input type="number" id="temp_preco" class="form-control text-end" step="0.01">
+                            </div>
+
                             <div class="col-md-2">
-                                <button type="button" id="btnAdicionarItem" class="btn btn-success w-100">
-                                    <i class="fas fa-plus"></i> Incluir
+                                <button type="button" id="btnAdicionarItem" class="btn btn-success w-100 h-100 d-flex align-items-center justify-content-center shadow-sm">
+                                    <i class="fas fa-plus me-2"></i> Incluir
                                 </button>
                             </div>
                         </div>
                         
-                        <div class="form-text mt-2" id="info_estoque"></div>
-                    </div>
+                        <div id="info_estoque" class="form-text text-end mb-2 fst-italic"></div>
 
-                    <div class="table-responsive">
-                        <table class="table table-striped mb-0" id="tabelaItens">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Produto</th>
-                                    <th>Detalhe (Serial/CRAF)</th>
-                                    <th class="text-center">Qtd</th>
-                                    <th class="text-end">Unitário</th>
-                                    <th class="text-end">Total</th>
-                                    <th style="width: 50px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                </tbody>
-                        </table>
+                        <div class="table-responsive rounded-3 border">
+                            <table class="table table-hover mb-0 align-middle" id="tabelaItens">
+                                <thead class="table-light text-secondary small text-uppercase">
+                                    <tr>
+                                        <th class="ps-3">Produto</th>
+                                        <th>Detalhes (Rastreio)</th>
+                                        <th class="text-center">Qtd</th>
+                                        <th class="text-end">Unit.</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end pe-3" style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                            <div id="empty_cart_msg" class="text-center p-5 text-muted">
+                                <i class="fas fa-shopping-basket fa-3x mb-3 text-gray-200"></i>
+                                <p class="mb-0">O carrinho está vazio.</p>
+                                <small>Adicione produtos acima.</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
             </div>
 
             <div class="col-lg-4">
-                <div class="card shadow mb-4 border-left-primary">
+                <div class="card border-0 shadow-sm sticky-top" style="top: 1rem; z-index: 100;">
+                     <div class="card-header bg-success text-white py-3">
+                        <h5 class="m-0 fw-bold"><i class="fas fa-receipt me-2"></i>Resumo</h5>
+                    </div>
                     <div class="card-body">
-                        <h5 class="card-title text-muted mb-4">Resumo do Pedido</h5>
-                        
                         <div class="d-flex justify-content-between mb-2">
-                            <span>Subtotal:</span>
-                            <span class="fw-bold" id="resumo_subtotal">R$ 0,00</span>
+                            <span class="text-muted">Subtotal</span>
+                            <span class="fw-bold text-dark" id="resumo_subtotal">R$ 0,00</span>
                         </div>
-                        <div class="d-flex justify-content-between mb-3">
-                            <span>Descontos:</span>
-                            <input type="number" id="venda_desconto" class="form-control form-control-sm text-end" style="width: 100px;" value="0.00">
+                         <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted">Desconto</span>
+                            <div class="input-group input-group-sm" style="width: 130px;">
+                                <span class="input-group-text bg-white border-end-0">R$</span>
+                                <input type="number" id="venda_desconto" class="form-control text-end border-start-0" value="0.00">
+                            </div>
                         </div>
-                        
-                        <hr>
-                        
+                        <hr class="my-3">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <span class="h5 mb-0">Total Final:</span>
-                            <span class="h4 mb-0 text-primary fw-bold" id="resumo_total_final">R$ 0,00</span>
+                            <span class="h5 mb-0 text-dark">Total a Pagar</span>
+                            <span class="h3 mb-0 text-success fw-bold" id="resumo_total_final">R$ 0,00</span>
                         </div>
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-check-circle me-2"></i> Finalizar Venda
+                         <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg py-3 shadow-sm">
+                                <div class="d-flex justify-content-between align-items-center px-2">
+                                    <span class="fw-bold">Finalizar Venda</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
                             </button>
-                            <button type="button" class="btn btn-outline-secondary">
-                                <i class="fas fa-file-contract me-2"></i> Apenas Orçamento
+                            <button type="button" class="btn btn-light border text-muted">
+                                <i class="fas fa-save me-2"></i> Salvar Orçamento
                             </button>
                         </div>
                     </div>
-                </div>
-                
-                <div class="alert alert-info small">
-                    <i class="fas fa-info-circle me-1"></i> 
-                    Ao finalizar, o sistema irá reservar os itens selecionados e configurar o fluxo de documentos (Contratos ou Termos).
+                    <div class="card-footer bg-light small text-muted border-top-0">
+                        <i class="fas fa-shield-alt me-1"></i> Venda Segura: O estoque será reservado automaticamente.
+                    </div>
                 </div>
             </div>
         </div>
     </form>
+</div>
+
+<div class="modal fade" id="modalNovaArmaCliente" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h6 class="modal-title fw-bold"><i class="fas fa-plus-circle text-success me-2"></i>Cadastrar Arma/CRAF do Cliente</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formNovaArmaRapida">
+            <input type="hidden" id="new_arma_cliente_id"> 
+            
+            <div class="mb-3">
+                <label class="small fw-bold">Espécie/Tipo</label>
+                <select class="form-select form-select-sm" id="new_arma_especie" required>
+                    <option value="Pistola">Pistola</option>
+                    <option value="Revolver">Revólver</option>
+                    <option value="Rifle">Rifle</option>
+                    <option value="Espingarda">Espingarda</option>
+                    <option value="Carabina">Carabina</option>
+                </select>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="small fw-bold">Marca</label>
+                    <input type="text" class="form-control form-control-sm" id="new_arma_marca" required>
+                </div>
+                <div class="col-6">
+                    <label class="small fw-bold">Modelo</label>
+                    <input type="text" class="form-control form-control-sm" id="new_arma_modelo" required>
+                </div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="small fw-bold">Calibre</label>
+                    <input type="text" class="form-control form-control-sm" id="new_arma_calibre" placeholder="Ex: 9mm" required>
+                </div>
+                <div class="col-6">
+                    <label class="small fw-bold">Nº Série</label>
+                    <input type="text" class="form-control form-control-sm" id="new_arma_serial" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="small fw-bold">Registro (SINARM/SIGMA)</label>
+                <input type="text" class="form-control form-control-sm" id="new_arma_registro">
+            </div>
+            
+            <div class="d-grid">
+                <button type="submit" class="btn btn-success btn-sm">Salvar e Usar na Venda</button>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="{{ url_for('static', filename='js/venda_form.js') }}"></script>

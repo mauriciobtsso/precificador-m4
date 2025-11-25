@@ -8,7 +8,6 @@
 </div>
 
 <div class="row g-4 align-items-start">
-  <!-- Foto do produto -->
   <div class="col-12 col-md-4 order-md-2">
     <div class="d-flex justify-content-center mb-3 mb-md-0">
       <div id="fotoProdutoContainer"
@@ -19,18 +18,16 @@
 
         <img id="fotoProdutoPreview"
              data-produto-id="{{ produto.id or '' }}"
-             src="{{ produto.foto_url or url_for('static', filename='img/placeholder.jpg') }}"
+             src="{{ foto_proxy or produto.foto_url or url_for('static', filename='img/placeholder.jpg') }}"
              class="w-100 h-100"
              style="object-fit:contain; background-color:#f9f9f9;">
 
-        <!-- Overlay de carregamento -->
         <div id="fotoProdutoOverlay"
              class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center d-none"
              style="z-index:3; background-color:rgba(0,0,0,0.5); border-radius:0.5rem;">
           <i class="fas fa-spinner fa-spin fa-2x text-white"></i>
         </div>
 
-        <!-- Overlay hover -->
         <div id="fotoProdutoHoverOverlay"
              class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center"
              style="z-index:2; background-color:rgba(0,0,0,0.35); opacity:0; transition:opacity .2s;">
@@ -43,17 +40,14 @@
           </button>
         </div>
 
-        <!-- Inputs -->
         <input type="file" id="inputFotoProduto" accept="image/*" class="d-none">
         <input type="hidden" id="inputFotoUrl" name="foto_url" value="{{ produto.foto_url or '' }}">
       </div>
     </div>
   </div>
 
-  <!-- Campos principais -->
   <div class="col-12 col-md-8 order-md-1">
     <div class="row g-3">
-      <!-- Código / SKU -->
       <div class="col-12 col-sm-6 col-lg-4">
         <label class="form-label fw-semibold small">Código / SKU</label>
         <input type="text" id="codigo" name="codigo"
@@ -62,7 +56,6 @@
                value="{{ produto.codigo or '' }}" required>
       </div>
 
-      <!-- Nome -->
       <div class="col-12 col-sm-6 col-lg-8">
         <label class="form-label fw-semibold small">Nome do Produto</label>
         <input type="text" id="nome" name="nome"
@@ -71,7 +64,6 @@
                value="{{ produto.nome or '' }}" required>
       </div>
 
-      <!-- Tipo -->
       <div class="col-12 col-md-6">
         <label class="form-label fw-semibold small">Tipo</label>
         <div class="input-group">
@@ -87,7 +79,6 @@
         </div>
       </div>
 
-      <!-- Categoria -->
       <div class="col-12 col-md-6">
         <label class="form-label fw-semibold small">Categoria</label>
         <div class="input-group">
@@ -103,7 +94,6 @@
         </div>
       </div>
 
-      <!-- Marca -->
       <div class="col-12 col-md-6">
         <label class="form-label fw-semibold small">Marca</label>
         <div class="input-group">
@@ -119,7 +109,6 @@
         </div>
       </div>
 
-      <!-- Calibre -->
       <div class="col-12 col-md-6">
         <label class="form-label fw-semibold small">Calibre</label>
         <div class="input-group">
@@ -135,7 +124,6 @@
         </div>
       </div>
 
-      <!-- Funcionamento -->
       <div class="col-12 col-md-6">
         <label class="form-label fw-semibold small">Funcionamento</label>
         <div class="input-group">
@@ -154,7 +142,6 @@
   </div>
 </div>
 
-<!-- Descrição -->
 <div class="row g-3 mt-3">
   <div class="col-12">
     <label class="form-label fw-semibold small">Descrição</label>

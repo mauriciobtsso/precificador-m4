@@ -1,3 +1,7 @@
+# =======================================================
+# MÓDULO: app/clientes/models.py
+# =======================================================
+
 from app.extensions import db
 from datetime import datetime
 from app.utils.datetime import now_local
@@ -25,7 +29,7 @@ class Cliente(db.Model):
     nome_mae = db.Column(db.String(150))
     matricula = db.Column(db.String(100))
 
-    # Documentos principais (dados diretos do cliente)
+    # Documentos principais
     documento = db.Column(db.String(30), unique=True)   # CPF
     rg = db.Column(db.String(30))
     rg_emissor = db.Column(db.String(100))
@@ -61,24 +65,19 @@ class Cliente(db.Model):
     armas = db.relationship("Arma", back_populates="cliente", cascade="all, delete-orphan")
     comunicacoes = db.relationship("Comunicacao", back_populates="cliente", cascade="all, delete-orphan")
     processos = db.relationship("Processo", back_populates="cliente", cascade="all, delete-orphan")
+    
+    # Vendas conecta aqui
     vendas = db.relationship("Venda", back_populates="cliente", cascade="all, delete-orphan")
 
-    enderecos = db.relationship(
-        "EnderecoCliente",
-        back_populates="cliente",
-        cascade="all, delete-orphan",
-        lazy="select"
-    )
-    contatos = db.relationship(
-        "ContatoCliente",
-        back_populates="cliente",
-        cascade="all, delete-orphan",
-        lazy="select"
-    )
+    enderecos = db.relationship("EnderecoCliente", back_populates="cliente", cascade="all, delete-orphan", lazy="select")
+    contatos = db.relationship("ContatoCliente", back_populates="cliente", cascade="all, delete-orphan", lazy="select")
+    
+    # CORREÇÃO DO ERRO KEYERROR:
+    # O Estoque precisa deste relacionamento reverso para funcionar o back_populates="itens_fornecidos"
+    itens_fornecidos = db.relationship("ItemEstoque", back_populates="fornecedor", lazy="dynamic")
 
     def __repr__(self):
         return f"<Cliente {self.id} - {self.nome}>"
-
 
 # =========================
 # Endereço
@@ -131,10 +130,6 @@ class ContatoCliente(db.Model):
 # =========================
 # Documento
 # =========================
-from datetime import datetime
-from app import db
-
-
 class Documento(db.Model):
     __tablename__ = "documentos"
 

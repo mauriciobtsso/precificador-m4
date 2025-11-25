@@ -1,17 +1,21 @@
-from flask import render_template, request
-from flask_login import login_required
+from flask import render_template, request, jsonify
+from flask_login import login_required, current_user
 from app.extensions import db
 from app.vendas.models import Venda, ItemVenda
-from app.clientes.models import Cliente
+from app.clientes.models import Cliente, Arma
+from app.produtos.models import Produto
+from app.estoque.models import ItemEstoque
+from app.services.venda_service import VendaService
 from . import vendas_bp
+import re
 from datetime import datetime, timedelta
-# ADICIONADO: 'func' para agregações no banco
 from sqlalchemy import extract, func
 
 
-# =========================
-# LISTAGEM DE VENDAS + RESUMO
-# =========================
+# ===============================================================
+#  TELAS (HTML)
+# ===============================================================
+
 @vendas_bp.route("/", methods=["GET", "POST"])
 @login_required
 def vendas():
@@ -47,13 +51,10 @@ def vendas():
         except Exception:
             pass
 
-    # --- Paginação (Query 1: Apenas os itens da página atual) ---
+    # --- Paginação ---
     vendas_paginadas = query.order_by(Venda.data_abertura.desc()).paginate(page=page, per_page=per_page)
 
-    # --- Resumo agregado OTIMIZADO (Query 2: Soma direta no Banco) ---
-    # Antes: query.all() -> Carregava TUDO na RAM -> Python somava. (RISCO DE CRASH)
-    # Agora: query.with_entities(...) -> Banco soma e retorna só os números. (PERFORMANCE PURA)
-    
+    # --- Resumo agregado OTIMIZADO (SQL) ---
     resumo_dados = query.with_entities(
         func.count(Venda.id).label('total'),
         func.sum(Venda.valor_total).label('soma_total'),
@@ -61,13 +62,11 @@ def vendas():
         func.sum(Venda.valor_recebido).label('soma_recebido')
     ).first()
 
-    # Extração segura (se não houver vendas, retorna 0)
     total_vendas = resumo_dados.total or 0
     soma_total = resumo_dados.soma_total or 0
     soma_descontos = resumo_dados.soma_descontos or 0
     soma_recebido = resumo_dados.soma_recebido or 0
     
-    # Cálculo de média seguro (evita divisão por zero)
     media_venda = soma_total / total_vendas if total_vendas > 0 else 0
 
     resumo = {
@@ -90,9 +89,6 @@ def vendas():
     )
 
 
-# =========================
-# DETALHE DE VENDA
-# =========================
 @vendas_bp.route("/<int:venda_id>")
 @login_required
 def venda_detalhe(venda_id):
@@ -107,12 +103,7 @@ def venda_detalhe(venda_id):
         itens=itens
     )
 
-from flask import jsonify
-from app.services.venda_service import VendaService
-from app.produtos.models import Produto
-from app.estoque.models import ItemEstoque
 
-# --- TELA DE NOVA VENDA ---
 @vendas_bp.route("/nova", methods=["GET", "POST"])
 @login_required
 def nova_venda():
@@ -124,15 +115,17 @@ def nova_venda():
         except Exception as e:
             return jsonify({"success": False, "error": str(e)}), 400
             
-    return render_template("vendas/form.html") # Criaremos este arquivo
+    return render_template("vendas/form.html")
 
-# --- APIS INTERNAS PARA O JAVASCRIPT ---
+
+# ===============================================================
+#  APIs INTERNAS (JSON) - Usadas pelo JavaScript do Formulário
+# ===============================================================
 
 @vendas_bp.route("/api/clientes")
 @login_required
 def api_buscar_clientes():
     termo = request.args.get("q", "")
-    # CORREÇÃO: Trocamos Cliente.cpf por Cliente.documento
     clientes = Cliente.query.filter(
         (Cliente.nome.ilike(f"%{termo}%")) | 
         (Cliente.documento.ilike(f"%{termo}%"))
@@ -141,9 +134,94 @@ def api_buscar_clientes():
     return jsonify([{
         "id": c.id, 
         "nome": c.nome, 
-        "documento": c.documento, # Retorna o CPF/CNPJ correto
-        "cr": c.cr # CORREÇÃO: Trocamos cr_numero por cr
+        "documento": c.documento,
+        "cr": c.cr
     } for c in clientes])
+
+
+# --- Lógica de Calibre ---
+def normalizar_calibre(texto):
+    if not texto:
+        return ""
+    limpo = texto.lower().replace(".", "").replace("-", "").replace(" ", "")
+    termos_para_remover = [
+        "acp", "auto", "spl", "special", "win", "rem", "magnum", 
+        "parabellum", "luger", "mm", "ga", "gauge", "long", "lr", "short"
+    ]
+    for termo in termos_para_remover:
+        limpo = limpo.replace(termo, "")
+    return limpo
+
+
+@vendas_bp.route("/api/cliente/<int:cliente_id>/armas")
+@login_required
+def api_armas_cliente(cliente_id):
+    """
+    Retorna as armas do cliente, opcionalmente filtradas por calibre.
+    """
+    calibre_alvo = request.args.get("calibre")
+    todas_armas = Arma.query.filter_by(cliente_id=cliente_id).all()
+    
+    armas_filtradas = []
+    
+    if calibre_alvo:
+        alvo_limpo = normalizar_calibre(calibre_alvo)
+        
+        # Tabela de equivalência para aumentar a chance de match
+        equivalencias = {
+            "9": ["9x19", "9", "380"],
+            "9x19": ["9", "9x19"],
+            "38": ["38", "357"],
+            "357": ["357"],
+            "380": ["380"],
+            "12": ["12"],
+            "22": ["22"],
+            "40": ["40", "40sw"],
+            "45": ["45", "45acp"]
+        }
+        compativeis = equivalencias.get(alvo_limpo, [alvo_limpo])
+
+        for arma in todas_armas:
+            arma_calibre_limpo = normalizar_calibre(arma.calibre)
+            
+            match = False
+            if alvo_limpo == "38" and "357" in arma_calibre_limpo:
+                match = True
+            else:
+                for c in compativeis:
+                    if c == arma_calibre_limpo or c in arma_calibre_limpo or arma_calibre_limpo in c:
+                        match = True
+                        break
+            
+            if match:
+                armas_filtradas.append(arma)
+    else:
+        armas_filtradas = todas_armas
+
+    return jsonify([{
+        "id": a.id,
+        "descricao": f"{a.tipo or 'Arma'} {a.marca or ''} {a.modelo or ''}",
+        "serial": a.numero_serie,
+        "calibre": a.calibre,
+        # CORREÇÃO DO ERRO: Removemos a.sinarm e usamos 'emissor_craf' ou 'numero_sigma'
+        "sistema": f"{a.emissor_craf or a.numero_sigma or 'S/N'}" 
+    } for a in armas_filtradas])
+
+
+@vendas_bp.route("/api/produto/<int:produto_id>/detalhes")
+@login_required
+def api_produto_detalhes(produto_id):
+    produto = Produto.query.get_or_404(produto_id)
+    return jsonify({
+        "id": produto.id,
+        "nome": produto.nome,
+        "preco": float(produto.preco_a_vista or 0),
+        "estoque": 10, # Placeholder
+        "tipo": (produto.tipo_rel.nome if produto.tipo_rel else "").lower(),
+        "categoria": (produto.categoria.nome if produto.categoria else "").lower(),
+        "calibre": (produto.calibre_rel.nome if produto.calibre_rel else "")
+    })
+
 
 @vendas_bp.route("/api/produtos")
 @login_required
@@ -158,14 +236,13 @@ def api_buscar_produtos():
         "id": p.id,
         "nome": p.nome,
         "preco": float(p.preco_a_vista or 0),
-        # Aqui poderíamos somar o estoque total
         "estoque": 10 # Placeholder
     } for p in produtos])
+
 
 @vendas_bp.route("/api/estoque/<int:produto_id>")
 @login_required
 def api_buscar_estoque_produto(produto_id):
-    """Retorna apenas os seriais DISPONÍVEIS deste produto"""
     itens = ItemEstoque.query.filter_by(
         produto_id=produto_id, 
         status="disponivel"
@@ -174,5 +251,6 @@ def api_buscar_estoque_produto(produto_id):
     return jsonify([{
         "id": i.id,
         "serial": i.numero_serie,
-        "lote": i.lote
+        "lote": i.lote,
+        "embalagem": i.numero_embalagem 
     } for i in itens])

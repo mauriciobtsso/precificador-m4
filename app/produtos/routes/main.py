@@ -19,20 +19,16 @@ from app.models import Taxa
 import app.utils.parcelamento as parc
 
 from urllib.parse import urlparse
-from app.utils.r2_helpers import gerar_link_r2
+from app.produtos.routes.utils import _key_from_url
 
 # ============================================================
 #  Cache leve em memória para fragmentos da listagem (AJAX)
-#  - Apenas para listagem SEM filtros (home de produtos)
-#  - TTL curto para não "congelar" preços/estoque
 # ============================================================
-_LIST_CACHE = {}  # key -> (expires_epoch, html)
-_LIST_CACHE_TTL = 60  # segundos
-
+_LIST_CACHE = {}  
+_LIST_CACHE_TTL = 60 
 
 def _cache_key_for_list(page: int, per_page: int, ordenar: str) -> str:
     return f"nofilter:p={page}:pp={per_page}:ord={ordenar}"
-
 
 def _get_cached_fragment(page: int, per_page: int, ordenar: str):
     key = _cache_key_for_list(page, per_page, ordenar)
@@ -41,30 +37,19 @@ def _get_cached_fragment(page: int, per_page: int, ordenar: str):
     if item and item[0] > now:
         return item[1]
     if item:
-        # expirado
         _LIST_CACHE.pop(key, None)
     return None
-
 
 def _set_cached_fragment(page: int, per_page: int, ordenar: str, html: str):
     key = _cache_key_for_list(page, per_page, ordenar)
     _LIST_CACHE[key] = (time.time() + _LIST_CACHE_TTL, html)
 
-
 # ============================================================
-# LISTAGEM DE PRODUTOS — com filtros, busca, ordenação e paginação
-# - compatível com resposta parcial (AJAX) para _lista.html
-# - otimizações:
-#   * validação/normalização de parâmetros
-#   * consulta enxuta (sem joins desnecessários)
-#   * cache leve do fragmento quando não há filtros
+# LISTAGEM DE PRODUTOS
 # ============================================================
 @produtos_bp.route("/", endpoint="index")
 @login_required
 def index():
-    # -----------------------------
-    # 1) Parâmetros validados
-    # -----------------------------
     raw_termo = (request.args.get("termo") or "").strip()
     termo = raw_termo if raw_termo else ""
 
@@ -92,103 +77,53 @@ def index():
     }
     ordem = ordem_map.get(ordenar, Produto.nome.asc())
 
-    # limites sensatos
     page = request.args.get("page", 1, type=int) or 1
     per_page = request.args.get("per_page", 20, type=int) or 20
-    if per_page < 10:
-        per_page = 10
-    if per_page > 100:
-        per_page = 100
+    if per_page < 10: per_page = 10
+    if per_page > 100: per_page = 100
 
-    # -----------------------------
-    # 2) Montagem de consulta
-    #    (sem joinedload — listagem não precisa)
-    # -----------------------------
     query = Produto.query
-
-    # 🔍 Busca por nome ou código (case-insensitive)
     if termo:
         like = f"%{termo}%"
         query = query.filter(or_(Produto.nome.ilike(like), Produto.codigo.ilike(like)))
 
-    # 🎯 Filtros opcionais
-    if tipo:
-        query = query.filter(Produto.tipo_id == tipo)
-    if categoria:
-        query = query.filter(Produto.categoria_id == categoria)
-    if marca:
-        query = query.filter(Produto.marca_id == marca)
-    if calibre:
-        query = query.filter(Produto.calibre_id == calibre)
+    if tipo: query = query.filter(Produto.tipo_id == tipo)
+    if categoria: query = query.filter(Produto.categoria_id == categoria)
+    if marca: query = query.filter(Produto.marca_id == marca)
+    if calibre: query = query.filter(Produto.calibre_id == calibre)
 
-    #↕️ Ordenação
     query = query.order_by(ordem)
-
-    # -----------------------------
-    # 3) Paginação
-    # -----------------------------
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     produtos = pagination.items
 
-    # -----------------------------
-    # 4) Listas para filtros (mantidas completas)
-    # -----------------------------
     tipos = TipoProduto.query.order_by(TipoProduto.nome.asc()).all()
     categorias = CategoriaProduto.query.order_by(CategoriaProduto.nome.asc()).all()
     marcas = MarcaProduto.query.order_by(MarcaProduto.nome.asc()).all()
     calibres = CalibreProduto.query.order_by(CalibreProduto.nome.asc()).all()
 
-    # -----------------------------
-    # 5) Resposta parcial (AJAX) com cache leve quando NÃO há filtros
-    # -----------------------------
     wants_fragment = request.args.get("ajax") == "1" or request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
-    has_any_filter = any([
-        bool(termo), bool(tipo), bool(categoria),
-        bool(marca), bool(calibre)
-    ])
+    has_any_filter = any([bool(termo), bool(tipo), bool(categoria), bool(marca), bool(calibre)])
 
     if wants_fragment:
         if not has_any_filter:
             cached = _get_cached_fragment(page, per_page, ordenar)
             if cached:
-                # Garante que o fragmento seja retornado com cabeçalhos adequados
                 resp = make_response(cached)
                 resp.headers["Cache-Control"] = "no-store"
                 return resp
 
-        html = render_template(
-            "produtos/_lista.html",
-            produtos=produtos,
-            pagination=pagination,
-            per_page=per_page,
-            request=request,
-        )
+        html = render_template("produtos/_lista.html", produtos=produtos, pagination=pagination, per_page=per_page, request=request)
         if not has_any_filter:
             _set_cached_fragment(page, per_page, ordenar, html)
         resp = make_response(html)
         resp.headers["Cache-Control"] = "no-store"
         return resp
 
-    # -----------------------------
-    # 6) Página completa
-    # -----------------------------
-    return render_template(
-        "produtos/index.html",
-        produtos=produtos,
-        pagination=pagination,
-        tipos=tipos,
-        categorias=categorias,
-        marcas=marcas,
-        calibres=calibres,
-        per_page=per_page,
-    )
+    return render_template("produtos/index.html", produtos=produtos, pagination=pagination, tipos=tipos, categorias=categorias, marcas=marcas, calibres=calibres, per_page=per_page)
 
 
 # ============================================================
 # CADASTRAR / EDITAR PRODUTO
-# - Mantém lógica atual de auditoria e cálculo
-# - joinedload apenas no histórico (uso no form)
 # ============================================================
 @produtos_bp.route("/novo", methods=["GET", "POST"])
 @produtos_bp.route("/<int:produto_id>/editar", methods=["GET", "POST"])
@@ -224,11 +159,7 @@ def gerenciar_produto(produto_id=None):
             produto = Produto()
     else:
         if produto_id:
-            produto = (
-                Produto.query.options(joinedload(Produto.historicos))
-                .filter_by(id=produto_id)
-                .first()
-            )
+            produto = Produto.query.options(joinedload(Produto.historicos)).filter_by(id=produto_id).first()
         else:
             produto = Produto()
 
@@ -243,14 +174,18 @@ def gerenciar_produto(produto_id=None):
         foto_atual = getattr(produto, "foto_url", None)
 
         def to_int(value):
-            try:
-                return int(value) if value else None
-            except ValueError:
-                return None
+            try: return int(value) if value else None
+            except ValueError: return None
 
+        # --- CORREÇÃO PARA PERSISTÊNCIA ---
+        # Remove símbolos (R$, %) e espaços antes de converter
         def to_decimal(value):
+            if not value: return Decimal(0)
             try:
-                return Decimal(str(value or 0).replace(",", "."))
+                # Limpeza robusta
+                val_str = str(value).replace("R$", "").replace("%", "").strip()
+                val_str = val_str.replace(",", ".") # Padrão backend: ponto decimal
+                return Decimal(val_str)
             except InvalidOperation:
                 return Decimal(0)
 
@@ -273,12 +208,7 @@ def gerenciar_produto(produto_id=None):
         produto.tipo_id = to_int(data.get("tipo_id"))
         produto.funcionamento_id = to_int(data.get("funcionamento_id"))
 
-        # Código único
-        existente = (
-            Produto.query.filter(Produto.codigo == codigo)
-            .filter(Produto.id != produto.id if produto.id else True)
-            .first()
-        )
+        existente = Produto.query.filter(Produto.codigo == codigo).filter(Produto.id != produto.id if produto.id else True).first()
         if existente:
             flash(f"⚠️ Já existe um produto com o código {codigo}.", "warning")
             return redirect(url_for("produtos.gerenciar_produto", produto_id=produto.id))
@@ -294,46 +224,40 @@ def gerenciar_produto(produto_id=None):
         produto.margem = to_decimal(data.get("margem"))
         produto.lucro_alvo = to_decimal(data.get("lucro_alvo"))
         produto.preco_final = to_decimal(data.get("preco_final"))
+        
+        # IPI e Outros
         produto.ipi = to_decimal(data.get("ipi"))
         produto.difal = to_decimal(data.get("difal"))
         produto.imposto_venda = to_decimal(data.get("imposto_venda"))
         produto.ipi_tipo = data.get("ipi_tipo", "%_dentro")
 
         try:
-            # Recalcula se existir método
             if hasattr(produto, "calcular_precos"):
                 produto.calcular_precos()
 
             db.session.add(produto)
-            db.session.flush()  # garante produto.id
+            db.session.flush()
 
-            # Auditoria
+            # Auditoria (Simplificada para exibição)
             registros = []
             if not produto_id:
                 registros.append(ProdutoHistorico(
                     produto_id=produto.id,
                     campo="__acao__",
-                    valor_antigo=None,
                     valor_novo="Criação de produto",
                     usuario_id=getattr(current_user, "id", None),
-                    usuario_nome=getattr(current_user, "nome", None)
-                    or getattr(current_user, "username", None)
-                    or getattr(current_user, "email", None),
+                    usuario_nome=getattr(current_user, "nome", None) or getattr(current_user, "username", None),
                     data_modificacao=datetime.utcnow(),
                 ))
 
             campos_percentuais = ["ipi", "ipi_tipo", "difal", "imposto_venda"]
-
             def normalizar_valor(v, campo_nome):
-                if v is None:
-                    return None
+                if v is None: return None
                 try:
                     v_float = float(v)
-                    if campo_nome in campos_percentuais:
-                        return f"{v_float:.2f} %"
+                    if campo_nome in campos_percentuais: return f"{v_float:.2f} %"
                     return f"{v_float:.2f}"
-                except (ValueError, TypeError):
-                    return str(v)
+                except (ValueError, TypeError): return str(v)
 
             depois = {c: getattr(produto, c, None) for c in campos_auditados}
             for campo in campos_auditados:
@@ -345,9 +269,7 @@ def gerenciar_produto(produto_id=None):
                         valor_antigo=normalizar_valor(a, campo),
                         valor_novo=normalizar_valor(d, campo),
                         usuario_id=getattr(current_user, "id", None),
-                        usuario_nome=getattr(current_user, "nome", None)
-                        or getattr(current_user, "username", None)
-                        or getattr(current_user, "email", None),
+                        usuario_nome=getattr(current_user, "nome", None) or getattr(current_user, "username", None),
                         data_modificacao=datetime.utcnow(),
                     ))
 
@@ -355,7 +277,6 @@ def gerenciar_produto(produto_id=None):
                 db.session.add_all(registros)
 
             db.session.commit()
-            # Invalida cache da listagem sem filtros (dados mudaram)
             _LIST_CACHE.clear()
             flash("✅ Produto salvo com sucesso!", "success")
             return redirect(url_for("produtos.index"))
@@ -365,32 +286,30 @@ def gerenciar_produto(produto_id=None):
             current_app.logger.error(f"Erro ao salvar produto: {e}")
             flash("❌ Ocorreu um erro ao salvar o produto.", "danger")
 
-    # Conversão de timezone do campo atualizado_em (exibição amigável)
     if getattr(produto, "atualizado_em", None):
         try:
             fuso_fortaleza = pytz.timezone("America/Fortaleza")
             if produto.atualizado_em.tzinfo is None:
                 produto.atualizado_em = produto.atualizado_em.replace(tzinfo=timezone.utc)
             produto.atualizado_em_local = produto.atualizado_em.astimezone(fuso_fortaleza)
-        except Exception as e:
-            current_app.logger.warning(f"Falha ao converter timezone: {e}")
+        except Exception:
             produto.atualizado_em_local = produto.atualizado_em
+
+    # URL da Foto (Proxy)
+    foto_proxy = None
+    if produto and produto.foto_url:
+        key = _key_from_url(produto.foto_url)
+        foto_proxy = url_for('main.imagem_proxy', key=key) if key else produto.foto_url
 
     return render_template(
         "produtos/form/produto_form.html",
         produto=produto,
-        categorias=categorias,
-        marcas=marcas,
-        calibres=calibres,
-        tipos=tipos,
-        funcionamentos=funcionamentos,
+        foto_proxy=foto_proxy,
+        categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
     )
-
 
 # ============================================================
 # EXCLUIR PRODUTO
-# - Mantém compatibilidade com chamada via fetch (AJAX)
-# - Limpa cache da listagem sem filtros após exclusão
 # ============================================================
 @produtos_bp.route("/<int:produto_id>/excluir", methods=["POST"])
 @login_required
@@ -399,7 +318,6 @@ def excluir_produto(produto_id):
     try:
         db.session.delete(produto)
         db.session.commit()
-        # Invalida cache, pois a listagem mudou
         _LIST_CACHE.clear()
         flash("🗑️ Produto excluído com sucesso!", "success")
     except Exception as e:
@@ -414,84 +332,44 @@ def excluir_produto(produto_id):
 @produtos_bp.route("/<int:produto_id>/visualizar", methods=["GET"])
 @login_required
 def visualizar_produto(produto_id):
-    # 1. Busca o produto com os relacionamentos
-    produto = (
-        Produto.query
-        .options(
-            joinedload(Produto.categoria),
-            joinedload(Produto.marca_rel),
-            joinedload(Produto.calibre_rel),
-            joinedload(Produto.tipo_rel),
-            joinedload(Produto.funcionamento_rel),
-        )
-        .filter_by(id=produto_id)
-        .first_or_404()
-    )
+    produto = Produto.query.options(
+        joinedload(Produto.categoria), joinedload(Produto.marca_rel),
+        joinedload(Produto.calibre_rel), joinedload(Produto.tipo_rel),
+        joinedload(Produto.funcionamento_rel)
+    ).filter_by(id=produto_id).first_or_404()
 
-    # Função auxiliar de formatação
     def currency(val):
-        try:
-            v = float(val or 0)
-        except Exception:
-            v = 0.0
+        try: v = float(val or 0)
+        except: v = 0.0
         return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-    # 2. Lógica da Foto (Proxy - Bala de Prata)
     url_imagem = "/static/img/placeholder.jpg"
     if produto.foto_url:
-        try:
-            parsed = urlparse(produto.foto_url)
-            key = parsed.path.lstrip('/') 
-            if key:
-                # Gera URL apontando para o Proxy no app/main/routes.py
-                url_imagem = url_for('main.imagem_proxy', key=key)
-        except Exception:
-            pass
+        key = _key_from_url(produto.foto_url)
+        if key: url_imagem = url_for('main.imagem_proxy', key=key)
 
-    # 3. Cálculos de Preço e Parcelamento
     valor_base = float(produto.preco_final or produto.preco_a_vista or 0.0)
     taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
     linhas_raw = parc.gerar_linhas_parcelas(valor_base, taxas)
 
-    preco_avista = valor_base
     parcelas_fmt = []
     parcela_12x_val = None
-
     for l in linhas_raw:
         rot = l.get("rotulo") or ""
         parcela_val = l.get("parcela") or 0
         total_val = l.get("total") or 0
+        parcelas_fmt.append({"rotulo": rot, "parcela": currency(parcela_val), "total": currency(total_val)})
+        if rot == "12x": parcela_12x_val = parcela_val
 
-        parcelas_fmt.append({
-            "rotulo": rot,
-            "parcela": currency(parcela_val),
-            "total": currency(total_val),
-        })
+    parcelado_label = f"12x de {currency(parcela_12x_val)}" if parcela_12x_val is not None else "-"
 
-        if rot == "12x":
-            parcela_12x_val = parcela_val
-
-    parcelado_label = "-"
-    if parcela_12x_val is not None:
-        parcelado_label = f"12x de {currency(parcela_12x_val)}"
-
-    # 4. Retorno COMPLETO dos dados
     return {
-        "id": produto.id,
-        "codigo": produto.codigo or "-",
-        "nome": produto.nome,
-        "descricao": produto.descricao or "",
-        
-        # URL da imagem tratada pelo Proxy
+        "id": produto.id, "codigo": produto.codigo or "-", "nome": produto.nome, "descricao": produto.descricao or "",
         "foto_url": url_imagem,
-
         "categoria": produto.categoria.nome if produto.categoria else "-",
         "marca": produto.marca_rel.nome if produto.marca_rel else "-",
         "calibre": produto.calibre_rel.nome if produto.calibre_rel else "-",
         "tipo": produto.tipo_rel.nome if produto.tipo_rel else "-",
         "funcionamento": produto.funcionamento_rel.nome if produto.funcionamento_rel else "-",
-
-        "preco_avista": currency(preco_avista),
-        "parcelado_label": parcelado_label,
-        "parcelas": parcelas_fmt,
+        "preco_avista": currency(valor_base), "parcelado_label": parcelado_label, "parcelas": parcelas_fmt,
     }

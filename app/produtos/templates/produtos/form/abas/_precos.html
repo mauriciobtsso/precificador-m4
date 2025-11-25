@@ -7,21 +7,19 @@
   </h5>
 
   <div class="row g-4">
-    <!-- Preço do fornecedor -->
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label fw-semibold small">Preço fornecedor (R$)</label>
       <input type="text" name="preco_fornecedor" id="in_preco_fornecedor" class="form-control" inputmode="decimal"
-             value="{{ produto.preco_fornecedor if produto else '' }}">
+             value="{{ '%.2f'|format(produto.preco_fornecedor|float)|replace('.', ',') if produto.preco_fornecedor is not none else '' }}">
       <div class="form-text text-muted text-end">
         <span class="atual-valor">Atual: {{ (produto.preco_fornecedor|float)|currency if produto else 'R$ 0,00' }}</span>
       </div>
     </div>
 
-    <!-- Desconto fornecedor -->
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label fw-semibold small">Desconto fornecedor (%)</label>
-      <input type="number" step="0.01" min="0" name="desconto_fornecedor" id="in_desconto" class="form-control"
-             value="{{ produto.desconto_fornecedor if produto else '' }}">
+      <input type="text" name="desconto_fornecedor" id="in_desconto" class="form-control"
+             value="{{ '%.2f'|format(produto.desconto_fornecedor|float)|replace('.', ',') if produto.desconto_fornecedor is not none else '' }}">
       <div class="form-text text-muted text-end">
         <span class="atual-valor">Atual:
           <span id="out_desconto">
@@ -31,37 +29,33 @@
       </div>
     </div>
 
-    <!-- Frete -->
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label fw-semibold small">Frete (R$)</label>
-      <input type="text" name="frete" id="in_frete" class="form-control" value="{{ produto.frete if produto else '' }}">
+      <input type="text" name="frete" id="in_frete" class="form-control" inputmode="decimal"
+             value="{{ '%.2f'|format(produto.frete|float)|replace('.', ',') if produto.frete is not none else '' }}">
       <div class="form-text text-muted text-end">
         <span class="atual-valor">Atual: <span id="out_frete">{{ (produto.frete|float)|currency if produto else 'R$ 0,00' }}</span></span>
       </div>
     </div>
 
-    <!-- Margem -->
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label fw-semibold small">Margem (%)</label>
-      <input type="number" step="0.01" min="0" name="margem" id="in_margem" class="form-control"
-             value="{{ produto.margem if produto else '' }}">
+      <input type="text" name="margem" id="in_margem" class="form-control"
+             value="{{ '%.2f'|format(produto.margem|float)|replace('.', ',') if produto.margem is not none else '' }}">
     </div>
 
-    <!-- Lucro alvo -->
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label fw-semibold small">Lucro alvo (R$)</label>
       <input type="text" name="lucro_alvo" id="in_lucro_alvo" class="form-control" inputmode="decimal"
-             value="{{ produto.lucro_alvo if produto else '' }}">
+             value="{{ '%.2f'|format(produto.lucro_alvo|float)|replace('.', ',') if produto.lucro_alvo is not none else '' }}">
     </div>
 
-    <!-- Preço final -->
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label fw-semibold small">Preço final desejado (R$)</label>
       <input type="text" name="preco_final" id="in_preco_final" class="form-control" inputmode="decimal"
-             value="{{ produto.preco_final if produto else '' }}">
+             value="{{ '%.2f'|format(produto.preco_final|float)|replace('.', ',') if produto.preco_final is not none else '' }}">
     </div>
 
-    <!-- IPI -->
     <div class="col-12 col-sm-6 col-lg-3">
       <label class="form-label fw-semibold small">IPI</label>
       <div class="input-group">
@@ -70,29 +64,27 @@
           <option value="%" {% if produto and produto.ipi_tipo=="%" %}selected{% endif %}>% por fora</option>
           <option value="R$" {% if produto and produto.ipi_tipo=="R$" %}selected{% endif %}>R$ fixo</option>
         </select>
-        <input type="number" step="0.01" name="ipi" id="in_ipi" class="form-control"
-               value="{{ produto.ipi if produto else '' }}">
+        <input type="text" name="ipi" id="in_ipi" class="form-control"
+               value="{{ '%.2f'|format(produto.ipi|float)|replace('.', ',') if produto.ipi is not none else '' }}">
       </div>
       <div class="form-text text-muted text-end">
         <span class="atual-valor">Atual: <span id="out_ipi">{{ produto.valor_ipi|currency if produto else 'R$ 0,00' }}</span></span>
       </div>
     </div>
 
-    <!-- DIFAL -->
     <div class="col-12 col-sm-6 col-lg-3">
       <label class="form-label fw-semibold small">DIFAL (%)</label>
-      <input type="number" step="0.01" name="difal" id="in_difal" class="form-control"
-             value="{{ produto.difal if produto else '' }}">
+      <input type="text" name="difal" id="in_difal" class="form-control"
+             value="{{ '%.2f'|format(produto.difal|float)|replace('.', ',') if produto.difal is not none else '' }}">
       <div class="form-text text-muted text-end">
         <span class="atual-valor">Atual: <span id="out_difal">{{ produto.valor_difal|currency if produto else 'R$ 0,00' }}</span></span>
       </div>
     </div>
 
-    <!-- Imposto venda -->
     <div class="col-12 col-sm-6 col-lg-3">
       <label class="form-label fw-semibold small">Imposto venda (%)</label>
-      <input type="number" step="0.01" name="imposto_venda" id="in_imposto_venda" class="form-control"
-             value="{{ produto.imposto_venda if produto else '' }}">
+      <input type="text" name="imposto_venda" id="in_imposto_venda" class="form-control"
+             value="{{ '%.2f'|format(produto.imposto_venda|float)|replace('.', ',') if produto.imposto_venda is not none else '' }}">
       <div class="form-text text-muted text-end">
         <span class="atual-valor">Atual: <span id="out_imposto">{{ ((produto.preco_final or 0)*(produto.imposto_venda or 0)/100)|currency if produto else 'R$ 0,00' }}</span></span>
       </div>
@@ -100,9 +92,6 @@
   </div>
 </div>
 
-<!-- ===========================
-     RESUMO DO PRODUTO
-=========================== -->
 <div class="m4-card border-start border-4 border-orange ps-3 pt-2 pb-3 rounded-3 shadow-sm bg-white">
   <h5 class="fw-semibold text-dark mb-3">
     <i class="fas fa-calculator me-2"></i>Resumo do Produto
