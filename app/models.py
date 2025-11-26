@@ -278,3 +278,20 @@ class Notificacao(db.Model):
             "data_envio": self.data_envio.strftime("%d/%m/%Y %H:%M"),
             "status": self.status,
         }
+
+
+# =========================
+# Modelos de Documentos (Contratos/Recibos)
+# =========================
+class ModeloDocumento(db.Model):
+    __tablename__ = "modelos_documento"
+
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(100), nullable=False)  # Ex: Contrato de Arma
+    chave = db.Column(db.String(50), unique=True, nullable=False)  # Ex: contrato_arma
+    conteudo = db.Column(db.Text, nullable=False)  # HTML com placeholders Jinja2
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<ModeloDocumento {self.titulo}>"

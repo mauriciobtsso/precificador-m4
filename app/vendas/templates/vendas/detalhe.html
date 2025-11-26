@@ -3,59 +3,43 @@
 {% block content %}
 
 <style>
-    .step-indicator {
-        display: flex;
-        justify-content: space-between;
-        list-style: none;
-        padding: 0;
-        margin-bottom: 2rem;
-    }
-    .step-indicator li {
-        flex: 1;
-        position: relative;
-        text-align: center;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #adb5bd;
-    }
-    .step-indicator li:before {
-        content: counter(step);
-        counter-increment: step;
-        width: 30px;
-        height: 30px;
-        line-height: 28px;
-        border: 2px solid #e9ecef;
-        display: block;
-        text-align: center;
-        margin: 0 auto 10px auto;
-        border-radius: 50%;
-        background-color: #fff;
-        color: #adb5bd;
-    }
-    .step-indicator li:after {
-        content: "";
-        position: absolute;
-        width: 100%;
-        height: 2px;
-        background-color: #e9ecef;
-        top: 15px;
-        left: -50%;
-        z-index: -1;
-    }
+    /* Estilos mantidos */
+    .step-indicator { display: flex; justify-content: space-between; list-style: none; padding: 0; margin-bottom: 2rem; }
+    .step-indicator li { flex: 1; position: relative; text-align: center; font-size: 0.75rem; font-weight: 600; color: #adb5bd; }
+    .step-indicator li:before { content: counter(step); counter-increment: step; width: 30px; height: 30px; line-height: 28px; border: 2px solid #e9ecef; display: block; text-align: center; margin: 0 auto 10px auto; border-radius: 50%; background-color: #fff; color: #adb5bd; }
+    .step-indicator li:after { content: ""; position: absolute; width: 100%; height: 2px; background-color: #e9ecef; top: 15px; left: -50%; z-index: -1; }
     .step-indicator li:first-child:after { content: none; }
-    
-    /* Ativo / Concluído */
     .step-indicator li.active { color: #0d6efd; }
     .step-indicator li.active:before { border-color: #0d6efd; background-color: #0d6efd; color: #fff; }
     .step-indicator li.completed { color: #198754; }
     .step-indicator li.completed:before { border-color: #198754; background-color: #198754; color: #fff; content: "✔"; }
     .step-indicator li.completed:after { background-color: #198754; }
-
-    /* Cards de Processo */
     .card-processo { border-left: 4px solid #e9ecef; transition: all 0.2s; }
     .card-processo.active { border-left-color: #0d6efd; background-color: #f8f9fa; }
     .card-processo.done { border-left-color: #198754; opacity: 0.8; }
 </style>
+
+{% set tem_arma_nova = false %}
+{% set tem_municao = false %}
+{% set crafs_vinculados = [] %}
+
+{% for item in venda.itens %}
+    {# Se o item tem 'arma_cliente', é venda de munição/insumo para arma existente #}
+    {% if item.arma_cliente %}
+        {% set tem_municao = true %}
+        {% if item.arma_cliente not in crafs_vinculados %}
+            {% set _ = crafs_vinculados.append(item.arma_cliente) %}
+        {% endif %}
+    {% endif %}
+    
+    {# Se o produto é categoria Arma (ajuste conforme seu cadastro de categorias) #}
+    {% if item.produto and 'arma' in (item.categoria or '')|lower %}
+        {% set tem_arma_nova = true %}
+    {% endif %}
+{% endfor %}
+
+{% set tipo_venda = 'arma' if tem_arma_nova else ('municao' if tem_municao else 'livre') %}
+
 
 <div class="container-fluid">
 
@@ -64,10 +48,35 @@
             <h4 class="fw-bold text-dark mb-0">
                 <i class="fas fa-file-invoice text-primary me-2"></i>Venda #{{ venda.id }}
             </h4>
-            <small class="text-muted">Aberta em {{ venda.data_abertura|dt_local }} por <strong>{{ venda.vendedor }}</strong></small>
+            <small class="text-muted">
+                Tipo: <strong>{{ tipo_venda|upper }}</strong> | 
+                Aberta em {{ venda.data_abertura|dt_local }} por <strong>{{ venda.vendedor }}</strong>
+            </small>
         </div>
         <div class="d-flex gap-2">
             {% if venda.status != 'cancelado' %}
+                <div class="dropdown d-inline-block">
+                    <button class="btn btn-outline-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-file-alt me-1"></i> Gerar Documento
+                    </button>
+                    <ul class="dropdown-menu shadow">
+                        <li><h6 class="dropdown-header">Modelos Disponíveis</h6></li>
+                        
+                        {% if tipo_venda == 'arma' %}
+                            <li><a class="dropdown-item" target="_blank" href="{{ url_for('vendas.gerar_documento', venda_id=venda.id, chave='contrato_arma') }}"><i class="fas fa-file-contract me-2"></i> Contrato Venda Arma</a></li>
+                            <li><a class="dropdown-item" target="_blank" href="{{ url_for('vendas.gerar_documento', venda_id=venda.id, chave='servico_despachante') }}"><i class="fas fa-file-signature me-2"></i> Contrato Despachante</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" target="_blank" href="{{ url_for('vendas.gerar_documento', venda_id=venda.id, chave='retirada_arma') }}"><i class="fas fa-shipping-fast me-2"></i> Termo Retirada Arma</a></li>
+                        
+                        {% elif tipo_venda == 'municao' %}
+                            <li><a class="dropdown-item" target="_blank" href="{{ url_for('vendas.gerar_documento', venda_id=venda.id, chave='retirada_municao') }}"><i class="fas fa-box-open me-2"></i> Termo Retirada Munição</a></li>
+                        
+                        {% else %}
+                            <li><a class="dropdown-item disabled" href="#">Nenhum documento específico</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+
                 <button class="btn btn-outline-danger btn-sm" onclick="cancelarVenda({{ venda.id }})">
                     <i class="fas fa-ban me-1"></i> Cancelar
                 </button>
@@ -82,13 +91,20 @@
     </div>
 
     {% set etapa_atual = venda.etapa or 'RASCUNHO' %}
+    
     <ul class="step-indicator">
-        <li class="{% if etapa_atual in ['ABERTA','ASSINATURA','AUTORIZACAO','CRAF','GT','RETIRADA','CONCLUIDA'] %}completed{% else %}active{% endif %}">Abertura</li>
-        <li class="{% if etapa_atual in ['ASSINATURA','AUTORIZACAO','CRAF','GT','RETIRADA','CONCLUIDA'] %}completed{% elif etapa_atual == 'RASCUNHO' %} {% else %}active{% endif %}">Contrato/NF</li>
-        <li class="{% if etapa_atual in ['AUTORIZACAO','CRAF','GT','RETIRADA','CONCLUIDA'] %}completed{% endif %}">Autorização</li>
-        <li class="{% if etapa_atual in ['CRAF','GT','RETIRADA','CONCLUIDA'] %}completed{% endif %}">Registro (CRAF)</li>
-        <li class="{% if etapa_atual in ['GT','RETIRADA','CONCLUIDA'] %}completed{% endif %}">GT / Tráfego</li>
-        <li class="{% if etapa_atual in ['RETIRADA','CONCLUIDA'] %}completed{% endif %}">Entrega</li>
+        <li class="completed">Abertura</li>
+        
+        {% if tipo_venda == 'arma' %}
+            <li class="{% if etapa_atual != 'RASCUNHO' %}active{% endif %}">Contrato/NF</li>
+            <li>Autorização</li>
+            <li>Registro (CRAF)</li>
+            <li>GT / Tráfego</li>
+        {% else %}
+            <li class="{% if etapa_atual != 'RASCUNHO' %}completed{% endif %}">NF / Validação</li>
+        {% endif %}
+        
+        <li>Entrega</li>
     </ul>
 
     <div class="row">
@@ -105,13 +121,13 @@
                             <thead class="table-light small">
                                 <tr>
                                     <th>Produto</th>
-                                    <th>Serial / Lote</th>
+                                    <th>Rastreio / Origem</th>
                                     <th class="text-center">Qtd</th>
                                     <th class="text-end">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for item in itens %}
+                                {% for item in venda.itens %}
                                 <tr>
                                     <td>
                                         <div class="fw-bold">{{ item.produto_nome }}</div>
@@ -120,10 +136,14 @@
                                     <td>
                                         {% if item.item_estoque_id %}
                                             <span class="badge bg-info text-dark">
-                                                <i class="fas fa-barcode me-1"></i> {{ item.item_estoque.numero_serie }}
+                                                <i class="fas fa-barcode me-1"></i> Lote: {{ item.item_estoque.lote or item.item_estoque.numero_serie }}
                                             </span>
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">Encomenda</span>
+                                        {% endif %}
+                                        
+                                        {% if item.arma_cliente %}
+                                            <div class="mt-1 small text-secondary">
+                                                <i class="fas fa-link me-1"></i> Ref: {{ item.arma_cliente.descricao_curta or item.arma_cliente.numero_serie }}
+                                            </div>
                                         {% endif %}
                                     </td>
                                     <td class="text-center">{{ item.quantidade }}</td>
@@ -142,6 +162,7 @@
                 </div>
                 <div class="card-body">
                     
+                    {% if tipo_venda == 'arma' %}
                     <div class="card card-processo mb-3 {% if etapa_atual == 'ASSINATURA' %}active{% endif %}">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
@@ -149,17 +170,18 @@
                                 <small class="text-muted">Gerar minuta e anexar via assinada.</small>
                             </div>
                             <div class="d-flex gap-2">
-                                <a href="#" class="btn btn-sm btn-light border"><i class="fas fa-print me-1"></i> Gerar PDF</a>
-                                <button class="btn btn-sm btn-outline-primary"><i class="fas fa-upload me-1"></i> Anexar Assinado</button>
+                                <a href="{{ url_for('vendas.gerar_documento', venda_id=venda.id, chave='contrato_arma') }}" target="_blank" class="btn btn-sm btn-light border"><i class="fas fa-print me-1"></i> Gerar</a>
+                                <button class="btn btn-sm btn-outline-primary"><i class="fas fa-upload me-1"></i> Anexar</button>
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
                     <div class="card card-processo mb-3">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="fw-bold mb-1">Nota Fiscal (NF-e)</h6>
-                                <small class="text-muted">Simples faturamento ou Entrega Futura.</small>
+                                <small class="text-muted">Obrigatório para baixa de estoque.</small>
                             </div>
                             <div class="d-flex gap-2">
                                 <span class="badge bg-secondary align-self-center">Pendente</span>
@@ -168,26 +190,49 @@
                         </div>
                     </div>
 
+                    {% if tipo_venda == 'arma' %}
                     <div class="card card-processo mb-3">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="fw-bold mb-1">Autorização de Compra</h6>
-                                <small class="text-muted">SisGCorp / Sinarm. O sistema lerá o QR Code.</small>
+                                <small class="text-muted">SisGCorp / Sinarm.</small>
                             </div>
                             <div>
-                                <button class="btn btn-sm btn-primary"><i class="fas fa-file-upload me-1"></i> Anexar PDF</button>
+                                <button class="btn btn-sm btn-primary"><i class="fas fa-file-upload me-1"></i> Anexar</button>
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
                     <div class="card card-processo mb-3">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="fw-bold mb-1">Certificado de Registro (CRAF)</h6>
-                                <small class="text-muted">Registro da arma no nome do cliente.</small>
+                                {% if tipo_venda == 'municao' %}
+                                    <small class="text-success"><i class="fas fa-check me-1"></i> Vinculado do Cliente</small>
+                                    {% for arma in crafs_vinculados %}
+                                        <div class="small mt-1 text-muted">
+                                            • {{ arma.tipo }} {{ arma.calibre }} ({{ arma.numero_serie }})
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <small class="text-muted">Aguardando emissão pelo órgão.</small>
+                                {% endif %}
                             </div>
                             <div>
-                                <button class="btn btn-sm btn-primary"><i class="fas fa-file-upload me-1"></i> Anexar PDF</button>
+                                {% if tipo_venda == 'municao' %}
+                                    {% for arma in crafs_vinculados %}
+                                        {% if arma.caminho_craf %}
+                                            <a href="{{ url_for('main.imagem_proxy', key=arma.caminho_craf) }}" target="_blank" class="btn btn-sm btn-info text-white mb-1" title="Abrir CRAF {{ arma.numero_serie }}">
+                                                <i class="fas fa-id-card me-1"></i> CRAF ({{ arma.numero_serie }})
+                                            </a>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Sem anexo ({{ arma.numero_serie }})</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <button class="btn btn-sm btn-primary"><i class="fas fa-file-upload me-1"></i> Anexar CRAF Novo</button>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -199,8 +244,16 @@
                                 <small class="text-success"><i class="fas fa-check-circle me-1"></i> Liberado para entrega</small>
                             </div>
                             <div class="d-flex gap-2">
-                                <a href="#" class="btn btn-sm btn-light border"><i class="fas fa-print me-1"></i> Imprimir Termo</a>
-                                <button class="btn btn-sm btn-success"><i class="fas fa-check me-1"></i> Concluir Venda</button>
+                                {% if tipo_venda == 'municao' %}
+                                    <a href="{{ url_for('vendas.gerar_documento', venda_id=venda.id, chave='retirada_municao') }}" target="_blank" class="btn btn-sm btn-light border">
+                                        <i class="fas fa-print me-1"></i> Termo Munição
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('vendas.gerar_documento', venda_id=venda.id, chave='retirada_arma') }}" target="_blank" class="btn btn-sm btn-light border">
+                                        <i class="fas fa-print me-1"></i> Termo Arma
+                                    </a>
+                                {% endif %}
+                                <button class="btn btn-sm btn-success"><i class="fas fa-check me-1"></i> Concluir</button>
                             </div>
                         </div>
                     </div>
@@ -220,10 +273,10 @@
                     <h5 class="fw-bold mb-1">{{ venda.cliente_nome or venda.cliente.nome }}</h5>
                     <p class="text-muted small mb-3">
                         CPF/CNPJ: {{ venda.documento_cliente or venda.cliente.documento }}<br>
-                        CR: {{ venda.cliente.cr_numero or 'Não informado' }}
+                        CR: {{ venda.cliente.cr or 'Não informado' }}
                     </p>
                     <div class="d-grid">
-                        <a href="{{ url_for('clientes.editar_cliente', cliente_id=venda.cliente_id) }}" target="_blank" class="btn btn-sm btn-outline-info">
+                        <a href="{{ url_for('clientes.detalhe', cliente_id=venda.cliente_id) }}" target="_blank" class="btn btn-sm btn-outline-info">
                             <i class="fas fa-user me-1"></i> Ver Cadastro Completo
                         </a>
                     </div>
@@ -272,13 +325,8 @@
                     <h6 class="m-0 font-weight-bold text-secondary">Arquivos da Venda</h6>
                 </div>
                 <ul class="list-group list-group-flush small">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div><i class="far fa-file-pdf text-danger me-2"></i> Contrato Assinado</div>
-                        <a href="#" class="text-primary"><i class="fas fa-download"></i></a>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div><i class="far fa-file-pdf text-danger me-2"></i> Autorização Compra</div>
-                        <a href="#" class="text-primary"><i class="fas fa-download"></i></a>
+                    <li class="list-group-item d-flex justify-content-between align-items-center text-muted">
+                        <em>Nenhum arquivo anexado ainda.</em>
                     </li>
                 </ul>
             </div>
@@ -290,7 +338,6 @@
 <script>
 function cancelarVenda(id) {
     if(confirm("Tem certeza que deseja cancelar esta venda? O estoque será estornado.")) {
-        // Chamar API de cancelamento aqui
         alert("Funcionalidade será implementada no próximo passo!");
     }
 }

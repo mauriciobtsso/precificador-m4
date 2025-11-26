@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Editar Modelo: {{ modelo.titulo }}</h3>
+        <a href="{{ url_for('admin.documentos') }}" class="btn btn-outline-secondary">Voltar</a>
+    </div>
+
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label fw-bold">Título</label>
+            <input type="text" name="titulo" class="form-control" value="{{ modelo.titulo }}" required>
+        </div>
+
+        <div class="row">
+            <div class="col-md-9">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Conteúdo (HTML/Texto)</label>
+                    <textarea name="conteudo" class="form-control font-monospace" rows="20">{{ modelo.conteudo }}</textarea>
+                    <div class="form-text">Use HTML básico (&lt;b&gt;, &lt;br&gt;, &lt;p&gt;) para formatar.</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-header fw-bold small">Variáveis Disponíveis</div>
+                    <div class="card-body p-2">
+                        <ul class="list-unstyled small mb-0">
+                            {% for v in variaveis_disponiveis %}
+                            <li class="mb-1"><code>{{ v }}</code></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Salvar Alterações</button>
+    </form>
+</div>
+{% endblock %}

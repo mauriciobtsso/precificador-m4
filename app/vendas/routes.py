@@ -290,3 +290,57 @@ def api_buscar_estoque_produto(produto_id):
         "lote": i.lote,
         "embalagem": i.numero_embalagem 
     } for i in itens])
+
+# --- CORREÇÃO AQUI: Importar br_money ao invés de format_currency ---
+from app.utils.format_helpers import br_money
+from app.models import ModeloDocumento
+
+@vendas_bp.route("/<int:venda_id>/documento/<chave>")
+@login_required
+def gerar_documento(venda_id, chave):
+    venda = Venda.query.get_or_404(venda_id)
+    modelo = ModeloDocumento.query.filter_by(chave=chave).first_or_404()
+    
+    # ... (Definição de empresa, c, end_str, tel mantidos igual) ...
+    
+    # Dados da Empresa (Recriado aqui para garantir contexto)
+    empresa = {
+        "razao_social": "M4 TÁTICA COMERCIO E SERVIÇOS LTDA",
+        "cnpj": "41.654.218/0001-47",
+        "endereco": "AV. UNIVERSITÁRIA, 750 - LJ 23, FÁTIMA, TERESINA/PI",
+        "cr": "635069",
+        "telefone": "(86) 3025-5885",
+        "email": "falecom@m4tatica.com.br",
+        "logo": url_for('static', filename='img/logo.png', _external=True)
+    }
+    
+    c = venda.cliente
+    end = c.enderecos[0] if c.enderecos else None
+    end_str = f"{end.logradouro}, {end.numero}, {end.bairro} - {end.cidade}/{end.estado} - CEP {end.cep}" if end else "Endereço não cadastrado"
+    tel = c.contatos[0].valor if c.contatos else "Não informado"
+
+    context = {
+        "venda": venda,
+        "br_money": br_money, # Passado aqui dentro
+        "cliente": {
+            "nome": c.nome,
+            "documento": c.documento or "",
+            "rg": c.rg or "",
+            "rg_emissor": c.rg_emissor or "",
+            "endereco_completo": end_str,
+            "email": "", 
+            "telefone": tel,
+            "cr": c.cr or "",
+            "cr_validade": c.data_validade_cr.strftime('%d/%m/%Y') if c.data_validade_cr else ""
+        },
+        "empresa": empresa,
+        "data_hoje": datetime.today().strftime('%d/%m/%Y'),
+        "itens_lista": "<br>".join([f"- {i.produto_nome} (Qtd: {i.quantidade})" for i in venda.itens])
+    }
+    
+    from flask import render_template_string
+    
+    # CORREÇÃO AQUI: Removemos 'br_money=br_money' pois ele já está dentro de **context
+    conteudo_renderizado = render_template_string(modelo.conteudo, **context)
+    
+    return render_template("vendas/print_documento.html", conteudo=conteudo_renderizado, titulo=modelo.titulo)
