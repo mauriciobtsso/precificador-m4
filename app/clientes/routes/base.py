@@ -244,7 +244,7 @@ def novo_cliente():
 
 
 # =================================================
-# DETALHE DO CLIENTE
+# DETALHE DO CLIENTE (CORRIGIDO)
 # =================================================
 @clientes_bp.route("/<int:cliente_id>")
 def detalhe(cliente_id):
@@ -257,7 +257,8 @@ def detalhe(cliente_id):
                 joinedload(Cliente.documentos),
                 joinedload(Cliente.armas),
                 joinedload(Cliente.comunicacoes),
-                joinedload(Cliente.processos)
+                joinedload(Cliente.processos),
+                joinedload(Cliente.vendas) # <--- ADICIONADO: Carrega as vendas
             )
             .get_or_404(cliente_id)
         )
@@ -267,8 +268,10 @@ def detalhe(cliente_id):
             "armas": len(cliente.armas or []),
             "comunicacoes": len(cliente.comunicacoes or []),
             "processos": len(cliente.processos or []),
+            "vendas": len(cliente.vendas or []), # <--- ADICIONADO: Contagem de vendas
         }
 
+        # PARTE RESTAURADA QUE FALTAVA
         alertas = []
         if not cliente.cr:
             alertas.append("CR não informado.")

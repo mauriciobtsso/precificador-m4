@@ -1,17 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
+
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-  <h2 class="fw-semibold text-dark mb-0">
-    <i class="fas fa-shopping-bag text-danger me-2"></i> Vendas
-  </h2>
+  <div class="d-flex align-items-center">
+    <h2 class="fw-semibold text-dark mb-0 me-3">
+      <i class="fas fa-shopping-bag text-danger me-2"></i> Vendas
+    </h2>
+    <a href="{{ url_for('vendas.nova_venda') }}" class="btn btn-success rounded-pill px-3 shadow-sm">
+      <i class="fas fa-plus me-1"></i> Nova Venda
+    </a>
+  </div>
+  
   <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-dark btn-sm rounded-pill px-3">
     <i class="fas fa-home me-1"></i> Dashboard
   </a>
 </div>
 
-<!-- =============================
-     FILTROS
-============================= -->
 <form method="get" class="row g-2 mb-3">
   <div class="col-12 col-md-3">
     <input type="text" name="cliente" value="{{ request.args.get('cliente','') }}"
@@ -31,8 +35,8 @@
   <div class="col-6 col-md-2">
     <select name="periodo" class="form-select" id="filtro-periodo">
       <option value="">Todos os períodos</option>
-      <option value="7d"           {% if request.args.get('periodo')=='7d' %}selected{% endif %}>Últimos 7 dias</option>
-      <option value="mes"          {% if request.args.get('periodo')=='mes' %}selected{% endif %}>Mês atual</option>
+      <option value="7d"            {% if request.args.get('periodo')=='7d' %}selected{% endif %}>Últimos 7 dias</option>
+      <option value="mes"           {% if request.args.get('periodo')=='mes' %}selected{% endif %}>Mês atual</option>
       <option value="personalizado"{% if request.args.get('periodo')=='personalizado' %}selected{% endif %}>Personalizado</option>
     </select>
   </div>
@@ -56,9 +60,6 @@
   </div>
 </form>
 
-<!-- =============================
-     RESUMO DE VENDAS
-============================= -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
     <div class="card border-0 shadow-sm rounded-4 text-center py-3 h-100">
@@ -98,9 +99,6 @@
   </div>
 </div>
 
-<!-- =============================
-     LISTAGEM (DESKTOP)
-============================= -->
 <div class="d-none d-md-block">
   <div class="card shadow-sm border-0 rounded-4">
     <div class="card-body p-0">
@@ -112,7 +110,7 @@
             <th style="width: 200px;">Data</th>
             <th style="width: 180px;">Valor Total</th>
             <th style="width: 160px;">Status</th>
-            <th style="width: 140px;" class="text-end">Ações</th>
+            <th style="width: 180px;" class="text-end">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -122,12 +120,29 @@
             <td>{{ venda.cliente.nome if venda.cliente else "Não identificado" }}</td>
             <td>{{ venda.data_abertura.strftime("%d/%m/%Y %H:%M") if venda.data_abertura else "-" }}</td>
             <td>{{ venda.valor_total|currency }}</td>
-            <td>{{ venda.status or "-" }}</td>
+            <td>
+                {% set st = (venda.status or '').lower() %}
+                <span class="badge {% if 'aberta' in st %}bg-warning text-dark{% elif 'fechada' in st or 'quitada' in st %}bg-success{% elif 'canc' in st %}bg-danger{% else %}bg-secondary{% endif %}">
+                    {{ venda.status or "-" }}
+                </span>
+            </td>
             <td class="text-end">
-              <a href="{{ url_for('vendas.venda_detalhe', venda_id=venda.id) }}"
-                 class="btn btn-sm btn-primary rounded-pill px-3">
-                <i class="fas fa-eye me-1"></i> Detalhes
+              <a href="{{ url_for('vendas.venda_detalhe', venda_id=venda.id) }}" 
+                 class="btn btn-sm btn-light border" title="Ver Detalhes">
+                <i class="fas fa-eye"></i>
               </a>
+              <a href="{{ url_for('vendas.editar_venda', venda_id=venda.id) }}" 
+                 class="btn btn-sm btn-outline-primary" title="Editar">
+                <i class="fas fa-edit"></i>
+              </a>
+              <button type="button" class="btn btn-sm btn-outline-danger" 
+                      data-bs-toggle="modal" 
+                      data-bs-target="#modalExcluirUnico"
+                      data-venda-id="{{ venda.id }}"
+                      data-cliente-nome="{{ venda.cliente.nome if venda.cliente else 'Cliente não identificado' }}"
+                      data-action-url="{{ url_for('vendas.excluir_venda', venda_id=venda.id) }}">
+                <i class="fas fa-trash"></i>
+              </button>
             </td>
           </tr>
           {% else %}
@@ -141,9 +156,6 @@
   </div>
 </div>
 
-<!-- =============================
-     LISTAGEM (MOBILE)
-============================= -->
 <div class="d-md-none">
   {% for venda in vendas.items %}
   <div class="card shadow-sm border-0 mb-3 rounded-4">
@@ -171,10 +183,21 @@
         <div class="fs-6 fw-semibold">{{ venda.valor_total|currency }}</div>
       </div>
 
-      <div class="mt-3 d-flex justify-content-end">
-        <a href="{{ url_for('vendas.venda_detalhe', venda_id=venda.id) }}" class="btn btn-primary btn-sm rounded-pill px-3">
-          <i class="fas fa-eye me-1"></i> Ver detalhes
+      <div class="mt-3 d-flex justify-content-end gap-2">
+        <a href="{{ url_for('vendas.venda_detalhe', venda_id=venda.id) }}" class="btn btn-light border btn-sm rounded-pill px-3">
+          <i class="fas fa-eye"></i>
         </a>
+        <a href="{{ url_for('vendas.editar_venda', venda_id=venda.id) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+            <i class="fas fa-edit"></i>
+        </a>
+        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" 
+                data-bs-toggle="modal" 
+                data-bs-target="#modalExcluirUnico"
+                data-venda-id="{{ venda.id }}"
+                data-cliente-nome="{{ venda.cliente.nome if venda.cliente else 'Cliente não identificado' }}"
+                data-action-url="{{ url_for('vendas.excluir_venda', venda_id=venda.id) }}">
+            <i class="fas fa-trash"></i>
+        </button>
       </div>
     </div>
   </div>
@@ -183,9 +206,6 @@
   {% endfor %}
 </div>
 
-<!-- =============================
-     PAGINAÇÃO
-============================= -->
 {% if vendas.pages > 1 %}
 <nav aria-label="Paginação" class="mt-4">
   <ul class="pagination justify-content-center mb-0">
@@ -210,8 +230,35 @@
 </nav>
 {% endif %}
 
+<div class="modal fade" id="modalExcluirUnico" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">
+            <i class="fas fa-exclamation-triangle me-2"></i> Excluir Venda
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <p class="fs-5">Tem certeza que deseja excluir a Venda <strong id="lblVendaId">#</strong>?</p>
+        <p class="text-muted mb-0">Cliente: <span id="lblClienteNome"></span></p>
+        <small class="text-danger d-block mt-3">Esta ação não pode ser desfeita automaticamente.</small>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+        <form id="formExcluirVenda" method="post" action="">
+          <button type="submit" class="btn btn-danger px-4">
+              <i class="fas fa-trash-alt me-2"></i> Confirmar Exclusão
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+  // Filtros de Data
   const selectPeriodo = document.getElementById("filtro-periodo");
   const campoInicio = document.getElementById("campo-inicio");
   const campoFim = document.getElementById("campo-fim");
@@ -227,6 +274,25 @@ document.addEventListener("DOMContentLoaded", function() {
   }
   selectPeriodo.addEventListener("change", toggleCampos);
   toggleCampos();
+
+  // Lógica do Modal Único
+  const modalExcluir = document.getElementById('modalExcluirUnico');
+  modalExcluir.addEventListener('show.bs.modal', function (event) {
+    // Botão que acionou o modal
+    const button = event.relatedTarget; 
+    
+    // Extrai info dos atributos data-*
+    const vendaId = button.getAttribute('data-venda-id');
+    const clienteNome = button.getAttribute('data-cliente-nome');
+    const actionUrl = button.getAttribute('data-action-url');
+
+    // Atualiza o conteúdo do modal
+    document.getElementById('lblVendaId').textContent = '#' + vendaId;
+    document.getElementById('lblClienteNome').textContent = clienteNome;
+    
+    // Atualiza o action do form
+    document.getElementById('formExcluirVenda').setAttribute('action', actionUrl);
+  });
 });
 </script>
 {% endblock %}

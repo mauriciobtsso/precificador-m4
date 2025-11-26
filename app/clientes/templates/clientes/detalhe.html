@@ -1,9 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <!-- Cabeçalho Cliente -->
-
-    <!-- Versão Desktop -->
     <div class="card shadow-sm mb-4 border-0 d-none d-md-block">
         <div class="card-body d-flex align-items-center">
             <div class="me-3">
@@ -23,7 +20,6 @@
                     <strong>Data de Nascimento:</strong>
                     {{ cliente.data_nascimento.strftime('%d/%m/%Y') if cliente.data_nascimento else 'não informado' }}
                 </p>
-                <!-- Contatos principais -->
                 <p class="mb-1">
                     {% if cliente.contatos %}
                         {% for c in cliente.contatos %}
@@ -57,7 +53,6 @@
         </div>
     </div>
 
-    <!-- Versão Mobile -->
     <div class="card shadow-sm mb-3 border-0 d-block d-md-none">
         <div class="card-body d-flex">
             <div class="me-3">
@@ -85,7 +80,6 @@
             </div>
         </div>
 
-        <!-- Contatos -->
         <div class="list-group list-group-flush">
             {% for c in cliente.contatos %}
             {% set valor_limpo = c.valor|replace('(','')|replace(')','')|replace('-','')|replace(' ','') %}
@@ -120,112 +114,114 @@
         </div>
     </div>
 
-<!-- Ações principais -->
-<div class="d-flex align-items-center mb-3">
-    <a href="{{ url_for('clientes.index') }}" class="btn btn-sm btn-outline-secondary me-2">
-        <i class="fas fa-arrow-left"></i> Voltar
-    </a>
+    <div class="d-flex align-items-center mb-3">
+        <a href="{{ url_for('clientes.index') }}" class="btn btn-sm btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
 
-    <a href="{{ url_for('clientes.editar_cliente', cliente_id=cliente.id) }}"
-       class="btn btn-sm btn-outline-primary me-2">
-      <i class="fas fa-edit"></i> Editar Cliente
-    </a>
+        <a href="{{ url_for('clientes.editar_cliente', cliente_id=cliente.id) }}"
+           class="btn btn-sm btn-outline-primary me-2">
+          <i class="fas fa-edit"></i> Editar Cliente
+        </a>
 
-    <!-- Botão que abre o modal -->
-    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalExcluirCliente">
-        <i class="fas fa-trash-alt"></i> Excluir Cliente
-    </button>
-</div>
-
-<!-- Modal de confirmação -->
-<div class="modal fade" id="modalExcluirCliente" tabindex="-1" aria-labelledby="modalExcluirClienteLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="modalExcluirClienteLabel">
-          <i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
-        <p class="mb-0">
-          Tem certeza que deseja excluir o cliente
-          <strong>{{ cliente.nome }}</strong>?
-          <br>
-          <small class="text-muted">Esta ação removerá todos os dados associados e não poderá ser desfeita.</small>
-        </p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-          Cancelar
+        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalExcluirCliente">
+            <i class="fas fa-trash-alt"></i> Excluir Cliente
         </button>
-        <form method="POST" action="{{ url_for('clientes.deletar_cliente', cliente_id=cliente.id) }}" class="d-inline">
-          <button type="submit" class="btn btn-danger">
-            <i class="fas fa-trash-alt"></i> Confirmar Exclusão
-          </button>
-        </form>
+    </div>
+
+    <div class="modal fade" id="modalExcluirCliente" tabindex="-1" aria-labelledby="modalExcluirClienteLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="modalExcluirClienteLabel">
+              <i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-0">
+              Tem certeza que deseja excluir o cliente
+              <strong>{{ cliente.nome }}</strong>?
+              <br>
+              <small class="text-muted">Esta ação removerá todos os dados associados e não poderá ser desfeita.</small>
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+              Cancelar
+            </button>
+            <form method="POST" action="{{ url_for('clientes.deletar_cliente', cliente_id=cliente.id) }}" class="d-inline">
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash-alt"></i> Confirmar Exclusão
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
-    <!-- Abas -->
     <ul class="nav nav-tabs" id="clienteTabs" role="tablist">
         <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#visao">Visão Geral</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#info">Informações</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#vendas"><i class="fas fa-shopping-bag me-1"></i> Histórico de Compras</a></li> <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#info">Informações</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#docs">Documentos</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#armas">Armas</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#com">Comunicações</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#proc">Processos</a></li>
     </ul>
 
-    <div class="tab-content border p-3">
-        <!-- VISÃO GERAL -->
+    <div class="tab-content border p-3 border-top-0 bg-white">
         <div class="tab-pane fade show active" id="visao">
-            <!-- Cards de Resumo -->
-            <div class="row text-center mb-4">
-                <div class="col-6 col-md-3 mb-3">
-                    <div class="card shadow-sm border-0">
+            <div class="row g-3 mb-4 text-center">
+                <div class="col-6 col-md-3"> <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body">
+                            <i class="fas fa-shopping-bag fa-2x text-secondary mb-2"></i>
+                            <h6 class="card-title text-muted small">Compras</h6>
+                            <p class="display-6 fw-bold text-dark mb-0">{{ resumo.vendas }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-6 col-md-2">
+                    <div class="card shadow-sm border-0 h-100">
                         <div class="card-body">
                             <i class="fas fa-file-alt fa-2x text-primary mb-2"></i>
-                            <h6 class="card-title">Documentos</h6>
-                            <p class="display-6">{{ resumo.documentos }}</p>
+                            <h6 class="card-title text-muted small">Documentos</h6>
+                            <p class="display-6 fw-bold text-dark mb-0">{{ resumo.documentos }}</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3 mb-3">
-                    <div class="card shadow-sm border-0">
+                <div class="col-6 col-md-2">
+                    <div class="card shadow-sm border-0 h-100">
                         <div class="card-body">
                             <i class="fas fa-gun fa-2x text-success mb-2"></i>
-                            <h6 class="card-title">Armas</h6>
-                            <p class="display-6">{{ resumo.armas }}</p>
+                            <h6 class="card-title text-muted small">Armas</h6>
+                            <p class="display-6 fw-bold text-dark mb-0">{{ resumo.armas }}</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3 mb-3">
-                    <div class="card shadow-sm border-0">
+                <div class="col-6 col-md-2">
+                    <div class="card shadow-sm border-0 h-100">
                         <div class="card-body">
                             <i class="fas fa-comments fa-2x text-info mb-2"></i>
-                            <h6 class="card-title">Comunicações</h6>
-                            <p class="display-6">{{ resumo.comunicacoes }}</p>
+                            <h6 class="card-title text-muted small">Comunicações</h6>
+                            <p class="display-6 fw-bold text-dark mb-0">{{ resumo.comunicacoes }}</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3 mb-3">
-                    <div class="card shadow-sm border-0">
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm border-0 h-100">
                         <div class="card-body">
                             <i class="fas fa-tasks fa-2x text-warning mb-2"></i>
-                            <h6 class="card-title">Processos</h6>
-                            <p class="display-6">{{ resumo.processos }}</p>
+                            <h6 class="card-title text-muted small">Processos</h6>
+                            <p class="display-6 fw-bold text-dark mb-0">{{ resumo.processos }}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Alertas -->
             {% if alertas %}
-            <div class="alert alert-danger">
-                <h6><i class="fas fa-exclamation-triangle"></i> Alertas</h6>
+            <div class="alert alert-danger rounded-3 shadow-sm">
+                <h6 class="fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> Alertas</h6>
                 <ul class="mb-0">
                     {% for alerta in alertas %}
                     <li>{{ alerta }}</li>
@@ -234,49 +230,97 @@
             </div>
             {% endif %}
 
-            <!-- Mini Timeline -->
-            <div class="card shadow-sm mt-4">
-                <div class="card-header bg-light">
-                    <strong><i class="fas fa-stream"></i> Últimos Eventos</strong>
+            <div class="card shadow-sm mt-4 border-0">
+                <div class="card-header bg-light border-bottom-0 rounded-top">
+                    <strong><i class="fas fa-stream me-2"></i> Últimos Eventos</strong>
                 </div>
                 <div class="card-body">
                     {% if timeline %}
                         <ul class="timeline list-unstyled mb-0">
                             {% for evento in timeline %}
-                            <li class="mb-3">
+                            <li class="mb-3 border-start border-3 ps-3 border-secondary">
                                 <small class="text-muted">{{ evento.data.strftime('%d/%m/%Y %H:%M') }}</small><br>
-                                <strong>{{ evento.tipo }}</strong> — {{ evento.descricao }}
+                                <strong class="text-dark">{{ evento.tipo }}</strong> <span class="text-muted">— {{ evento.descricao }}</span>
                             </li>
                             {% endfor %}
                         </ul>
                     {% else %}
-                        <p class="text-muted">Nenhum evento recente.</p>
+                        <p class="text-muted mb-0">Nenhum evento recente.</p>
                     {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- INFORMAÇÕES -->
+        <div class="tab-pane fade" id="vendas">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 text-secondary"><i class="fas fa-list me-2"></i> Lista de Pedidos</h5>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 80px;">ID</th>
+                            <th>Data</th>
+                            <th>Status</th>
+                            <th>Valor Total</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for venda in cliente.vendas|sort(attribute='data_abertura', reverse=True) %}
+                        <tr>
+                            <td class="fw-bold text-secondary">#{{ venda.id }}</td>
+                            <td>{{ venda.data_abertura.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <span class="badge rounded-pill
+                                    {% if (venda.status or '').lower().startswith('aber') %} bg-warning text-dark
+                                    {% elif (venda.status or '').lower().startswith('fech') or (venda.status or '').lower().startswith('concl') %} bg-success
+                                    {% elif (venda.status or '').lower().startswith('canc') %} bg-danger
+                                    {% else %} bg-secondary
+                                    {% endif %}">
+                                    {{ venda.status or 'N/A' }}
+                                </span>
+                            </td>
+                            <td class="fw-semibold text-success">
+                                R$ {{ "{:,.2f}".format(venda.valor_total or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('vendas.venda_detalhe', venda_id=venda.id) }}" 
+                                   class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    <i class="fas fa-eye me-1"></i> Ver Detalhes
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">
+                                <i class="fas fa-shopping-cart fa-3x mb-3 text-light"></i><br>
+                                Este cliente ainda não realizou compras.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="tab-pane fade" id="info">
             {% include "clientes/abas/informacoes.html" %}
         </div>
 
-        <!-- DOCUMENTOS -->
         <div class="tab-pane fade" id="docs">
             {% include "clientes/abas/documentos.html" %}
         </div>
 
-        <!-- ARMAS -->
         <div class="tab-pane fade" id="armas">
-            {% include "clientes/abas/armas.html" with context %}
+            {% include "clientes/abas/armas.html" %}
         </div>
 
-        <!-- COMUNICAÇÕES -->
         <div class="tab-pane fade" id="com">
             {% include "clientes/abas/comunicacoes.html" %}
         </div>
 
-        <!-- PROCESSOS -->
         <div class="tab-pane fade" id="proc">
             {% include "clientes/abas/processos.html" %}
         </div>

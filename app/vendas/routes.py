@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.vendas.models import Venda, ItemVenda
@@ -116,6 +116,42 @@ def nova_venda():
             return jsonify({"success": False, "error": str(e)}), 400
             
     return render_template("vendas/form.html")
+
+@vendas_bp.route("/<int:venda_id>/editar", methods=["GET", "POST"])
+@login_required
+def editar_venda(venda_id):
+    venda = Venda.query.get_or_404(venda_id)
+    
+    # Nota: Se o formulário de venda usa muito JavaScript (venda_form.js) para montar o carrinho,
+    # editar uma venda existente requer que passamos os dados pré-populados para o JS.
+    # Por enquanto, estamos redirecionando para o formulário. 
+    # (Desenvolvimento futuro: garantir que 'form.html' saiba ler 'venda.itens' e popular o carrinho)
+    
+    if request.method == "POST":
+        # Lógica de salvar edição viria aqui
+        pass
+
+    return render_template("vendas/form.html", venda=venda, edicao=True)
+
+@vendas_bp.route("/<int:venda_id>/excluir", methods=["POST"])
+@login_required
+def excluir_venda(venda_id):
+    venda = Venda.query.get_or_404(venda_id)
+    
+    try:
+        # Opcional: Adicionar lógica para estornar o estoque aqui se a venda não foi cancelada antes
+        # if venda.status != 'cancelada':
+        #     for item in venda.itens:
+        #         devolver_estoque(item)
+
+        db.session.delete(venda)
+        db.session.commit()
+        flash(f"Venda #{venda_id} excluída com sucesso.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao excluir venda: {str(e)}", "danger")
+        
+    return redirect(url_for("vendas.vendas"))
 
 
 # ===============================================================
