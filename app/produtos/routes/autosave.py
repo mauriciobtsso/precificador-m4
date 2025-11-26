@@ -3,7 +3,7 @@
 # Módulo revisado — Sprint 6H (Integração com registrar_historico)
 # ===========================================================
 
-from flask import Blueprint, request, jsonify
+from flask import request, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -12,8 +12,8 @@ from app import db
 from app.produtos.models import Produto, ProdutoHistorico
 from app.produtos.utils.historico_helper import registrar_historico
 
-autosave_bp = Blueprint("autosave", __name__, url_prefix="/produtos/autosave")
-
+# CORREÇÃO: Importamos o Blueprint principal do módulo em vez de criar um novo
+from .. import produtos_bp 
 
 # ===========================================================
 # Função utilitária para converter valores corretamente
@@ -31,8 +31,9 @@ def _parse_valor(valor):
 
 # ===========================================================
 # ROTA — Autosave de campos individuais do produto
+# URL Final: /produtos/autosave/<id> (Prefixo /produtos vem do Blueprint)
 # ===========================================================
-@autosave_bp.route("/<int:produto_id>", methods=["POST"])
+@produtos_bp.route("/autosave/<int:produto_id>", methods=["POST"])
 @login_required
 def autosave_produto(produto_id):
     """
@@ -78,19 +79,13 @@ def autosave_produto(produto_id):
 
 # ===========================================================
 # ROTA — Autosave em lote (vários produtos)
+# URL Final: /produtos/autosave/lote
 # ===========================================================
-@autosave_bp.route("/lote", methods=["POST"])
+@produtos_bp.route("/autosave/lote", methods=["POST"])
 @login_required
 def autosave_lote():
     """
     Permite salvar múltiplos produtos em lote.
-    Exemplo de payload:
-    {
-        "produtos": [
-            {"id": 1, "preco_final": 2500.00},
-            {"id": 2, "preco_final": 3750.00}
-        ]
-    }
     """
     payload = request.get_json() or {}
     produtos_data = payload.get("produtos", [])
@@ -128,8 +123,9 @@ def autosave_lote():
 
 # ===========================================================
 # ROTA — Diagnóstico rápido de autosave
+# URL Final: /produtos/autosave/ping
 # ===========================================================
-@autosave_bp.route("/ping", methods=["GET"])
+@produtos_bp.route("/autosave/ping", methods=["GET"])
 @login_required
 def autosave_ping():
     """Usado apenas para testar se o módulo está ativo."""

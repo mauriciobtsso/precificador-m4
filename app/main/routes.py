@@ -271,8 +271,7 @@ def api_produto_whatsapp(produto_id):
 @login_required
 def imagem_proxy():
     """
-    Baixa a imagem do R2 pelo backend e serve para o frontend
-    como se fosse um arquivo local. Resolve problemas de CORS/Print.
+    Baixa a imagem do R2 pelo backend e serve para o frontend.
     """
     key = request.args.get("key")
     if not key:
@@ -281,25 +280,27 @@ def imagem_proxy():
     try:
         s3 = get_s3()
         bucket = get_bucket()
+
+        # CORREÇÃO: Remove o nome do bucket se ele vier "grudado" no início da chave
+        # Ex: de "meu-bucket/produtos/foto.jpg" para "produtos/foto.jpg"
+        if key.startswith(f"{bucket}/"):
+            key = key[len(bucket)+1:]
         
-        # Obtém o objeto do R2 (sem baixar tudo pra RAM de uma vez)
+        # Obtém o objeto do R2
         file_obj = s3.get_object(Bucket=bucket, Key=key)
         
-        # Tenta identificar o tipo do arquivo (imagem/jpeg, png, etc)
         content_type = file_obj.get('ContentType') or mimetypes.guess_type(key)[0] or 'application/octet-stream'
         
-        # Retorna os dados em streaming
         return Response(
             stream_with_context(file_obj['Body'].iter_chunks()),
             content_type=content_type,
             headers={
-                "Cache-Control": "public, max-age=31536000", # Cache longo para performance
-                "Access-Control-Allow-Origin": "*" # Garante permissão extra
+                "Cache-Control": "public, max-age=31536000",
+                "Access-Control-Allow-Origin": "*"
             }
         )
     except Exception as e:
         current_app.logger.error(f"Erro no proxy de imagem: {e}")
-        # Se der erro (ex: imagem não existe), retorna o placeholder
         return redirect("/static/img/placeholder.jpg")
 
 # --- Context Processor Global ---
