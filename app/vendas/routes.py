@@ -1,7 +1,7 @@
-from flask import render_template, request, jsonify, redirect, url_for, flash
+from flask import render_template, request, jsonify, redirect, url_for, flash, render_template_string, current_app
 from flask_login import login_required, current_user
 from app.extensions import db
-from app.vendas.models import Venda, ItemVenda
+from app.vendas.models import Venda, ItemVenda, VendaAnexo
 from app.clientes.models import Cliente, Arma
 from app.produtos.models import Produto
 from app.estoque.models import ItemEstoque
@@ -11,6 +11,10 @@ import re
 from datetime import datetime, timedelta
 from sqlalchemy import extract, func
 
+# Imports para Documentos e Uploads
+from app.utils.format_helpers import br_money
+from app.models import ModeloDocumento
+from app.utils.r2_helpers import upload_file_to_r2
 
 # ===============================================================
 #  TELAS (HTML)
@@ -103,6 +107,28 @@ def venda_detalhe(venda_id):
         itens=itens
     )
 
+@vendas_bp.route("/<int:venda_id>/editar", methods=["GET", "POST"])
+@login_required
+def editar_venda(venda_id):
+    venda = Venda.query.get_or_404(venda_id)
+    # Lógica futura para editar itens
+    return render_template("vendas/form.html", venda=venda, edicao=True)
+
+
+@vendas_bp.route("/<int:venda_id>/excluir", methods=["POST"])
+@login_required
+def excluir_venda(venda_id):
+    venda = Venda.query.get_or_404(venda_id)
+    try:
+        db.session.delete(venda)
+        db.session.commit()
+        flash(f"Venda #{venda_id} excluída com sucesso.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao excluir venda: {str(e)}", "danger")
+        
+    return redirect(url_for("vendas.vendas"))
+
 
 @vendas_bp.route("/nova", methods=["GET", "POST"])
 @login_required
@@ -116,42 +142,6 @@ def nova_venda():
             return jsonify({"success": False, "error": str(e)}), 400
             
     return render_template("vendas/form.html")
-
-@vendas_bp.route("/<int:venda_id>/editar", methods=["GET", "POST"])
-@login_required
-def editar_venda(venda_id):
-    venda = Venda.query.get_or_404(venda_id)
-    
-    # Nota: Se o formulário de venda usa muito JavaScript (venda_form.js) para montar o carrinho,
-    # editar uma venda existente requer que passamos os dados pré-populados para o JS.
-    # Por enquanto, estamos redirecionando para o formulário. 
-    # (Desenvolvimento futuro: garantir que 'form.html' saiba ler 'venda.itens' e popular o carrinho)
-    
-    if request.method == "POST":
-        # Lógica de salvar edição viria aqui
-        pass
-
-    return render_template("vendas/form.html", venda=venda, edicao=True)
-
-@vendas_bp.route("/<int:venda_id>/excluir", methods=["POST"])
-@login_required
-def excluir_venda(venda_id):
-    venda = Venda.query.get_or_404(venda_id)
-    
-    try:
-        # Opcional: Adicionar lógica para estornar o estoque aqui se a venda não foi cancelada antes
-        # if venda.status != 'cancelada':
-        #     for item in venda.itens:
-        #         devolver_estoque(item)
-
-        db.session.delete(venda)
-        db.session.commit()
-        flash(f"Venda #{venda_id} excluída com sucesso.", "success")
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Erro ao excluir venda: {str(e)}", "danger")
-        
-    return redirect(url_for("vendas.vendas"))
 
 
 # ===============================================================
@@ -192,9 +182,6 @@ def normalizar_calibre(texto):
 @vendas_bp.route("/api/cliente/<int:cliente_id>/armas")
 @login_required
 def api_armas_cliente(cliente_id):
-    """
-    Retorna as armas do cliente, opcionalmente filtradas por calibre.
-    """
     calibre_alvo = request.args.get("calibre")
     todas_armas = Arma.query.filter_by(cliente_id=cliente_id).all()
     
@@ -219,7 +206,6 @@ def api_armas_cliente(cliente_id):
 
         for arma in todas_armas:
             arma_calibre_limpo = normalizar_calibre(arma.calibre)
-            
             match = False
             if alvo_limpo == "38" and "357" in arma_calibre_limpo:
                 match = True
@@ -237,9 +223,10 @@ def api_armas_cliente(cliente_id):
     return jsonify([{
         "id": a.id,
         "descricao": f"{a.tipo or 'Arma'} {a.marca or ''} {a.modelo or ''}",
+        "descricao_curta": f"{a.tipo} {a.calibre}", 
         "serial": a.numero_serie,
         "calibre": a.calibre,
-        # CORREÇÃO DO ERRO: Removemos a.sinarm e usamos 'emissor_craf' ou 'numero_sigma'
+        "caminho_craf": a.caminho_craf,
         "sistema": f"{a.emissor_craf or a.numero_sigma or 'S/N'}" 
     } for a in armas_filtradas])
 
@@ -248,14 +235,21 @@ def api_armas_cliente(cliente_id):
 @login_required
 def api_produto_detalhes(produto_id):
     produto = Produto.query.get_or_404(produto_id)
+    
+    # Busca as embalagens cadastradas (se existirem no futuro)
+    embalagens = []
+    # for emb in produto.embalagens: ... (implementação futura)
+
     return jsonify({
         "id": produto.id,
         "nome": produto.nome,
         "preco": float(produto.preco_a_vista or 0),
+        # "estoque": sum(i.quantidade for i in produto.itens_estoque if i.status == 'disponivel'), # Ajuste conforme sua lógica
         "estoque": 10, # Placeholder
         "tipo": (produto.tipo_rel.nome if produto.tipo_rel else "").lower(),
         "categoria": (produto.categoria.nome if produto.categoria else "").lower(),
-        "calibre": (produto.calibre_rel.nome if produto.calibre_rel else "")
+        "calibre": (produto.calibre_rel.nome if produto.calibre_rel else ""),
+        "embalagens": embalagens
     })
 
 
@@ -272,7 +266,7 @@ def api_buscar_produtos():
         "id": p.id,
         "nome": p.nome,
         "preco": float(p.preco_a_vista or 0),
-        "estoque": 10 # Placeholder
+        "estoque": 10 
     } for p in produtos])
 
 
@@ -291,9 +285,9 @@ def api_buscar_estoque_produto(produto_id):
         "embalagem": i.numero_embalagem 
     } for i in itens])
 
-# --- CORREÇÃO AQUI: Importar br_money ao invés de format_currency ---
-from app.utils.format_helpers import br_money
-from app.models import ModeloDocumento
+# ===============================================================
+#  GERAÇÃO DE DOCUMENTOS E UPLOADS
+# ===============================================================
 
 @vendas_bp.route("/<int:venda_id>/documento/<chave>")
 @login_required
@@ -301,9 +295,7 @@ def gerar_documento(venda_id, chave):
     venda = Venda.query.get_or_404(venda_id)
     modelo = ModeloDocumento.query.filter_by(chave=chave).first_or_404()
     
-    # ... (Definição de empresa, c, end_str, tel mantidos igual) ...
-    
-    # Dados da Empresa (Recriado aqui para garantir contexto)
+    # Dados da Empresa
     empresa = {
         "razao_social": "M4 TÁTICA COMERCIO E SERVIÇOS LTDA",
         "cnpj": "41.654.218/0001-47",
@@ -311,9 +303,10 @@ def gerar_documento(venda_id, chave):
         "cr": "635069",
         "telefone": "(86) 3025-5885",
         "email": "falecom@m4tatica.com.br",
-        "logo": url_for('static', filename='img/logo.png', _external=True)
+        # ALTERADO PARA USAR A LOGO ESPECÍFICA 'logo_docs.png'
+        "logo": url_for('static', filename='img/logo_docs.png', _external=True) 
     }
-    
+
     c = venda.cliente
     end = c.enderecos[0] if c.enderecos else None
     end_str = f"{end.logradouro}, {end.numero}, {end.bairro} - {end.cidade}/{end.estado} - CEP {end.cep}" if end else "Endereço não cadastrado"
@@ -321,7 +314,7 @@ def gerar_documento(venda_id, chave):
 
     context = {
         "venda": venda,
-        "br_money": br_money, # Passado aqui dentro
+        "br_money": br_money,
         "cliente": {
             "nome": c.nome,
             "documento": c.documento or "",
@@ -338,9 +331,60 @@ def gerar_documento(venda_id, chave):
         "itens_lista": "<br>".join([f"- {i.produto_nome} (Qtd: {i.quantidade})" for i in venda.itens])
     }
     
-    from flask import render_template_string
-    
-    # CORREÇÃO AQUI: Removemos 'br_money=br_money' pois ele já está dentro de **context
     conteudo_renderizado = render_template_string(modelo.conteudo, **context)
     
     return render_template("vendas/print_documento.html", conteudo=conteudo_renderizado, titulo=modelo.titulo)
+
+
+@vendas_bp.route("/<int:venda_id>/upload", methods=["POST"])
+@login_required
+def upload_anexo(venda_id):
+    venda = Venda.query.get_or_404(venda_id)
+    
+    if "arquivo" not in request.files:
+        flash("Nenhum arquivo selecionado.", "warning")
+        return redirect(url_for("vendas.venda_detalhe", venda_id=venda_id))
+        
+    arquivo = request.files["arquivo"]
+    tipo_doc = request.form.get("tipo_documento", "outros")
+    
+    if arquivo.filename == "":
+        flash("Nome do arquivo inválido.", "warning")
+        return redirect(url_for("vendas.venda_detalhe", venda_id=venda_id))
+
+    try:
+        # Enviar para o Cloudflare R2
+        url_publica = upload_file_to_r2(arquivo, folder=f"vendas/{venda_id}")
+        
+        if not url_publica:
+            raise Exception("Falha no upload para o storage.")
+
+        # Salvar no Banco
+        novo_anexo = VendaAnexo(
+            venda_id=venda.id,
+            tipo_documento=tipo_doc,
+            nome_arquivo=arquivo.filename,
+            url_arquivo=url_publica,
+            enviado_por=current_user.username
+        )
+        
+        db.session.add(novo_anexo)
+        
+        # Se for termo de retirada, avança status
+        if tipo_doc == 'termo_assinado':
+            venda.etapa = "CONCLUIDA"
+            venda.status = "fechada"
+            venda.data_entrega_efetiva = datetime.now()
+            venda.data_fechamento = datetime.now()
+            flash("Termo anexado e venda CONCLUÍDA com sucesso!", "success")
+        else:
+            flash("Documento anexado com sucesso.", "success")
+            
+        db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erro upload anexo venda {venda_id}: {e}")
+        flash(f"Erro ao salvar arquivo: {str(e)}", "danger")
+
+    return redirect(url_for("vendas.venda_detalhe", venda_id=venda_id))

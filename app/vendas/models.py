@@ -4,6 +4,7 @@
 # =======================================================
 
 from datetime import datetime, date
+from decimal import Decimal  # <--- ADICIONADO PARA CORREÇÃO DE ERRO
 from app.extensions import db
 
 # =========================
@@ -33,7 +34,7 @@ class Venda(db.Model):
     data_entrega_efetiva = db.Column(db.DateTime, nullable=True)
     retirado_por = db.Column(db.String(150), nullable=True)
 
-    # Financeiro
+    # Financeiro (Numeric para precisão monetária)
     valor_total = db.Column(db.Numeric(10, 2), default=0.0)
     desconto_valor = db.Column(db.Numeric(10, 2), default=0.0)
     desconto_percentual = db.Column(db.Float, default=0.0)
@@ -68,14 +69,32 @@ class Venda(db.Model):
     anexos = db.relationship("VendaAnexo", backref="venda", lazy="dynamic", cascade="all, delete-orphan")
 
     def calcular_totais(self):
+        """
+        Recalcula totais garantindo precisão Decimal para evitar erros com Float.
+        """
         if not self.itens:
-            self.valor_total = 0
+            self.valor_total = Decimal('0.00')
             self.qtd_total_itens = 0
+            self.valor_faltante = Decimal('0.00')
             return
-        total = sum(item.valor_total for item in self.itens)
+        
+        # Soma segura usando Decimal como base
+        # Converte cada valor_total de item para Decimal se já não for
+        total = sum((item.valor_total for item in self.itens), Decimal('0.00'))
+        
         self.qtd_total_itens = sum(item.quantidade for item in self.itens)
-        self.valor_total = round(total, 2)
-        self.valor_faltante = self.valor_total - (self.desconto_valor or 0) - (self.valor_recebido or 0)
+        self.valor_total = total
+        
+        # Garante que desconto e recebido sejam Decimal antes de subtrair
+        desc = self.desconto_valor
+        if desc is None: desc = Decimal('0.00')
+        elif not isinstance(desc, Decimal): desc = Decimal(str(desc))
+            
+        rec = self.valor_recebido
+        if rec is None: rec = Decimal('0.00')
+        elif not isinstance(rec, Decimal): rec = Decimal(str(rec))
+
+        self.valor_faltante = self.valor_total - desc - rec
 
     def __repr__(self):
         return f"<Venda {self.id}>"

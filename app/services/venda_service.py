@@ -3,6 +3,7 @@ from app.vendas.models import Venda, ItemVenda
 from app.estoque.models import ItemEstoque
 from app.produtos.models import Produto
 from datetime import datetime
+from decimal import Decimal  # <--- IMPORTANTE
 
 class VendaService:
     @staticmethod
@@ -19,6 +20,10 @@ class VendaService:
             nova_venda.cliente_id = dados_venda.get('cliente_id')
             nova_venda.vendedor = getattr(usuario_atual, 'nome', 'Sistema')
             nova_venda.data_abertura = datetime.now()
+            
+            # Captura o desconto (convertendo para Decimal seguro)
+            desc_raw = dados_venda.get('desconto')
+            nova_venda.desconto_valor = Decimal(str(desc_raw)) if desc_raw else Decimal('0.00')
             
             # Define status financeiro inicial
             nova_venda.status = "aberto"
@@ -38,14 +43,20 @@ class VendaService:
                 novo_item = ItemVenda(venda_id=nova_venda.id)
                 novo_item.produto_id = item['produto_id']
                 novo_item.produto_nome = item['nome'] # Congela nome
-                novo_item.quantidade = int(item.get('quantidade', 1))
-                novo_item.valor_unitario = float(item['preco'])
-                novo_item.valor_total = novo_item.quantidade * novo_item.valor_unitario
+                
+                # Conversão Financeira Segura
+                qtd = Decimal(str(item.get('quantidade', 1)))
+                preco = Decimal(str(item['preco']))
+                
+                novo_item.quantidade = int(qtd)
+                novo_item.valor_unitario = preco
+                novo_item.valor_total = qtd * preco
                 
                 # Busca dados completos do produto para classificar
                 produto_db = Produto.query.get(item['produto_id'])
                 tipo_prod = (produto_db.tipo_rel.nome if produto_db.tipo_rel else "").lower()
                 cat_prod = (produto_db.categoria.nome if produto_db.categoria else "").lower()
+                nome_prod = (produto_db.nome or "").lower()
                 
                 # --- LÓGICA A: É UMA ARMA? ---
                 if 'arma' in tipo_prod or 'fuzil' in cat_prod or 'pistola' in cat_prod or 'revolver' in cat_prod:
@@ -67,7 +78,7 @@ class VendaService:
                         tem_encomenda = True
 
                 # --- LÓGICA B: É MUNIÇÃO/PCE? ---
-                elif 'munição' in tipo_prod or 'pólvora' in tipo_prod or 'espoleta' in tipo_prod:
+                elif 'munição' in tipo_prod or 'pólvora' in tipo_prod or 'espoleta' in tipo_prod or 'munição' in nome_prod:
                     tem_municao = True
                     
                     # Exige vínculo com CRAF (Arma do Cliente)
@@ -78,7 +89,6 @@ class VendaService:
                         novo_item.arma_cliente_id = craf_id
                     else:
                         # Se não mandou CRAF, permitimos passar mas marcamos observação (ou bloqueamos)
-                        # Aqui decidi permitir, mas o status ficará pendente de validação
                         pass
 
                 db.session.add(novo_item)

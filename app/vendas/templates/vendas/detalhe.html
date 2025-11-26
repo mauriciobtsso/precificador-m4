@@ -3,7 +3,7 @@
 {% block content %}
 
 <style>
-    /* Estilos mantidos */
+    /* Estilos do Processo */
     .step-indicator { display: flex; justify-content: space-between; list-style: none; padding: 0; margin-bottom: 2rem; }
     .step-indicator li { flex: 1; position: relative; text-align: center; font-size: 0.75rem; font-weight: 600; color: #adb5bd; }
     .step-indicator li:before { content: counter(step); counter-increment: step; width: 30px; height: 30px; line-height: 28px; border: 2px solid #e9ecef; display: block; text-align: center; margin: 0 auto 10px auto; border-radius: 50%; background-color: #fff; color: #adb5bd; }
@@ -19,27 +19,8 @@
     .card-processo.done { border-left-color: #198754; opacity: 0.8; }
 </style>
 
-{% set tem_arma_nova = false %}
-{% set tem_municao = false %}
-{% set crafs_vinculados = [] %}
-
-{% for item in venda.itens %}
-    {# Se o item tem 'arma_cliente', é venda de munição/insumo para arma existente #}
-    {% if item.arma_cliente %}
-        {% set tem_municao = true %}
-        {% if item.arma_cliente not in crafs_vinculados %}
-            {% set _ = crafs_vinculados.append(item.arma_cliente) %}
-        {% endif %}
-    {% endif %}
-    
-    {# Se o produto é categoria Arma (ajuste conforme seu cadastro de categorias) #}
-    {% if item.produto and 'arma' in (item.categoria or '')|lower %}
-        {% set tem_arma_nova = true %}
-    {% endif %}
-{% endfor %}
-
-{% set tipo_venda = 'arma' if tem_arma_nova else ('municao' if tem_municao else 'livre') %}
-
+{% set tipo_venda = venda.tipo_processo %} 
+{% set etapa_atual = venda.etapa or 'RASCUNHO' %}
 
 <div class="container-fluid">
 
@@ -49,8 +30,8 @@
                 <i class="fas fa-file-invoice text-primary me-2"></i>Venda #{{ venda.id }}
             </h4>
             <small class="text-muted">
-                Tipo: <strong>{{ tipo_venda|upper }}</strong> | 
-                Aberta em {{ venda.data_abertura|dt_local }} por <strong>{{ venda.vendedor }}</strong>
+                Tipo: <strong class="text-uppercase">{{ tipo_venda }}</strong> | 
+                Vendedor: <strong>{{ venda.vendedor }}</strong>
             </small>
         </div>
         <div class="d-flex gap-2">
@@ -72,7 +53,7 @@
                             <li><a class="dropdown-item" target="_blank" href="{{ url_for('vendas.gerar_documento', venda_id=venda.id, chave='retirada_municao') }}"><i class="fas fa-box-open me-2"></i> Termo Retirada Munição</a></li>
                         
                         {% else %}
-                            <li><a class="dropdown-item disabled" href="#">Nenhum documento específico</a></li>
+                            <li><a class="dropdown-item disabled" href="#">Venda Livre (Recibo Comum)</a></li>
                         {% endif %}
                     </ul>
                 </div>
@@ -81,7 +62,7 @@
                     <i class="fas fa-ban me-1"></i> Cancelar
                 </button>
                 <button class="btn btn-success btn-sm">
-                    <i class="fas fa-save me-1"></i> Salvar Alterações
+                    <i class="fas fa-save me-1"></i> Salvar
                 </button>
             {% else %}
                 <span class="badge bg-danger">CANCELADA</span>
@@ -90,8 +71,6 @@
         </div>
     </div>
 
-    {% set etapa_atual = venda.etapa or 'RASCUNHO' %}
-    
     <ul class="step-indicator">
         <li class="completed">Abertura</li>
         
@@ -135,14 +114,14 @@
                                     </td>
                                     <td>
                                         {% if item.item_estoque_id %}
-                                            <span class="badge bg-info text-dark">
-                                                <i class="fas fa-barcode me-1"></i> Lote: {{ item.item_estoque.lote or item.item_estoque.numero_serie }}
+                                            <span class="badge bg-info text-dark" title="Item reservado do estoque">
+                                                <i class="fas fa-barcode me-1"></i> {{ item.item_estoque.numero_serie or item.item_estoque.lote }}
                                             </span>
                                         {% endif %}
                                         
                                         {% if item.arma_cliente %}
-                                            <div class="mt-1 small text-secondary">
-                                                <i class="fas fa-link me-1"></i> Ref: {{ item.arma_cliente.descricao_curta or item.arma_cliente.numero_serie }}
+                                            <div class="mt-1 small text-success">
+                                                <i class="fas fa-link me-1"></i> Vinculado à: {{ item.arma_cliente.descricao_curta or item.arma_cliente.numero_serie }}
                                             </div>
                                         {% endif %}
                                     </td>
@@ -163,7 +142,7 @@
                 <div class="card-body">
                     
                     {% if tipo_venda == 'arma' %}
-                    <div class="card card-processo mb-3 {% if etapa_atual == 'ASSINATURA' %}active{% endif %}">
+                    <div class="card card-processo mb-3">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="fw-bold mb-1">Contrato de Compra e Venda</h6>
@@ -171,7 +150,7 @@
                             </div>
                             <div class="d-flex gap-2">
                                 <a href="{{ url_for('vendas.gerar_documento', venda_id=venda.id, chave='contrato_arma') }}" target="_blank" class="btn btn-sm btn-light border"><i class="fas fa-print me-1"></i> Gerar</a>
-                                <button class="btn btn-sm btn-outline-primary"><i class="fas fa-upload me-1"></i> Anexar</button>
+                                <button onclick="abrirModalUpload('contrato', 'Contrato Assinado')" class="btn btn-sm btn-outline-primary"><i class="fas fa-upload me-1"></i> Anexar</button>
                             </div>
                         </div>
                     </div>
@@ -198,7 +177,7 @@
                                 <small class="text-muted">SisGCorp / Sinarm.</small>
                             </div>
                             <div>
-                                <button class="btn btn-sm btn-primary"><i class="fas fa-file-upload me-1"></i> Anexar</button>
+                                <button onclick="abrirModalUpload('autorizacao', 'Autorização de Compra')" class="btn btn-sm btn-primary"><i class="fas fa-file-upload me-1"></i> Anexar</button>
                             </div>
                         </div>
                     </div>
@@ -209,11 +188,13 @@
                             <div>
                                 <h6 class="fw-bold mb-1">Certificado de Registro (CRAF)</h6>
                                 {% if tipo_venda == 'municao' %}
-                                    <small class="text-success"><i class="fas fa-check me-1"></i> Vinculado do Cliente</small>
-                                    {% for arma in crafs_vinculados %}
-                                        <div class="small mt-1 text-muted">
-                                            • {{ arma.tipo }} {{ arma.calibre }} ({{ arma.numero_serie }})
+                                    <small class="text-success"><i class="fas fa-check me-1"></i> Vinculado do Cliente:</small>
+                                    {% for item in venda.itens if item.arma_cliente %}
+                                        <div class="small mt-1 text-muted ms-3">
+                                            • {{ item.arma_cliente.tipo }} {{ item.arma_cliente.calibre }} - {{ item.arma_cliente.numero_serie }}
                                         </div>
+                                    {% else %}
+                                        <div class="small text-danger">Nenhuma arma vinculada nos itens!</div>
                                     {% endfor %}
                                 {% else %}
                                     <small class="text-muted">Aguardando emissão pelo órgão.</small>
@@ -221,17 +202,13 @@
                             </div>
                             <div>
                                 {% if tipo_venda == 'municao' %}
-                                    {% for arma in crafs_vinculados %}
-                                        {% if arma.caminho_craf %}
-                                            <a href="{{ url_for('main.imagem_proxy', key=arma.caminho_craf) }}" target="_blank" class="btn btn-sm btn-info text-white mb-1" title="Abrir CRAF {{ arma.numero_serie }}">
-                                                <i class="fas fa-id-card me-1"></i> CRAF ({{ arma.numero_serie }})
-                                            </a>
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">Sem anexo ({{ arma.numero_serie }})</span>
-                                        {% endif %}
+                                    {% for item in venda.itens if item.arma_cliente and item.arma_cliente.caminho_craf %}
+                                        <a href="{{ url_for('main.imagem_proxy', key=item.arma_cliente.caminho_craf) }}" target="_blank" class="btn btn-sm btn-info text-white mb-1">
+                                            <i class="fas fa-eye me-1"></i> Ver CRAF
+                                        </a>
                                     {% endfor %}
                                 {% else %}
-                                    <button class="btn btn-sm btn-primary"><i class="fas fa-file-upload me-1"></i> Anexar CRAF Novo</button>
+                                    <button onclick="abrirModalUpload('craf', 'CRAF (Novo)')" class="btn btn-sm btn-primary"><i class="fas fa-file-upload me-1"></i> Anexar CRAF</button>
                                 {% endif %}
                             </div>
                         </div>
@@ -246,13 +223,18 @@
                             <div class="d-flex gap-2">
                                 {% if tipo_venda == 'municao' %}
                                     <a href="{{ url_for('vendas.gerar_documento', venda_id=venda.id, chave='retirada_municao') }}" target="_blank" class="btn btn-sm btn-light border">
-                                        <i class="fas fa-print me-1"></i> Termo Munição
+                                        <i class="fas fa-print me-1"></i> Imprimir Termo
                                     </a>
-                                {% else %}
+                                {% elif tipo_venda == 'arma' %}
                                     <a href="{{ url_for('vendas.gerar_documento', venda_id=venda.id, chave='retirada_arma') }}" target="_blank" class="btn btn-sm btn-light border">
-                                        <i class="fas fa-print me-1"></i> Termo Arma
+                                        <i class="fas fa-print me-1"></i> Imprimir Termo
                                     </a>
                                 {% endif %}
+                                
+                                <button onclick="abrirModalUpload('termo_assinado', 'Termo Assinado')" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-upload me-1"></i> Anexar Assinado
+                                </button>
+                                
                                 <button class="btn btn-sm btn-success"><i class="fas fa-check me-1"></i> Concluir</button>
                             </div>
                         </div>
@@ -264,7 +246,6 @@
         </div>
 
         <div class="col-lg-4">
-            
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-secondary">Cliente</h6>
@@ -283,59 +264,57 @@
                 </div>
             </div>
 
-            <div class="card shadow mb-4 border-left-success">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-success">Financeiro</h6>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Total Venda:</span>
-                        <strong>{{ venda.valor_total|currency }}</strong>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2 text-success">
-                        <span>Recebido:</span>
-                        <strong>{{ venda.valor_recebido|currency }}</strong>
-                    </div>
-                    <div class="d-flex justify-content-between mb-3 text-danger">
-                        <span>Pendente:</span>
-                        <strong>{{ venda.valor_faltante|currency }}</strong>
-                    </div>
-                    
-                    <hr>
-                    
-                    <h6 class="small fw-bold mb-2">Parcelamento</h6>
-                    {% if venda.crediario %}
-                        <div class="alert alert-light border small mb-0">
-                            {{ venda.parcelas_qtd }}x Parcelas (Vence dia {{ venda.parcelas_primeiro_vencimento }})
-                        </div>
-                    {% else %}
-                        <p class="small text-muted">Pagamento à vista / Cartão externo.</p>
-                    {% endif %}
-
-                    <div class="d-grid mt-3">
-                        <button class="btn btn-success btn-sm">
-                            <i class="fas fa-dollar-sign me-1"></i> Lançar Pagamento
-                        </button>
-                    </div>
-                </div>
-            </div>
-
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-secondary">Arquivos da Venda</h6>
                 </div>
                 <ul class="list-group list-group-flush small">
-                    <li class="list-group-item d-flex justify-content-between align-items-center text-muted">
-                        <em>Nenhum arquivo anexado ainda.</em>
+                    {% for anexo in venda.anexos %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="far fa-file-pdf text-danger me-2"></i> {{ anexo.tipo_documento|replace('_', ' ')|title }}
+                            <br><span class="text-muted x-small">{{ anexo.criado_em|dt_local }}</span>
+                        </div>
+                        <a href="{{ url_for('main.imagem_proxy', key=anexo.url_arquivo) }}" target="_blank" class="text-primary"><i class="fas fa-download"></i></a>
                     </li>
+                    {% else %}
+                    <li class="list-group-item text-muted text-center py-3">Nenhum anexo ainda.</li>
+                    {% endfor %}
                 </ul>
             </div>
-
         </div>
     </div>
 </div>
 
+<div class="modal fade" id="modalUploadAnexo" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ url_for('vendas.upload_anexo', venda_id=venda.id) }}" enctype="multipart/form-data" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Anexar Documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="tipo_documento" id="uploadTipoDoc">
+                <p class="mb-3">Enviando: <strong id="uploadNomeDoc"></strong></p>
+                
+                <label class="form-label">Selecione o arquivo (PDF ou Imagem)</label>
+                <input type="file" name="arquivo" class="form-control" required accept="application/pdf,image/*">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Enviar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+function abrirModalUpload(tipo, nomeAmigavel) {
+    document.getElementById('uploadTipoDoc').value = tipo;
+    document.getElementById('uploadNomeDoc').textContent = nomeAmigavel;
+    new bootstrap.Modal(document.getElementById('modalUploadAnexo')).show();
+}
+
 function cancelarVenda(id) {
     if(confirm("Tem certeza que deseja cancelar esta venda? O estoque será estornado.")) {
         alert("Funcionalidade será implementada no próximo passo!");
