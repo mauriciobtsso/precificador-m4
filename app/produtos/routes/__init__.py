@@ -12,3 +12,4 @@ from .tecnicos import *
 from .configs import *
 from .utils import *
 from .importar import *
+from .api import *

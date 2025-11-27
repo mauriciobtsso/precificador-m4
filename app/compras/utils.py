@@ -1,6 +1,6 @@
 # ============================================================
 # MÓDULO: COMPRAS — Parser híbrido de NF-e (XML + LLM fallback)
-# v7A.4 (robustez + logs + normalizações)
+# v7A.5 (Suporte a múltiplos serials por item)
 # ============================================================
 
 from datetime import datetime
@@ -254,16 +254,30 @@ def parse_nf_xml_inteligente(file):
                     qCom = _to_decimal(_qtext(prod, ".//*[local-name()='qCom']"))
                     vUnCom = _to_decimal(_qtext(prod, ".//*[local-name()='vUnCom']"))
 
-                    # Dados arma (quando existir)
-                    arma_candidates = prod.xpath("./*[local-name()='arma']") or prod.xpath(".//*[local-name()='arma']")
-                    arma = arma_candidates[0] if arma_candidates else None
-                    tpArma = _qtext(arma, ".//*[local-name()='tpArma']") if arma is not None else ""
-                    nSerie = _qtext(arma, ".//*[local-name()='nSerie']") if arma is not None else ""
-                    nCano = _qtext(arma, ".//*[local-name()='nCano']") if arma is not None else ""
-                    descr_arma = _qtext(arma, ".//*[local-name()='descr']") if arma is not None else ""
+                    # --- MÚLTIPLAS ARMAS (NOVO) ---
+                    armas_nodes = prod.xpath("./*[local-name()='arma']") or prod.xpath(".//*[local-name()='arma']")
+                    lista_seriais = []
+                    
+                    # Pega a primeira arma como referência para campos legados
+                    tpArma_ref = ""
+                    nCano_ref = ""
+                    descr_arma_ref = ""
+
+                    if armas_nodes:
+                        tpArma_ref = _qtext(armas_nodes[0], ".//*[local-name()='tpArma']")
+                        nCano_ref = _qtext(armas_nodes[0], ".//*[local-name()='nCano']")
+                        descr_arma_ref = _qtext(armas_nodes[0], ".//*[local-name()='descr']")
+
+                    for arma in armas_nodes:
+                        nSerie = _qtext(arma, ".//*[local-name()='nSerie']")
+                        if nSerie:
+                            lista_seriais.append(nSerie)
+                    
+                    # Junta todos os serials separados por vírgula
+                    seriais_str = ",".join(lista_seriais) if lista_seriais else ""
 
                     item = {
-                        "descricao": (descricao or descr_arma or "").strip(),
+                        "descricao": (descricao or descr_arma_ref or "").strip(),
                         "marca": marca,
                         "modelo": modelo,
                         "calibre": calibre,
@@ -272,14 +286,15 @@ def parse_nf_xml_inteligente(file):
                         "quantidade": float(qCom),
                         "valor_unitario": float(vUnCom),
                         "valor_total": float(qCom * vUnCom),
+                        "tpArma": tpArma_ref,
+                        
+                        # NOVOS CAMPOS
+                        "seriais_xml": seriais_str, 
+                        "numero_serie": lista_seriais[0] if lista_seriais else "", # Compatibilidade
+                        
+                        "nCano": nCano_ref,
+                        "descricao_arma": descr_arma_ref,
                     }
-                    if tpArma or nSerie or nCano or descr_arma:
-                        item.update({
-                            "tpArma": tpArma,
-                            "numero_serie": nSerie,
-                            "nCano": nCano,
-                            "descricao_arma": descr_arma,
-                        })
                     itens.append(item)
 
                 _dlog(f"Itens encontrados (lxml): {len(itens)}")
@@ -349,14 +364,27 @@ def parse_nf_xml_inteligente(file):
                 quantidade = _to_decimal(prod.findtext(".//qCom") or prod.findtext("qCom") or "0")
                 valor_unitario = _to_decimal(prod.findtext(".//vUnCom") or prod.findtext("vUnCom") or "0")
 
-                arma = prod.find(".//arma") or prod.find("arma")
-                tpArma = arma.findtext("tpArma").strip() if arma is not None and arma.find("tpArma") is not None else ""
-                nSerie = arma.findtext("nSerie").strip() if arma is not None and arma.find("nSerie") is not None else ""
-                nCano = arma.findtext("nCano").strip() if arma is not None and arma.find("nCano") is not None else ""
-                descr_arma = arma.findtext("descr").strip() if arma is not None and arma.find("descr") is not None else ""
+                # --- MÚLTIPLAS ARMAS (FALLBACK) ---
+                armas_nodes = prod.findall(".//arma") or prod.findall("arma")
+                lista_seriais = []
+                tpArma_ref = ""
+                nCano_ref = ""
+                descr_arma_ref = ""
+
+                if armas_nodes:
+                    tpArma_ref = armas_nodes[0].findtext("tpArma") or ""
+                    nCano_ref = armas_nodes[0].findtext("nCano") or ""
+                    descr_arma_ref = armas_nodes[0].findtext("descr") or ""
+
+                for arma in armas_nodes:
+                    nSerie = arma.findtext("nSerie")
+                    if nSerie:
+                        lista_seriais.append(nSerie.strip())
+
+                seriais_str = ",".join(lista_seriais) if lista_seriais else ""
 
                 item = {
-                    "descricao": descricao or (descr_arma or ""),
+                    "descricao": descricao or (descr_arma_ref or ""),
                     "marca": marca,
                     "modelo": modelo,
                     "calibre": calibre,
@@ -365,14 +393,12 @@ def parse_nf_xml_inteligente(file):
                     "quantidade": float(quantidade),
                     "valor_unitario": float(valor_unitario),
                     "valor_total": float(quantidade * valor_unitario),
+                    "tpArma": tpArma_ref,
+                    "seriais_xml": serials_str, # Novo campo
+                    "numero_serie": lista_seriais[0] if lista_seriais else "",
+                    "nCano": nCano_ref,
+                    "descricao_arma": descr_arma_ref,
                 }
-                if tpArma or nSerie or nCano or descr_arma:
-                    item.update({
-                        "tpArma": tpArma,
-                        "numero_serie": nSerie,
-                        "nCano": nCano,
-                        "descricao_arma": descr_arma,
-                    })
                 itens.append(item)
 
         # =======================

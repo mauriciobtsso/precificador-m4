@@ -7,131 +7,151 @@
 </div>
 
 <form method="POST">
-    <!-- Fornecedor -->
-    <div class="mb-3">
-        <label for="fornecedor" class="form-label">Fornecedor</label>
-        <select class="form-control" id="fornecedor" name="fornecedor" required>
-            {% for f in fornecedores %}
-                <option value="{{ f.id }}"
-                    {% if pedido and pedido.fornecedor_id == f.id %}selected{% endif %}>
-                    {{ f.nome }} - {{ f.documento }}
-                </option>
-            {% endfor %}
-        </select>
-    </div>
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="fornecedor" class="form-label fw-bold">Fornecedor</label>
+                    <select class="form-select select2" id="fornecedor" name="fornecedor" required>
+                        <option value="">Selecione...</option>
+                        {% for f in fornecedores %}
+                            <option value="{{ f.id }}" {% if pedido and pedido.fornecedor_id == f.id %}selected{% endif %}>
+                                {{ f.nome }} - {{ f.documento }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-    <!-- Condição de pagamento -->
-    <div class="mb-3">
-        <label for="cond_pagto" class="form-label">Condição de Pagamento</label>
-        <input type="text" class="form-control" id="cond_pagto" name="cond_pagto"
-               value="{{ pedido.cond_pagto if pedido else '' }}"
-               placeholder="Ex: À vista, À prazo 28/35/42" required>
-    </div>
+                <div class="col-md-3">
+                    <label for="cond_pagto" class="form-label">Condição de Pagamento</label>
+                    <input type="text" class="form-control" id="cond_pagto" name="cond_pagto"
+                           value="{{ pedido.cond_pagto if pedido else '' }}"
+                           placeholder="Ex: À vista, 30/60 dias" required>
+                </div>
 
-    <!-- Modo de desconto -->
-    <div class="mb-3">
-        <label class="form-label d-block">Modo de desconto</label>
-        <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="modo_desconto" id="modo_tipo" value="por_tipo"
-                   {% if not pedido or pedido.modo_desconto == 'por_tipo' %}checked{% endif %}>
-            <label class="form-check-label" for="modo_tipo">Por tipo (Armas/Munições)</label>
-        </div>
-        <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="modo_desconto" id="modo_unico" value="unico"
-                   {% if pedido and pedido.modo_desconto == 'unico' %}checked{% endif %}>
-            <label class="form-check-label" for="modo_unico">Único percentual</label>
-        </div>
-    </div>
-
-    <!-- Percentuais -->
-    <div id="grupo_por_tipo" class="row g-3 mb-3 {% if pedido and pedido.modo_desconto == 'unico' %}d-none{% endif %}">
-        <div class="col-md-6">
-            <label for="percentual_armas" class="form-label">Desconto/Acréscimo Armas (%)</label>
-            <input type="number" step="0.01" class="form-control" id="percentual_armas" name="percentual_armas"
-                   value="{{ pedido.percentual_armas if pedido else -5.0 }}">
-        </div>
-        <div class="col-md-6">
-            <label for="percentual_municoes" class="form-label">Desconto/Acréscimo Munições (%)</label>
-            <input type="number" step="0.01" class="form-control" id="percentual_municoes" name="percentual_municoes"
-                   value="{{ pedido.percentual_municoes if pedido else -3.0 }}">
+                {% if pedido %}
+                <div class="col-md-3">
+                    <label for="status" class="form-label fw-bold text-primary">Status Atual</label>
+                    <select name="status" id="status" class="form-select border-primary fw-bold text-primary">
+                        <option value="Aguardando" {% if pedido.status == 'Aguardando' %}selected{% endif %}>Aguardando</option>
+                        <option value="Aguardando NF" {% if pedido.status == 'Aguardando NF' %}selected{% endif %}>Aguardando NF</option>
+                        <option value="Confirmado" {% if pedido.status == 'Confirmado' %}selected{% endif %}>Confirmado</option>
+                        <option value="Em Transito" {% if pedido.status == 'Em Transito' %}selected{% endif %}>Em Trânsito</option>
+                        <option value="Recebido" {% if pedido.status == 'Recebido' %}selected{% endif %}>Recebido</option>
+                        <option value="Cancelado" {% if pedido.status == 'Cancelado' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                {% else %}
+                <div class="col-md-3">
+                    <label class="form-label text-muted">Status</label>
+                    <input type="text" class="form-control bg-light" value="Novo (Aguardando)" readonly>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
-    <div id="grupo_unico" class="row g-3 mb-3 {% if not pedido or pedido.modo_desconto != 'unico' %}d-none{% endif %}">
-        <div class="col-md-6">
-            <label for="percentual_unico" class="form-label">Desconto/Acréscimo Único (%)</label>
-            <input type="number" step="0.01" class="form-control" id="percentual_unico" name="percentual_unico"
-                   value="{{ pedido.percentual_unico if pedido else 0 }}">
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <label class="form-label d-block fw-bold">Modo de desconto / Acréscimo</label>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="modo_desconto" id="modo_tipo" value="por_tipo"
+                       {% if not pedido or pedido.modo_desconto == 'por_tipo' %}checked{% endif %}>
+                <label class="form-check-label" for="modo_tipo">Por tipo (Armas/Munições)</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="modo_desconto" id="modo_unico" value="unico"
+                       {% if pedido and pedido.modo_desconto == 'unico' %}checked{% endif %}>
+                <label class="form-check-label" for="modo_unico">Único percentual</label>
+            </div>
+
+            <div id="grupo_por_tipo" class="row g-3 mt-2 {% if pedido and pedido.modo_desconto == 'unico' %}d-none{% endif %}">
+                <div class="col-md-6">
+                    <label for="percentual_armas" class="form-label">Percentual Armas (%)</label>
+                    <input type="number" step="0.01" class="form-control" id="percentual_armas" name="percentual_armas"
+                           value="{{ pedido.percentual_armas if pedido else -5.0 }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="percentual_municoes" class="form-label">Percentual Munições (%)</label>
+                    <input type="number" step="0.01" class="form-control" id="percentual_municoes" name="percentual_municoes"
+                           value="{{ pedido.percentual_municoes if pedido else -3.0 }}">
+                </div>
+            </div>
+
+            <div id="grupo_unico" class="row g-3 mt-2 {% if not pedido or pedido.modo_desconto != 'unico' %}d-none{% endif %}">
+                <div class="col-md-6">
+                    <label for="percentual_unico" class="form-label">Percentual Único (%)</label>
+                    <input type="number" step="0.01" class="form-control" id="percentual_unico" name="percentual_unico"
+                           value="{{ pedido.percentual_unico if pedido else 0 }}">
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Itens do pedido -->
-    <h4 class="mt-4">Itens do Pedido</h4>
-    <table class="table table-bordered" id="tabela-itens">
-        <thead class="table-light">
-            <tr>
-                <th>Código</th>
-                <th>Descrição</th>
-                <th>Qtd</th>
-                <th>Valor Unitário (R$)</th>
-                <th>Valor Total (R$)</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if pedido %}
-                {% for item in pedido.itens %}
-                <tr>
-                    <td><input type="text" name="codigo[]" class="form-control" value="{{ item.codigo }}"></td>
-                    <td><input type="text" name="descricao[]" class="form-control" value="{{ item.descricao }}"></td>
-                    <td><input type="number" name="quantidade[]" class="form-control qtd" step="1" min="1" value="{{ item.quantidade }}"></td>
-
-                    <!-- IMPORTANTE: valor com vírgula para o IMask (radix=',') -->
-                    <td><input type="text" name="valor_unitario[]" class="form-control unit"
-                               value="{{ ('%.2f' % (item.valor_unitario or 0))|replace('.', ',') }}"></td>
-
-                    <td><input type="text" class="form-control total-item" readonly></td>
-                    <td class="text-center">
-                        <button type="button" class="btn btn-danger btn-sm remover-linha">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td><input type="text" name="codigo[]" class="form-control" required></td>
-                    <td><input type="text" name="descricao[]" class="form-control" required></td>
-                    <td><input type="number" name="quantidade[]" class="form-control qtd" step="1" min="1" required></td>
-                    <td><input type="text" name="valor_unitario[]" class="form-control unit" required></td>
-                    <td><input type="text" class="form-control total-item" readonly></td>
-                    <td class="text-center">
-                        <button type="button" class="btn btn-danger btn-sm remover-linha">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
-    <button type="button" class="btn btn-outline-primary mb-3" id="adicionar-linha">
-        <i class="fas fa-plus"></i> Adicionar Item
-    </button>
-
-    <!-- Total do Pedido -->
-    <div class="d-flex justify-content-end">
-        <h4>Total do Pedido: <span id="total-pedido">R$ 0,00</span></h4>
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Itens do Pedido</h5>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="adicionar-linha">
+                <i class="fas fa-plus"></i> Adicionar Item
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0" id="tabela-itens">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 15%">Código</th>
+                            <th>Descrição</th>
+                            <th style="width: 10%">Qtd</th>
+                            <th style="width: 15%">Unitário (R$)</th>
+                            <th style="width: 15%">Total (R$)</th>
+                            <th style="width: 5%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="containerItens">
+                        {% if pedido and pedido.itens %}
+                            {% for item in pedido.itens %}
+                            <tr class="item-row">
+                                <td><input type="text" name="codigo[]" class="form-control form-control-sm" value="{{ item.codigo }}"></td>
+                                <td><input type="text" name="descricao[]" class="form-control form-control-sm" value="{{ item.descricao }}"></td>
+                                <td><input type="number" name="quantidade[]" class="form-control form-control-sm qtd" step="1" min="1" value="{{ item.quantidade }}"></td>
+                                <td><input type="text" name="valor_unitario[]" class="form-control form-control-sm unit"
+                                           value="{{ ('%.2f' % (item.valor_unitario or 0))|replace('.', ',') }}"></td>
+                                <td><input type="text" class="form-control form-control-sm total-item bg-light" readonly></td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-danger btn-sm remover-linha"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr class="item-row">
+                                <td><input type="text" name="codigo[]" class="form-control form-control-sm"></td>
+                                <td><input type="text" name="descricao[]" class="form-control form-control-sm" required></td>
+                                <td><input type="number" name="quantidade[]" class="form-control form-control-sm qtd" value="1" min="1" required></td>
+                                <td><input type="text" name="valor_unitario[]" class="form-control form-control-sm unit" required></td>
+                                <td><input type="text" class="form-control form-control-sm total-item bg-light" readonly></td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-danger btn-sm remover-linha"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white text-end">
+            <h4>Total: <span id="total-pedido" class="text-success fw-bold">R$ 0,00</span></h4>
+        </div>
     </div>
 
-    <!-- Botão salvar -->
-    <div class="mt-4">
-        <button type="submit" class="btn btn-success">Salvar Pedido</button>
+    <div class="text-end mb-5">
+        <button type="submit" class="btn btn-success btn-lg"><i class="fas fa-save me-2"></i> Salvar Pedido</button>
     </div>
 </form>
 
-<!-- Scripts -->
 <script src="https://unpkg.com/imask"></script>
 <script>
+// (Mantido o script original de cálculo e máscara que você já tinha, apenas ajustado se necessário)
 /* Alterna grupos de percentuais */
 document.querySelectorAll('input[name="modo_desconto"]').forEach(r => {
   r.addEventListener('change', () => {
@@ -142,27 +162,24 @@ document.querySelectorAll('input[name="modo_desconto"]').forEach(r => {
   });
 });
 
-/* Adicionar nova linha de item */
+/* Adicionar nova linha */
 document.getElementById('adicionar-linha').addEventListener('click', () => {
-    const tbody = document.querySelector('#tabela-itens tbody');
+    const tbody = document.getElementById('containerItens');
     const linha = document.createElement('tr');
+    linha.className = 'item-row';
     linha.innerHTML = `
-        <td><input type="text" name="codigo[]" class="form-control" required></td>
-        <td><input type="text" name="descricao[]" class="form-control" required></td>
-        <td><input type="number" name="quantidade[]" class="form-control qtd" step="1" min="1" required></td>
-        <td><input type="text" name="valor_unitario[]" class="form-control unit" required></td>
-        <td><input type="text" class="form-control total-item" readonly></td>
-        <td class="text-center">
-            <button type="button" class="btn btn-danger btn-sm remover-linha">
-                <i class="fas fa-trash"></i>
-            </button>
-        </td>
+        <td><input type="text" name="codigo[]" class="form-control form-control-sm"></td>
+        <td><input type="text" name="descricao[]" class="form-control form-control-sm" required></td>
+        <td><input type="number" name="quantidade[]" class="form-control form-control-sm qtd" step="1" min="1" required></td>
+        <td><input type="text" name="valor_unitario[]" class="form-control form-control-sm unit" required></td>
+        <td><input type="text" class="form-control form-control-sm total-item bg-light" readonly></td>
+        <td class="text-center"><button type="button" class="btn btn-danger btn-sm remover-linha"><i class="fas fa-trash"></i></button></td>
     `;
     tbody.appendChild(linha);
     aplicarMascara();
 });
 
-/* Remover linha de item */
+/* Remover linha */
 document.addEventListener('click', (e) => {
     if (e.target.closest('.remover-linha')) {
         e.target.closest('tr').remove();
@@ -170,27 +187,21 @@ document.addEventListener('click', (e) => {
     }
 });
 
-/* Classifica tipo do item pela descrição */
 function classificarTipo(desc) {
     const d = desc.toLowerCase();
-    if (d.includes("rifl") || d.includes("rifle") || d.includes("pist") || d.includes("rev") || d.includes("carabina") || d.includes("esp")) {
-        return "armas";
-    } else if (d.includes("mun") || d.includes("cart") || d.includes("espol") || d.includes("esto") || d.includes("polv")) {
-        return "municoes";
-    }
+    if (d.includes("rifl") || d.includes("rifle") || d.includes("pist") || d.includes("rev") || d.includes("carabina") || d.includes("esp")) return "armas";
+    if (d.includes("mun") || d.includes("cart") || d.includes("espol") || d.includes("esto") || d.includes("polv")) return "municoes";
     return "outros";
 }
 
-/* Atualizar totais em tempo real (com desconto/acréscimo) */
 function atualizarTotais() {
     let totalPedido = 0;
-
     const percArmas = parseFloat(document.getElementById("percentual_armas")?.value.replace(",", ".") || 0);
     const percMunicoes = parseFloat(document.getElementById("percentual_municoes")?.value.replace(",", ".") || 0);
     const percUnico = parseFloat(document.getElementById("percentual_unico")?.value.replace(",", ".") || 0);
     const modoUnico = document.getElementById("modo_unico").checked;
 
-    document.querySelectorAll("#tabela-itens tbody tr").forEach(tr => {
+    document.querySelectorAll(".item-row").forEach(tr => {
         const qtd = parseFloat(tr.querySelector(".qtd")?.value.replace(",", ".") || 0);
         const desc = tr.querySelector("input[name='descricao[]']")?.value || "";
         let unitStr = tr.querySelector(".unit")?.value || "0";
@@ -198,9 +209,8 @@ function atualizarTotais() {
         const unit = parseFloat(unitStr) || 0;
 
         let pct = 0;
-        if (modoUnico) {
-            pct = percUnico;
-        } else {
+        if (modoUnico) pct = percUnico;
+        else {
             const tipo = classificarTipo(desc);
             pct = tipo === "armas" ? percArmas : (tipo === "municoes" ? percMunicoes : 0);
         }
@@ -208,17 +218,11 @@ function atualizarTotais() {
         const precoFinal = unit * (1 + pct / 100);
         const total = qtd * precoFinal;
 
-        tr.querySelector(".total-item").value = total > 0
-            ? total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-            : "";
-
+        tr.querySelector(".total-item").value = total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         totalPedido += total;
     });
 
-    document.getElementById("total-pedido").textContent = totalPedido.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL"
-    });
+    document.getElementById("total-pedido").textContent = totalPedido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 document.addEventListener("input", (e) => {
@@ -230,7 +234,6 @@ document.addEventListener("input", (e) => {
     }
 });
 
-/* Aplica máscara nos campos de valor unitário */
 function aplicarMascara() {
     document.querySelectorAll('input.unit').forEach(el => {
         if (!el._imask) {
@@ -246,10 +249,18 @@ function aplicarMascara() {
                     }
                 }
             });
+            el._imask = true;
         }
     });
 }
-aplicarMascara();
-atualizarTotais();
+
+document.addEventListener("DOMContentLoaded", () => {
+    aplicarMascara();
+    atualizarTotais();
+    // Inicia Select2 se disponível
+    if (window.jQuery && window.jQuery.fn.select2) {
+        $('.select2').select2({ theme: 'bootstrap-5' });
+    }
+});
 </script>
 {% endblock %}

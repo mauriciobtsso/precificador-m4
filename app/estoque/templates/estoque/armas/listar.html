@@ -1,46 +1,277 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4><i class="fas fa-crosshairs me-2 text-primary"></i>Estoque — Armas</h4>
-    <a href="{{ url_for('estoque.armas_novo') }}" class="btn btn-success">
-      <i class="fas fa-plus me-1"></i> Nova Arma
+<div class="container-fluid py-4">
+  
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold text-dark mb-0">
+        <i class="fas fa-server me-2 text-primary"></i>Cofre de Armas
+      </h4>
+      <small class="text-muted">Gerenciamento físico do acervo</small>
+    </div>
+    <a href="{{ url_for('estoque.armas_gerenciar') }}" class="btn btn-success shadow-sm">
+      <i class="fas fa-plus-circle me-2"></i>Nova Entrada
     </a>
   </div>
 
-  {% if itens %}
-  <div class="table-responsive">
-    <table class="table table-striped align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>ID</th>
-          <th>Produto</th>
-          <th>Nº Série</th>
-          <th>Fornecedor</th>
-          <th>Status</th>
-          <th>Entrada</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for i in itens %}
-        <tr>
-          <td>{{ i.id }}</td>
-          <td>{{ i.produto.nome if i.produto else '-' }}</td>
-          <td>{{ i.numero_serie or '-' }}</td>
-          <td>{{ i.fornecedor.nome if i.fornecedor else '-' }}</td>
-          <td><span class="badge bg-secondary">{{ i.status|capitalize }}</span></td>
-          <td>{{ i.data_entrada.strftime('%d/%m/%Y') if i.data_entrada else '-' }}</td>
-          <td class="text-end">
-            <a href="#" class="btn btn-sm btn-outline-warning"><i class="fas fa-edit"></i></a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm border-start border-4 border-primary h-100">
+        <div class="card-body py-3">
+          <div class="d-flex align-items-center">
+            <div class="bg-primary-subtle text-primary rounded-circle p-2 me-3"><i class="fas fa-cubes fa-lg"></i></div>
+            <div><h6 class="mb-0 text-muted small text-uppercase fw-bold">Total</h6><h3 class="fw-bold mb-0">{{ totais.total }}</h3></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm border-start border-4 border-success h-100">
+        <div class="card-body py-3">
+          <div class="d-flex align-items-center">
+            <div class="bg-success-subtle text-success rounded-circle p-2 me-3"><i class="fas fa-check fa-lg"></i></div>
+            <div><h6 class="mb-0 text-muted small text-uppercase fw-bold">Disponíveis</h6><h3 class="fw-bold mb-0 text-success">{{ totais.disponivel }}</h3></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm border-start border-4 border-warning h-100">
+        <div class="card-body py-3">
+          <div class="d-flex align-items-center">
+            <div class="bg-warning-subtle text-warning rounded-circle p-2 me-3"><i class="fas fa-clock fa-lg"></i></div>
+            <div><h6 class="mb-0 text-muted small text-uppercase fw-bold">Reservadas</h6><h3 class="fw-bold mb-0 text-warning">{{ totais.reservada }}</h3></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm border-start border-4 border-secondary h-100">
+        <div class="card-body py-3">
+          <div class="d-flex align-items-center">
+            <div class="bg-secondary-subtle text-secondary rounded-circle p-2 me-3"><i class="fas fa-dollar-sign fa-lg"></i></div>
+            <div><h6 class="mb-0 text-muted small text-uppercase fw-bold">Vendidas</h6><h3 class="fw-bold mb-0 text-secondary">{{ totais.vendida }}</h3></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  {% else %}
-    <div class="alert alert-info">Nenhuma arma cadastrada no estoque.</div>
-  {% endif %}
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-3">
+        <form method="GET" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="termo" class="form-control border-start-0 ps-0" 
+                           placeholder="Pesquisar por Serial, Modelo, Marca ou NF..." 
+                           value="{{ termo }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select">
+                    <option value="">Todos os Status</option>
+                    <option value="disponivel" {% if filtro_status == 'disponivel' %}selected{% endif %}>Disponíveis</option>
+                    <option value="reservada" {% if filtro_status == 'reservada' %}selected{% endif %}>Reservadas</option>
+                    <option value="vendida" {% if filtro_status == 'vendida' %}selected{% endif %}>Vendidas</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+            </div>
+            <div class="col-md-2">
+                <a href="{{ url_for('estoque.armas_listar') }}" class="btn btn-outline-secondary w-100">Limpar</a>
+            </div>
+        </form>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+          <thead class="bg-light text-secondary small text-uppercase">
+            <tr>
+              <th class="ps-4 py-3" style="width: 15%;">Nº Série</th>
+              <th class="py-3" style="width: 35%;">Produto / Fornecedor</th>
+              <th class="py-3" style="width: 10%;">NF Entrada</th>
+              <th class="py-3" style="width: 25%;">Proprietário</th>
+              <th class="py-3" style="width: 10%;">Entrada</th>
+              <th class="text-end pe-4 py-3" style="width: 5%;">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in itens %}
+            <tr>
+              <td class="ps-4">
+                <span class="font-monospace fw-bold text-primary fs-6">{{ item.numero_serie or '--' }}</span>
+                {% if item.numero_embalagem %}
+                <br><small class="text-muted font-monospace" style="font-size: 0.75rem;">CX: {{ item.numero_embalagem }}</small>
+                {% endif %}
+              </td>
+              
+              <td>
+                <div class="d-flex flex-column">
+                    <span class="fw-bold text-dark text-truncate" style="max-width: 350px;" title="{{ item.produto.nome }}">
+                        {{ item.produto.nome }}
+                    </span>
+                    <small class="text-muted mt-1">
+                        <i class="fas fa-truck me-1 text-secondary" style="font-size: 0.7rem;"></i>
+                        {{ item.fornecedor.apelido or item.fornecedor.nome or 'Fornecedor não inf.' }}
+                    </small>
+                </div>
+              </td>
+              
+              <td class="text-muted">{{ item.nota_fiscal or '-' }}</td>
+              
+              <td>
+                {% if item.status == 'disponivel' %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
+                        <i class="fas fa-check-circle me-1"></i> Disponível
+                    </span>
+                {% else %}
+                    <div class="d-flex align-items-center">
+                        <div class="me-2">
+                            {% if item.status == 'vendida' %}
+                                <span class="badge bg-secondary" style="font-size: 0.65rem;">VENDIDA</span>
+                            {% elif item.status == 'reservada' %}
+                                <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">RESERVADA</span>
+                            {% else %}
+                                <span class="badge bg-dark" style="font-size: 0.65rem;">{{ item.status|upper }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex flex-column" style="line-height: 1.1;">
+                            {% if item.venda_item and item.venda_item.venda.cliente %}
+                                <span class="fw-bold text-dark text-truncate" style="max-width: 200px;">
+                                    {{ item.venda_item.venda.cliente.nome }}
+                                </span>
+                                <small class="text-muted" style="font-size: 0.75rem;">
+                                    Pedido #{{ item.venda_item.venda.id }}
+                                </small>
+                            {% else %}
+                                <span class="text-muted fst-italic">Aguardando vínculo...</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+              </td>
+              
+              <td class="text-muted small">{{ item.data_entrada.strftime('%d/%m/%Y') if item.data_entrada else '-' }}</td>
+              
+              <td class="text-end pe-4">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-detalhe" 
+                            data-item-id="{{ item.id }}" title="Detalhes">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <a href="{{ url_for('estoque.armas_gerenciar', item_id=item.id) }}" 
+                       class="btn btn-sm btn-outline-secondary" title="Editar">
+                        <i class="fas fa-pen"></i>
+                    </a>
+                    
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-excluir" 
+                            data-item-id="{{ item.id }}" 
+                            data-serial="{{ item.numero_serie }}"
+                            title="Excluir">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center py-5 text-muted">
+                <div class="d-flex flex-column align-items-center">
+                    <i class="fas fa-box-open fs-1 mb-3 opacity-25"></i>
+                    <p class="mb-0">Nenhuma arma cadastrada (ou nenhuma corresponde ao filtro).</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
+
+<div class="modal fade" id="modalDetalheArma" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-dark text-white py-2">
+        <h5 class="modal-title fs-6 fw-bold">
+            <i class="fas fa-info-circle me-2"></i>Detalhes da Arma
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0" id="conteudoModalDetalhe">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted small">Carregando informações...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalExcluirGenerico" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <form id="formExcluir" method="POST" class="modal-content">
+        <div class="modal-header border-0 pb-0">
+            <h6 class="modal-title fw-bold">Excluir Arma?</h6>
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body small text-center text-muted">
+            <p>Esta ação não pode ser desfeita.</p>
+            <strong id="modalSerial" class="d-block text-dark font-monospace fs-6 mt-2">--</strong>
+        </div>
+        <div class="modal-footer border-0 pt-0 justify-content-center">
+            <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-sm btn-danger">Excluir Definitivamente</button>
+        </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Lógica do Modal de Detalhes
+    const modalEl = document.getElementById('modalDetalheArma');
+    const modalBody = document.getElementById('conteudoModalDetalhe');
+    const bsModal = new bootstrap.Modal(modalEl);
+
+    document.querySelectorAll('.btn-detalhe').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            bsModal.show();
+            modalBody.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+            fetch(`/estoque/armas/${itemId}/detalhe`)
+                .then(r => r.text())
+                .then(html => modalBody.innerHTML = html)
+                .catch(() => modalBody.innerHTML = '<div class="alert alert-danger m-3">Erro ao carregar detalhes.</div>');
+        });
+    });
+
+    // 2. Lógica do Modal de Exclusão (Resolve o problema do "tremido")
+    const modalExcluir = new bootstrap.Modal(document.getElementById('modalExcluirGenerico'));
+    const formExcluir = document.getElementById('formExcluir');
+    const spanSerial = document.getElementById('modalSerial');
+
+    document.querySelectorAll('.btn-excluir').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.itemId;
+            const serial = this.dataset.serial;
+            
+            // Atualiza o formulário para apontar para a arma certa
+            formExcluir.action = `/estoque/armas/${id}/excluir`;
+            spanSerial.textContent = serial;
+            
+            modalExcluir.show();
+        });
+    });
+});
+</script>
 {% endblock %}

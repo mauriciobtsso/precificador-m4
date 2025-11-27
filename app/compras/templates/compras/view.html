@@ -1,62 +1,216 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="container py-4">
-  <h3 class="fw-bold mb-3 d-flex align-items-center">
-    <i class="fas fa-file-invoice me-2 text-orange"></i> Detalhes da NF {{ nf.numero or nf.chave }}
-  </h3>
-
-  <div class="card mb-3">
-    <div class="card-header bg-light">
-      <h5 class="mb-0">Dados Principais</h5>
+<div class="container-fluid py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="fw-bold mb-0 text-dark">
+            <i class="fas fa-boxes me-2 text-primary"></i>Conferência e Recebimento
+        </h5>
+        <div class="text-muted small mt-1">
+            NF: <strong class="text-dark">{{ nf.numero }}</strong> 
+            <span class="mx-2">|</span> 
+            Pedido: 
+            {% if nf.pedido %}
+                <a href="{{ url_for('pedidos.editar_pedido', id=nf.pedido.id) }}" class="fw-bold text-primary text-decoration-none">
+                    #{{ nf.pedido.numero }}
+                </a>
+                <span class="badge bg-light text-dark border ms-1">{{ nf.pedido.status }}</span>
+            {% else %}
+                <span class="badge bg-secondary">S/V (Avulso)</span>
+            {% endif %}
+        </div>
     </div>
-    <div class="card-body row">
-      <div class="col-md-6">
-        <p class="mb-1"><strong>Fornecedor:</strong> {{ nf.fornecedor or 'Não Informado' }}</p>
-        <p class="mb-1"><strong>Número:</strong> {{ nf.numero or 'N/A' }}</p>
-        <p class="mb-1"><strong>Chave:</strong> {{ nf.chave or 'N/A' }}</p>
-      </div>
-      <div class="col-md-6">
-        <p class="mb-1"><strong>Emissão:</strong> {{ nf.data_emissao.strftime('%d/%m/%Y') if nf.data_emissao else 'N/A' }}</p>
-        <p class="mb-1"><strong>Valor Total:</strong> {{ nf.valor_total|currency if nf.valor_total else 'R$ 0,00' }}</p>
-      </div>
+    <a href="{{ url_for('compras_nf.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
+
+  <div class="card mb-3 shadow-sm border-0 bg-light">
+    <div class="card-body py-2 px-3">
+        <div class="row align-items-center small">
+            <div class="col-md-5">
+                <strong>Fornecedor:</strong> {{ nf.fornecedor or 'Não Informado' }}
+            </div>
+            <div class="col-md-4">
+                <strong>Chave:</strong> <span class="text-muted text-truncate d-inline-block align-bottom" style="max-width: 250px;">{{ nf.chave or 'N/A' }}</span>
+            </div>
+            <div class="col-md-3 text-end">
+                <strong>Total NF:</strong> <span class="text-success fw-bold fs-6">{{ nf.valor_total|currency }}</span>
+            </div>
+        </div>
     </div>
   </div>
 
-  <h5 class="mt-4">Itens da Nota</h5>
-  <div class="table-responsive">
-    <table class="table table-sm table-striped align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>Descrição</th>
-          <th>Marca</th>
-          <th>Modelo</th>
-          <th>Calibre</th>
-          <th>Lote/Série</th>
-          <th class="text-end">Qtd</th>
-          <th class="text-end">Vlr Unit.</th>
-          <th class="text-end">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in nf.itens %}
-        <tr>
-          <td>{{ item.descricao or '—' }}</td>
-          <td>{{ item.marca or '—' }}</td>
-          <td>{{ item.modelo or '—' }}</td>
-          <td>{{ item.calibre or '—' }}</td>
-          <td>{{ item.lote or '—' }}</td>
-          <td class="text-end">{{ item.quantidade }}</td>
-          <td class="text-end">{{ item.valor_unitario|currency }}</td>
-          <td class="text-end">{{ item.valor_total|currency }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-2">
+        <h6 class="mb-0 fw-bold text-secondary small text-uppercase">Itens da Nota Fiscal</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead class="bg-light text-secondary">
+                    <tr>
+                        <th class="ps-3" style="width: 25%;">Produto XML</th>
+                        <th class="text-center" style="width: 5%;">Qtd</th>
+                        <th style="width: 30%;">Vínculo Sistema (De/Para)</th>
+                        <th style="width: 30%;">Seriais / Conferência</th>
+                        <th class="text-end pe-3" style="width: 10%;">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in nf.itens %}
+                    {% set ja_recebido = item.itens_gerados_estoque.count() > 0 %}
+                    
+                    <tr class="{{ 'bg-success-subtle' if ja_recebido else '' }}">
+                        <td class="ps-3">
+                            <strong class="d-block text-truncate" style="max-width: 250px;" title="{{ item.descricao }}">
+                                {{ item.descricao }}
+                            </strong>
+                            <div class="text-muted d-flex gap-2 small">
+                                <span>{{ item.marca }}</span>
+                                <span>{{ item.modelo }}</span>
+                                {% if item.calibre %}<span>Cal: {{ item.calibre }}</span>{% endif %}
+                            </div>
+                        </td>
 
-  <div class="text-end mt-3">
-    <a href="{{ url_for('compras_nf.index') }}" class="btn btn-secondary">Voltar para a Lista</a>
+                        <td class="text-center fw-bold fs-6">{{ item.quantidade|int }}</td>
+                        
+                        <td>
+                            {% if ja_recebido %}
+                                {% set estoque_exemplo = item.itens_gerados_estoque.first() %}
+                                <div class="small text-success">
+                                    <i class="fas fa-link me-1"></i>
+                                    {{ estoque_exemplo.produto.nome }} 
+                                    <span class="text-muted">({{ estoque_exemplo.produto.codigo }})</span>
+                                </div>
+                            {% else %}
+                                <select class="form-select form-select-sm select2-produto" data-compra-item-id="{{ item.id }}" style="width: 100%;">
+                                    <option value="">Buscar no catálogo...</option>
+                                </select>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if ja_recebido %}
+                                <small class="text-success"><i class="fas fa-check-circle me-1"></i> Recebido no Estoque.</small>
+                            {% else %}
+                                {% set qtd = item.quantidade|int %}
+                                {% set serials = item.seriais_xml.split(',') if item.seriais_xml else [] %}
+                                
+                                <div class="d-flex flex-column gap-1 py-1" style="max-height: 150px; overflow-y: auto;">
+                                    {% for i in range(qtd) %}
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light text-muted border-end-0" style="width: 35px;">#{{ i+1 }}</span>
+                                        <input type="text" class="form-control form-control-sm border-start-0 serial-input font-monospace text-uppercase" 
+                                               value="{{ serials[i] if i < serials|length else '' }}" 
+                                               placeholder="Digite o Serial">
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-end pe-3">
+                            {% if ja_recebido %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> OK</span>
+                            {% else %}
+                                <button class="btn btn-primary btn-sm w-100 btn-receber" data-item-id="{{ item.id }}">
+                                    <i class="fas fa-download me-1"></i> Receber
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
   </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. Configuração Select2 apontando para a API de Produtos
+    $('.select2-produto').select2({
+        theme: 'bootstrap-5',
+        placeholder: "Digite o nome ou código...",
+        allowClear: true,
+        dropdownParent: $('body'), 
+        ajax: {
+            url: "{{ url_for('produtos.api_buscar_produtos') }}", // <--- ROTA CORRIGIDA (PRODUTOS)
+            dataType: 'json',
+            delay: 300,
+            data: function (params) {
+                return { termo: params.term };
+            },
+            processResults: function (data) {
+                // Mapeia a lista de produtos retornada pela API
+                return {
+                    results: data.map(p => ({
+                        id: p.id,
+                        text: p.text // Usa o texto formatado "Nome (SKU)"
+                    }))
+                };
+            },
+            cache: true
+        }
+    });
+
+    // 2. Lógica de Recebimento
+    document.querySelectorAll('.btn-receber').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const row = this.closest('tr');
+            const itemId = this.dataset.itemId;
+            
+            // Pega valor do Select2 via jQuery (necessário para o plugin)
+            const produtoId = $(row.querySelector('.select2-produto')).val();
+            
+            const serials = Array.from(row.querySelectorAll('.serial-input')).map(i => i.value.trim());
+
+            if (!produtoId) {
+                alert(⚠️ Selecione o produto correspondente no sistema (De/Para).");
+                return;
+            }
+
+            if (serials.some(s => !s) && !confirm("Existem seriais em branco. Continuar?")) {
+                return;
+            }
+
+            // Feedback de loading
+            const originalHtml = this.innerHTML;
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+
+            try {
+                const resp = await fetch("{{ url_for('compras_nf.receber_item') }}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        compra_item_id: itemId,
+                        produto_id: produtoId,
+                        serials: serials
+                    })
+                });
+
+                const res = await resp.json();
+
+                if (res.success) {
+                    row.classList.add('bg-success-subtle');
+                    this.outerHTML = '<span class="badge bg-success"><i class="fas fa-check"></i> Sucesso</span>';
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    alert("Erro: " + res.message);
+                    this.disabled = false;
+                    this.innerHTML = originalHtml;
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Erro de comunicação.");
+                this.disabled = false;
+                this.innerHTML = originalHtml;
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

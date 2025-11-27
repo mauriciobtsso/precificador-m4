@@ -1,4 +1,8 @@
-﻿from app import db
+﻿# ============================================================
+# MÓDULO: ESTOQUE — Modelos (app/estoque/models.py)
+# ============================================================
+
+from app import db
 from datetime import datetime
 from app.produtos.models import Produto
 from app.clientes.models import Cliente
@@ -11,11 +15,19 @@ class ItemEstoque(db.Model):
     produto_id = db.Column(db.Integer, db.ForeignKey("produtos.id"), nullable=False)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=True)
 
+    # === CORREÇÃO DO ERRO FATAL (NoForeignKeysError) ===
+    # Este campo cria o elo físico com o item da nota fiscal de compra
+    compra_item_id = db.Column(db.Integer, db.ForeignKey("compra_item.id"), nullable=True)
+
     tipo_item = db.Column(db.String(20), nullable=False)  # arma, municao, pce, nao_controlado
     numero_serie = db.Column(db.String(100), nullable=True)
     lote = db.Column(db.String(50), nullable=True)
     
-    # Campo para o scanner
+    # Rastreabilidade da Entrada
+    nota_fiscal = db.Column(db.String(50), nullable=True) 
+    data_nf = db.Column(db.Date, nullable=True)
+    
+    # Campo para o scanner/logística
     numero_embalagem = db.Column(db.String(100), nullable=True, index=True)
     
     quantidade = db.Column(db.Integer, default=1)
@@ -25,10 +37,20 @@ class ItemEstoque(db.Model):
 
     observacoes = db.Column(db.Text, nullable=True)
 
+    # Relacionamentos
     produto = db.relationship("Produto", backref="itens_estoque")
-    
-    # CORREÇÃO AQUI: Usando back_populates explícito
     fornecedor = db.relationship("Cliente", back_populates="itens_fornecidos")
+    
+    # Relacionamento Reverso com Compra (Funciona graças ao compra_item_id acima)
+    origem_compra = db.relationship("CompraItem", back_populates="itens_gerados_estoque")
+
+    # Relacionamento com Venda
+    # CORREÇÃO DO WARNING: Usamos back_populates para sincronizar com app/vendas/models.py
+    venda_item = db.relationship(
+        "ItemVenda", 
+        back_populates="item_estoque", # Sincroniza com o lado da Venda
+        uselist=False
+    )
 
     def __repr__(self):
         nome = self.produto.nome if self.produto else "Desconhecido"

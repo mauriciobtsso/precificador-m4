@@ -1,10 +1,10 @@
 # =======================================================
 # MÓDULO: app/vendas/models.py
-# Estrutura revisada - Vendas 2.0
+# Estrutura revisada - Vendas 2.0 (Com correção de relacionamento)
 # =======================================================
 
 from datetime import datetime, date
-from decimal import Decimal  # <--- ADICIONADO PARA CORREÇÃO DE ERRO
+from decimal import Decimal
 from app.extensions import db
 
 # =========================
@@ -79,13 +79,11 @@ class Venda(db.Model):
             return
         
         # Soma segura usando Decimal como base
-        # Converte cada valor_total de item para Decimal se já não for
         total = sum((item.valor_total for item in self.itens), Decimal('0.00'))
         
         self.qtd_total_itens = sum(item.quantidade for item in self.itens)
         self.valor_total = total
         
-        # Garante que desconto e recebido sejam Decimal antes de subtrair
         desc = self.desconto_valor
         if desc is None: desc = Decimal('0.00')
         elif not isinstance(desc, Decimal): desc = Decimal(str(desc))
@@ -125,11 +123,17 @@ class ItemVenda(db.Model):
     
     # Rastreabilidade
     produto_id = db.Column(db.Integer, db.ForeignKey("produtos.id"), nullable=True)
+    
+    # Chave estrangeira para o item de estoque físico
     item_estoque_id = db.Column(db.Integer, db.ForeignKey("estoque_itens.id"), nullable=True)
+    
     arma_cliente_id = db.Column(db.Integer, db.ForeignKey("armas.id"), nullable=True)
 
     produto = db.relationship("Produto")
-    item_estoque = db.relationship("ItemEstoque") 
+    
+    # CORREÇÃO DO WARNING: Adicionado back_populates
+    item_estoque = db.relationship("ItemEstoque", back_populates="venda_item")
+    
     arma_cliente = db.relationship("Arma", foreign_keys=[arma_cliente_id])
 
     def __repr__(self):

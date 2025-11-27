@@ -7,11 +7,25 @@
   </h3>
 
   <form id="formImportar" method="POST" enctype="multipart/form-data" class="mb-3">
-    <div class="mb-3">
-      <label for="xml" class="form-label">Selecione o arquivo XML</label>
-      <input type="file" name="xml" id="xml" accept=".xml" class="form-control" required>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label for="xml" class="form-label fw-bold">Arquivo XML</label>
+            <input type="file" name="xml" id="xml" accept=".xml" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+            <label for="pedido_id" class="form-label fw-bold">Vincular ao Pedido (Opcional)</label>
+            <select name="pedido_id" id="pedido_id" class="form-select">
+                <option value="">-- Apenas Importar (Sem Pedido) --</option>
+                {% for p in pedidos_abertos %}
+                <option value="{{ p.id }}">Pedido #{{ p.numero }} - {{ p.fornecedor.nome }} ({{ p.status }})</option>
+                {% endfor %}
+            </select>
+            <div class="form-text">Ao selecionar, o pedido mudará para "Em Trânsito".</div>
+        </div>
     </div>
-    <button id="btnImportar" type="submit" class="btn btn-orange">
+
+    <button id="btnImportar" type="submit" class="btn btn-orange mt-3">
       <i class="fas fa-cloud-upload-alt me-1"></i> Enviar e Processar
     </button>
   </form>
@@ -23,7 +37,7 @@
       <thead class="table-light">
         <tr>
           <th>#</th><th>Descrição</th><th>Marca</th><th>Modelo</th>
-          <th>Calibre</th><th>Lote/Série</th>
+          <th>Seriais (XML)</th>
           <th class="text-end">Qtd</th><th class="text-end">Vlr Unit.</th><th class="text-end">Total</th>
         </tr>
       </thead>
@@ -40,4 +54,38 @@
   </div>
 </div>
 <script src="{{ url_for('static', filename='js/compras_importar.js') }}"></script>
+<script>
+    // Sobrescreve comportamento padrão para incluir pedido_id
+    document.getElementById('btnSalvarNF').addEventListener('click', async () => {
+        if (!window.dadosNF) return;
+        
+        // Adiciona o pedido_id ao payload
+        const pedidoId = document.getElementById('pedido_id').value;
+        window.dadosNF.pedido_id = pedidoId;
+
+        const btn = document.getElementById('btnSalvarNF');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+
+        try {
+            const resp = await fetch('/compras/salvar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(window.dadosNF)
+            });
+            const res = await resp.json();
+            if (res.success) {
+                window.location.href = `/compras/${res.nf_id}`;
+            } else {
+                alert('Erro: ' + res.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Salvar NF no Sistema';
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Erro ao salvar.');
+            btn.disabled = false;
+        }
+    });
+</script>
 {% endblock %}

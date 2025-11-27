@@ -1,5 +1,5 @@
 ﻿# ============================================================
-# MÓDULO: COMPRAS — Rotas principais (com parser híbrido LLM)
+# MÓDULO: COMPRAS — Rotas principais (com parser híbrido LLM e Estoque)
 # ============================================================
 
 from flask import render_template, request, jsonify, redirect, url_for
@@ -8,6 +8,9 @@ from app import db
 from app.compras import compras_nf_bp
 from app.compras.utils import parse_nf_xml_inteligente
 from app.compras.models import CompraNF, CompraItem
+from app.models import PedidoCompra
+from app.estoque.models import ItemEstoque
+from app.produtos.models import Produto
 from datetime import datetime
 from decimal import Decimal
 import uuid
@@ -50,21 +53,16 @@ def index():
 @compras_nf_bp.route("/importar", methods=["GET", "POST"])
 @login_required
 def importar():
-    """Tela para importar e processar XML de NF de entrada"""
     if request.method == "POST":
         file = request.files.get("xml")
-        if not file:
-            return jsonify(success=False, message="Nenhum arquivo enviado."), 400
-
-        resultado = parse_nf_xml_inteligente(file)
-        if not resultado.get("success"):
-            return jsonify(success=False, message=f"Erro ao processar XML: {resultado.get('error')}"), 500
-
-        # Já retorna o JSON do parser, que inclui valor_total, fornecedor e chave
-        return jsonify(resultado)
-
-    return render_template("compras/importar.html")
-
+        if not file: return jsonify(success=False, message="Sem arquivo"), 400
+        res = parse_nf_xml_inteligente(file)
+        return jsonify(res)
+    
+    pedidos = PedidoCompra.query.filter(
+        PedidoCompra.status.in_(['Aguardando', 'Confirmado', 'Aguardando NF'])
+    ).order_by(PedidoCompra.id.desc()).all()
+    return render_template("compras/importar.html", pedidos_abertos=pedidos)
 
 # ============================================================
 # SALVAR NF E ITENS NO BANCO — com validação de duplicidade
@@ -72,88 +70,108 @@ def importar():
 @compras_nf_bp.route("/salvar", methods=["POST"])
 @login_required
 def salvar_nf():
-    """
-    Recebe JSON com os itens importados e grava a NF e seus itens no banco.
-    Valida duplicidade pela chave da NF.
-    """
     try:
         data = request.get_json(force=True)
         itens = data.get("itens") or []
-        if not itens:
-            return jsonify(success=False, message="Nenhum item recebido."), 400
+        if not itens: return jsonify(success=False, message="Sem itens"), 400
 
-        # Dados básicos da NF
         chave = (data.get("chave") or "").strip()
-        numero = (data.get("numero") or "").strip()
-        fornecedor = data.get("fornecedor", "Fornecedor não informado")
-        cnpj_emit = (data.get("cnpj_emit") or "").strip()
+        if chave and CompraNF.query.filter_by(chave=chave).first():
+            return jsonify(success=False, message="NF já cadastrada"), 409
 
         data_emissao_str = data.get("data_emissao")
         dt = _parse_dt_flex(data_emissao_str)
-        data_emissao = dt if dt else datetime.utcnow()
 
-        # Aceita 'valor_total' (novo) ou 'valor_total_nf' (legado)
-        valor_total_in = data.get("valor_total", data.get("valor_total_nf"))
-        try:
-            valor_total_nf = Decimal(str(valor_total_in)) if valor_total_in is not None else Decimal(0)
-        except Exception:
-            valor_total_nf = Decimal(0)
+        # Valor total com fallback
+        v_total = data.get("valor_total", data.get("valor_total_nf"))
+        v_total = Decimal(str(v_total or 0))
 
-        # ✅ Verifica duplicidade por chave (se existir)
-        if chave:
-            nf_existente = CompraNF.query.filter_by(chave=chave).first()
-            if nf_existente:
-                return jsonify(
-                    success=False,
-                    message=f"NF já cadastrada anteriormente (chave: {chave}).",
-                    nf_id=nf_existente.id,
-                ), 409
-
-        # Criação da NF — gera UUID SOMENTE se não houver chave real
         nf = CompraNF(
-            fornecedor=fornecedor,
-            numero=numero,
+            fornecedor=data.get("fornecedor"),
+            numero=data.get("numero"),
             chave=chave or str(uuid.uuid4()),
-            data_emissao=data_emissao,
-            valor_total=valor_total_nf
+            data_emissao=dt or datetime.now(),
+            valor_total=v_total,
+            pedido_id=int(data.get("pedido_id")) if data.get("pedido_id") else None
         )
 
-        # Criação dos itens
         for it in itens:
-            quantidade = Decimal(str(it.get("quantidade") or 0))
-            valor_unitario = Decimal(str(it.get("valor_unitario") or 0))
-            item = CompraItem(
+            nf.itens.append(CompraItem(
                 descricao=it.get("descricao"),
                 marca=it.get("marca"),
                 modelo=it.get("modelo"),
                 calibre=it.get("calibre"),
                 lote=it.get("lote") or it.get("numero_serie"),
-                quantidade=quantidade,
-                valor_unitario=valor_unitario,
-            )
-            item.valor_total = item.quantidade * item.valor_unitario
-            nf.itens.append(item)
+                seriais_xml=it.get("seriais_xml"),
+                quantidade=Decimal(str(it.get("quantidade") or 0)),
+                valor_unitario=Decimal(str(it.get("valor_unitario") or 0)),
+                valor_total=Decimal(str(it.get("valor_total") or 0))
+            ))
+
+        if nf.pedido_id:
+            ped = PedidoCompra.query.get(nf.pedido_id)
+            if ped: ped.status = "Em Transito"
 
         db.session.add(nf)
         db.session.commit()
-
-        return jsonify(success=True, message="NF salva com sucesso.", nf_id=nf.id)
+        return jsonify(success=True, nf_id=nf.id)
     
     except Exception as e:
         db.session.rollback()
-        return jsonify(success=False, message=f"Erro ao salvar NF: {e}"), 500
-    
-    
+        return jsonify(success=False, message=str(e)), 500
+
+# ============================================================
+# RECEBER ITEM (Gera Estoque) — Nova Rota
+# ============================================================
+@compras_nf_bp.route("/receber_item", methods=["POST"])
+@login_required
+def receber_item():
+    try:
+        data = request.get_json(force=True)
+        c_item = CompraItem.query.get_or_404(data.get("compra_item_id"))
+        produto = Produto.query.get_or_404(data.get("produto_id"))
+        serials = data.get("serials") or []
+
+        if c_item.itens_gerados_estoque.count() > 0:
+            return jsonify(success=False, message="Item já recebido"), 400
+
+        qtd = int(c_item.quantidade)
+        nf = c_item.nf
+
+        for i in range(qtd):
+            serial = serials[i] if i < len(serials) else None
+            
+            # Cria item no estoque
+            novo = ItemEstoque(
+                produto_id=produto.id,
+                compra_item_id=c_item.id,
+                tipo_item="arma", # Lógica futura: pegar do produto.tipo
+                numero_serie=serial,
+                lote=c_item.lote,
+                nota_fiscal=nf.numero,
+                data_nf=nf.data_emissao.date() if nf.data_emissao else None,
+                status="disponivel",
+                quantidade=1,
+                observacoes=f"Recebido via NF {nf.numero}"
+            )
+            db.session.add(novo)
+        
+        # Se o pedido estava em trânsito e tudo foi recebido, poderia mudar para Recebido (opcional)
+        
+        db.session.commit()
+        return jsonify(success=True)
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(success=False, message=str(e)), 500
+
 # ============================================================
 # VISUALIZAR NF (Detalhes)
 # ============================================================
 @compras_nf_bp.route("/<int:nf_id>", endpoint="view")
 @login_required
 def view_nf(nf_id):
-    """Visualiza os detalhes de uma NF."""
     nf = CompraNF.query.get_or_404(nf_id)
     return render_template("compras/view.html", nf=nf)
-
 
 # ============================================================
 # EXCLUIR NF
@@ -161,23 +179,15 @@ def view_nf(nf_id):
 @compras_nf_bp.route("/<int:nf_id>/excluir", methods=["GET", "POST"], endpoint="delete")
 @login_required
 def delete_nf(nf_id):
-    """Exclui uma NF e seus itens."""
     nf = CompraNF.query.get_or_404(nf_id)
-    try:
-        db.session.delete(nf)
-        db.session.commit()
-        return redirect(url_for('compras_nf.index'))
-    except Exception as e:
-        db.session.rollback()
-        return f"Erro ao excluir NF: {e}", 500
-
+    db.session.delete(nf)
+    db.session.commit()
+    return redirect(url_for('compras_nf.index'))
 
 # ============================================================
-# EDITAR NF (Placeholder)
+# EDITAR NF (Redireciona para Mesa de Recebimento)
 # ============================================================
 @compras_nf_bp.route("/<int:nf_id>/editar", methods=["GET", "POST"], endpoint="edit")
 @login_required
 def edit_nf(nf_id):
-    """Placeholder para edição de NF."""
-    nf = CompraNF.query.get_or_404(nf_id)
-    return f"Tela de Edição da NF {nf.numero or nf.chave}", 200
+    return redirect(url_for('compras_nf.view', nf_id=nf_id))

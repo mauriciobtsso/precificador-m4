@@ -6,7 +6,7 @@ from app.models import PedidoCompra, ItemPedido
 from app.clientes.models import Cliente
 from app.utils.number_helpers import parse_brl, parse_pct
 from app.pedidos import pedidos_bp
-from sqlalchemy import func
+from sqlalchemy import func, desc
 
 
 # ---------------------------------------------------
@@ -25,11 +25,15 @@ def novo_pedido():
         perc_unico = parse_pct(request.form.get("percentual_unico"))
 
         numero = datetime.now().strftime("%Y%m%d%H%M%S")
+        
+        # Status inicial padrão
+        status_inicial = request.form.get("status") or "Aguardando"
 
         pedido = PedidoCompra(
             numero=numero,
             data_pedido=datetime.now().date(),
             cond_pagto=cond_pagto,
+            status=status_inicial,
             modo_desconto=modo,
             percentual_armas=perc_armas,
             percentual_municoes=perc_municoes,
@@ -67,7 +71,7 @@ def novo_pedido():
 
     fornecedores = [
         c for c in Cliente.query.all()
-        if getattr(c, "documento", None) and "/" in c.documento
+        if getattr(c, "documento", None) and (len(c.documento) > 11) # Filtra PJ
     ]
     return render_template("pedidos/novo.html", fornecedores=fornecedores)
 
@@ -82,6 +86,12 @@ def editar_pedido(id):
 
     if request.method == "POST":
         pedido.cond_pagto = request.form.get("cond_pagto")
+        
+        # Atualiza Status Manualmente
+        novo_status = request.form.get("status")
+        if novo_status:
+            pedido.status = novo_status
+            
         pedido.modo_desconto = request.form.get("modo_desconto")
         pedido.percentual_armas = float(request.form.get("percentual_armas") or 0)
         pedido.percentual_municoes = float(request.form.get("percentual_municoes") or 0)
@@ -129,6 +139,7 @@ def listar_pedidos():
 
     numero = request.args.get("numero", "").strip()
     fornecedor_nome = request.args.get("fornecedor", "").strip()
+    status = request.args.get("status", "").strip()
     data_inicio = request.args.get("data_inicio", "").strip()
     data_fim = request.args.get("data_fim", "").strip()
     valor_min = request.args.get("valor_min", "").strip()
@@ -138,6 +149,8 @@ def listar_pedidos():
         query = query.filter(PedidoCompra.numero.ilike(f"%{numero}%"))
     if fornecedor_nome:
         query = query.filter(Cliente.nome.ilike(f"%{fornecedor_nome}%"))
+    if status:
+        query = query.filter(PedidoCompra.status == status)
 
     if data_inicio:
         try:
@@ -152,30 +165,28 @@ def listar_pedidos():
         except ValueError:
             flash("Data final inválida.", "warning")
 
-    if valor_min or valor_max:
-        subq = (
-            db.session.query(
-                ItemPedido.pedido_id,
-                func.sum(ItemPedido.quantidade * ItemPedido.valor_unitario).label("valor_total")
-            )
-            .group_by(ItemPedido.pedido_id)
-            .subquery()
-        )
-        query = query.join(subq, subq.c.pedido_id == PedidoCompra.id)
+    # --- CÁLCULO DOS TOTAIS PARA O DASHBOARD ---
+    # Agrupa e conta pedidos por status
+    resumo = db.session.query(
+        PedidoCompra.status, func.count(PedidoCompra.id)
+    ).group_by(PedidoCompra.status).all()
 
-        if valor_min:
-            try:
-                query = query.filter(subq.c.valor_total >= float(valor_min))
-            except ValueError:
-                flash("Valor mínimo inválido.", "warning")
-        if valor_max:
-            try:
-                query = query.filter(subq.c.valor_total <= float(valor_max))
-            except ValueError:
-                flash("Valor máximo inválido.", "warning")
+    contagem = {status: qtd for status, qtd in resumo}
+    
+    totais = {
+        "total": sum(contagem.values()),
+        # Agrupa "Aguardando" e "Aguardando NF" como pendentes de ação
+        "aguardando": contagem.get("Aguardando", 0) + contagem.get("Aguardando NF", 0),
+        "confirmado": contagem.get("Confirmado", 0),
+        "em_transito": contagem.get("Em Transito", 0),
+        "recebido": contagem.get("Recebido", 0)
+    }
 
+    # Ordena por mais recente
+    query = query.order_by(desc(PedidoCompra.data_pedido), desc(PedidoCompra.id))
+    
     pedidos = query.all()
-    return render_template("pedidos/listar.html", pedidos=pedidos)
+    return render_template("pedidos/listar.html", pedidos=pedidos, totais=totais)
 
 
 # ---------------------------------------------------

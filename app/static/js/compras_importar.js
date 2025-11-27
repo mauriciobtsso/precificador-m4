@@ -1,88 +1,139 @@
-// ===========================================================
-// MÓDULO: COMPRAS_IMPORTAR.JS — Sprint 7B Final
-// ===========================================================
-(() => {
-  console.log("[M4] compras_importar.js carregado ✅");
+// ============================================================
+// MÓDULO: Importação de XML (Compras)
+// ============================================================
 
+window.dadosNF = null; // Armazena o JSON do XML parsed
+
+document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("formImportar");
+  const btnImportar = document.getElementById("btnImportar");
   const resultadoDiv = document.getElementById("resultado");
   const wrapTabela = document.getElementById("wrapTabela");
   const tbody = document.getElementById("tbodyItens");
-  const resumo = document.getElementById("resumoImport");
   const btnSalvar = document.getElementById("btnSalvarNF");
+  const resumoImport = document.getElementById("resumoImport");
 
-  form?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const file = document.getElementById("xml").files[0];
-    if (!file) return alert("Selecione um arquivo XML.");
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      // Limpa estado anterior
+      resultadoDiv.innerHTML = "";
+      wrapTabela.classList.add("d-none");
+      tbody.innerHTML = "";
+      btnImportar.disabled = true;
+      btnImportar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
 
-    const formData = new FormData();
-    formData.append("xml", file);
+      const formData = new FormData(form);
 
-    resultadoDiv.innerHTML = `<div class="alert alert-info">Processando NF... aguarde.</div>`;
-    wrapTabela.classList.add("d-none");
-    tbody.innerHTML = "";
-    btnSalvar.classList.add("d-none");
-
-    try {
-      const res = await fetch("/compras/importar", { method: "POST", body: formData });
-      const data = await res.json();
-
-      if (!data.success) {
-        resultadoDiv.innerHTML = `<div class="alert alert-danger">❌ ${data.message || "Erro ao processar NF"}</div>`;
-        return;
-      }
-
-      resultadoDiv.innerHTML = `
-        <div class="alert alert-success">
-          NF importada com sucesso! Confira os itens abaixo.<br>
-          <b>Fornecedor:</b> ${data.fornecedor || "-"}<br>
-          <b>Chave:</b> ${data.chave || "-"}<br>
-          <b>Total:</b> R$ ${Number(data.valor_total || 0).toFixed(2)}
-        </div>
-      `;
-
-      if (Array.isArray(data.itens)) {
-        data.itens.forEach((item, i) => {
-          tbody.insertAdjacentHTML("beforeend", `
-            <tr>
-              <td>${i + 1}</td>
-              <td>${item.descricao || "-"}</td>
-              <td>${item.marca || "-"}</td>
-              <td>${item.modelo || "-"}</td>
-              <td>${item.calibre || "-"}</td>
-              <td>${item.lote || item.numero_serie || "-"}</td>
-              <td class="text-end">${item.quantidade || 0}</td>
-              <td class="text-end">${item.valor_unitario?.toFixed(2) || "0.00"}</td>
-              <td class="text-end">${item.valor_total?.toFixed(2) || "0.00"}</td>
-            </tr>
-          `);
-        });
-      }
-
-      resumo.textContent = `${data.itens.length} itens encontrados.`;
-      wrapTabela.classList.remove("d-none");
-      btnSalvar.classList.remove("d-none");
-
-      btnSalvar.onclick = async () => {
-        btnSalvar.disabled = true;
-        const salvarRes = await fetch("/compras/salvar", {
+      try {
+        const resp = await fetch("/compras/importar", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: formData,
         });
-        const salvarData = await salvarRes.json();
-        if (salvarData.success) {
-          alert("✅ NF salva com sucesso!");
-          location.reload();
+        
+        const data = await resp.json();
+
+        if (data.success) {
+          window.dadosNF = data; // Guarda na memória global
+          renderizarTabela(data);
+          resultadoDiv.innerHTML = `
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> XML lido com sucesso!<br>
+                <strong>Fornecedor:</strong> ${data.fornecedor} <br>
+                <strong>NF:</strong> ${data.numero} - <strong>Emissão:</strong> ${data.data_emissao || 'N/A'}
+            </div>`;
         } else {
-          alert("Erro ao salvar NF: " + salvarData.message);
+          resultadoDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-times-circle"></i> ${data.message || "Erro desconhecido"}</div>`;
         }
-        btnSalvar.disabled = false;
-      };
-    } catch (err) {
-      console.error("Erro:", err);
-      resultadoDiv.innerHTML = `<div class="alert alert-danger">Erro inesperado ao importar NF.</div>`;
-    }
-  });
-})();
+      } catch (err) {
+        console.error(err);
+        resultadoDiv.innerHTML = `<div class="alert alert-danger">Erro de comunicação com o servidor.</div>`;
+      } finally {
+        btnImportar.disabled = false;
+        btnImportar.innerHTML = '<i class="fas fa-cloud-upload-alt me-1"></i> Enviar e Processar';
+      }
+    });
+  }
+
+  // Renderiza a pré-visualização
+  function renderizarTabela(data) {
+    wrapTabela.classList.remove("d-none");
+    btnSalvar.classList.remove("d-none");
+    
+    let html = "";
+    let totalQtd = 0;
+    let totalValor = 0;
+
+    data.itens.forEach((item, idx) => {
+      totalQtd += item.quantidade;
+      totalValor += item.valor_total;
+      
+      // Exibe badge de serial se tiver
+      const badgeSerial = item.seriais_xml 
+        ? `<span class="badge bg-info text-dark" title="${item.seriais_xml}"><i class="fas fa-barcode"></i> Com Seriais</span>` 
+        : '<span class="text-muted">-</span>';
+
+      html += `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${item.descricao}</td>
+          <td>${item.marca || ''}</td>
+          <td>${item.modelo || ''}</td>
+          <td class="text-center">${badgeSerial}</td>
+          <td class="text-end text-nowrap">${item.quantidade}</td>
+          <td class="text-end text-nowrap">R$ ${item.valor_unitario.toFixed(2)}</td>
+          <td class="text-end text-nowrap fw-bold">R$ ${item.valor_total.toFixed(2)}</td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML = html;
+    
+    // Atualiza resumo
+    resumoImport.innerHTML = `
+        <strong>Total Itens:</strong> ${data.itens.length} | 
+        <strong>Qtd. Peças:</strong> ${totalQtd} | 
+        <strong>Valor Total:</strong> R$ ${totalValor.toFixed(2)}
+    `;
+  }
+
+  // --- LÓGICA DE SALVAR (COM VÍNCULO DE PEDIDO) ---
+  if (btnSalvar) {
+    btnSalvar.addEventListener("click", async () => {
+        if (!window.dadosNF) return;
+
+        // Captura o ID do pedido selecionado
+        const selectPedido = document.getElementById("pedido_id");
+        if (selectPedido && selectPedido.value) {
+            window.dadosNF.pedido_id = selectPedido.value; // Injeta no payload
+        }
+
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+
+        try {
+            const resp = await fetch("/compras/salvar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(window.dadosNF),
+            });
+
+            const res = await resp.json();
+
+            if (res.success) {
+                // Redireciona para a Mesa de Recebimento
+                window.location.href = `/compras/${res.nf_id}`;
+            } else {
+                alert("Erro ao salvar: " + res.message);
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = '<i class="fas fa-save me-1"></i> Salvar NF no Sistema';
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro fatal ao salvar.");
+            btnSalvar.disabled = false;
+        }
+    });
+  }
+});

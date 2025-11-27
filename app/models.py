@@ -35,87 +35,6 @@ class User(UserMixin, db.Model):  # <- herda UserMixin para Flask-Login
 
 
 # =========================
-# Produto
-# =========================
-#class Produto(db.Model):
-#    __tablename__ = "produtos"
-#
-#    id = db.Column(db.Integer, primary_key=True)
-#    sku = db.Column(db.String(64), unique=True, nullable=False)
-#    nome = db.Column(db.String(128), nullable=False)
-#
-#    # Custos
-#    preco_fornecedor = db.Column(db.Float, default=0.0)
-#    desconto_fornecedor = db.Column(db.Float, default=0.0)
-#    custo_total = db.Column(db.Float, default=0.0)
-#
-#    # Objetivos
-#    margem = db.Column(db.Float, default=0.0)          # margem em %
-#    lucro_alvo = db.Column(db.Float, nullable=True)    # lucro em R$
-#    preco_final = db.Column(db.Float, nullable=True)   # preço calculado
-#
-#    # Tributos
-#    ipi = db.Column(db.Float, default=0.0)
-#    ipi_tipo = db.Column(db.String(15), default="%_dentro")  # "%_dentro", "%", "R$"
-#    difal = db.Column(db.Float, default=0.0)
-#    imposto_venda = db.Column(db.Float, default=0.0)  # Simples Nacional (%)
-
-#    # Valores calculados
-#    frete = db.Column(db.Numeric(10, 2), default=0.00)
-#    valor_ipi = db.Column(db.Float, default=0.0)
-#    valor_difal = db.Column(db.Float, default=0.0)
-#    preco_a_vista = db.Column(db.Float, default=0.0)
-#    lucro_liquido_real = db.Column(db.Float, default=0.0)
-#
-#    def calcular_precos(self):
-#        preco_compra = self.preco_fornecedor or 0.0
-#        desconto = (self.desconto_fornecedor or 0.0) / 100.0
-#        base = preco_compra * (1 - desconto)
-#
-#        # ===== IPI =====
-#        if self.ipi_tipo == "%_dentro":
-#            base_sem_ipi = base / (1 + (self.ipi or 0.0) / 100.0)
-#            self.valor_ipi = base - base_sem_ipi
-#        elif self.ipi_tipo == "%":
-#            self.valor_ipi = base * (self.ipi or 0.0) / 100.0
-#        else:  # "R$"
-#            self.valor_ipi = self.ipi or 0.0
-#
-#        # ===== DIFAL =====
-#        frete_valor = float(self.frete) if self.frete else 0.0
-#        base_difal = max(base - (self.valor_ipi or 0.0) + frete_valor, 0.0)
-#        self.valor_difal = base_difal * (self.difal or 0.0) / 100.0
-#
-#        # ===== Custo total =====
-#        self.custo_total = base + self.valor_difal + frete_valor
-#
-#        preco_sugerido = self.custo_total
-#        imposto = (self.imposto_venda or 0.0) / 100.0
-#
-#        # ===== Objetivos =====
-#        if (self.preco_final is not None) and (self.preco_final > 0):
-#            preco_sugerido = self.preco_final
-#        elif (self.lucro_alvo is not None) and (self.lucro_alvo > 0):
-#            if 1.0 - imposto <= 0:
-#                preco_sugerido = self.custo_total + (self.lucro_alvo or 0.0)
-#            else:
-#                preco_sugerido = (self.custo_total + (self.lucro_alvo or 0.0)) / (1.0 - imposto)
-#        elif (self.margem or 0.0) > 0:
-#            den_margem = 1.0 - (self.margem or 0.0) / 100.0
-#            if den_margem <= 0:
-#                venda_sem_imposto = self.custo_total
-#            else:
-#                venda_sem_imposto = self.custo_total / den_margem
-#            preco_sugerido = venda_sem_imposto
-#
-#        self.preco_final = preco_sugerido
-#        self.preco_a_vista = self.preco_final or 0.0
-#
-#        imposto_sobre_venda = (self.preco_final or 0.0) * (self.imposto_venda or 0.0) / 100.0
-#        self.lucro_liquido_real = (self.preco_final or 0.0) - self.custo_total - imposto_sobre_venda
-
-
-# =========================
 # Taxa
 # =========================
 class Taxa(db.Model):
@@ -150,59 +69,6 @@ class Configuracao(db.Model):
             if not cls.query.filter_by(chave=k).first():
                 db.session.add(cls(chave=k, valor=v))
 
-# >>> MOVIDO PARA app/vendas/models.py <<<
-# =========================
-# Venda
-# =========================
-# class Venda(db.Model):
-#     __tablename__ = "vendas"
-# 
-#     id = db.Column(db.Integer, primary_key=True)
-#     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)
-# 
-#     vendedor = db.Column(db.String(100))
-#     status = db.Column(db.String(50))
-#     status_financeiro = db.Column(db.String(50))
-#     data_abertura = db.Column(db.DateTime)
-#     data_fechamento = db.Column(db.DateTime)
-#     data_quitacao = db.Column(db.DateTime)
-#     valor_total = db.Column(db.Float, nullable=False)
-# 
-#     nf_numero = db.Column(db.String(50))
-#     nf_valor = db.Column(db.Float)
-#     teve_devolucao = db.Column(db.Boolean, default=False)
-# 
-#     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-#     updated_at = db.Column(
-#         db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp()
-#     )
-# 
-#     # Relacionamentos
-#     itens = db.relationship("ItemVenda", backref="venda", lazy=True, cascade="all, delete-orphan")
-#     cliente = db.relationship("Cliente", back_populates="vendas")
-# 
-#     def __repr__(self):
-#         return f"<Venda {self.id} - Cliente {self.cliente_id}>"
-# 
-# 
-# =========================
-# Item de Venda
-# =========================
-# class ItemVenda(db.Model):
-#     __tablename__ = "itens_venda"
-# 
-#     id = db.Column(db.Integer, primary_key=True)
-#     venda_id = db.Column(db.Integer, db.ForeignKey("vendas.id", ondelete="CASCADE"), nullable=False)
-# 
-#     produto_nome = db.Column(db.String(200), nullable=False)
-#     categoria = db.Column(db.String(100))
-#     quantidade = db.Column(db.Integer, default=1)
-#     valor_unitario = db.Column(db.Float, nullable=False)
-#     valor_total = db.Column(db.Float, nullable=False)
-# 
-#     def __repr__(self):
-#         return f"<ItemVenda {self.id} - {self.produto_nome}>"
-
 
 # =========================
 # Pedido de Compra
@@ -215,6 +81,10 @@ class PedidoCompra(db.Model):
     data_pedido = db.Column(db.Date, nullable=False)
     cond_pagto = db.Column(db.String(100))
 
+    # === STATUS DO FLUXO (Adicionado) ===
+    # Opções: Aguardando, Confirmado, Aguardando NF, Em Transito, Recebido, Cancelado
+    status = db.Column(db.String(30), default="Aguardando", index=True)
+
     modo_desconto = db.Column(db.String(20), default="por_tipo")
     percentual_armas = db.Column(db.Float, default=0.0)
     percentual_municoes = db.Column(db.Float, default=0.0)
@@ -226,6 +96,8 @@ class PedidoCompra(db.Model):
     fornecedor = db.relationship("Cliente", backref="pedidos_compra", foreign_keys=[fornecedor_id])
 
     itens = db.relationship("ItemPedido", backref="pedido", cascade="all, delete-orphan")
+    
+    # O relacionamento com notas fiscais (nfs) será criado pelo backref em CompraNF
 
 
 class ItemPedido(db.Model):

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4" style="max-width: 800px;">
+    <div class="mb-4">
+        <a href="{{ url_for('estoque.armas_listar') }}" class="text-decoration-none text-muted small">
+            <i class="fas fa-arrow-left me-1"></i> Voltar para Estoque
+        </a>
+        <h3 class="fw-bold mt-2 text-dark">
+            {{ item.produto.nome }}
+        </h3>
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-dark font-monospace fs-6">{{ item.numero_serie or 'SEM SERIAL' }}</span>
+            
+            {% if item.status == 'disponivel' %}
+                <span class="badge bg-success">Disponível</span>
+            {% elif item.status == 'vendida' %}
+                <span class="badge bg-secondary">Vendido</span>
+            {% else %}
+                <span class="badge bg-warning text-dark">{{ item.status|capitalize }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title text-primary mb-4"><i class="fas fa-history me-2"></i>Rastreabilidade</h5>
+            
+            <ul class="timeline">
+                <li class="timeline-item">
+                    <strong class="d-block text-success">
+                        <i class="fas fa-truck-loading me-1"></i> Entrada no Estoque
+                    </strong>
+                    <small class="text-muted">{{ item.data_entrada.strftime('%d/%m/%Y') }}</small>
+                    <div class="mt-2 p-3 bg-light rounded border">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <small class="text-muted d-block">Fornecedor</small>
+                                <strong>{{ item.fornecedor.nome if item.fornecedor else 'Não informado' }}</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">Nota Fiscal Entrada</small>
+                                <strong>{{ item.nota_fiscal or '-' }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+
+                {% if venda_item %}
+                <li class="timeline-item mt-4">
+                    <strong class="d-block text-primary">
+                        <i class="fas fa-shopping-cart me-1"></i> Venda Realizada
+                    </strong>
+                    <small class="text-muted">{{ venda_item.venda.data_abertura.strftime('%d/%m/%Y às %H:%M') }}</small>
+                    
+                    <div class="mt-2 p-3 bg-primary-subtle rounded border border-primary-subtle">
+                        <div class="row g-2">
+                            <div class="col-12 mb-2">
+                                <a href="{{ url_for('vendas.editar_venda', venda_id=venda_item.venda.id) }}" class="btn btn-sm btn-light border shadow-sm float-end">
+                                    Ver Pedido <i class="fas fa-external-link-alt ms-1"></i>
+                                </a>
+                                <small class="text-primary-emphasis d-block">Cliente Comprador</small>
+                                <strong class="fs-5 text-primary">{{ venda_item.venda.cliente_nome }}</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-primary-emphasis d-block">ID Venda</small>
+                                <strong>#{{ venda_item.venda.id }}</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-primary-emphasis d-block">Valor de Venda</small>
+                                <strong>{{ venda_item.valor_total|currency }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                {% elif item.status == 'disponivel' %}
+                <li class="timeline-item mt-4 opacity-50">
+                    <strong class="d-block text-muted">
+                        <i class="far fa-circle me-1"></i> Aguardando Venda...
+                    </strong>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    
+    <div class="text-end mt-3">
+        <a href="{{ url_for('estoque.armas_gerenciar', item_id=item.id) }}" class="btn btn-warning">
+            <i class="fas fa-pen me-1"></i> Editar Dados
+        </a>
+    </div>
+</div>
+
+<style>
+/* CSS Inline simples para timeline */
+.timeline { list-style: none; padding-left: 1.5rem; border-left: 2px solid #e9ecef; }
+.timeline-item { position: relative; margin-bottom: 1.5rem; }
+.timeline-item::before {
+    content: ''; position: absolute; left: -1.95rem; top: 0.2rem;
+    width: 1rem; height: 1rem; border-radius: 50%; background: #fff; border: 3px solid #0d6efd;
+}
+</style>
+{% endblock %}

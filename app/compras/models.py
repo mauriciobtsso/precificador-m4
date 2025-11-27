@@ -16,6 +16,11 @@ class CompraNF(db.Model):
     __tablename__ = "compra_nf"
 
     id = db.Column(db.Integer, primary_key=True)
+    
+    # === NOVO: VÍNCULO COM PEDIDO ===
+    pedido_id = db.Column(db.Integer, db.ForeignKey("pedido_compra.id"), nullable=True)
+    pedido = db.relationship("PedidoCompra", backref=db.backref("nfs", lazy=True))
+
     numero = db.Column(db.String(50))
 
     # ⚙️ permite vazio (None) e evita erro de duplicidade
@@ -61,11 +66,18 @@ class CompraItem(db.Model):
     modelo = db.Column(db.String(100))
     calibre = db.Column(db.String(50))
     lote = db.Column(db.String(100))
+    
+    # === NOVO: SERIALS BRUTOS DO XML ===
+    seriais_xml = db.Column(db.Text, nullable=True)
+
     quantidade = db.Column(db.Numeric(10, 2))
     valor_unitario = db.Column(db.Numeric(10, 2))
     valor_total = db.Column(db.Numeric(12, 2))
 
     nf = db.relationship("CompraNF", back_populates="itens")
+    
+    # === NOVO: VÍNCULO COM ESTOQUE ===
+    itens_gerados_estoque = db.relationship("ItemEstoque", back_populates="origem_compra", lazy="dynamic")
 
     # ============================================================
     # Métodos utilitários
