@@ -66,6 +66,12 @@ class Produto(db.Model):
     difal = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     imposto_venda = db.Column(db.Numeric(10, 2), nullable=True, default=0)
 
+    # === CAMPOS DE PROMOÇÃO (Adicionados) ===
+    promo_ativada = db.Column(db.Boolean, default=False, index=True)
+    promo_preco_fornecedor = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+    promo_data_inicio = db.Column(db.DateTime(timezone=True), nullable=True)
+    promo_data_fim = db.Column(db.DateTime(timezone=True), nullable=True)
+
     custo_total = db.Column(db.Numeric(12, 2), nullable=True, default=0)
     preco_a_vista = db.Column(db.Numeric(12, 2), nullable=True, default=0)
     lucro_liquido_real = db.Column(db.Numeric(12, 2), nullable=True, default=0)
@@ -84,7 +90,24 @@ class Produto(db.Model):
     )
 
     def calcular_precos(self):
-        preco_fornecedor = float(self.preco_fornecedor or 0)
+        # 1. Determina qual preço base usar (Normal ou Promoção)
+        agora = now_local()
+        preco_base = float(self.preco_fornecedor or 0)
+        
+        # Flag para indicar visualmente se está em promo
+        em_oferta = False
+
+        # Lógica de verificação de data para Promoção
+        if self.promo_ativada and self.promo_preco_fornecedor and self.promo_data_inicio and self.promo_data_fim:
+            try:
+                p_promo = float(self.promo_preco_fornecedor)
+                # Verifica se a data atual está dentro do intervalo
+                if p_promo > 0 and self.promo_data_inicio <= agora <= self.promo_data_fim:
+                    preco_base = p_promo
+                    em_oferta = True
+            except (ValueError, TypeError):
+                pass # Em caso de erro de conversão, mantém preço base normal
+
         desconto = float(self.desconto_fornecedor or 0)
         frete = float(self.frete or 0)
         margem = float(self.margem or 0)
@@ -93,7 +116,8 @@ class Produto(db.Model):
         ipi = float(self.ipi or 0)
         ipi_tipo = (self.ipi_tipo or "%").strip()
 
-        base = preco_fornecedor * (1 - (desconto / 100))
+        # O cálculo usa o 'preco_base' definido acima
+        base = preco_base * (1 - (desconto / 100))
         if ipi_tipo == "%_dentro":
             base_sem_ipi = base / (1 + (ipi / 100))
             valor_ipi = base - base_sem_ipi
@@ -126,6 +150,7 @@ class Produto(db.Model):
             "custo_total": self.custo_total,
             "preco_a_vista": self.preco_a_vista,
             "lucro_liquido_real": self.lucro_liquido_real,
+            "em_oferta": em_oferta
         }
 
     def __repr__(self):

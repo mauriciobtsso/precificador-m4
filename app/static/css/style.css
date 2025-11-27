@@ -1331,43 +1331,6 @@ body {
 }
 
 /* ============================
-   MODO ESCURO AUTOMÁTICO
-============================ */
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #181818;
-    color: #eaeaea;
-  }
-
-  .card {
-    background-color: #202020;
-    border-color: #2a2a2a;
-  }
-
-  .table {
-    color: #ddd;
-  }
-
-  .table th {
-    background-color: #1f1f1f;
-  }
-
-  .table tbody tr:hover {
-    background-color: #252525;
-  }
-
-  .btn-outline-dark {
-    border-color: #aaa;
-    color: #ddd;
-  }
-
-  .btn-outline-dark:hover {
-    background-color: #ff5e00;
-    color: #fff;
-  }
-}
-
-/* ============================
    AJUSTES DE LEGIBILIDADE MOBILE
 ============================ */
 @media (max-width: 768px) {
@@ -1508,4 +1471,3 @@ body {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   }
 }
-

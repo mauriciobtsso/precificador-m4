@@ -1,12 +1,6 @@
-<!-- ============================================================
-     CABEÇALHO DO PRODUTO — Sprint 6F (Visual + Responsivo)
-============================================================ -->
 <div class="produto-header container-fluid p-0 mb-3 border-bottom pb-2">
   <div class="row align-items-center g-2 gy-3 gy-md-0">
 
-    <!-- =======================
-         COLUNA ESQUERDA (Título)
-    ======================== -->
     <div class="col-12 col-md-6 d-flex flex-column flex-md-row align-items-md-center">
       <div>
         <h3 class="fw-bold mb-1 text-dark d-flex align-items-center">
@@ -34,29 +28,36 @@
       </div>
     </div>
 
-    <!-- =======================
-         COLUNA DIREITA (Resumo financeiro)
-    ======================== -->
     {% if produto %}
     <div class="col-12 col-md-6 text-md-end mt-2 mt-md-0">
       <div class="resumo-financeiro bg-light border rounded-3 p-3 d-inline-block text-start text-md-end">
+        
         <div class="fw-semibold text-dark mb-1 d-flex align-items-center justify-content-md-end justify-content-start flex-wrap gap-1">
           <i class="fas fa-coins text-warning me-1"></i>
-          <span id="resumo-preco-venda">Preço de venda: R$ 0,00</span>
+          <span id="resumo-preco-venda">
+            Preço de venda: {{ produto.preco_a_vista|currency if produto.preco_a_vista else 'R$ 0,00' }}
+          </span>
         </div>
+
         <div class="small text-muted">
-          Custo total: <span id="resumo-custo-total">R$ 0,00</span> — 
-          Lucro líquido:
-          <span id="resumo-lucro" class="text-success">R$ 0,00 (0%)</span>
+          Custo total: 
+          <span id="resumo-custo-total">{{ produto.custo_total|currency if produto.custo_total else 'R$ 0,00' }}</span>
+           — Lucro líquido:
+          
+          {% set lucro = produto.lucro_liquido_real or 0 %}
+          {% set preco = produto.preco_a_vista or 0 %}
+          {% set margem = ((lucro / preco) * 100) if preco > 0 else 0 %}
+          
+          <span id="resumo-lucro" class="{{ 'text-success' if lucro > 0 else 'text-danger' if lucro < 0 else 'text-muted' }}">
+            {{ lucro|currency }} ({{ "%.1f"|format(margem)|replace('.', ',') }}%)
+          </span>
         </div>
+
       </div>
     </div>
     {% endif %}
   </div>
 
-  <!-- =======================
-       LINHA DE BOTÕES
-  ======================== -->
   <div class="d-flex flex-wrap justify-content-start gap-2 mt-3">
     {% if produto and produto.id %}
     <a href="{{ url_for('produtos.gerenciar_produto', duplicar_de=produto.id) }}"

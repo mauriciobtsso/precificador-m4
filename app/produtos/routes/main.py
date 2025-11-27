@@ -17,6 +17,7 @@ from app.produtos.configs.models import (
 
 from app.models import Taxa
 import app.utils.parcelamento as parc
+from app.utils.datetime import now_local  # <--- IMPORTAÇÃO CORRETA
 
 from urllib.parse import urlparse
 from app.produtos.routes.utils import _key_from_url
@@ -104,6 +105,9 @@ def index():
     wants_fragment = request.args.get("ajax") == "1" or request.headers.get("X-Requested-With") == "XMLHttpRequest"
     has_any_filter = any([bool(termo), bool(tipo), bool(categoria), bool(marca), bool(calibre)])
 
+    # Define a data atual para passar ao template
+    agora = now_local()
+
     if wants_fragment:
         if not has_any_filter:
             cached = _get_cached_fragment(page, per_page, ordenar)
@@ -112,14 +116,16 @@ def index():
                 resp.headers["Cache-Control"] = "no-store"
                 return resp
 
-        html = render_template("produtos/_lista.html", produtos=produtos, pagination=pagination, per_page=per_page, request=request)
+        # Passamos 'agora' para o fragmento
+        html = render_template("produtos/_lista.html", produtos=produtos, pagination=pagination, per_page=per_page, request=request, agora=agora)
         if not has_any_filter:
             _set_cached_fragment(page, per_page, ordenar, html)
         resp = make_response(html)
         resp.headers["Cache-Control"] = "no-store"
         return resp
 
-    return render_template("produtos/index.html", produtos=produtos, pagination=pagination, tipos=tipos, categorias=categorias, marcas=marcas, calibres=calibres, per_page=per_page)
+    # Passamos 'agora' para a página principal também
+    return render_template("produtos/index.html", produtos=produtos, pagination=pagination, tipos=tipos, categorias=categorias, marcas=marcas, calibres=calibres, per_page=per_page, agora=agora)
 
 
 # ============================================================
@@ -189,12 +195,14 @@ def gerenciar_produto(produto_id=None):
             except InvalidOperation:
                 return Decimal(0)
 
+        # Atualizando campos auditados para incluir os de Promoção
         campos_auditados = [
             "codigo", "nome", "descricao",
             "categoria_id", "marca_id", "calibre_id", "tipo_id", "funcionamento_id",
             "preco_fornecedor", "desconto_fornecedor", "frete",
             "margem", "lucro_alvo", "preco_final",
             "ipi", "ipi_tipo", "difal", "imposto_venda",
+            "promo_ativada", "promo_preco_fornecedor", "promo_data_inicio", "promo_data_fim"
         ]
         antes = {c: getattr(produto, c, None) for c in campos_auditados}
 
@@ -230,6 +238,37 @@ def gerenciar_produto(produto_id=None):
         produto.difal = to_decimal(data.get("difal"))
         produto.imposto_venda = to_decimal(data.get("imposto_venda"))
         produto.ipi_tipo = data.get("ipi_tipo", "%_dentro")
+
+        # === NOVOS CAMPOS DE PROMOÇÃO ===
+        produto.promo_ativada = True if data.get("promo_ativada") == "on" else False
+        produto.promo_preco_fornecedor = to_decimal(data.get("promo_preco_fornecedor"))
+        
+        # Datas (HTML datetime-local vem como 'YYYY-MM-DDTHH:MM')
+        def parse_dt(dt_str):
+            if not dt_str: return None
+            try:
+                # Na conversão, assumimos que o input do user é local, mas salvamos em UTC ou aware
+                # Dependendo de como seu BD está configurado. O ideal é converter para UTC.
+                # Simplificando:
+                dt = datetime.fromisoformat(dt_str)
+                # Se o now_local usa timezone, aqui também deveria
+                return dt.replace(tzinfo=timezone.utc) # Ajuste conforme necessário
+            except ValueError: return None
+
+        # Tratamento de datas vindo do form
+        p_inicio = data.get("promo_data_inicio")
+        p_fim = data.get("promo_data_fim")
+        if p_inicio:
+            # Converte string '2025-11-27T10:00' para datetime
+            produto.promo_data_inicio = datetime.strptime(p_inicio, "%Y-%m-%dT%H:%M").replace(tzinfo=pytz.timezone("America/Fortaleza"))
+        else:
+            produto.promo_data_inicio = None
+
+        if p_fim:
+            produto.promo_data_fim = datetime.strptime(p_fim, "%Y-%m-%dT%H:%M").replace(tzinfo=pytz.timezone("America/Fortaleza"))
+        else:
+            produto.promo_data_fim = None
+
 
         try:
             if hasattr(produto, "calcular_precos"):
