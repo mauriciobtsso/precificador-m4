@@ -6,14 +6,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>M4 Tática</title>
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+  
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
   <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='css/clientes.css') }}" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/alertas.css') }}">
 
   <style>
-    /* 🔔 Badge com pulsação suave */
+    /* Ajustes do Select2 para Bootstrap 5 */
+    .select2-container--bootstrap-5 .select2-selection {
+        border-color: #dee2e6;
+    }
+    
+    /* Badge com pulsação suave */
     @keyframes pulse {
       0% { transform: scale(1); opacity: 1; }
       50% { transform: scale(1.2); opacity: 0.8; }
@@ -23,7 +33,7 @@
       animation: pulse 1s infinite;
     }
 
-    /* ====== Animação suave para submenus ====== */
+    /* Animação suave para submenus */
     .collapse {
       transition: all 0.3s ease-in-out !important;
       overflow: hidden;
@@ -36,26 +46,37 @@
       100% { opacity: 1; transform: translateY(0); }
     }
 
-    /* ====== Destaque visual item ativo ====== */
+    /* Destaque visual item ativo */
     .nav .nav-link.active {
       background-color: rgba(255, 255, 255, 0.1);
       border-radius: 6px;
+      font-weight: 500;
     }
 
-    /* ====== Offcanvas sidebar (mobile) ====== */
+    /* Offcanvas sidebar (mobile) */
     @media (max-width: 768px) {
       #sidebar {
         width: 100%;
         min-height: auto;
       }
-
       .offcanvas {
         width: 250px !important;
       }
-
       .offcanvas-body {
         padding: 0;
       }
+    }
+    
+    /* Separador de menu */
+    .nav-category {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #adb5bd;
+        margin-top: 1rem;
+        margin-bottom: 0.25rem;
+        padding-left: 1rem;
+        font-weight: 700;
     }
   </style>
 </head>
@@ -91,7 +112,8 @@
             {% set produtos_ativo = (
               request.endpoint and (
                 'produtos' in request.endpoint or
-                'produtos_configs' in request.endpoint
+                'produtos_configs' in request.endpoint or
+                'categorias' in request.endpoint
               )
             ) %}
             <li class="nav-item">
@@ -113,7 +135,12 @@
                       <i class="fas fa-list me-1"></i> Catálogo
                     </a>
                   </li>
-
+                  <li class="nav-item mb-1">
+                    <a class="nav-link text-white {% if request.endpoint and 'categorias' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('categorias.index') }}">
+                      <i class="fas fa-tags me-1"></i> Categorias
+                    </a>
+                  </li>
                   <li class="nav-item mb-1">
                     <a class="nav-link text-white {% if request.endpoint and 'produtos_configs' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
                        href="{{ url_for('produtos_configs.index') }}">
@@ -158,20 +185,10 @@
                 </ul>
               </div>
             </li>
-            
-            <li class="nav-item">
-              <a class="nav-link text-white {% if request.endpoint and 'importacoes' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
-                 href="{{ url_for('importacoes.listar') }}">
-                <i class="fas fa-file-import"></i> <span>Importações</span>
-              </a>
-            </li>
 
             {% set estoque_ativo = (
               request.endpoint and (
-                'estoque.armas' in request.endpoint or
-                'estoque.municoes' in request.endpoint or
-                'estoque.pces' in request.endpoint or
-                'estoque.nao_controlados' in request.endpoint
+                'estoque' in request.endpoint
               )
             ) %}
             <li class="nav-item">
@@ -208,11 +225,27 @@
                   <li class="nav-item mb-1">
                     <a class="nav-link text-white {% if request.endpoint and 'estoque.nao_controlados' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
                        href="{{ url_for('estoque.nao_controlados_listar') }}">
-                      <i class="fas fa-box me-1"></i> Não Controlados
+                      <i class="fas fa-box me-1"></i> Outros
                     </a>
                   </li>
                 </ul>
               </div>
+            </li>
+
+            <div class="nav-category">Operações</div>
+
+            <li class="nav-item">
+              <a class="nav-link text-white {% if request.endpoint and 'importacoes' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                 href="{{ url_for('importacoes.listar') }}">
+                <i class="fas fa-file-import"></i> <span>Importações</span>
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link text-white {% if request.endpoint == 'main.vendas' %}active border-start border-3 border-primary{% endif %}"
+                 href="{{ url_for('vendas.vendas') }}">
+                <i class="fas fa-shopping-cart"></i> <span>Vendas (PDV)</span>
+              </a>
             </li>
 
             <li class="nav-item">
@@ -222,12 +255,7 @@
               </a>
             </li>
 
-            <li class="nav-item">
-              <a class="nav-link text-white {% if request.endpoint == 'main.vendas' %}active border-start border-3 border-primary{% endif %}"
-                 href="{{ url_for('vendas.vendas') }}">
-                <i class="fas fa-shopping-cart"></i> <span>Vendas</span>
-              </a>
-            </li>
+            <div class="nav-category">Gestão</div>
 
             <li class="nav-item">
               <a class="nav-link text-white {% if request.endpoint == 'taxas.listar' %}active border-start border-3 border-primary{% endif %}"
@@ -239,7 +267,7 @@
             <li class="nav-item">
               <a class="nav-link text-white {% if request.endpoint == 'main.parcelamento_index' %}active border-start border-3 border-primary{% endif %}"
                  href="{{ url_for('main.parcelamento_index') }}">
-                <i class="fas fa-credit-card"></i> <span>Parcelamento</span>
+                <i class="fas fa-credit-card"></i> <span>Simulador</span>
               </a>
             </li>
 
@@ -324,6 +352,9 @@
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
   <script src="{{ url_for('static', filename='js/clientes.js') }}"></script>
   <script src="{{ url_for('static', filename='js/enderecos.js') }}"></script>
@@ -331,54 +362,41 @@
   <script src="{{ url_for('static', filename='js/cep_lookup.js') }}"></script>
 
   <script>
+  // Inicialização de Notificações
   async function atualizarBadgeNotificacoes() {
     const badge = document.getElementById("badgeNotificacoes");
     if (!badge) return;
     try {
-      const resp = await fetch("/notificacoes/api?status=enviado&per_page=5");
+      const resp = await fetch("/notificacoes/api?status=enviado&per_page=1");
       const data = await resp.json();
-      const total = data.total || 0;
-      if (total > 0) {
-        badge.textContent = total;
+      if (data.total > 0) {
+        badge.textContent = data.total;
         badge.classList.remove("d-none");
       } else {
         badge.classList.add("d-none");
       }
     } catch (err) {
-      console.warn("Erro ao carregar contador de notificações:", err);
+      console.warn("Erro ao carregar notificações:", err);
     }
   }
+  
+  // Inicialização Geral
   document.addEventListener("DOMContentLoaded", () => {
     atualizarBadgeNotificacoes();
     setInterval(atualizarBadgeNotificacoes, 60000);
-  });
-  </script>
 
-  <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const offcanvasEl = document.getElementById('offcanvasSidebar');
-    if (!offcanvasEl) return;
-
-    // Seleciona todos os links DENTRO da sidebar
-    const links = offcanvasEl.querySelectorAll('a.nav-link');
-
-    links.forEach(link => {
-      link.addEventListener('click', function (e) {
-        // Verifica se é um toggle de submenu (ex: Produtos >)
-        // Se tiver o atributo data-bs-toggle="collapse", é um pai expandindo filho. NÃO FECHA.
-        if (this.getAttribute('data-bs-toggle') === 'collapse') {
-          return; 
-        }
-
-        // Se for link normal (ex: Catálogo), deixa navegar e fecha o menu mobile
-        const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasEl);
-        if (offcanvasInstance) {
-          offcanvasInstance.hide();
+    // Ajuste do Menu Mobile
+    document.querySelectorAll('#offcanvasSidebar a.nav-link').forEach(link => {
+      link.addEventListener('click', function() {
+        if (this.getAttribute('data-bs-toggle') !== 'collapse') {
+          const offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById('offcanvasSidebar'));
+          if (offcanvas) offcanvas.hide();
         }
       });
     });
+    
+    // REMOVIDO SCRIPT DE LOCALSTORAGE QUE TRAVAVA O MENU
   });
   </script>
-
 </body>
 </html>

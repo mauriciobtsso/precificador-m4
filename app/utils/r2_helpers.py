@@ -1,5 +1,5 @@
 # ========================================
-# app/utils/r2_helpers.py
+# app/utils/r2_helpers.py (Completo)
 # ========================================
 """
 Funções auxiliares específicas para Cloudflare R2.
@@ -11,6 +11,7 @@ from werkzeug.utils import secure_filename
 import logging
 import uuid
 import os
+from flask import current_app
 
 def gerar_link_r2(caminho_arquivo: str, expiracao: int = 3600) -> str:
     """
@@ -38,8 +39,6 @@ def upload_file_to_r2(file_storage, folder="uploads") -> str:
     """
     Recebe um objeto FileStorage (Flask), salva no R2 dentro da pasta especificada
     e retorna o caminho (Key) do arquivo salvo.
-    
-    Ex: folder='vendas/123' -> salva em 'vendas/123/nome-arquivo.pdf'
     """
     if not file_storage:
         return None
@@ -53,7 +52,6 @@ def upload_file_to_r2(file_storage, folder="uploads") -> str:
             filename = f"file_{uuid.uuid4().hex[:8]}"
 
         # Monta o caminho final (Key)
-        # Garante que não tenha barras duplicadas
         if folder.endswith("/"):
             folder = folder[:-1]
             
@@ -66,4 +64,23 @@ def upload_file_to_r2(file_storage, folder="uploads") -> str:
 
     except Exception as e:
         logging.error(f"[R2] Erro no upload_file_to_r2: {e}")
+        return None
+
+def upload_fileobj_r2(file_obj, folder="uploads"):
+    """
+    Faz upload de um objeto arquivo (FileStorage ou bytes) para o Cloudflare R2.
+    Retorna a URL pública ou caminho relativo (Key) do arquivo.
+    (Versão simplificada usada pelo módulo de Compras)
+    """
+    try:
+        # Reutiliza a lógica robusta acima
+        key = upload_file_to_r2(file_obj, folder)
+        if key:
+            # Retorna URL pública se configurada, senão retorna a Key
+            if current_app.config.get("R2_PUBLIC_URL"):
+                return f"{current_app.config['R2_PUBLIC_URL']}/{key}"
+            return key
+        return None
+    except Exception as e:
+        print(f"[R2 Upload Error] {e}")
         return None

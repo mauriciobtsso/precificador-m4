@@ -52,8 +52,8 @@
                     <tr>
                         <th class="ps-3" style="width: 25%;">Produto XML</th>
                         <th class="text-center" style="width: 5%;">Qtd</th>
-                        <th style="width: 30%;">Vínculo Sistema (De/Para)</th>
-                        <th style="width: 30%;">Seriais / Conferência</th>
+                        <th style="width: 25%;">Vínculo Sistema</th>
+                        <th style="width: 30%;">Conferência & Docs</th>
                         <th class="text-end pe-3" style="width: 10%;">Ação</th>
                     </tr>
                 </thead>
@@ -69,7 +69,6 @@
                             <div class="text-muted d-flex gap-2 small">
                                 <span>{{ item.marca }}</span>
                                 <span>{{ item.modelo }}</span>
-                                {% if item.calibre %}<span>Cal: {{ item.calibre }}</span>{% endif %}
                             </div>
                         </td>
 
@@ -79,12 +78,11 @@
                             {% if ja_recebido %}
                                 {% set estoque_exemplo = item.itens_gerados_estoque.first() %}
                                 <div class="small text-success">
-                                    <i class="fas fa-link me-1"></i>
-                                    {{ estoque_exemplo.produto.nome }} 
-                                    <span class="text-muted">({{ estoque_exemplo.produto.codigo }})</span>
+                                    <i class="fas fa-link me-1"></i> {{ estoque_exemplo.produto.nome }} 
+                                    <span class="d-block text-muted" style="font-size: 0.75rem;">SKU: {{ estoque_exemplo.produto.codigo }}</span>
                                 </div>
                             {% else %}
-                                <select class="form-select form-select-sm select2-produto" data-compra-item-id="{{ item.id }}" style="width: 100%;">
+                                <select class="select2-produto" data-compra-item-id="{{ item.id }}" style="width: 100%;">
                                     <option value="">Buscar no catálogo...</option>
                                 </select>
                             {% endif %}
@@ -92,27 +90,47 @@
 
                         <td>
                             {% if ja_recebido %}
-                                <small class="text-success"><i class="fas fa-check-circle me-1"></i> Recebido no Estoque.</small>
+                                {% set estoque_exemplo = item.itens_gerados_estoque.first() %}
+                                <div class="d-flex flex-column gap-1">
+                                    <small class="text-success fw-bold">
+                                        <i class="fas fa-check-circle me-1"></i> Recebido em {{ estoque_exemplo.data_entrada.strftime('%d/%m/%Y') }}
+                                    </small>
+                                    
+                                    {% if estoque_exemplo.guia_transito_file %}
+                                        <a href="{{ url_for('estoque.visualizar_guia', item_id=estoque_exemplo.id) }}" target="_blank" class="btn btn-xs btn-outline-primary" style="width: fit-content;">
+                                            <i class="fas fa-file-alt me-1"></i> Ver Guia
+                                        </a>
+                                    {% else %}
+                                        <small class="text-muted fst-italic">Sem guia anexada.</small>
+                                    {% endif %}
+                                </div>
                             {% else %}
                                 {% set qtd = item.quantidade|int %}
                                 {% set serials = item.seriais_xml.split(',') if item.seriais_xml else [] %}
                                 
-                                <div class="d-flex flex-column gap-1 py-1" style="max-height: 150px; overflow-y: auto;">
+                                <div class="mb-2" style="max-height: 100px; overflow-y: auto;">
                                     {% for i in range(qtd) %}
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-light text-muted border-end-0" style="width: 35px;">#{{ i+1 }}</span>
-                                        <input type="text" class="form-control form-control-sm border-start-0 serial-input font-monospace text-uppercase" 
-                                               value="{{ serials[i] if i < serials|length else '' }}" 
-                                               placeholder="Digite o Serial">
-                                    </div>
+                                    <input type="text" class="form-control form-control-sm mb-1 serial-input" 
+                                           value="{{ serials[i] if i < serials|length else '' }}" 
+                                           placeholder="Serial #{{ i+1 }}">
                                     {% endfor %}
+                                </div>
+
+                                <div class="bg-light p-2 rounded border">
+                                    <label class="form-label small fw-bold mb-1">Guia de Trânsito</label>
+                                    <input type="file" class="form-control form-control-sm mb-2 guia-input" accept=".pdf,.jpg,.jpeg,.png">
+                                    
+                                    <label class="form-label small fw-bold mb-1">Selo Rastreab.</label>
+                                    <input type="text" class="form-control form-control-sm selo-input" placeholder="Opcional">
                                 </div>
                             {% endif %}
                         </td>
 
                         <td class="text-end pe-3">
                             {% if ja_recebido %}
-                                <span class="badge bg-success"><i class="fas fa-check"></i> OK</span>
+                                <button class="btn btn-outline-danger btn-sm btn-desfazer" data-compra-item-id="{{ item.id }}" title="Desfazer recebimento e corrigir">
+                                    <i class="fas fa-undo"></i>
+                                </button>
                             {% else %}
                                 <button class="btn btn-primary btn-sm w-100 btn-receber" data-item-id="{{ item.id }}">
                                     <i class="fas fa-download me-1"></i> Receber
@@ -127,77 +145,58 @@
     </div>
   </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Configuração Select2 apontando para a API de Produtos
+    // Select2
     $('.select2-produto').select2({
         theme: 'bootstrap-5',
         placeholder: "Digite o nome ou código...",
         allowClear: true,
         dropdownParent: $('body'), 
         ajax: {
-            url: "{{ url_for('produtos.api_buscar_produtos') }}", // <--- ROTA CORRIGIDA (PRODUTOS)
+            url: "{{ url_for('produtos.api_buscar_produtos') }}",
             dataType: 'json',
             delay: 300,
-            data: function (params) {
-                return { termo: params.term };
-            },
-            processResults: function (data) {
-                // Mapeia a lista de produtos retornada pela API
-                return {
-                    results: data.map(p => ({
-                        id: p.id,
-                        text: p.text // Usa o texto formatado "Nome (SKU)"
-                    }))
-                };
-            },
+            data: function (params) { return { termo: params.term }; },
+            processResults: function (data) { return { results: data.map(p => ({ id: p.id, text: p.text })) }; },
             cache: true
         }
     });
 
-    // 2. Lógica de Recebimento
+    // Receber
     document.querySelectorAll('.btn-receber').forEach(btn => {
         btn.addEventListener('click', async function() {
             const row = this.closest('tr');
             const itemId = this.dataset.itemId;
-            
-            // Pega valor do Select2 via jQuery (necessário para o plugin)
             const produtoId = $(row.querySelector('.select2-produto')).val();
-            
             const serials = Array.from(row.querySelectorAll('.serial-input')).map(i => i.value.trim());
+            const guiaInput = row.querySelector('.guia-input');
+            const seloInput = row.querySelector('.selo-input');
 
-            if (!produtoId) {
-                alert(⚠️ Selecione o produto correspondente no sistema (De/Para).");
-                return;
-            }
+            if (!produtoId) { alert("⚠️ Selecione o produto correspondente no sistema."); return; }
+            if (serials.some(s => !s) && !confirm("Existem seriais em branco. Continuar?")) { return; }
 
-            if (serials.some(s => !s) && !confirm("Existem seriais em branco. Continuar?")) {
-                return;
-            }
-
-            // Feedback de loading
             const originalHtml = this.innerHTML;
             this.disabled = true;
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
 
+            const formData = new FormData();
+            formData.append('compra_item_id', itemId);
+            formData.append('produto_id', produtoId);
+            formData.append('serials', JSON.stringify(serials));
+            if(seloInput.value) formData.append('numero_selo', seloInput.value);
+            if(guiaInput.files[0]) formData.append('guia_file', guiaInput.files[0]);
+
             try {
-                const resp = await fetch("{{ url_for('compras_nf.receber_item') }}", {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        compra_item_id: itemId,
-                        produto_id: produtoId,
-                        serials: serials
-                    })
-                });
-
+                const resp = await fetch("{{ url_for('compras_nf.receber_item') }}", { method: 'POST', body: formData });
                 const res = await resp.json();
-
                 if (res.success) {
                     row.classList.add('bg-success-subtle');
                     this.outerHTML = '<span class="badge bg-success"><i class="fas fa-check"></i> Sucesso</span>';
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => window.location.reload(), 800);
                 } else {
                     alert("Erro: " + res.message);
                     this.disabled = false;
@@ -208,6 +207,30 @@ document.addEventListener("DOMContentLoaded", () => {
                 alert("Erro de comunicação.");
                 this.disabled = false;
                 this.innerHTML = originalHtml;
+            }
+        });
+    });
+
+    // Desfazer Recebimento (NOVO)
+    document.querySelectorAll('.btn-desfazer').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            if(!confirm("Tem certeza que deseja DESFAZER este recebimento? Os itens serão removidos do estoque se ainda estiverem disponíveis.")) return;
+            
+            const compraItemId = this.dataset.compraItemId;
+            try {
+                const resp = await fetch("{{ url_for('compras_nf.desfazer_recebimento') }}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({compra_item_id: compraItemId})
+                });
+                const res = await resp.json();
+                if(res.success) {
+                    window.location.reload();
+                } else {
+                    alert("Erro: " + res.message);
+                }
+            } catch(e) {
+                alert("Erro ao desfazer.");
             }
         });
     });

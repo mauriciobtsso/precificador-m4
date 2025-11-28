@@ -17,7 +17,7 @@ class CompraNF(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     
-    # === NOVO: VÍNCULO COM PEDIDO ===
+    # === VÍNCULO COM PEDIDO ===
     pedido_id = db.Column(db.Integer, db.ForeignKey("pedido_compra.id"), nullable=True)
     pedido = db.relationship("PedidoCompra", backref=db.backref("nfs", lazy=True))
 
@@ -27,6 +27,10 @@ class CompraNF(db.Model):
     chave = db.Column(db.String(200), unique=True, nullable=True, index=True)
 
     fornecedor = db.Column(db.String(120))
+    
+    # === NOVO: CNPJ PARA VÍNCULO AUTOMÁTICO ===
+    cnpj_fornecedor = db.Column(db.String(20), nullable=True)
+
     data_emissao = db.Column(db.DateTime)
     valor_total = db.Column(db.Numeric(12, 2))
 
@@ -67,7 +71,7 @@ class CompraItem(db.Model):
     calibre = db.Column(db.String(50))
     lote = db.Column(db.String(100))
     
-    # === NOVO: SERIALS BRUTOS DO XML ===
+    # === SERIALS BRUTOS DO XML ===
     seriais_xml = db.Column(db.Text, nullable=True)
 
     quantidade = db.Column(db.Numeric(10, 2))
@@ -76,7 +80,7 @@ class CompraItem(db.Model):
 
     nf = db.relationship("CompraNF", back_populates="itens")
     
-    # === NOVO: VÍNCULO COM ESTOQUE ===
+    # === VÍNCULO COM ESTOQUE ===
     itens_gerados_estoque = db.relationship("ItemEstoque", back_populates="origem_compra", lazy="dynamic")
 
     # ============================================================

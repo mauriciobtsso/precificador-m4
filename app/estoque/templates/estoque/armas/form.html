@@ -6,22 +6,20 @@
       <i class="fas fa-gun me-2 text-primary"></i>
       {{ 'Editar Arma' if item else 'Nova Entrada de Arma' }}
     </h4>
-    <a href="{{ url_for('estoque.armas_listar') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left me-1"></i> Voltar
-    </a>
+    <a href="{{ url_for('estoque.armas_listar') }}" class="btn btn-outline-secondary">Voltar</a>
   </div>
 
-  <form method="POST" class="needs-validation" novalidate>
+  <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-header bg-white py-3">
-        <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Identificação</h6>
+        <h6 class="mb-0 fw-bold text-primary">Identificação</h6>
       </div>
       <div class="card-body">
         <div class="row g-3">
             <div class="col-md-8">
                 <label class="form-label fw-bold">Produto *</label>
                 <select name="produto_id" class="form-select select2" required>
-                    <option value="">Buscar produto (digite o nome)...</option>
+                    <option value="">Buscar produto...</option>
                     {% for p in produtos %}
                     <option value="{{ p.id }}" {% if item and item.produto_id == p.id %}selected{% endif %}>
                         {{ p.nome }} ({{ p.codigo or 'S/N' }})
@@ -35,7 +33,6 @@
                     <option value="disponivel" {% if not item or item.status == 'disponivel' %}selected{% endif %}>Disponível</option>
                     <option value="reservada" {% if item and item.status == 'reservada' %}selected{% endif %}>Reservada</option>
                     <option value="vendida" {% if item and item.status == 'vendida' %}selected{% endif %}>Vendida</option>
-                    <option value="manutencao" {% if item and item.status == 'manutencao' %}selected{% endif %}>Em Manutenção</option>
                 </select>
             </div>
         </div>
@@ -44,49 +41,49 @@
 
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-header bg-white py-3">
-        <h6 class="mb-0 fw-bold text-success"><i class="fas fa-barcode me-2"></i>Rastreabilidade Temporal</h6>
+        <h6 class="mb-0 fw-bold text-success">Rastreabilidade e Documentos</h6>
       </div>
       <div class="card-body">
         <div class="row g-3">
             <div class="col-md-4">
                 <label class="form-label fw-bold">Número de Série *</label>
-                <input type="text" name="numero_serie" class="form-control font-monospace text-uppercase" 
-                       placeholder="Ex: KGU55221" 
-                       value="{{ item.numero_serie if item else '' }}" required>
+                <input type="text" name="numero_serie" class="form-control font-monospace" value="{{ item.numero_serie if item else '' }}" required>
             </div>
-
             <div class="col-md-4">
-                <label class="form-label">Número da NF</label>
-                <input type="text" name="nota_fiscal" class="form-control" 
-                       placeholder="Ex: 12345"
-                       value="{{ item.nota_fiscal if item else '' }}">
+                <label class="form-label">Nota Fiscal</label>
+                <input type="text" name="nota_fiscal" class="form-control" value="{{ item.nota_fiscal if item else '' }}">
             </div>
-
             <div class="col-md-4">
-                <label class="form-label text-muted small fw-bold">Data Emissão NF</label>
-                <input type="date" name="data_nf" class="form-control" 
-                       value="{{ item.data_nf.strftime('%Y-%m-%d') if item and item.data_nf else '' }}">
+                <label class="form-label">Data Entrada</label>
+                <input type="date" name="data_entrada" class="form-control" value="{{ item.data_entrada if item else hoje }}">
             </div>
 
-            <div class="col-md-4">
-                <label class="form-label text-success small fw-bold">Data Entrada no Cofre</label>
-                <input type="date" name="data_entrada" class="form-control" 
-                       value="{{ item.data_entrada if item else hoje }}">
-                <div class="form-text small">Dia que chegou fisicamente na loja.</div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Guia de Trânsito (PDF/Img)</label>
+                <input type="file" name="guia_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                {% if item and item.guia_transito_file %}
+                    <div class="mt-2">
+                        <a href="{{ url_for('estoque.visualizar_guia', item_id=item.id) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-file-download me-1"></i> Ver Guia Atual
+                        </a>
+                    </div>
+                {% endif %}
             </div>
 
-            <div class="col-md-8">
-                <label class="form-label">Fornecedor / Origem</label>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Nº Selo Rastreabilidade</label>
+                <input type="text" name="numero_selo" class="form-control" value="{{ item.numero_selo if item else '' }}">
+            </div>
+            
+            <div class="col-md-12">
+                <label class="form-label">Fornecedor</label>
                 <select name="fornecedor_id" class="form-select select2">
-                    <option value="">Selecione o fornecedor (PJ)...</option>
+                    <option value="">Selecione...</option>
                     {% for f in fornecedores %}
-                    <option value="{{ f.id }}" {% if item and item.fornecedor_id == f.id %}selected{% endif %}>
-                        {{ f.nome }} ({{ f.documento or 'S/DOC' }})
-                    </option>
+                    <option value="{{ f.id }}" {% if item and item.fornecedor_id == f.id %}selected{% endif %}>{{ f.nome }}</option>
                     {% endfor %}
                 </select>
             </div>
-
             <div class="col-12">
                 <label class="form-label">Observações</label>
                 <textarea name="observacoes" rows="2" class="form-control">{{ item.observacoes if item else '' }}</textarea>
@@ -95,26 +92,18 @@
       </div>
     </div>
 
-    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-        <a href="{{ url_for('estoque.armas_listar') }}" class="btn btn-light me-md-2">Cancelar</a>
-        <button type="submit" class="btn btn-primary px-5">
-            <i class="fas fa-save me-2"></i> Salvar Registro
-        </button>
+    <div class="text-end">
+        <button type="submit" class="btn btn-primary px-5"><i class="fas fa-save me-2"></i> Salvar</button>
     </div>
   </form>
 </div>
-
 {% block scripts %}
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        if (typeof $ !== 'undefined' && $.fn.select2) {
-            $('.select2').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                language: 'pt-BR'
-            });
-        }
-    });
+document.addEventListener("DOMContentLoaded", function() {
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+        $('.select2').select2({ theme: 'bootstrap-5', width: '100%' });
+    }
+});
 </script>
 {% endblock %}
 {% endblock %}

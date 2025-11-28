@@ -9,20 +9,12 @@
                 </div>
             {% endif %}
             <div class="mt-3">
-                {% if item.status == 'disponivel' %}
-                    <span class="badge bg-success w-100 py-2">DISPONÍVEL</span>
-                {% elif item.status == 'vendida' %}
-                    <span class="badge bg-secondary w-100 py-2">VENDIDA</span>
-                {% else %}
-                    <span class="badge bg-warning w-100 py-2">{{ item.status|upper }}</span>
-                {% endif %}
+                <span class="badge bg-dark w-100 py-2">{{ item.status|upper }}</span>
             </div>
         </div>
-        
         <div class="col-md-8">
             <h5 class="fw-bold text-dark mb-1">{{ item.produto.nome }}</h5>
             <div class="text-muted small mb-3">{{ item.produto.marca_rel.nome if item.produto.marca_rel else '' }}</div>
-            
             <div class="row g-3 mt-2">
                 <div class="col-6">
                     <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Número de Série</small>
@@ -38,8 +30,8 @@
 
     <div class="p-3">
         <ul class="nav nav-pills nav-fill mb-3 bg-white rounded border p-1" id="pills-tab" role="tablist">
-            <li class="nav-item"><button class="nav-link active btn-sm" data-bs-toggle="pill" data-bs-target="#pills-origem"><i class="fas fa-truck me-1"></i> Entrada</button></li>
-            <li class="nav-item"><button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#pills-venda"><i class="fas fa-user me-1"></i> Proprietário</button></li>
+            <li class="nav-item"><button class="nav-link active btn-sm" data-bs-toggle="pill" data-bs-target="#pills-origem">Entrada</button></li>
+            <li class="nav-item"><button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#pills-venda">Proprietário</button></li>
         </ul>
 
         <div class="tab-content">
@@ -49,19 +41,40 @@
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="small text-muted fw-bold">Fornecedor</label>
-                                <div class="border rounded p-2 bg-light">{{ item.fornecedor.nome if item.fornecedor else '-' }}</div>
+                                <div class="border rounded p-2 bg-light">{{ item.fornecedor.nome if item.fornecedor else 'Não informado' }}</div>
                             </div>
+                            
+                            {% if item.origem_compra and item.origem_compra.nf.pedido %}
+                            <div class="col-12">
+                                <div class="alert alert-info py-2 px-3 d-flex justify-content-between align-items-center">
+                                    <small><i class="fas fa-file-contract me-1"></i> Originado do Pedido <strong>#{{ item.origem_compra.nf.pedido.numero }}</strong></small>
+                                    <a href="{{ url_for('pedidos.editar_pedido', id=item.origem_compra.nf.pedido.id) }}" class="btn btn-sm btn-light border" target="_blank">Ver Pedido</a>
+                                </div>
+                            </div>
+                            {% endif %}
+
                             <div class="col-6">
                                 <label class="small text-muted fw-bold">Nota Fiscal</label>
                                 <div class="border rounded p-2 bg-light">{{ item.nota_fiscal or '-' }}</div>
                             </div>
                             <div class="col-6">
-                                <label class="small text-muted fw-bold">Data Emissão NF</label>
-                                <div class="border rounded p-2 bg-light">{{ item.data_nf.strftime('%d/%m/%Y') if item.data_nf else '-' }}</div>
+                                <label class="small text-muted fw-bold">Data Entrada</label>
+                                <div class="border rounded p-2 bg-light">{{ item.data_entrada.strftime('%d/%m/%Y') if item.data_entrada else '-' }}</div>
+                            </div>
+                            
+                            <div class="col-6">
+                                <label class="small text-muted fw-bold">Selo Rastreabilidade</label>
+                                <div class="border rounded p-2 bg-white font-monospace">{{ item.numero_selo or '-' }}</div>
                             </div>
                             <div class="col-6">
-                                <label class="small text-muted fw-bold">Chegada no Cofre</label>
-                                <div class="border rounded p-2 bg-success-subtle text-success fw-bold">{{ item.data_entrada.strftime('%d/%m/%Y') if item.data_entrada else '-' }}</div>
+                                <label class="small text-muted fw-bold">Guia de Trânsito</label>
+                                {% if item.guia_transito_file %}
+                                    <a href="{{ url_for('estoque.visualizar_guia', item_id=item.id) }}" target="_blank" class="btn btn-sm btn-outline-primary w-100 text-truncate">
+                                        <i class="fas fa-file-pdf me-1"></i> Visualizar Guia
+                                    </a>
+                                {% else %}
+                                    <div class="border rounded p-2 bg-light text-muted text-center small">Não anexada</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -75,21 +88,19 @@
                             <div class="row g-3">
                                 <div class="col-12">
                                     <label class="small text-muted fw-bold">Nome do Cliente</label>
-                                    <div class="border rounded p-2 bg-white fw-bold fs-5 text-dark">
+                                    <div class="border rounded p-2 bg-white fw-bold text-primary fs-5">
                                         {{ venda_item.venda.cliente.nome }}
                                     </div>
                                 </div>
-                                <div class="col-6">
-                                    <label class="small text-muted fw-bold">CPF/CNPJ</label>
-                                    <div class="border rounded p-2 bg-white">{{ venda_item.venda.cliente.documento or '-' }}</div>
-                                </div>
-                                <div class="col-6">
-                                    <label class="small text-muted fw-bold">Pedido</label>
-                                    <div class="border rounded p-2 bg-white">#{{ venda_item.venda.id }}</div>
+                                <div class="col-12 text-end">
+                                    <a href="{{ url_for('vendas.editar_venda', venda_id=venda_item.venda.id) }}" class="btn btn-sm btn-primary">
+                                        Ver Venda <i class="fas fa-arrow-right ms-1"></i>
+                                    </a>
                                 </div>
                             </div>
                         {% else %}
                             <div class="text-center py-4 text-muted">
+                                <i class="fas fa-box-open fa-2x mb-2 opacity-25"></i>
                                 <p>Item disponível em estoque.</p>
                             </div>
                         {% endif %}
@@ -98,8 +109,10 @@
             </div>
         </div>
     </div>
-    
     <div class="modal-footer bg-white">
         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+        <a href="{{ url_for('estoque.armas_gerenciar', item_id=item.id) }}" class="btn btn-warning btn-sm">
+            <i class="fas fa-pen me-1"></i> Editar Dados
+        </a>
     </div>
 </div>
