@@ -30,6 +30,7 @@
         <div class="row align-items-center small">
             <div class="col-md-5">
                 <strong>Fornecedor:</strong> {{ nf.fornecedor or 'Não Informado' }}
+                {% if nf.cnpj_fornecedor %}<span class="text-muted ms-1">({{ nf.cnpj_fornecedor }})</span>{% endif %}
             </div>
             <div class="col-md-4">
                 <strong>Chave:</strong> <span class="text-muted text-truncate d-inline-block align-bottom" style="max-width: 250px;">{{ nf.chave or 'N/A' }}</span>
@@ -38,6 +39,20 @@
                 <strong>Total NF:</strong> <span class="text-success fw-bold fs-6">{{ nf.valor_total|currency }}</span>
             </div>
         </div>
+    </div>
+  </div>
+
+  <div class="card mb-3 shadow-sm border-0">
+    <div class="card-body py-2 bg-white">
+         <form action="{{ url_for('compras_nf.upload_guia_nf', nf_id=nf.id) }}" method="POST" enctype="multipart/form-data" class="d-flex gap-2 align-items-center">
+            <label class="small fw-bold text-nowrap">Guia de Trânsito (GT):</label>
+            <input type="file" name="guia_file" class="form-control form-control-sm" accept=".pdf,.jpg,.png">
+            <input type="text" name="numero_selo" class="form-control form-control-sm" placeholder="Nº Selo (Opcional)" value="{{ nf.numero_selo or '' }}" style="max-width: 150px;">
+            <button type="submit" class="btn btn-sm btn-primary text-nowrap"><i class="fas fa-cloud-upload-alt me-1"></i> Salvar GT</button>
+            {% if nf.guia_transito_file %}
+                <a href="{{ nf.guia_transito_file }}" target="_blank" class="btn btn-sm btn-outline-success ms-2"><i class="fas fa-eye"></i> Ver</a>
+            {% endif %}
+        </form>
     </div>
   </div>
 
@@ -50,87 +65,80 @@
             <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.85rem;">
                 <thead class="bg-light text-secondary">
                     <tr>
-                        <th class="ps-3" style="width: 25%;">Produto XML</th>
-                        <th class="text-center" style="width: 5%;">Qtd</th>
-                        <th style="width: 25%;">Vínculo Sistema</th>
-                        <th style="width: 30%;">Conferência & Docs</th>
+                        <th class="ps-3" style="width: 30%;">Produto XML</th>
+                        <th class="text-center" style="width: 10%;">Qtd</th>
+                        <th style="width: 35%;">Vínculo Sistema (De/Para)</th>
+                        <th style="width: 15%;">Conferência</th>
                         <th class="text-end pe-3" style="width: 10%;">Ação</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in nf.itens %}
                     {% set ja_recebido = item.itens_gerados_estoque.count() > 0 %}
+                    {% set eh_arma = item.seriais_xml or 'PISTOLA' in item.descricao.upper() or 'RIFLE' in item.descricao.upper() or 'REVOLVER' in item.descricao.upper() %}
                     
-                    <tr class="{{ 'bg-success-subtle' if ja_recebido else '' }}">
+                    <tr class="{{ 'bg-success-subtle' if ja_recebido else '' }}" data-tipo="{{ 'arma' if eh_arma else 'municao' }}">
+                        
                         <td class="ps-3">
-                            <strong class="d-block text-truncate" style="max-width: 250px;" title="{{ item.descricao }}">
+                            <strong class="d-block text-truncate" style="max-width: 300px;" title="{{ item.descricao }}">
                                 {{ item.descricao }}
                             </strong>
                             <div class="text-muted d-flex gap-2 small">
                                 <span>{{ item.marca }}</span>
                                 <span>{{ item.modelo }}</span>
                             </div>
+                            {% if item.lote %}
+                                <span class="badge bg-light text-dark border mt-1">Lote XML: {{ item.lote }}</span>
+                            {% endif %}
                         </td>
 
                         <td class="text-center fw-bold fs-6">{{ item.quantidade|int }}</td>
                         
                         <td>
                             {% if ja_recebido %}
-                                {% set estoque_exemplo = item.itens_gerados_estoque.first() %}
+                                {% set est = item.itens_gerados_estoque.first() %}
                                 <div class="small text-success">
-                                    <i class="fas fa-link me-1"></i> {{ estoque_exemplo.produto.nome }} 
-                                    <span class="d-block text-muted" style="font-size: 0.75rem;">SKU: {{ estoque_exemplo.produto.codigo }}</span>
+                                    <i class="fas fa-link me-1"></i> {{ est.produto.nome }} 
+                                    <span class="d-block text-muted" style="font-size: 0.75rem;">SKU: {{ est.produto.codigo }}</span>
                                 </div>
                             {% else %}
                                 <select class="select2-produto" data-compra-item-id="{{ item.id }}" style="width: 100%;">
-                                    <option value="">Buscar no catálogo...</option>
+                                    {% if item.produto_id %}
+                                        <option value="{{ item.produto_id }}" selected>
+                                            {{ item.produto_sugerido.nome }} ({{ item.produto_sugerido.codigo }})
+                                        </option>
+                                    {% else %}
+                                        <option value="">Buscar no catálogo...</option>
+                                    {% endif %}
                                 </select>
                             {% endif %}
                         </td>
 
                         <td>
                             {% if ja_recebido %}
-                                {% set estoque_exemplo = item.itens_gerados_estoque.first() %}
-                                <div class="d-flex flex-column gap-1">
-                                    <small class="text-success fw-bold">
-                                        <i class="fas fa-check-circle me-1"></i> Recebido em {{ estoque_exemplo.data_entrada.strftime('%d/%m/%Y') }}
-                                    </small>
-                                    
-                                    {% if estoque_exemplo.guia_transito_file %}
-                                        <a href="{{ url_for('estoque.visualizar_guia', item_id=estoque_exemplo.id) }}" target="_blank" class="btn btn-xs btn-outline-primary" style="width: fit-content;">
-                                            <i class="fas fa-file-alt me-1"></i> Ver Guia
-                                        </a>
-                                    {% else %}
-                                        <small class="text-muted fst-italic">Sem guia anexada.</small>
-                                    {% endif %}
-                                </div>
+                                <small class="text-success"><i class="fas fa-check-circle"></i> Recebido</small>
                             {% else %}
-                                {% set qtd = item.quantidade|int %}
-                                {% set serials = item.seriais_xml.split(',') if item.seriais_xml else [] %}
-                                
-                                <div class="mb-2" style="max-height: 100px; overflow-y: auto;">
-                                    {% for i in range(qtd) %}
-                                    <input type="text" class="form-control form-control-sm mb-1 serial-input" 
-                                           value="{{ serials[i] if i < serials|length else '' }}" 
-                                           placeholder="Serial #{{ i+1 }}">
-                                    {% endfor %}
-                                </div>
-
-                                <div class="bg-light p-2 rounded border">
-                                    <label class="form-label small fw-bold mb-1">Guia de Trânsito</label>
-                                    <input type="file" class="form-control form-control-sm mb-2 guia-input" accept=".pdf,.jpg,.jpeg,.png">
-                                    
-                                    <label class="form-label small fw-bold mb-1">Selo Rastreab.</label>
-                                    <input type="text" class="form-control form-control-sm selo-input" placeholder="Opcional">
-                                </div>
+                                {% if eh_arma %}
+                                    {% set qtd = item.quantidade|int %}
+                                    {% set serials = item.seriais_xml.split(',') if item.seriais_xml else [] %}
+                                    <div class="mb-2" style="max-height: 120px; overflow-y: auto;">
+                                        {% for i in range(qtd) %}
+                                        <input type="text" class="form-control form-control-sm mb-1 serial-input" 
+                                               value="{{ serials[i] if i < serials|length else '' }}" 
+                                               placeholder="Serial #{{ i+1 }}">
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="text-muted small fst-italic">
+                                        <i class="fas fa-info-circle"></i> Lote e Embalagem serão definidos na gestão de estoque.
+                                    </div>
+                                {% endif %}
                             {% endif %}
                         </td>
 
                         <td class="text-end pe-3">
                             {% if ja_recebido %}
-                                <button class="btn btn-outline-danger btn-sm btn-desfazer" data-compra-item-id="{{ item.id }}" title="Desfazer recebimento e corrigir">
-                                    <i class="fas fa-undo"></i>
-                                </button>
+                                <button class="btn btn-outline-danger btn-sm btn-desfazer" data-compra-item-id="{{ item.id }}" title="Desfazer"><i class="fas fa-undo"></i></button>
                             {% else %}
                                 <button class="btn btn-primary btn-sm w-100 btn-receber" data-item-id="{{ item.id }}">
                                     <i class="fas fa-download me-1"></i> Receber
@@ -150,7 +158,6 @@
 {% block scripts %}
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    // Select2
     $('.select2-produto').select2({
         theme: 'bootstrap-5',
         placeholder: "Digite o nome ou código...",
@@ -166,72 +173,51 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Receber
     document.querySelectorAll('.btn-receber').forEach(btn => {
         btn.addEventListener('click', async function() {
             const row = this.closest('tr');
             const itemId = this.dataset.itemId;
             const produtoId = $(row.querySelector('.select2-produto')).val();
-            const serials = Array.from(row.querySelectorAll('.serial-input')).map(i => i.value.trim());
-            const guiaInput = row.querySelector('.guia-input');
-            const seloInput = row.querySelector('.selo-input');
-
-            if (!produtoId) { alert("⚠️ Selecione o produto correspondente no sistema."); return; }
-            if (serials.some(s => !s) && !confirm("Existem seriais em branco. Continuar?")) { return; }
-
-            const originalHtml = this.innerHTML;
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+            const tipoItem = row.dataset.tipo;
+            
+            if (!produtoId) { alert("⚠️ Vincule o produto do sistema."); return; }
 
             const formData = new FormData();
             formData.append('compra_item_id', itemId);
             formData.append('produto_id', produtoId);
-            formData.append('serials', JSON.stringify(serials));
-            if(seloInput.value) formData.append('numero_selo', seloInput.value);
-            if(guiaInput.files[0]) formData.append('guia_file', guiaInput.files[0]);
+            formData.append('tipo_item', tipoItem);
+            
+            if (tipoItem === 'arma') {
+                const serials = Array.from(row.querySelectorAll('.serial-input')).map(i => i.value.trim());
+                if (serials.some(s => !s) && !confirm("Seriais vazios. Continuar?")) return;
+                formData.append('serials', JSON.stringify(serials));
+            }
+            
+            // Munição vai sem payload extra, entrada 'bulk'
+
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
             try {
-                const resp = await fetch("{{ url_for('compras_nf.receber_item') }}", { method: 'POST', body: formData });
-                const res = await resp.json();
-                if (res.success) {
-                    row.classList.add('bg-success-subtle');
-                    this.outerHTML = '<span class="badge bg-success"><i class="fas fa-check"></i> Sucesso</span>';
-                    setTimeout(() => window.location.reload(), 800);
-                } else {
-                    alert("Erro: " + res.message);
-                    this.disabled = false;
-                    this.innerHTML = originalHtml;
-                }
-            } catch (err) {
-                console.error(err);
-                alert("Erro de comunicação.");
-                this.disabled = false;
-                this.innerHTML = originalHtml;
-            }
+                const r = await fetch("{{ url_for('compras_nf.receber_item') }}", { method: 'POST', body: formData });
+                const res = await r.json();
+                if (res.success) { window.location.reload(); } 
+                else { alert("Erro: " + res.message); this.disabled = false; this.innerHTML = '<i class="fas fa-download"></i> Receber'; }
+            } catch(e) { console.error(e); alert("Erro."); this.disabled = false; }
         });
     });
 
-    // Desfazer Recebimento (NOVO)
     document.querySelectorAll('.btn-desfazer').forEach(btn => {
         btn.addEventListener('click', async function() {
-            if(!confirm("Tem certeza que deseja DESFAZER este recebimento? Os itens serão removidos do estoque se ainda estiverem disponíveis.")) return;
-            
-            const compraItemId = this.dataset.compraItemId;
+            if(!confirm("Desfazer recebimento?")) return;
             try {
-                const resp = await fetch("{{ url_for('compras_nf.desfazer_recebimento') }}", {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({compra_item_id: compraItemId})
+                const r = await fetch("{{ url_for('compras_nf.desfazer_recebimento') }}", {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({compra_item_id: this.dataset.compraItemId})
                 });
-                const res = await resp.json();
-                if(res.success) {
-                    window.location.reload();
-                } else {
-                    alert("Erro: " + res.message);
-                }
-            } catch(e) {
-                alert("Erro ao desfazer.");
-            }
+                if((await r.json()).success) window.location.reload();
+                else alert("Erro ao desfazer.");
+            } catch(e) { alert("Erro."); }
         });
     });
 });

@@ -27,12 +27,13 @@ CAMPOS_DECIMAIS = [
 CAMPOS_DATAS = ["promo_data_inicio", "promo_data_fim"]
 
 # ===========================================================
-# Função utilitária para converter valores corretamente
+# Função utilitária para converter valores corretamente (CORRIGIDA)
 # ===========================================================
 def _parse_decimal(valor):
     """
-    Converte string numérica para Decimal, removendo símbolos de moeda e porcentagem.
-    Ex: "R$ 9,75" -> Decimal('9.75')
+    Converte string numérica para Decimal, removendo símbolos e tratando
+    o formato brasileiro (ponto como milhar, vírgula como decimal).
+    Ex: "R$ 9.750,50" -> Decimal('9750.50')
     """
     if valor is None or valor == "":
         return None
@@ -42,15 +43,27 @@ def _parse_decimal(valor):
 
     try:
         valor_str = str(valor)
-        # Remove tudo que NÃO for dígito, vírgula, ponto ou sinal de menos
+        
+        # 1. Remove símbolos não numéricos (R$, %, espaços, etc.) exceto . , e -
         valor_limpo = re.sub(r'[^\d.,-]', '', valor_str)
         
         if not valor_limpo:
             return None
+        
+        # 2. CRÍTICO: Trata o separador de milhar (ponto) e o separador decimal (vírgula)
+        # Se houver ponto E vírgula, remove o ponto (milhar) e troca a vírgula (decimal) por ponto.
+        if '.' in valor_limpo and ',' in valor_limpo:
+            # Ex: 1.000,00 -> 1000,00 -> 1000.00
+            valor_limpo = valor_limpo.replace('.', '')
+            valor_limpo = valor_limpo.replace(',', '.')
+        elif ',' in valor_limpo:
+            # Se só houver vírgula, troca por ponto. Ex: 100,00 -> 100.00
+            valor_limpo = valor_limpo.replace(',', '.')
+        # Se só houver ponto (ou nenhum), Decimal(valor_limpo) funciona. Ex: 100.00 (US) ou 1000 (sem separador).
 
-        valor_limpo = valor_limpo.replace(",", ".")
         return Decimal(valor_limpo)
     except (InvalidOperation, ValueError):
+        # Em caso de falha na conversão final, retorna None para não quebrar a transação.
         return None
 
 # ===========================================================
@@ -77,24 +90,22 @@ def autosave_produto(produto_id):
 
         # 1. Tratamento Específico por Tipo de Campo
         if campo in CAMPOS_DECIMAIS:
-            # É dinheiro/número: usa o parser seguro
+            # É dinheiro/número: usa o parser seguro (agora corrigido)
             valor_final = _parse_decimal(valor_novo)
         elif campo == "promo_ativada":
             # Checkbox: vem como boolean ou string "on"/"true"
             valor_final = str(valor_novo).lower() in ['true', 'on', '1']
         elif campo in CAMPOS_DATAS:
-            # Datas: Se vier vazio, é None. Se vier string, mantemos string (SQLAlchemy trata se for ISO)
-            # Idealmente converteríamos para datetime aqui, mas o frontend envia string ISO do input datetime-local
+            # Datas: Se vier vazio, é None. 
             if not valor_novo:
                 valor_final = None
-            # (Poderíamos adicionar parse de data aqui se necessário)
         else:
             # Texto Puro (Nome, Código, Descrição): Mantém original, remove espaços extras
             if isinstance(valor_novo, str):
                 valor_final = valor_novo.strip()
                 if valor_final == "":
                     valor_final = None
-        
+            
         # 2. Proteção contra Nulos em Campos Obrigatórios
         if campo in ["nome", "codigo"] and not valor_final:
             # Se tentar limpar o nome ou código, ignoramos essa alteração específica
@@ -104,6 +115,8 @@ def autosave_produto(produto_id):
         str_atual = str(valor_atual) if valor_atual is not None else ""
         str_novo = str(valor_final) if valor_final is not None else ""
         
+        # NOTE: A comparação de strings pode ser frágil para floats/Decimals.
+        # Devido ao _parse_decimal retornar None em falha, a mudança é detectada corretamente.
         if str_atual != str_novo:
             alteracoes[campo] = {"antigo": valor_atual, "novo": valor_final}
             setattr(produto, campo, valor_final)

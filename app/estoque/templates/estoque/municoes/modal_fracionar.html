@@ -1,0 +1,103 @@
+<div class="modal fade" id="modalFracionar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form id="formFracionar" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="fas fa-boxes me-2 text-primary"></i>Organizar Lotes/Embalagens</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="item_id" id="fracionarItemId">
+        
+        <div class="alert alert-info small">
+            Você está organizando: <strong id="fracionarProduto"></strong><br>
+            Quantidade Total Disponível: <strong id="fracionarQtdDisp"></strong>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-12">
+                <label class="form-label fw-bold">Lote da Fábrica</label>
+                <input type="text" name="lote" id="fracionarLote" class="form-control" required>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Qtd por Embalagem</label>
+                <input type="number" name="qtd_por_cx" id="qtdPorCx" class="form-control" value="50" required>
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label text-muted">Caixas Geradas</label>
+                <input type="text" id="totalCxGeradas" class="form-control bg-light" readonly>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Prefixo Embalagem</label>
+                <input type="text" name="prefixo" class="form-control" placeholder="Ex: CX" value="CX">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Numeração Inicial</label>
+                <input type="number" name="num_inicio" class="form-control" value="1">
+            </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Confirmar e Gerar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const modal = document.getElementById('modalFracionar');
+    if(!modal) return;
+
+    // Preenche Modal
+    modal.addEventListener('show.bs.modal', event => {
+        const btn = event.relatedTarget;
+        document.getElementById('fracionarItemId').value = btn.dataset.id;
+        document.getElementById('fracionarProduto').textContent = btn.dataset.produto;
+        document.getElementById('fracionarQtdDisp').textContent = btn.dataset.qtd;
+        document.getElementById('fracionarLote').value = btn.dataset.lote;
+        
+        // Recalcula ao abrir
+        calcCaixas();
+    });
+
+    // Cálculo em tempo real
+    const inQtdDisp = document.getElementById('fracionarQtdDisp');
+    const inQtdCx = document.getElementById('qtdPorCx');
+    const outTotal = document.getElementById('totalCxGeradas');
+
+    function calcCaixas() {
+        const total = parseInt(inQtdDisp.textContent) || 0;
+        const porCx = parseInt(inQtdCx.value) || 1;
+        const caixas = Math.floor(total / porCx);
+        const sobra = total % porCx;
+        
+        let texto = `${caixas} caixas completas`;
+        if(sobra > 0) texto += ` + 1 com ${sobra}`;
+        outTotal.value = texto;
+    }
+    inQtdCx.addEventListener('input', calcCaixas);
+
+    // Submit
+    document.getElementById('formFracionar').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if(!confirm("Isso irá dividir o estoque atual em várias embalagens. Continuar?")) return;
+        
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const resp = await fetch("{{ url_for('estoque.municoes_fracionar') }}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            if(resp.ok) window.location.reload();
+            else alert("Erro ao processar.");
+        } catch(e) { alert("Erro."); }
+    });
+});
+</script>

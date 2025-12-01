@@ -15,22 +15,20 @@ class ItemEstoque(db.Model):
     produto_id = db.Column(db.Integer, db.ForeignKey("produtos.id"), nullable=False)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=True)
 
-    # Vínculo com a Compra (Rastreabilidade de Entrada)
+    # Vínculo com Compra
     compra_item_id = db.Column(db.Integer, db.ForeignKey("compra_item.id"), nullable=True)
 
     tipo_item = db.Column(db.String(20), nullable=False)
     numero_serie = db.Column(db.String(100), nullable=True)
     lote = db.Column(db.String(50), nullable=True)
     
-    # Dados Fiscais e Logísticos
+    # === NOVOS CAMPOS PARA MUNIÇÃO E GT ===
+    numero_embalagem = db.Column(db.String(100), nullable=True, index=True) # Ex: Volume
+    guia_transito_file = db.Column(db.String(500), nullable=True)
+    numero_selo = db.Column(db.String(100), nullable=True)
+    
     nota_fiscal = db.Column(db.String(50), nullable=True) 
     data_nf = db.Column(db.Date, nullable=True)
-    
-    # === NOVOS CAMPOS: GUIA DE TRÂNSITO ===
-    guia_transito_file = db.Column(db.String(500), nullable=True) # URL do arquivo no R2
-    numero_selo = db.Column(db.String(100), nullable=True)        # Selo de rastreabilidade
-    
-    numero_embalagem = db.Column(db.String(100), nullable=True, index=True)
     
     quantidade = db.Column(db.Integer, default=1)
     status = db.Column(db.String(30), default="disponivel", nullable=False)
@@ -38,14 +36,10 @@ class ItemEstoque(db.Model):
     data_entrada = db.Column(db.Date, default=lambda: now_local().date())
     observacoes = db.Column(db.Text, nullable=True)
 
-    # Relacionamentos
     produto = db.relationship("Produto", backref="itens_estoque")
     fornecedor = db.relationship("Cliente", back_populates="itens_fornecidos")
-    
-    # Relacionamento Reverso com Compra
     origem_compra = db.relationship("CompraItem", back_populates="itens_gerados_estoque")
-
-    # Relacionamento com Venda (Saída)
+    
     venda_item = db.relationship(
         "ItemVenda", 
         back_populates="item_estoque",

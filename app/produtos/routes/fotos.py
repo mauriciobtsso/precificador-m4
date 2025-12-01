@@ -2,20 +2,94 @@ import uuid
 from flask import request, jsonify, current_app
 from flask_login import login_required
 from sqlalchemy.exc import SQLAlchemyError
-
 from app import db
 from .. import produtos_bp
 from app.produtos.models import Produto
 from .utils import _r2_bucket, _r2_client, _r2_public_base, _key_from_url, _guess_ext
+
+
+# ============================================================
+# API UPLOAD (Versão JS/Fetch) - SOLUÇÃO DO BUG DE PERSISTÊNCIA
+# ============================================================
+@produtos_bp.route('/api/upload_foto', methods=['POST'])
+@login_required
+def api_upload_foto():
+    """
+    Endpoint dedicado a chamadas assíncronas (fetch) do JS para upload de fotos.
+    Lida com o nome do campo 'file' no FormData do JS e retorna 'foto_url'.
+    """
+    # 1. Checa o arquivo - o JS envia o arquivo com o nome 'file'
+    if 'file' not in request.files:
+        return jsonify({"success": False, "error": "Arquivo 'file' não enviado"}), 400
+
+    file = request.files["file"]
+    if not file or file.filename == "":
+        return jsonify({"success": False, "error": "Arquivo inválido"}), 400
+
+    # 2. Obtém o produto_id do FormData (pode ser 'novo' ou o ID real)
+    produto_id_str = request.form.get('produto_id')
+    produto_id = int(produto_id_str) if produto_id_str and produto_id_str.isdigit() else None
+    
+    try:
+        # 3. Prepara o arquivo e define a chave (o caminho) no R2
+        content_type = file.mimetype or "image/jpeg"
+        ext = _guess_ext(content_type)
+        if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+            ext = ".jpg"
+
+        if produto_id:
+            # Upload para o produto específico (permanente)
+            key = f"produtos/fotos/{produto_id}/{uuid.uuid4().hex}{ext}"
+        else:
+            # Upload temporário (para produtos novos)
+            key = f"produtos/fotos/temp/{uuid.uuid4().hex}{ext}"
+
+        # 4. Executa o upload para o R2
+        bucket = _r2_bucket()
+        client = _r2_client()
+        file.seek(0) # Garante que a leitura do arquivo começa do início
+        
+        client.upload_fileobj(
+            Fileobj=file,
+            Bucket=bucket,
+            Key=key,
+            ExtraArgs={
+                "ContentType": content_type,
+                "CacheControl": "private, max-age=31536000, immutable",
+            },
+        )
+
+        # 5. Monta a URL pública (com proxy ou direta)
+        base_public = _r2_public_base()
+        foto_url = (
+            f"{base_public.rstrip('/')}/{key}"
+            if base_public
+            else f"{current_app.config.get('R2_ENDPOINT_URL', '').rstrip('/')}/{bucket}/{key}"
+        )
+
+        current_app.logger.info(f"[M4] Upload R2 API concluído. URL pública gerada: {foto_url}")
+        
+        # 6. Retorna o resultado no formato esperado pelo JS (campo 'foto_url')
+        if not produto_id:
+            # Adiciona a chave do arquivo no hash para o JS poder usar para deletar depois.
+            foto_url_com_chave = f"{foto_url}#{key.split('/')[-1]}"
+            return jsonify({"success": True, "foto_url": foto_url_com_chave}), 200
+
+        return jsonify({"success": True, "foto_url": foto_url}), 200
+
+    except Exception as e:
+        current_app.logger.exception("[M4] Falha no upload da foto via API para o R2.")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# --------------------------------------------------------------------------------------------------
 
 @produtos_bp.route("/<int:produto_id>/foto", methods=["POST"])
 @produtos_bp.route("/foto-temp", methods=["POST"])
 @login_required
 def upload_foto_produto(produto_id=None):
     """
-    Upload da foto do produto para o Cloudflare R2.
-    CORREÇÃO: Não persiste foto_url no banco para evitar conflito de sessão.
-    Retorna a URL pública para o JS salvar no campo oculto do formulário principal.
+    Upload da foto do produto para o Cloudflare R2 (Função original).
+    CORREÇÃO: O bloco try/except foi indentado corretamente para evitar o erro de sintaxe.
     """
     produto = None
     if produto_id:
@@ -38,6 +112,7 @@ def upload_foto_produto(produto_id=None):
             key = f"produtos/fotos/{produto_id}/{uuid.uuid4().hex}{ext}"
         else:
             key = f"produtos/fotos/temp/{uuid.uuid4().hex}{ext}"
+        
         bucket = _r2_bucket()
         client = _r2_client()
         file.seek(0)
@@ -87,7 +162,8 @@ def remover_foto_temp(temp_key):
 
     try:
         client = _r2_client()
-        key = f"produtos/fotos/temp/{temp_key}"
+        # Nota: O JS envia apenas o UUID no hash. Reconstruímos o caminho completo.
+        key = f"produtos/fotos/temp/{temp_key}" 
         client.delete_object(Bucket=bucket, Key=key)
         current_app.logger.info(f"[M4] Foto temporária removida do R2: {key}")
         return jsonify({"success": True}), 200

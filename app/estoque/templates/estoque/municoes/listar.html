@@ -1,46 +1,79 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4><i class="fas fa-bullseye me-2 text-primary"></i>Estoque — Munições</h4>
-    <a href="{{ url_for('estoque.municoes_novo') }}" class="btn btn-success">
-      <i class="fas fa-plus me-1"></i> Nova Munição
-    </a>
+<div class="container-fluid py-4">
+  
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold text-dark mb-0">
+      <i class="fas fa-bullseye me-2 text-danger"></i>Estoque de Munições
+    </h4>
+    </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm border-start border-4 border-success h-100">
+        <div class="card-body py-3">
+            <h6 class="text-muted small text-uppercase fw-bold">Disponível (Unidades)</h6>
+            <h3 class="fw-bold text-success">{{ totais.disponivel }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm border-start border-4 border-secondary h-100">
+        <div class="card-body py-3">
+            <h6 class="text-muted small text-uppercase fw-bold">Total Vendido (Un)</h6>
+            <h3 class="fw-bold text-secondary">{{ totais.vendida }}</h3>
+        </div>
+      </div>
+    </div>
   </div>
 
-  {% if itens %}
-  <div class="table-responsive">
-    <table class="table table-striped align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>ID</th>
-          <th>Produto</th>
-          <th>Lote</th>
-          <th>Embalagem</th>
-          <th>Qtd</th>
-          <th>Fornecedor</th>
-          <th>Status</th>
-          <th>Entrada</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for i in itens %}
-        <tr>
-          <td>{{ i.id }}</td>
-          <td>{{ i.produto.nome if i.produto else '-' }}</td>
-          <td>{{ i.lote or '-' }}</td>
-          <td>{{ i.numero_embalagem or '-' }}</td>
-          <td>{{ i.quantidade }}</td>
-          <td>{{ i.fornecedor.nome if i.fornecedor else '-' }}</td>
-          <td><span class="badge bg-secondary">{{ i.status|capitalize }}</span></td>
-          <td>{{ i.data_entrada.strftime('%d/%m/%Y') if i.data_entrada else '-' }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-light text-secondary small text-uppercase">
+            <tr>
+              <th class="ps-4">Produto</th>
+              <th>Marca</th>
+              <th class="text-center">Saldo Disponível</th>
+              <th class="text-end pe-4">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in itens %}
+            {% set p = row[0] %}
+            {% set saldo = row.saldo_real %}
+            
+            <tr class="{{ 'table-danger' if saldo <= 0 else '' }}">
+              <td class="ps-4">
+                <div class="d-flex flex-column">
+                    <span class="fw-bold text-dark">{{ p.nome }}</span>
+                    <small class="text-muted">SKU: {{ p.codigo or '-' }}</small>
+                </div>
+              </td>
+              <td>{{ p.marca_rel.nome if p.marca_rel else '-' }}</td>
+              
+              <td class="text-center">
+                 {% if saldo > 0 %}
+                    <span class="badge bg-success fs-6">{{ saldo }} un</span>
+                 {% else %}
+                    <span class="badge bg-danger fs-6">{{ saldo }} un</span>
+                 {% endif %}
+              </td>
+              
+              <td class="text-end pe-4">
+                 <a href="{{ url_for('estoque.municoes_gerenciar_produto', produto_id=p.id) }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-boxes me-1"></i> Gerenciar
+                 </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center py-5 text-muted">Nenhuma munição com movimento.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
-  {% else %}
-    <div class="alert alert-info">Nenhuma munição cadastrada no estoque.</div>
-  {% endif %}
 </div>
 {% endblock %}

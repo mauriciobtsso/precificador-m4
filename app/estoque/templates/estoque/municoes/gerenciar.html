@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-4">
+  
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1 text-dark">{{ produto.nome }}</h4>
+        <div class="text-muted small">
+            SKU: <strong>{{ produto.codigo }}</strong> | Marca: <strong>{{ produto.marca_rel.nome if produto.marca_rel else '-' }}</strong>
+        </div>
+    </div>
+    <a href="{{ url_for('estoque.municoes_listar') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
+
+  <div class="row mb-4">
+      <div class="col-md-4">
+          <div class="card border-0 shadow-sm bg-primary text-white">
+              <div class="card-body">
+                  <small class="text-uppercase opacity-75 fw-bold">Saldo Disponível Real</small>
+                  <h2 class="mb-0 fw-bold">{{ saldo_real }} un</h2>
+                  <small>Físico - Vendido</small>
+              </div>
+          </div>
+      </div>
+      
+      <div class="col-md-8">
+          {% if saldo_a_classificar > 0 %}
+          <div class="alert alert-warning border-warning h-100 d-flex align-items-center shadow-sm">
+              <div class="flex-grow-1">
+                  <i class="fas fa-cubes me-2 fs-4"></i>
+                  <span>Existem <strong>{{ saldo_a_classificar }} unidades</strong> a granel aguardando classificação.</span>
+              </div>
+              <button class="btn btn-warning fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalRegistrarEmb">
+                  <i class="fas fa-box-open me-2"></i> Criar Caixas
+              </button>
+          </div>
+          {% else %}
+          <div class="alert alert-success border-success h-100 d-flex align-items-center shadow-sm">
+              <i class="fas fa-check-circle me-2 fs-4"></i>
+              Todo o estoque está classificado em embalagens.
+          </div>
+          {% endif %}
+      </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+      <div class="card-header bg-white">
+        <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="hist-tab" data-bs-toggle="tab" data-bs-target="#hist-pane">Histórico de Movimentação</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="emb-tab" data-bs-toggle="tab" data-bs-target="#emb-pane">Embalagens (Físico)</button>
+            </li>
+        </ul>
+      </div>
+      
+      <div class="card-body p-0">
+        <div class="tab-content" id="myTabContent">
+            
+            <div class="tab-pane fade show active" id="hist-pane">
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle mb-0">
+                        <thead class="bg-light text-secondary small">
+                            <tr>
+                                <th class="ps-4">Data</th>
+                                <th>Operação</th>
+                                <th>Detalhes / Cliente / Fornecedor</th>
+                                <th>Documento (Link)</th>
+                                <th class="text-end pe-4">Qtd</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for h in historico %}
+                            <tr>
+                                <td class="ps-4 text-muted small">{{ h.data.strftime('%d/%m/%Y') if h.data else '-' }}</td>
+                                <td>
+                                    {% if h.tipo == 'entrada' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">COMPRA</span>
+                                    {% else %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">VENDA</span>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-bold text-dark">
+                                    {{ h.info or '-' }}
+                                </td>
+                                <td>
+                                    {% if h.tipo == 'entrada' %}
+                                        <a href="{{ url_for('compras_nf.view', nf_id=h.link_id) }}" class="btn btn-xs btn-outline-success border-0">
+                                            <i class="fas fa-file-invoice me-1"></i> NF {{ h.doc }}
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('vendas.editar_venda', venda_id=h.link_id) }}" class="btn btn-xs btn-outline-primary border-0">
+                                            <i class="fas fa-shopping-cart me-1"></i> Pedido #{{ h.doc }}
+                                        </a>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4 fw-bold {{ 'text-success' if h.tipo == 'entrada' else 'text-danger' }}">
+                                    {{ '+' if h.tipo == 'entrada' else '-' }} {{ h.qtd }}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center py-5 text-muted">Nenhum histórico registrado.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="emb-pane">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light text-secondary small">
+                            <tr>
+                                <th class="ps-4">Nº Embalagem</th>
+                                <th>Lote</th>
+                                <th>Qtd</th>
+                                <th>Entrada</th>
+                                <th class="text-end pe-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in embalagens %}
+                            {% if item.status == 'disponivel' %}
+                            <tr>
+                                <td class="ps-4 font-monospace fw-bold text-primary">{{ item.numero_embalagem }}</td>
+                                <td>{{ item.lote or '-' }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ item.quantidade }}</span></td>
+                                <td class="text-muted small">{{ item.data_entrada.strftime('%d/%m/%Y') }}</td>
+                                <td class="text-end pe-4">
+                                    <form action="{{ url_for('estoque.municoes_excluir', item_id=item.id) }}" method="POST" onsubmit="return confirm('Excluir esta embalagem?');" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% else %}
+                            <tr><td colspan="5" class="text-center py-5 text-muted">Nenhuma embalagem avulsa classificada.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+      </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalRegistrarEmb" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <form id="formRegistrar" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="fas fa-boxes me-2"></i>Registrar Embalagens (Em Lote)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="produto_id" value="{{ produto.id }}">
+        
+        <div class="alert alert-secondary small mb-3">
+            Saldo solto a classificar: <strong id="maxSaldoDisplay">{{ saldo_a_classificar }}</strong> unidades.
+        </div>
+
+        <div class="row g-3 border-bottom pb-4 mb-4">
+            <div class="col-md-12">
+                <label class="form-label fw-bold">Lote de Fabricação (Único para todas as caixas)</label>
+                <input type="text" name="lote" id="loteGeral" class="form-control" placeholder="Ex: LOTE-ABC-001" required>
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Qtd. POR Embalagem</label>
+                <input type="number" id="qtdPorCaixa" class="form-control" value="50" min="1" required>
+                <div class="form-text">Quantas unidades há em cada caixa? (Ex: 10, 50)</div>
+            </div>
+             <div class="col-md-6">
+                <label class="form-label fw-bold">Qtd. DE Caixas</label>
+                <input type="number" id="qtdCaixas" class="form-control" value="1" min="1" required>
+                <div class="form-text">Total de caixas que você irá registrar.</div>
+            </div>
+
+            <div class="col-12">
+                 <div class="alert alert-info d-flex justify-content-between align-items-center">
+                    <span>Total a Consumir:</span>
+                    <strong id="totalConsumir" class="fs-5">0</strong>
+                </div>
+            </div>
+        </div>
+
+        <div id="packaging-grid" class="mt-3">
+            <h6 class="text-muted small mb-3">Nº Embalagem (Bipar/Digitar):</h6>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped align-middle small">
+                    <thead class="bg-light sticky-top">
+                        <tr>
+                            <th style="width: 10%;">#</th>
+                            <th style="width: 70%;">Nº Embalagem (Bipar/Digitar)</th>
+                            <th style="width: 20%;" class="text-end">Qtd</th>
+                        </tr>
+                    </thead>
+                    <tbody id="packagingInputsBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnSalvarEmb">Confirmar e Gerar Caixas</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // VARIÁVEIS DO MODAL
+    const form = document.getElementById('formRegistrar');
+    const modal = document.getElementById('modalRegistrarEmb');
+    const inPorCx = document.getElementById('qtdPorCaixa');
+    const inQtdCx = document.getElementById('qtdCaixas');
+    const outTotal = document.getElementById('totalConsumir');
+    const btnSalvar = document.getElementById('btnSalvarEmb');
+    const maxSaldoDisplay = document.getElementById('maxSaldoDisplay');
+    const maxSaldo = parseInt(maxSaldoDisplay.textContent);
+    const inputBody = document.getElementById('packagingInputsBody');
+    const loteGeral = document.getElementById('loteGeral');
+
+    // RENDERIZAÇÃO DA GRADE
+    function renderInputs(numBoxes, qtdUnit) {
+        let html = '';
+        
+        for (let i = 0; i < numBoxes; i++) {
+            html += `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td><input type="text" class="form-control form-control-sm embalagem-input" placeholder="Nº Embalagem" required></td>
+                    <td class="text-end">${qtdUnit}</td>
+                </tr>
+            `;
+        }
+        inputBody.innerHTML = html;
+    }
+
+    // CÁLCULO E VALIDAÇÃO
+    function calcAndRender() {
+        const porCx = parseInt(inPorCx.value) || 0;
+        const qtdCx = parseInt(inQtdCx.value) || 0;
+        const total = porCx * qtdCx;
+        
+        outTotal.textContent = total;
+        
+        if (total > maxSaldo || total <= 0) {
+            btnSalvar.disabled = true;
+            outTotal.classList.add('text-danger');
+            btnSalvar.textContent = "Saldo Insuficiente";
+        } else {
+            outTotal.classList.remove('text-danger');
+            btnSalvar.disabled = false;
+            btnSalvar.textContent = `Confirmar Criação (${total} un)`;
+        }
+        
+        // Dispara a renderização do grid com os valores calculados
+        renderInputs(qtdCx, porCx);
+    }
+
+    // LISTENERS
+    inPorCx.addEventListener('input', calcAndRender);
+    inQtdCx.addEventListener('input', calcAndRender);
+    
+    // Inicialização ao abrir o modal
+    modal.addEventListener('show.bs.modal', () => {
+        // Redefine valores de entrada
+        inPorCx.value = 10;
+        inQtdCx.value = 1;
+        calcAndRender(); 
+    });
+
+
+    // SUBMISSÃO EM MASSA (AJAX)
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if(btnSalvar.disabled) return;
+        
+        // 1. Coleta os dados dinâmicos da grade
+        const produtoId = form.querySelector('input[name="produto_id"]').value;
+        const lote = loteGeral.value.trim();
+        
+        const packagesData = [];
+        document.querySelectorAll('#packagingInputsBody tr').forEach(tr => {
+            const qtdUnit = parseInt(tr.querySelector('td:last-child').textContent) || 0;
+            const embalagem = tr.querySelector('.embalagem-input').value.trim();
+            
+            packagesData.push({
+                embalagem: embalagem,
+                lote: lote, 
+                quantidade: qtdUnit 
+            });
+        });
+        
+        // Validação final de campos vazios
+        if(lote.length < 2) {
+             alert("⚠️ Por favor, preencha o Lote de Fabricação.");
+             return;
+        }
+        if(packagesData.some(p => !p.embalagem)) {
+             alert("⚠️ Por favor, preencha o Nº da Embalagem para todas as caixas.");
+             return;
+        }
+
+        const payload = {
+            produto_id: produtoId,
+            packages: packagesData 
+        };
+
+        btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
+
+        try {
+            const resp = await fetch("{{ url_for('estoque.municoes_registrar_embalagem') }}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            
+            const res = await resp.json();
+            if(res.success) {
+                // Sucesso: Fecha o modal e recarrega
+                bootstrap.Modal.getInstance(modal).hide();
+                window.location.reload(); 
+            } else {
+                alert("Erro: " + res.message);
+                btnSalvar.disabled = false;
+                btnSalvar.textContent = "Confirmar Criação";
+            }
+        } catch(err) {
+            console.error(err);
+            alert("Erro de comunicação.");
+            btnSalvar.disabled = false;
+            btnSalvar.textContent = "Confirmar Criação";
+        }
+    });
+    
+    // Dispara cálculo inicial (para quando o modal abrir)
+    document.addEventListener('DOMContentLoaded', calcAndRender);
+});
+</script>
+{% endblock %}

@@ -1,5 +1,5 @@
 // ===========================================================
-// MÓDULO: PRODUTOS_FORM.JS — Com Suporte a Promoção
+// MÓDULO: PRODUTOS_FORM.JS — Com Suporte a Promoção (Versão Corrigida - Módulo)
 // ===========================================================
 
 (() => {
@@ -7,6 +7,9 @@
 
   const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
   const el = (id) => document.getElementById(id);
+  
+  // Variáveis globais dentro do módulo para as instâncias do AutoNumeric
+  let anFornecedor, anLucroAlvo, anPrecoFinal, anFrete, anIPI, anPromoPreco;
   
   // Helper: Lê número "limpo" de inputs (remove pontos e virgulas)
   const num = (id) => {
@@ -30,73 +33,116 @@
     return Number.isFinite(id) && id > 0 ? id : null;
   }
 
-  let anFornecedor, anLucroAlvo, anPrecoFinal, anFrete, anIPI, anPromoPreco;
+  // ============================================================
+  // FOTO: Lógica para seleção, preview e upload (CORREÇÃO DA PERSISTÊNCIA)
+  // ============================================================
+  
+  // Função que faz o upload via API Flask (que por sua vez usa o R2)
+  async function uploadFoto(file, fotoProdutoOverlay, inputFotoUrl, btnRemoverFoto, fotoProdutoPreview, defaultPlaceholder, inputFotoProduto) {
+    const produtoId = getProdutoId() || 'novo';
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('produto_id', produtoId); // Para o servidor organizar o R2
 
-  // =========================================
-  // Inicialização de Máscaras e Eventos
-  // =========================================
-  document.addEventListener("DOMContentLoaded", () => {
-    if (typeof AutoNumeric === "undefined") {
-      console.warn("[M4] AutoNumeric não encontrado. Máscaras desativadas.");
-      return;
+    if (fotoProdutoOverlay) fotoProdutoOverlay.classList.remove("d-none"); // Mostra o spinner
+
+    try {
+      // Endpoint que deve estar implementado no Flask (ex: app/produtos/routes/fotos.py)
+      const response = await fetch('/produtos/api/upload_foto', { 
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro no servidor: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.foto_url) {
+        inputFotoUrl.value = data.foto_url; // <--- CHAVE PARA A PERSISTÊNCIA: Atualiza o campo que será enviado ao salvar.
+        console.log(`[M4] Foto carregada e URL atualizada: ${data.foto_url}`);
+        if (btnRemoverFoto) btnRemoverFoto.classList.remove("d-none");
+        
+      } else {
+        throw new Error(data.message || "Falha ao receber a URL da foto. Tente novamente.");
+      }
+
+    } catch (error) {
+      console.error("[M4] Erro no upload da foto:", error);
+      // Reverte o preview para o placeholder e limpa os campos em caso de falha no upload
+      fotoProdutoPreview.src = defaultPlaceholder;
+      if(inputFotoUrl) inputFotoUrl.value = "";
+      if(inputFotoProduto) inputFotoProduto.value = null;
+      alert("Falha ao enviar a foto. Por favor, tente novamente.");
+
+    } finally {
+      if (fotoProdutoOverlay) fotoProdutoOverlay.classList.add("d-none"); // Esconde o spinner
     }
+  }
 
-    const baseOpts = {
-      digitGroupSeparator: ".",
-      decimalCharacter: ",",
-      decimalPlaces: 2,
-      currencySymbolPlacement: "p",
-      unformatOnSubmit: true,
-      emptyInputBehavior: "zero",
-      modifyValueOnWheel: false,
-    };
-    const brlOpts = { ...baseOpts, currencySymbol: "R$ " };
-    const percOpts = { ...baseOpts, suffixText: " %", currencySymbol: "" };
+  function initFotoProduto() {
+      const btnSelecionarFoto = el("btnSelecionarFoto");
+      const inputFotoProduto = el("inputFotoProduto");
+      const btnRemoverFoto = el("btnRemoverFoto");
+      const fotoProdutoPreview = el("fotoProdutoPreview");
+      const inputFotoUrl = el("inputFotoUrl");
+      const fotoProdutoOverlay = el("fotoProdutoOverlay");
 
-    // Helper Factory
-    const initMoney = (selector) => {
-      const element = document.querySelector(selector);
-      if (!element) return null;
-      const an = new AutoNumeric(selector, brlOpts);
-      if (element.value && element.value.trim() !== "") {
-          an.set(element.value);
+      // Se os elementos chave não existirem, encerra a função
+      if (!btnSelecionarFoto || !inputFotoProduto || !fotoProdutoPreview) return;
+      
+      const defaultPlaceholder = fotoProdutoPreview.src;
+
+      const container = document.getElementById("fotoProdutoContainer");
+      if (container && container.dataset.bound === "1") return;
+      if (container) container.dataset.bound = "1";
+
+      // 1. Lógica para selecionar o arquivo: Clica no input file escondido
+      btnSelecionarFoto.addEventListener("click", (e) => {
+        e.preventDefault();
+        inputFotoProduto.click();
+      });
+
+      // 2. Lógica para preview da imagem e iniciar upload
+      inputFotoProduto.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          // Preview imediato (sem persistência)
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            fotoProdutoPreview.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+
+          // Inicia o upload assíncrono para o R2/Proxy e salva a URL final
+          uploadFoto(file, fotoProdutoOverlay, inputFotoUrl, btnRemoverFoto, fotoProdutoPreview, defaultPlaceholder, inputFotoProduto);
+          
+        } else {
+          // Arquivo deselecionado (cancelado)
+          if(inputFotoUrl.value === "") { // Só limpa o preview se não houver URL persistida
+              fotoProdutoPreview.src = defaultPlaceholder;
+              if (btnRemoverFoto) btnRemoverFoto.classList.add("d-none");
+          }
+        }
+      });
+      
+      // 3. Lógica do botão remover
+      if (btnRemoverFoto) {
+        btnRemoverFoto.addEventListener("click", () => {
+          fotoProdutoPreview.src = defaultPlaceholder;
+          if(inputFotoUrl) inputFotoUrl.value = ""; // Limpa a URL para persistência
+          btnRemoverFoto.classList.add("d-none");
+          inputFotoProduto.value = null; // Limpa o input file
+          // NOTA: Para remover a foto do R2, uma chamada adicional ao backend seria necessária aqui.
+        });
       }
-      return an;
-    };
+      console.info("[M4] Inicialização da Foto OK. ✅");
+  }
 
-    // Inicializa campos principais (Restaurando IDs originais)
-    anFornecedor = initMoney("#in_preco_fornecedor");
-    anLucroAlvo  = initMoney("#in_lucro_alvo");
-    anPrecoFinal = initMoney("#in_preco_final");
-    anFrete      = initMoney("#in_frete");
-    
-    // Novo campo de Promoção
-    anPromoPreco = initMoney("#in_promo_preco");
-
-    // Campos percentuais simples
-    ["in_margem", "in_difal", "in_imposto_venda", "in_desconto"].forEach((id) => {
-      const $i = el(id);
-      if ($i) {
-        try { $i.setAttribute("type", "text"); } catch (_) {} 
-        new AutoNumeric(`#${id}`, percOpts);
-      }
-    });
-
-    // Inicializa IPI (Dinâmico)
-    initIpiMask(false);
-    
-    // Altura das abas
-    corrigirAlturaAbas();
-
-    // Dispara cálculo inicial
-    setTimeout(() => {
-      recalcular();
-      console.info("[M4] Recalcular inicial OK.");
-    }, 800);
-  });
 
   // ============================================================
-  // Máscara dinâmica do IPI
+  // Máscara dinâmica do IPI (Manutenção da Lógica)
   // ============================================================
   const ipiInput = document.getElementById("in_ipi");
   const ipiTipoSelect = document.getElementById("in_ipi_tipo");
@@ -135,13 +181,91 @@
     anIPI.set(valorAtual);
     ipiInput.dataset.maskType = tipoNovo;
   }
-
+  
+  // Listener para IPI Tipo
   if (ipiTipoSelect) {
       ipiTipoSelect.addEventListener("change", () => {
         initIpiMask(true); 
         recalcular();
       });
   }
+
+  // ============================================================
+  // INICIALIZAÇÃO DE MÁSCARAS (Função unificada para init e reinit)
+  // ============================================================
+  function initMasks() {
+    if (typeof AutoNumeric === "undefined") {
+      console.warn("[M4] AutoNumeric não encontrado. Máscaras desativadas.");
+      return;
+    }
+    
+    // Remove instâncias AutoNumeric existentes antes de recriar
+    const elementsToRemove = document.querySelectorAll('.autonumeric-managed');
+    elementsToRemove.forEach(el => {
+        if (AutoNumeric.isManagedByAutoNumeric(el)) {
+            try { AutoNumeric.getAutoNumericElement(el).remove(); } catch (e) { /* silent fail */ }
+        }
+    });
+
+    const baseOpts = {
+      digitGroupSeparator: ".",
+      decimalCharacter: ",",
+      decimalPlaces: 2,
+      currencySymbolPlacement: "p",
+      unformatOnSubmit: true,
+      emptyInputBehavior: "zero",
+      modifyValueOnWheel: false,
+    };
+    const brlOpts = { ...baseOpts, currencySymbol: "R$ " };
+    const percOpts = { ...baseOpts, suffixText: " %", currencySymbol: "" };
+
+    // Helper Factory
+    const createMoney = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      element.classList.add('autonumeric-managed');
+      const an = new AutoNumeric(selector, brlOpts);
+      if (element.value && element.value.trim() !== "") {
+          an.set(element.value);
+      }
+      return an;
+    };
+
+    // Inicializa campos principais (Restaurando IDs originais)
+    anFornecedor = createMoney("#in_preco_fornecedor");
+    anLucroAlvo  = createMoney("#in_lucro_alvo");
+    anPrecoFinal = createMoney("#in_preco_final");
+    anFrete      = createMoney("#in_frete");
+    anPromoPreco = createMoney("#in_promo_preco");
+
+    // Campos percentuais simples
+    ["in_margem", "in_difal", "in_imposto_venda", "in_desconto"].forEach((id) => {
+      const selector = `#${id}`;
+      const $i = el(id);
+      if ($i) {
+        try { 
+            $i.setAttribute("type", "text"); 
+            $i.classList.add('autonumeric-managed');
+            new AutoNumeric(selector, percOpts);
+        } catch (_) {} 
+      }
+    });
+
+    // Inicializa IPI (Dinâmico)
+    initIpiMask(false);
+    
+    // Listeners para AutoNumeric
+    document.removeEventListener("autoNumeric:rawValueModified", recalcularListener);
+    document.addEventListener("autoNumeric:rawValueModified", recalcularListener);
+  }
+
+  // Listener principal do AutoNumeric, para evitar duplicação de eventos
+  function recalcularListener(e) {
+    if (["in_preco_fornecedor", "in_lucro_alvo", "in_preco_final", "in_frete", "in_ipi", "in_promo_preco"].includes(e.target.id)) {
+      recalcular();
+    }
+  }
+
 
   // =========================================
   // LÓGICA FINANCEIRA (Com Promoção)
@@ -156,15 +280,12 @@
       const dataInicio = el("in_promo_inicio")?.value;
       const dataFim = el("in_promo_fim")?.value;
 
-      // Lógica JS simples para data (opcional, para visualização imediata)
-      // O backend é a fonte da verdade, mas aqui damos feedback visual
       let usandoPromo = false;
       if (promoAtiva && promoPreco > 0) {
           const agora = new Date();
           const dtIni = dataInicio ? new Date(dataInicio) : null;
           const dtFim = dataFim ? new Date(dataFim) : null;
           
-          // Se tiver datas, verifica intervalo. Se não tiver datas mas estiver ativado, assume ativo.
           if ((!dtIni || agora >= dtIni) && (!dtFim || agora <= dtFim)) {
               precoBase = promoPreco;
               usandoPromo = true;
@@ -173,13 +294,14 @@
 
       // Feedback visual no campo de fornecedor
       const lblFornecedor = el("in_preco_fornecedor");
+      const promoPrecoEl = el("in_promo_preco");
       if(lblFornecedor) {
           if(usandoPromo) {
               lblFornecedor.classList.add("text-decoration-line-through", "text-muted");
-              el("in_promo_preco").classList.add("border-success", "text-success", "fw-bold");
+              if(promoPrecoEl) promoPrecoEl.classList.add("border-success", "text-success", "fw-bold");
           } else {
               lblFornecedor.classList.remove("text-decoration-line-through", "text-muted");
-              el("in_promo_preco")?.classList.remove("border-success", "text-success", "fw-bold");
+              if(promoPrecoEl) promoPrecoEl.classList.remove("border-success", "text-success", "fw-bold");
           }
       }
 
@@ -271,51 +393,68 @@
   }
 
   // =========================================
-  // Listeners
+  // Listeners para campos não-AutoNumeric
   // =========================================
   const debounce = (fn, delay = 200) => {
     let timer;
     return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
   };
 
-  // Inputs que disparam recalculo
-  const idsTriggers = [
-      "in_desconto", "in_margem", "in_imposto_venda", "in_difal", "in_ipi", "in_ipi_tipo",
-      "in_promo_ativada", "in_promo_inicio", "in_promo_fim" // Novos triggers de promo
-  ];
+  function setupStaticListeners() {
+    // Inputs que disparam recalculo (além dos de AutoNumeric)
+    const idsTriggers = [
+        "in_desconto", "in_margem", "in_imposto_venda", "in_difal", "in_ipi", 
+        "in_promo_ativada", "in_promo_inicio", "in_promo_fim" 
+    ];
 
-  idsTriggers.forEach((id) => {
-    const input = el(id);
-    if (input) input.addEventListener("input", debounce(recalcular, 300));
-    if (input && input.type === 'checkbox') input.addEventListener("change", recalcular);
-  });
-
-  document.addEventListener("autoNumeric:rawValueModified", (e) => {
-    // Adicionado in_promo_preco na lista
-    if (["in_preco_fornecedor", "in_lucro_alvo", "in_preco_final", "in_frete", "in_ipi", "in_promo_preco"].includes(e.target.id)) {
-      recalcular();
-    }
-  });
+    idsTriggers.forEach((id) => {
+      const input = el(id);
+      if (input) input.addEventListener("input", debounce(recalcular, 300));
+      if (input && input.type === 'checkbox') input.addEventListener("change", recalcular);
+    });
+  }
 
   function corrigirAlturaAbas() {
     const tabs = document.querySelectorAll("#produtoTabs .nav-link");
     tabs.forEach(t => t.style.minWidth = "100px");
   }
 
-  // Torna funções globais
-  window.recalcularProduto = recalcular;
+  // =========================================
+  // EXPORTAÇÃO DO MÓDULO (Para atender a produto_form.html)
+  // =========================================
+  const ProdutosForm = {
+    // Método principal chamado em window.load
+    init: function() {
+      // 1. Inicializa a lógica de foto (CORREÇÃO)
+      initFotoProduto(); 
 
-  // =========================================
-  // FOTO (Mantido do original)
-  // =========================================
-  function initFotoProduto() {
-      // ... (código de foto mantido igual) ...
-      // Omitido aqui para brevidade, mas deve ser mantido no arquivo final
-      const container = document.getElementById("fotoProdutoContainer");
-      if (container && container.dataset.bound === "1") return;
-      if (container) container.dataset.bound = "1";
-      // ... lógica de upload ...
-  }
-  window.initFotoProduto = initFotoProduto;
+      // 2. Inicializa as máscaras e listeners do AutoNumeric
+      initMasks(); 
+
+      // 3. Configura listeners para campos estáticos
+      setupStaticListeners();
+      
+      // 4. Corrige altura das abas
+      corrigirAlturaAbas();
+      
+      // 5. Dispara cálculo inicial com delay
+      setTimeout(() => {
+        recalcular();
+        console.info("[M4] Inicialização Completa e Recalcular inicial OK.");
+      }, 800);
+    },
+    
+    // Método chamado ao trocar de aba (para re-aplicar máscaras se necessário)
+    reinitMasks: initMasks,
+
+    // Método chamado ao trocar de aba (para recalcular resumo)
+    refreshResumo: recalcular,
+  };
+  
+  // EXPÕE O MÓDULO GLOBALMENTE
+  window.ProdutosForm = ProdutosForm; 
+
+  // Exposição legada (mantida por segurança)
+  window.recalcularProduto = recalcular;
 
 })();
