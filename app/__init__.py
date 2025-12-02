@@ -7,7 +7,7 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
-import pytz  # ✅ para fuso horário
+import pytz # ✅ para fuso horário
 
 # Importa extensões centralizadas
 from app.extensions import db, login_manager, migrate
@@ -113,6 +113,7 @@ def create_app():
     from app.admin import admin_bp
     from app.clientes.routes import clientes_bp
     from app.vendas import vendas_bp
+    from app.vendas.routes.sales_core import sales_core # IMPORTADO
     from app.produtos import produtos_bp
     from app.produtos.configs.routes import configs_bp
     from app.produtos.categorias.routes import categorias_bp
@@ -131,7 +132,13 @@ def create_app():
     app.register_blueprint(produtos_bp)
     app.register_blueprint(estoque_bp)
     app.register_blueprint(configs_bp)
+    
+    # 🚨 AJUSTE AQUI: Registra o Blueprint original de vendas (contém a lista e detalhe)
     app.register_blueprint(vendas_bp, url_prefix="/vendas")
+    # 🚨 NOVO REGISTRO: Registra o Blueprint de core de vendas (PDV e novas APIs)
+    # Ele usará o mesmo prefixo, e o Flask priorizará as rotas mais específicas.
+    app.register_blueprint(sales_core, url_prefix="/vendas") 
+    
     app.register_blueprint(categorias_bp)
     app.register_blueprint(taxas_bp)
     app.register_blueprint(pedidos_bp, url_prefix="/pedidos")

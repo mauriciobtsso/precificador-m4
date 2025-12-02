@@ -4,7 +4,7 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-             <h2 class="h4 text-dark mb-0"><i class="fas fa-cash-register me-2 text-primary"></i>Nova Venda</h2>
+             <h2 class="h4 text-dark mb-0"><i class="fas fa-cash-register me-2 text-primary"></i>{% if edicao %}Editar Venda #{{ venda.id }}{% else %}Nova Venda{% endif %}</h2>
              <p class="text-muted small mb-0">Lançamento de pedido e reserva de estoque</p>
         </div>
         <a href="{{ url_for('vendas.vendas') }}" class="btn btn-outline-secondary btn-sm">
@@ -22,19 +22,19 @@
                     </div>
                     <div class="card-body pt-0">
                         
-                        <div id="area_busca_cliente" class="position-relative mb-0">
+                        <div id="area_busca_cliente" class="position-relative mb-0" style="{% if edicao and venda.cliente_id %}display:none !important{% endif %}">
                              <div class="input-group input-group-lg">
                                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
                                 <input type="text" id="busca_cliente" class="form-control border-start-0 bg-light" placeholder="Pesquisar cliente por Nome, CPF ou CNPJ..." autocomplete="off">
                                 <button class="btn btn-primary" type="button" id="btnNovoCliente"><i class="fas fa-plus me-1"></i> Novo</button>
                             </div>
-                            <div id="lista_clientes" class="list-group position-absolute w-100 shadow-lg" style="z-index: 1050; display:none; top: 100%;"></div>
+                            <div id="lista_clientes" class="list-group position-absolute w-100 shadow-lg" style="z-index: 9999; display:none; top: 100%;"></div>
                             <input type="hidden" name="cliente_id" id="cliente_id">
                             <input type="hidden" id="cliente_doc">
                             <input type="hidden" id="cliente_cr">
                         </div>
 
-                        <div id="info_cliente_selecionado" class="alert alert-primary d-flex align-items-center p-3 mb-0 shadow-sm" style="display:none !important;">
+                        <div id="info_cliente_selecionado" class="alert alert-primary d-flex align-items-center p-3 mb-0 shadow-sm" style="{% if not edicao or not venda.cliente_id %}display:none !important{% endif %}">
                             <div class="rounded-circle bg-white text-primary p-2 me-3">
                                 <i class="fas fa-user fa-lg"></i>
                             </div>
@@ -68,56 +68,62 @@
                             <input type="hidden" id="temp_produto_id">
                         </div>
 
-                        <div class="row g-3 align-items-end mb-3 bg-light p-3 rounded-3 border mx-0">
-                            
+                        <div class="row g-3 align-items-end mb-3 p-3 rounded-3 border mx-0 bg-white shadow-sm">
                             <div class="col-md-5">
-                                <div id="placeholder_selecao">
-                                    <label class="form-label small fw-bold text-muted">Detalhes</label>
-                                    <input type="text" class="form-control bg-white" disabled placeholder="Selecione um produto...">
+                                <label class="form-label small text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Produto Selecionado / Rastreio</label>
+                                
+                                <div id="placeholder_selecao" class="text-muted small border-bottom pb-2">
+                                    <span class="fw-bold">Selecione um produto acima...</span>
                                 </div>
 
                                 <div id="div_serial_wrapper" style="display:none;">
-                                    <label class="form-label small fw-bold text-dark">Serial / Estoque</label>
-                                    <select id="temp_serial_id" class="form-select bg-white">
-                                        <option value="">Selecione...</option>
-                                    </select>
+                                    <label class="form-label small fw-bold text-dark mb-1">Serial / Nº Estoque</label>
+                                    <select id="temp_serial_id" class="form-select form-select-sm bg-white"></select>
+                                    <small class="form-text text-muted">Apenas para itens em pronta entrega.</small>
                                 </div>
 
-                                <div id="div_municao_wrapper" style="display:none;">
+                                <div id="div_municao_wrapper" style="display:none;" class="mt-2">
                                     <div class="mb-2">
-                                         <label class="form-label small fw-bold text-primary"><i class="fas fa-barcode me-1"></i>Lote / Scanner</label>
+                                         <label class="form-label small fw-bold text-primary mb-1"><i class="fas fa-barcode me-1"></i>Lote (Scanner)</label>
                                          <div class="input-group input-group-sm">
-                                            <input type="text" id="scan_lote" class="form-control border-primary" placeholder="Bipe a caixa aqui...">
+                                            <input type="text" id="scan_lote" class="form-control" placeholder="Bipe a caixa aqui..." aria-describedby="feedback_lote">
                                             <input type="hidden" id="temp_lote_estoque_id">
                                          </div>
                                          <div id="feedback_lote" class="form-text text-primary lh-1 mt-1" style="font-size: 0.75rem;"></div>
                                     </div>
                                     <div>
-                                        <label class="form-label small fw-bold text-danger">Vincular CRAF</label>
-                                        <select id="temp_craf_id" class="form-select form-select-sm border-danger bg-white"></select>
+                                        <label class="form-label small fw-bold text-danger mb-1">Vincular CRAF</label>
+                                        <select id="temp_craf_id" class="form-select form-select-sm bg-white"></select>
                                     </div>
+                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 mt-1" onclick="abrirModalNovaArma()">
+                                        <i class="fas fa-plus me-1"></i> Cadastrar Arma Rápida
+                                    </button>
                                 </div>
                             </div>
-
-                            <div class="col-md-2">
-                                <label class="form-label small fw-bold">Qtd</label>
-                                <input type="number" id="temp_quantidade" class="form-control text-center" value="1" min="1">
+                            
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold text-dark text-uppercase mb-1">Detalhes da Quantidade e Preço</label>
+                                <div class="row g-2">
+                                    <div class="col-5">
+                                        <label class="form-label small fw-bold">Qtd</label>
+                                        <input type="number" id="temp_quantidade" class="form-control text-center" value="1" min="1">
+                                    </div>
+                                    <div class="col-7">
+                                        <label class="form-label small fw-bold">Valor Unit. (R$)</label>
+                                        <input type="number" id="temp_preco" class="form-control text-end" step="0.01">
+                                    </div>
+                                </div>
+                                 <div id="info_estoque" class="form-text text-end mt-2 fst-italic"></div>
                             </div>
 
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold">Valor Unit. (R$)</label>
-                                <input type="number" id="temp_preco" class="form-control text-end" step="0.01">
-                            </div>
-
                             <div class="col-md-2">
-                                <button type="button" id="btnAdicionarItem" class="btn btn-success w-100 h-100 d-flex align-items-center justify-content-center shadow-sm">
-                                    <i class="fas fa-plus me-2"></i> Incluir
+                                <button type="button" id="btnAdicionarItem" class="btn btn-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center shadow-sm py-3" title="Adicionar ao Carrinho">
+                                    <i class="fas fa-cart-plus fa-lg mb-1"></i>
+                                    <span class="small fw-bold">Incluir</span>
                                 </button>
                             </div>
                         </div>
                         
-                        <div id="info_estoque" class="form-text text-end mb-2 fst-italic"></div>
-
                         <div class="table-responsive rounded-3 border">
                             <table class="table table-hover mb-0 align-middle" id="tabelaItens">
                                 <thead class="table-light text-secondary small text-uppercase">
@@ -240,6 +246,10 @@
     </div>
   </div>
 </div>
+
+<script>
+    const VENDA_INICIAL_DATA = {{ venda_json | tojson if edicao else 'null' }};
+</script>
 
 <script src="{{ url_for('static', filename='js/venda_form.js') }}"></script>
 {% endblock %}

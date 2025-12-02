@@ -82,14 +82,24 @@ class VendaService:
                     tem_municao = True
                     
                     # Exige vínculo com CRAF (Arma do Cliente)
-                    # O front-end deve mandar 'arma_cliente_id' se for munição
                     craf_id = item.get('arma_cliente_id') # ID da tabela 'armas' (Cliente)
                     
                     if craf_id:
                         novo_item.arma_cliente_id = craf_id
-                    else:
-                        # Se não mandou CRAF, permitimos passar mas marcamos observação (ou bloqueamos)
-                        pass
+                    
+                    # NOVO: Tratar o item_estoque_id para munição (Lote/Embalagem) (CORREÇÃO #1)
+                    item_estoque_id = item.get('item_estoque_id')
+                    if item_estoque_id:
+                        item_fisico = ItemEstoque.query.get(item_estoque_id)
+                        if not item_fisico or item_fisico.status != 'disponivel':
+                            # Bloqueio de segurança
+                            raise ValueError(f"O lote/embalagem de munição ID:{item_estoque_id} não está disponível!")
+                        
+                        # Vincula e Reserva o lote/embalagem (CORREÇÃO #1)
+                        # O item de estoque (lote/embalagem) é marcado como 'reservado'
+                        novo_item.item_estoque_id = item_estoque_id
+                        item_fisico.status = 'reservado' 
+                        item_fisico.observacoes = f"Reservado Venda Munição #{nova_venda.id} - Lote: {item_fisico.lote or item_fisico.numero_embalagem}"
 
                 db.session.add(novo_item)
 
@@ -130,7 +140,7 @@ class VendaService:
 
         try:
             for item in venda.itens:
-                # Se tinha arma reservada do estoque, libera ela
+                # Se tinha arma/municao reservada do estoque, libera ela
                 if item.item_estoque_id:
                     estoque = ItemEstoque.query.get(item.item_estoque_id)
                     if estoque:

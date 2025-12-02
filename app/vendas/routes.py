@@ -17,7 +17,7 @@ from app.models import ModeloDocumento
 from app.utils.r2_helpers import upload_file_to_r2
 
 # ===============================================================
-#  TELAS (HTML)
+# TELAS (HTML)
 # ===============================================================
 
 @vendas_bp.route("/", methods=["GET", "POST"])
@@ -111,8 +111,64 @@ def venda_detalhe(venda_id):
 @login_required
 def editar_venda(venda_id):
     venda = Venda.query.get_or_404(venda_id)
-    # Lógica futura para editar itens
-    return render_template("vendas/form.html", venda=venda, edicao=True)
+    cliente = Cliente.query.get(venda.cliente_id) if venda.cliente_id else None
+    itens = ItemVenda.query.filter_by(venda_id=venda.id).all() # Carrega os itens
+
+    if request.method == "POST":
+        # Lógica futura para editar itens
+        pass
+
+    # Lógica GET para popular o formulário 
+    itens_data = []
+    for i in itens:
+        detalhe_html = '<span class="text-muted small">Item de Varejo</span>'
+        
+        # Para itens de estoque rastreados
+        if i.item_estoque:
+            # Lógica para gerar o detalhe_html com base no ItemEstoque (Serial/Lote)
+            if i.item_estoque.numero_serie:
+                detalhe_html = f'<span class="badge bg-dark"><i class="fas fa-fingerprint"></i> Serial: {i.item_estoque.numero_serie}</span>'
+            elif i.item_estoque.lote or i.item_estoque.numero_embalagem:
+                detalhe_html = f'<span class="badge bg-info text-dark"><i class="fas fa-box"></i> Lote: {i.item_estoque.lote or i.item_estoque.numero_embalagem}</span>'
+
+        # Para munição vinculada a CRAF
+        if i.arma_cliente:
+            craf_texto = f"{i.arma_cliente.tipo} {i.arma_cliente.calibre} ({i.arma_cliente.numero_serie or 'S/N'})"
+            detalhe_html += f'<div class="mt-1 small text-primary"><i class="fas fa-id-card"></i> Ref: {craf_texto}</div>'
+
+        # Para armas sob encomenda (Heurística: Produto tipo arma sem item_estoque_id)
+        if not i.item_estoque_id and i.produto and 'arma' in (i.produto.tipo_rel.nome if i.produto.tipo_rel else '').lower():
+            detalhe_html = '<span class="badge bg-warning text-dark">Sob Encomenda</span>'
+        
+        itens_data.append({
+            'produto_id': i.produto_id,
+            'nome': i.produto_nome,
+            'preco': float(i.valor_unitario),
+            'quantidade': i.quantidade,
+            'item_estoque_id': i.item_estoque_id,
+            'arma_cliente_id': i.arma_cliente_id,
+            'detalhe_html': detalhe_html # Usado no frontend para exibir na tabela
+        })
+
+    venda_data = {
+        'id': venda.id,
+        'cliente': {
+            'id': cliente.id, 
+            # CORREÇÃO DO BUG: Usar getattr com fallback para evitar AttributeError
+            'nome': getattr(cliente, 'razao_social', cliente.nome) or cliente.nome,
+            'documento': cliente.documento, 
+            'cr': cliente.cr
+        } if cliente else None,
+        'desconto': float(venda.desconto_valor) if venda.desconto_valor else 0.0,
+        'itens': itens_data
+    }
+    
+    return render_template(
+        "vendas/form.html",
+        venda=venda,
+        edicao=True,
+        venda_json=venda_data # Passa os dados serializados para o JS
+    )
 
 
 @vendas_bp.route("/<int:venda_id>/excluir", methods=["POST"])
@@ -133,19 +189,14 @@ def excluir_venda(venda_id):
 @vendas_bp.route("/nova", methods=["GET", "POST"])
 @login_required
 def nova_venda():
-    if request.method == "POST":
-        dados = request.get_json()
-        try:
-            venda = VendaService.criar_venda(dados, current_user)
-            return jsonify({"success": True, "venda_id": venda.id})
-        except Exception as e:
-            return jsonify({"success": False, "error": str(e)}), 400
-            
-    return render_template("vendas/form.html")
+    """Rota principal de Nova Venda. REDIRECIONA para o Novo PDV (Ação 12)."""
+    flash("Você foi redirecionado para a Nova Tela de Vendas (PDV).", "info")
+    # Redirecionamento 301 (Permanente) para a rota no novo Blueprint
+    return redirect(url_for("sales_core.novo_pdv"), code=301)
 
 
 # ===============================================================
-#  APIs INTERNAS (JSON) - Usadas pelo JavaScript do Formulário
+# APIs INTERNAS (JSON) - Antigas (Devem ser descontinuadas ou migradas)
 # ===============================================================
 
 @vendas_bp.route("/api/clientes")
@@ -157,9 +208,10 @@ def api_buscar_clientes():
         (Cliente.documento.ilike(f"%{termo}%"))
     ).limit(10).all()
     
+    # CORREÇÃO DO BUG: Usar getattr com fallback para evitar AttributeError
     return jsonify([{
         "id": c.id, 
-        "nome": c.nome, 
+        "nome": getattr(c, 'razao_social', c.nome) or c.nome, # Prefere nome mais completo
         "documento": c.documento,
         "cr": c.cr
     } for c in clientes])
@@ -239,6 +291,9 @@ def api_produto_detalhes(produto_id):
     # Busca as embalagens cadastradas (se existirem no futuro)
     embalagens = []
     # for emb in produto.embalagens: ... (implementação futura)
+    
+    # Adicionar quantidade padrão de venda 
+    unidade_venda_padrao = getattr(produto, 'unidade_venda_padrao', 1) 
 
     return jsonify({
         "id": produto.id,
@@ -249,7 +304,8 @@ def api_produto_detalhes(produto_id):
         "tipo": (produto.tipo_rel.nome if produto.tipo_rel else "").lower(),
         "categoria": (produto.categoria.nome if produto.categoria else "").lower(),
         "calibre": (produto.calibre_rel.nome if produto.calibre_rel else ""),
-        "embalagens": embalagens
+        "embalagens": embalagens,
+        "unidade_venda_padrao": unidade_venda_padrao # NOVO CAMPO
     })
 
 
@@ -286,7 +342,7 @@ def api_buscar_estoque_produto(produto_id):
     } for i in itens])
 
 # ===============================================================
-#  GERAÇÃO DE DOCUMENTOS E UPLOADS
+# GERAÇÃO DE DOCUMENTOS E UPLOADS
 # ===============================================================
 
 @vendas_bp.route("/<int:venda_id>/documento/<chave>")

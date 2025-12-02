@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid h-100 p-0">
+    <div class="row g-0 h-100">
+
+        <div class="col-12 col-lg-7 d-flex flex-column h-100 bg-light border-end">
+            
+            <header class="p-3 shadow-sm bg-white sticky-top">
+                <div id="client-info-area" class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-muted">Cliente: <span id="selected-client-display" class="fw-bold text-primary">Nenhum Cliente Selecionado</span></h5>
+                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#clientSearchModal">
+                        <i class="bi bi-search"></i> Buscar/Trocar Cliente
+                    </button>
+                </div>
+            </header>
+            
+            <section id="product-search-area" class="p-3">
+                <div class="input-group input-group-lg">
+                    <input type="text" class="form-control" placeholder="Busque o produto por nome ou scaneie o código de barras..." id="product-search-input">
+                    <button class="btn btn-success" type="button" id="scan-button" title="Ativar Scanner">
+                        <i class="bi bi-qr-code-scan"></i>
+                    </button>
+                </div>
+                <div id="product-search-results" class="position-absolute z-index-10 bg-white border w-50 shadow-lg mt-1" style="display: none;">
+                    </div>
+            </section>
+
+            <section id="cart-area" class="flex-grow-1 overflow-auto p-3">
+                <h6 class="text-uppercase text-muted border-bottom pb-2">Itens no Carrinho</h6>
+                <table class="table table-sm table-hover" id="cart-items-table">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th class="text-center">Qtd</th>
+                            <th class="text-end">Unitário</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="5" class="text-center text-muted">Adicione produtos para começar a venda.</td></tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+        <div class="col-12 col-lg-5 d-flex flex-column h-100 bg-dark text-white p-4">
+            
+            <section id="financial-summary-area" class="mb-auto">
+                <h4 class="mb-3">Resumo da Venda</h4>
+                <div class="list-group list-group-flush mb-4">
+                    <div class="list-group-item d-flex justify-content-between bg-dark text-white p-2">
+                        <span>Subtotal:</span>
+                        <span id="summary-subtotal">R$ 0,00</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between bg-dark text-white p-2">
+                        <span>Desconto (<a href="#" id="apply-discount-link" class="text-info">Aplicar</a>):</span>
+                        <span id="summary-discount">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-success rounded shadow-lg">
+                    <h3 class="text-uppercase mb-1">Total Final</h3>
+                    <h1 class="display-4 fw-bold" id="summary-total">R$ 0,00</h1>
+                </div>
+            </section>
+
+            <section id="final-actions-area" class="mt-4 pt-3 border-top border-secondary">
+                <button id="finalize-sale-btn" class="btn btn-primary btn-lg w-100 mb-2" disabled>
+                    <i class="bi bi-wallet2"></i> Finalizar Venda (Pagamento)
+                </button>
+                <div class="d-flex justify-content-between">
+                    <button id="save-draft-btn" class="btn btn-outline-light w-50 me-2">
+                        <i class="bi bi-save"></i> Salvar Orçamento
+                    </button>
+                    <button id="cancel-sale-btn" class="btn btn-outline-danger w-50">
+                        <i class="bi bi-x-circle"></i> Cancelar Venda
+                    </button>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="clientSearchModal" tabindex="-1" aria-labelledby="clientSearchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="clientSearchModalLabel">Buscar Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control form-control-lg" placeholder="Nome, CPF ou CR do Cliente..." id="client-search-input">
+                    <button class="btn btn-outline-secondary" type="button" id="client-search-btn">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+                
+                <div id="client-search-results-area" class="list-group">
+                    <p class="text-muted text-center mt-4">Digite no mínimo 3 caracteres para iniciar a busca.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" id="new-client-btn">Novo Cliente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="itemConfigModal" tabindex="-1" aria-labelledby="itemConfigModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="itemConfigModalLabel">Configurar Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h4 id="item-config-name" class="mb-3 text-primary">Nome do Produto</h4>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="config-quantity" class="form-label">Quantidade</label>
+                        <input type="number" class="form-control form-control-lg" id="config-quantity" value="1" min="1" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="config-unit-price" class="form-label">Preço Unitário (R$)</label>
+                        <input type="number" class="form-control form-control-lg" id="config-unit-price" step="0.01" required>
+                    </div>
+                </div>
+
+                <div id="controlled-fields-area" style="display: none;" class="p-3 border rounded bg-light">
+                    <p class="fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Item Controlado - Requer Documentação</p>
+                    
+                    <div class="mb-3">
+                        <label for="config-serial-lote" class="form-label">Serial / Lote</label>
+                        <input type="text" class="form-control" id="config-serial-lote" placeholder="Digite ou selecione o Serial/Lote" required>
+                        </div>
+                    
+                    <div class="mb-0">
+                        <label for="config-craf" class="form-label">CRAF (Se aplicável)</label>
+                        <input type="text" class="form-control" id="config-craf" placeholder="Vincular CRAF do Cliente">
+                    </div>
+                </div>
+
+                <div id="config-validation-feedback" class="mt-3">
+                    <span id="config-stock-status" class="badge bg-secondary">Estoque: 0</span>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="add-to-cart-btn">
+                    <i class="bi bi-cart-plus"></i> Adicionar ao Carrinho
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="paymentModalLabel"><i class="bi bi-wallet2"></i> Finalizar Venda</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h4 class="text-muted">Total a Pagar</h4>
+                        <h1 class="display-3 fw-bold text-success" id="payment-modal-total">R$ 0,00</h1>
+                        <hr>
+                        <p class="mb-1">Subtotal: <span id="payment-modal-subtotal">R$ 0,00</span></p>
+                        <p class="mb-0">Desconto: <span id="payment-modal-discount">R$ 0,00</span></p>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="payment-method" class="form-label fw-bold">Forma de Pagamento</label>
+                        <select class="form-select form-select-lg mb-3" id="payment-method">
+                            <option value="DINHEIRO" selected>Dinheiro</option>
+                            <option value="CARTAO_DEB">Cartão de Débito</option>
+                            <option value="CARTAO_CRED">Cartão de Crédito</option>
+                            <option value="PIX">PIX</option>
+                            <option value="TRANSFERENCIA">Transferência</option>
+                        </select>
+                        
+                        <label for="payment-received" class="form-label fw-bold">Valor Recebido (R$)</label>
+                        <input type="number" class="form-control form-control-lg mb-3" id="payment-received" step="0.01" min="0">
+                        
+                        <div class="alert alert-info mt-4" role="alert">
+                            Troco: <span class="fw-bold" id="payment-change">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+                <button type="button" class="btn btn-success btn-lg" id="confirm-payment-btn" disabled>
+                    <i class="bi bi-check-circle-fill"></i> Confirmar Venda
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="{{ url_for('static', filename='vendas/pdv_script.js') }}"></script>
+{% endblock %}
