@@ -1,5 +1,3 @@
-# app/vendas/routes/sales_core.py
-
 from flask import Blueprint, render_template, jsonify, request, url_for, redirect, flash, render_template_string
 from flask_login import login_required, current_user
 # Importações completas e corrigidas para as funções migradas:
@@ -7,23 +5,55 @@ from app.clientes.models import Cliente, Arma
 from app.produtos.models import Produto
 from app.vendas.models import Venda, ItemVenda
 from app.estoque.models import ItemEstoque
-from app.models import ModeloDocumento # Necessário para editar_venda (se usar render_template_string)
-from app.extensions import db 
+from app.models import ModeloDocumento
+from app.extensions import db
 from app.utils.format_helpers import br_money
-from app.services.venda_service import VendaService # Se for usar nas APIs
-from app.utils.r2_helpers import upload_file_to_r2 
+from app.services.venda_service import VendaService
+from app.utils.r2_helpers import upload_file_to_r2
 import json
 from sqlalchemy import extract, func
 from datetime import datetime, timedelta
 
 # Inicializa o novo Blueprint para as rotas principais de vendas
-sales_core = Blueprint('sales_core', __name__, template_folder='../templates') 
+sales_core = Blueprint('sales_core', __name__, template_folder='../templates')
 
 # =================================================================
-# ROTAS DE VISUALIZAÇÃO (Telas HTML) - MIGRARAM DE routes.py
+# FUNÇÃO AUXILIAR DE ESTOQUE (INJETO DE LÓGICA DE NEGÓCIO)
+# =================================================================
+def calcular_estoque_disponivel(produto_id):
+    """
+    Calcula o estoque disponível em ItemEstoque para um produto.
+    Assume-se que ItemEstoque tem uma coluna 'quantidade' ou cada registro é 1 item.
+    """
+    from app.estoque.models import ItemEstoque 
+    
+    total_disponivel = db.session.query(
+        func.sum(ItemEstoque.quantidade)
+    ).filter(
+        ItemEstoque.produto_id == produto_id,
+        ItemEstoque.status == 'disponivel'
+    ).scalar()
+
+    return int(total_disponivel or 0)
+
+# --- Lógica de Calibre (Necessária para a API de Armas) ---
+def normalizar_calibre(texto):
+    if not texto:
+        return ""
+    limpo = texto.lower().replace(".", "").replace("-", "").replace(" ", "")
+    termos_para_remover = [
+        "acp", "auto", "spl", "special", "win", "rem", "magnum", 
+        "parabellum", "luger", "mm", "ga", "gauge", "long", "lr", "short"
+    ]
+    for termo in termos_para_remover:
+        limpo = limpo.replace(termo, "")
+    return limpo
+
+# =================================================================
+# ROTAS DE VISUALIZAÇÃO (Telas HTML)
 # =================================================================
 
-@sales_core.route("/", methods=["GET", "POST"]) 
+@sales_core.route("/", methods=["GET", "POST"])
 @login_required
 def vendas_lista():
     """Rota principal de Listagem de Vendas (migrada). Endpoint: sales_core.vendas_lista"""
@@ -126,7 +156,6 @@ def editar_venda(venda_id):
     itens = ItemVenda.query.filter_by(venda_id=venda.id).all() 
 
     if request.method == "POST":
-        # Lógica futura para editar itens
         pass
 
     itens_data = []
@@ -193,7 +222,7 @@ def excluir_venda(venda_id):
 
 
 # =================================================================
-# ROTAS DE API (RESTANTE DO ARQUIVO)
+# ROTAS DE API
 # =================================================================
 
 @sales_core.route("/api/clientes_autocomplete", methods=["GET"])
@@ -226,13 +255,15 @@ def clientes_autocomplete():
 @sales_core.route("/api/produtos_search", methods=["GET"])
 @login_required
 def produtos_search():
-    """Endpoint para busca rápida de produtos por nome ou código de barras."""
+    """Endpoint para busca rápida de produtos por nome ou código de barras.
+    Ajuste de atributos e conversão de tipo para Estoque e Preço.
+    """
     query = request.args.get("q", "").strip()
     
     if not query or len(query) < 2:
         return jsonify([])
 
-    # CORREÇÃO DA BUSCA: Usando Produto.codigo e Produto.nome
+    # Buscamos por nome ou codigo (presumindo que 'codigo' é o campo SKU/referência)
     produtos = Produto.query.filter(
         (Produto.nome.ilike(f'%{query}%')) | 
         (Produto.codigo.ilike(f'{query}%')) 
@@ -240,10 +271,10 @@ def produtos_search():
 
     results = []
     for produto in produtos:
-        # Garante que o estoque seja um inteiro, mesmo se for None/null no banco.
-        estoque = int(getattr(produto, 'estoque_atual', 0) or 0)
-        # Garante que o preço seja um float, mesmo se for None/null.
         preco = float(getattr(produto, 'preco_a_vista', 0.00) or 0.00)
+        
+        # 🚨 CORREÇÃO DE ESTOQUE: Chamando a função de cálculo em tempo real
+        estoque = calcular_estoque_disponivel(produto.id)
         
         results.append({
             'id': produto.id,
@@ -252,9 +283,55 @@ def produtos_search():
             'preco_venda': preco,
             'is_controlado': getattr(produto, 'is_controlado', False),
             'estoque_disponivel': estoque,
+            'calibre': getattr(produto, 'calibre', None) # Incluir calibre para o JS buscar armas
         })
 
     return jsonify(results)
+
+
+@sales_core.route("/api/cliente/<int:cliente_id>/armas", methods=["GET"])
+@login_required
+def api_armas_cliente(cliente_id):
+    """Retorna as armas do cliente, filtradas por calibre se especificado."""
+    calibre_alvo = request.args.get("calibre")
+    todas_armas = Arma.query.filter_by(cliente_id=cliente_id).all()
+    
+    armas_filtradas = []
+    
+    if calibre_alvo:
+        alvo_limpo = normalizar_calibre(calibre_alvo)
+        
+        # Lógica de equivalência de calibre (mantida do arquivo original)
+        equivalencias = {
+            "9": ["9x19", "9", "380"],
+            "38": ["38", "357"],
+            "40": ["40", "40sw"],
+        }
+        compativeis = equivalencias.get(alvo_limpo, [alvo_limpo])
+
+        for arma in todas_armas:
+            arma_calibre_limpo = normalizar_calibre(arma.calibre)
+            match = False
+            for c in compativeis:
+                if c == arma_calibre_limpo or c in arma_calibre_limpo or arma_calibre_limpo in c:
+                    match = True
+                    break
+            
+            if match:
+                armas_filtradas.append(arma)
+    else:
+        armas_filtradas = todas_armas
+
+    return jsonify([{
+        "id": a.id,
+        "descricao": f"{a.tipo or 'Arma'} {a.marca or ''} {a.modelo or ''}",
+        "descricao_curta": f"{a.tipo} {a.calibre}", 
+        "serial": a.numero_serie,
+        "calibre": a.calibre,
+        "caminho_craf": a.caminho_craf,
+        "sistema": f"{a.emissor_craf or a.numero_sigma or 'S/N'}" 
+    } for a in armas_filtradas])
+
 
 @sales_core.route("/api/cart/add_item", methods=["POST"])
 @login_required
@@ -270,6 +347,7 @@ def cart_add_item():
         is_controlled = data.get('is_controlled', False)
         serial_lote = data.get('serial_lote')
         craf = data.get('craf')
+        arma_cliente_id = data.get('arma_cliente_id') 
 
         if not client_id:
              return jsonify({'error': 'Cliente não selecionado. A venda requer um cliente válido.'}), 400
@@ -280,13 +358,19 @@ def cart_add_item():
         if not produto:
             return jsonify({'error': 'Produto não encontrado ou inativo.'}), 404
         
-        estoque_atual = getattr(produto, 'estoque_atual', 0)
+        # 🚨 VALIDAÇÃO DE ESTOQUE
+        estoque_atual = calcular_estoque_disponivel(product_id)
+        
         if quantity > estoque_atual:
             return jsonify({'error': f'Estoque insuficiente. Disponível: {estoque_atual}. Necessário: {quantity}.'}), 400
 
+        # 🚨 VALIDAÇÃO DE NICHO (CRAF)
         if is_controlled:
-            if not serial_lote:
-                return jsonify({'error': 'Item controlado requer Serial ou Lote preenchido.'}), 400
+            if not serial_lote and not arma_cliente_id:
+                return jsonify({'error': 'Item controlado requer Serial/Lote OU vínculo CRAF.'}), 400
+            
+            if produto.tipo_rel and 'munição' in produto.tipo_rel.nome.lower() and not arma_cliente_id:
+                return jsonify({'error': 'Munição requer vínculo com o CRAF de uma arma do cliente.'}), 400
             
             # TODO: Lógica REAL de verificação de disponibilidade do Serial/Lote no banco de dados
             # TODO: Lógica REAL de verificação do CR do cliente
@@ -301,6 +385,7 @@ def cart_add_item():
             'serial': serial_lote if serial_lote and not serial_lote.startswith('LOTE-') else '',
             'lote': serial_lote if serial_lote and serial_lote.startswith('LOTE-') else '',
             'craf': craf if craf else None,
+            'arma_cliente_id': arma_cliente_id,
             'total_item': round(quantity * unit_price, 2)
         }
         
@@ -342,4 +427,4 @@ def cart_finalize_sale():
 
     except Exception as e:
         print(f"Erro ao finalizar venda: {e}")
-        return jsonify({'error': 'Erro interno ao finalizar a venda. Transação cancelada.'}), 500
+        return jsonify({'error': 'Erro interno do servidor ao processar o item.'}), 500

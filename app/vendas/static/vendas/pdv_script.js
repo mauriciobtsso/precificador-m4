@@ -79,10 +79,27 @@ function renderPDV() {
         cartState.items.forEach((item, index) => {
             const itemTotal = (item.quantity * item.unit_price).toFixed(2);
             let statusIcon = '';
-            
+            let actionsHtml = ''; // Conteúdo da coluna Ações
+
             if (item.is_controlled) {
-                const iconClass = item.serial || item.lote ? 'bi-check-circle-fill text-success' : 'bi-lock-fill text-danger';
-                statusIcon = `<i class="bi ${iconClass} me-1" title="Item Controlado"></i>`;
+                // Se for controlado, o status depende da configuração (Serial/Lote/CRAF)
+                const isConfigured = item.serial || item.lote || item.arma_cliente_id;
+                const iconClass = isConfigured ? 'bi-check-circle-fill text-success' : 'bi-lock-fill text-danger';
+                statusIcon = `<i class="bi ${iconClass} me-1" title="${isConfigured ? 'Item Configurado' : 'Requer Configuração'}"></i>`;
+                
+                // Botão para reabrir o modal de configuração
+                actionsHtml = `
+                    <button class="btn btn-sm btn-warning configure-item-btn" data-index="${index}" title="Configurar Lote/CRAF">
+                        <i class="fas fa-cog me-1"></i> Configurar
+                    </button>
+                `;
+            } else {
+                // Item não controlado, apenas a lixeira
+                actionsHtml = `
+                    <button class="btn btn-sm btn-outline-danger remove-item-btn" data-index="${index}" title="Remover">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                `;
             }
 
             const row = `
@@ -92,9 +109,7 @@ function renderPDV() {
                     <td class="text-end">R$ ${item.unit_price.toFixed(2).replace('.', ',')}</td>
                     <td class="text-end fw-bold">R$ ${itemTotal.replace('.', ',')}</td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-outline-danger remove-item-btn" data-index="${index}" title="Remover">
-                            <i class="bi bi-trash"></i>
-                        </button>
+                        ${actionsHtml} 
                     </td>
                 </tr>
             `;
@@ -120,7 +135,7 @@ async function searchClients(query) {
     try {
         const response = await fetch(url);
         if (!response.ok) {
-            throw new Error(`Erro de rede: ${response.status}`);
+            throw new Error(`Erro de rede: ${response.status}`); 
         }
         const data = await response.json();
         renderClientResults(data);
@@ -185,13 +200,13 @@ async function searchProducts(query) {
     try {
         const response = await fetch(url);
         if (!response.ok) {
-            throw new Error(`Erro de rede: ${response.status}`);
+            throw new Error(`Erro de rede: ${response.status}`); 
         }
         const data = await response.json();
         renderProductResults(data);
     } catch (error) {
         console.error('Erro ao buscar produtos:', error);
-        $('#product-search-results').html('<div class="p-2 text-danger">Erro ao buscar produtos.</div>').show();
+        $('#product-search-results').html('<div class="p-2 text-danger">Erro ao buscar produtos. (Verifique o servidor/DB)</div>').show();
     }
 }
 
@@ -204,15 +219,13 @@ function renderProductResults(results) {
         return;
     }
     
-    // Usamos list-group para os resultados
     results.forEach(product => {
         const stockStatusClass = product.estoque_disponivel > 0 ? 'bg-success' : 'bg-danger';
         const stockStatusText = product.estoque_disponivel > 0 ? `${product.estoque_disponivel} em estoque` : `SEM ESTOQUE`;
 
-        const controlledIcon = product.is_controlado ? 
+        const controlledIcon = product.is_controlled ? 
             `<i class="bi bi-lock-fill text-danger me-1" title="Item Controlado"></i>` : '';
 
-        // Corrigido para garantir que o preço seja tratado como string ao usar toFixed
         const priceDisplay = parseFloat(product.preco_venda).toFixed(2).replace('.', ',');
 
         const item = `
@@ -231,34 +244,65 @@ function renderProductResults(results) {
     $resultsArea.show();
 }
 
+// NOVA FUNÇÃO: Busca as armas do cliente
+async function searchClientArmas(clientId, productCalibre) {
+    const url = `/vendas/api/cliente/${clientId}/armas?calibre=${encodeURIComponent(productCalibre)}`;
+    
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.error('Falha ao buscar armas do cliente.');
+            return [];
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Erro de comunicação ao buscar armas:', error);
+        return [];
+    }
+}
+
+
 /**
  * =================================================================
  * FUNÇÕES DE CONFIGURAÇÃO DE ITEM
  * =================================================================
  */
 
-// Função que preenche o modal com o item selecionado
-function configureItem(product) {
+// FUNÇÃO MODIFICADA: Agora aceita um item (novo ou existente para edição)
+async function configureItem(product, itemIndexToEdit = null) {
+    
+    let currentItem = itemIndexToEdit !== null ? cartState.items[itemIndexToEdit] : product;
+
+    if (!currentItem) return; 
+
     cartState.tempItem = {
-        product_id: product.id,
-        product_name: product.nome,
-        unit_price: product.preco_venda,
-        quantity: 1, 
-        is_controlled: product.is_controlado,
-        estoque_disponivel: product.estoque_disponivel,
-        serial: '',
-        lote: '',
-        craf: ''
+        product_id: currentItem.product_id || currentItem.id,
+        product_name: currentItem.product_name || currentItem.nome,
+        // Garante que 'unit_price' seja um float antes de armazenar
+        unit_price: parseFloat(currentItem.unit_price) || parseFloat(currentItem.preco_venda), 
+        quantity: currentItem.quantity || 1, 
+        is_controlled: currentItem.is_controlled,
+        estoque_disponivel: currentItem.estoque_disponivel,
+        // Mantém valores de controle existentes
+        serial: currentItem.serial || '',
+        lote: currentItem.lote || '',
+        craf: currentItem.craf || '',
+        arma_cliente_id: currentItem.arma_cliente_id || null, 
+        _index: itemIndexToEdit,
+        calibre: currentItem.calibre || null 
     };
     
     $('#product-search-results').hide().empty();
     $('#product-search-input').val('');
     
     // 3. Preenche os campos do Modal
-    $('#itemConfigModalLabel').text(`Configurar Item`);
-    $('#item-config-name').text(product.nome);
+    $('#itemConfigModalLabel').text(`Configurar Item - ${cartState.tempItem.product_name}`);
+    $('#item-config-name').text(cartState.tempItem.product_name);
     $('#config-quantity').val(cartState.tempItem.quantity);
-    $('#config-unit-price').val(cartState.tempItem.unit_price.toFixed(2));
+    
+    // 🚨 CORREÇÃO DE FORMATO: Preenche o input formatando float para string com vírgula (Ex: 10,33).
+    const formattedPrice = cartState.tempItem.unit_price.toFixed(2).replace('.', ',');
+    $('#config-unit-price').val(formattedPrice); 
     
     // 4. Limpa feedbacks anteriores
     $('#config-validation-feedback').empty();
@@ -269,11 +313,20 @@ function configureItem(product) {
     $stockStatus.text(`Estoque: ${stock}`);
     $stockStatus.removeClass().addClass(`badge ${stock > 0 ? 'bg-success' : 'bg-danger'}`);
     
-    // 6. Mostra/Esconde campos controlados
+    // 6. Mostra/Esconde e preenche campos controlados
     if (cartState.tempItem.is_controlled) {
         $('#controlled-fields-area').show();
-        $('#config-serial-lote').val('');
-        $('#config-craf').val('');
+        $('#config-serial-lote').val(cartState.tempItem.serial || cartState.tempItem.lote);
+        $('#config-craf').val(cartState.tempItem.craf); 
+        
+        // Lógica para carregar Armas para CRAF/Munição
+        if (cartState.clientId && cartState.tempItem.calibre) { 
+            const armas = await searchClientArmas(cartState.clientId, cartState.tempItem.calibre);
+            // TODO: Aqui você implementaria a renderização do <select> das armas
+            console.log("Armas encontradas:", armas);
+        } else if (cartState.tempItem.is_controlled) {
+             showFeedback('Item controlado. Para CRAF, selecione um cliente e o produto deve ter calibre definido.', 'info');
+        }
     } else {
         $('#controlled-fields-area').hide();
     }
@@ -283,17 +336,20 @@ function configureItem(product) {
     itemConfigModal.show();
 }
 
-// Função que move o item temporário para o carrinho via chamada de API (Ação 9)
 async function addItemToCart() {
     const tempItem = cartState.tempItem;
     
     const quantity = parseInt($('#config-quantity').val());
-    // Substitui vírgula por ponto para garantir que o JS/API interprete como float
-    const price = parseFloat($('#config-unit-price').val().replace(',', '.')); 
+    const rawPriceInput = $('#config-unit-price').val();
+    // 🚨 CORREÇÃO CRÍTICA: Sempre substitui vírgula por ponto ANTES de chamar parseFloat
+    const price = parseFloat(rawPriceInput.replace(',', '.')); 
+    
     const serialLote = $('#config-serial-lote').val().trim();
     const craf = $('#config-craf').val().trim();
     
-    // 2. Validação local básica 
+    // TODO: Capturar armaClienteId do <select> de armas
+    const armaClienteId = null; 
+    
     if (!cartState.clientId) {
         showFeedback('Selecione um cliente antes de adicionar produtos.', 'warning');
         return;
@@ -302,12 +358,12 @@ async function addItemToCart() {
         showFeedback('A quantidade deve ser um número positivo.', 'danger');
         return;
     }
+    // A validação agora é precisa, pois 'price' já é um float (ou NaN)
     if (isNaN(price) || price <= 0) {
         showFeedback('O preço unitário deve ser um valor positivo.', 'danger');
         return;
     }
     
-    // 3. Monta o payload de dados para o backend
     const payload = {
         client_id: cartState.clientId,
         product_id: tempItem.product_id,
@@ -315,15 +371,14 @@ async function addItemToCart() {
         unit_price: price,
         is_controlled: tempItem.is_controlled,
         serial_lote: serialLote,
-        craf: craf
+        craf: craf,
+        arma_cliente_id: armaClienteId 
     };
     
-    // Desabilita o botão para evitar cliques duplos
     const $addButton = $('#add-to-cart-btn');
     $addButton.prop('disabled', true).text('Adicionando...');
 
 
-    // 4. Chamada AJAX/Fetch para o endpoint de validação/adição (POST)
     try {
         const response = await fetch('/vendas/api/cart/add_item', {
             method: 'POST',
@@ -336,14 +391,17 @@ async function addItemToCart() {
         const data = await response.json();
 
         if (response.ok) {
-            // Sucesso na validação
-            cartState.items.push(data.item);
+            if (tempItem._index !== null) {
+                cartState.items[tempItem._index] = data.item;
+            } else {
+                cartState.items.push(data.item);
+            }
+            
             cartState.tempItem = null;
             renderPDV(); 
             $('#itemConfigModal').modal('hide'); 
 
         } else {
-            // Erro de validação de negócio (ex: estoque insuficiente, Serial inválido)
             showFeedback(data.error || 'Erro desconhecido ao validar o item.', 'danger');
         }
 
@@ -454,16 +512,25 @@ $(document).ready(function() {
     let productSearchTimeout;
 
     // ----------------------------------------------------
-    // GERAL: Remoção de Item
+    // GERAL: Remoção e EDIÇÃO de Item
     // ----------------------------------------------------
     $(document).on('click', '.remove-item-btn', function() {
         const indexToRemove = $(this).data('index');
         cartState.items.splice(indexToRemove, 1);
         renderPDV();
     });
+
+    // Ação para reabrir o modal de configuração de itens controlados
+    $(document).on('click', '.configure-item-btn', function() {
+        const indexToEdit = $(this).data('index');
+        const itemToEdit = cartState.items[indexToEdit];
+        
+        // Passa o item e o índice para a função de configuração para pré-preenchimento
+        configureItem(itemToEdit, indexToEdit); 
+    });
     
     // ----------------------------------------------------
-    // LÓGICA DE BUSCA DE CLIENTE (Resolve Ponto 1)
+    // LÓGICA DE BUSCA DE CLIENTE
     // ----------------------------------------------------
     const $clientInput = $('#client-search-input');
     
@@ -479,14 +546,13 @@ $(document).ready(function() {
         selectClient($item.data('client-id'), $item.data('client-name'), $item.data('client-doc'), $item.data('client-cr'));
     });
     $('#clientSearchModal').on('shown.bs.modal', function () {
-        // Garante que o input receba foco para o usuário começar a digitar/scanner
         $clientInput.trigger('focus');
         $('#client-search-results-area').empty(); 
     });
 
 
     // ----------------------------------------------------
-    // LÓGICA DE BUSCA E CONFIGURAÇÃO DE PRODUTOS (Resolve Ponto 2)
+    // LÓGICA DE BUSCA E CONFIGURAÇÃO DE PRODUTOS
     // ----------------------------------------------------
     const $productInput = $('#product-search-input');
     
@@ -507,8 +573,22 @@ $(document).ready(function() {
     // Ação ao selecionar um produto na busca
     $(document).on('click', '.product-select-item', function(e) {
         e.preventDefault();
-        const productData = JSON.parse($(this).data('product'));
-        configureItem(productData);
+        
+        const rawProductJson = $(this).attr('data-product'); 
+        
+        try {
+            const productData = JSON.parse(rawProductJson);
+            
+            // Inicia o processo de configuração do item no modal (novo item)
+            configureItem(productData); 
+            
+            $('#product-search-input').val(''); 
+            
+        } catch (error) {
+            console.error("Erro ao fazer parse do JSON do produto:", error);
+            console.log("JSON Bruto:", rawProductJson);
+            alert("Erro interno: Falha ao carregar detalhes do produto. (Verifique se há aspas no nome do produto)");
+        }
     });
     
     // Ação ao clicar no botão de Adicionar ao Carrinho dentro do modal
@@ -520,18 +600,17 @@ $(document).ready(function() {
     $('#config-unit-price').on('change', function() {
         let value = $(this).val().replace(',', '.');
         if (!isNaN(parseFloat(value))) {
-             $(this).val(parseFloat(value).toFixed(2).replace('.', ',')); // Formata de volta para BRL
+             $(this).val(parseFloat(value).toFixed(2).replace('.', ','));
         }
     });
 
     // Ação ao clicar no botão do scanner
     $('#scan-button').on('click', function() {
         $productInput.trigger('focus');
-        // Futuramente, aqui pode ser ativado um scanner de câmera/celular
     });
     
     // ----------------------------------------------------
-    // LÓGICA DE FINALIZAÇÃO DE VENDA (Resolve Ponto 3)
+    // LÓGICA DE FINALIZAÇÃO DE VENDA
     // ----------------------------------------------------
     
     // 1. Abre o modal de pagamento
