@@ -17,186 +17,21 @@ from app.models import ModeloDocumento
 from app.utils.r2_helpers import upload_file_to_r2
 
 # ===============================================================
-# TELAS (HTML)
+# TELAS (HTML) - ROTAS PRINCIPAIS MIGRARAM PARA sales_core.py
 # ===============================================================
-
-@vendas_bp.route("/", methods=["GET", "POST"])
-@login_required
-def vendas():
-    page = request.args.get("page", 1, type=int)
-    per_page = 50
-    query = Venda.query.join(Cliente, isouter=True)
-
-    # --- Filtros ---
-    cliente_nome = request.args.get("cliente", "").strip()
-    status = request.args.get("status", "").strip()
-    periodo = request.args.get("periodo", "").strip()
-    data_inicio = request.args.get("data_inicio")
-    data_fim = request.args.get("data_fim")
-
-    if cliente_nome:
-        query = query.filter(Cliente.nome.ilike(f"%{cliente_nome}%"))
-    if status:
-        query = query.filter(Venda.status.ilike(f"%{status}%"))
-
-    hoje = datetime.today()
-    if periodo == "7d":
-        query = query.filter(Venda.data_abertura >= hoje - timedelta(days=7))
-    elif periodo == "mes":
-        query = query.filter(
-            extract("year", Venda.data_abertura) == hoje.year,
-            extract("month", Venda.data_abertura) == hoje.month
-        )
-    elif periodo == "personalizado" and data_inicio and data_fim:
-        try:
-            inicio = datetime.strptime(data_inicio, "%Y-%m-%d")
-            fim = datetime.strptime(data_fim, "%Y-%m-%d") + timedelta(days=1)
-            query = query.filter(Venda.data_abertura >= inicio, Venda.data_abertura < fim)
-        except Exception:
-            pass
-
-    # --- Paginação ---
-    vendas_paginadas = query.order_by(Venda.data_abertura.desc()).paginate(page=page, per_page=per_page)
-
-    # --- Resumo agregado OTIMIZADO (SQL) ---
-    resumo_dados = query.with_entities(
-        func.count(Venda.id).label('total'),
-        func.sum(Venda.valor_total).label('soma_total'),
-        func.sum(Venda.desconto_valor).label('soma_descontos'),
-        func.sum(Venda.valor_recebido).label('soma_recebido')
-    ).first()
-
-    total_vendas = resumo_dados.total or 0
-    soma_total = resumo_dados.soma_total or 0
-    soma_descontos = resumo_dados.soma_descontos or 0
-    soma_recebido = resumo_dados.soma_recebido or 0
-    
-    media_venda = soma_total / total_vendas if total_vendas > 0 else 0
-
-    resumo = {
-        "total_vendas": total_vendas,
-        "soma_total": soma_total,
-        "soma_descontos": soma_descontos,
-        "soma_recebido": soma_recebido,
-        "media_venda": media_venda,
-    }
-
-    return render_template(
-        "vendas/index.html",
-        vendas=vendas_paginadas,
-        resumo=resumo,
-        cliente_nome=cliente_nome,
-        status=status,
-        periodo=periodo,
-        data_inicio=data_inicio,
-        data_fim=data_fim,
-    )
-
-
-@vendas_bp.route("/<int:venda_id>")
-@login_required
-def venda_detalhe(venda_id):
-    venda = Venda.query.get_or_404(venda_id)
-    cliente = Cliente.query.get(venda.cliente_id) if venda.cliente_id else None
-    itens = ItemVenda.query.filter_by(venda_id=venda.id).all()
-
-    return render_template(
-        "vendas/detalhe.html",
-        venda=venda,
-        cliente=cliente,
-        itens=itens
-    )
-
-@vendas_bp.route("/<int:venda_id>/editar", methods=["GET", "POST"])
-@login_required
-def editar_venda(venda_id):
-    venda = Venda.query.get_or_404(venda_id)
-    cliente = Cliente.query.get(venda.cliente_id) if venda.cliente_id else None
-    itens = ItemVenda.query.filter_by(venda_id=venda.id).all() # Carrega os itens
-
-    if request.method == "POST":
-        # Lógica futura para editar itens
-        pass
-
-    # Lógica GET para popular o formulário 
-    itens_data = []
-    for i in itens:
-        detalhe_html = '<span class="text-muted small">Item de Varejo</span>'
-        
-        # Para itens de estoque rastreados
-        if i.item_estoque:
-            # Lógica para gerar o detalhe_html com base no ItemEstoque (Serial/Lote)
-            if i.item_estoque.numero_serie:
-                detalhe_html = f'<span class="badge bg-dark"><i class="fas fa-fingerprint"></i> Serial: {i.item_estoque.numero_serie}</span>'
-            elif i.item_estoque.lote or i.item_estoque.numero_embalagem:
-                detalhe_html = f'<span class="badge bg-info text-dark"><i class="fas fa-box"></i> Lote: {i.item_estoque.lote or i.item_estoque.numero_embalagem}</span>'
-
-        # Para munição vinculada a CRAF
-        if i.arma_cliente:
-            craf_texto = f"{i.arma_cliente.tipo} {i.arma_cliente.calibre} ({i.arma_cliente.numero_serie or 'S/N'})"
-            detalhe_html += f'<div class="mt-1 small text-primary"><i class="fas fa-id-card"></i> Ref: {craf_texto}</div>'
-
-        # Para armas sob encomenda (Heurística: Produto tipo arma sem item_estoque_id)
-        if not i.item_estoque_id and i.produto and 'arma' in (i.produto.tipo_rel.nome if i.produto.tipo_rel else '').lower():
-            detalhe_html = '<span class="badge bg-warning text-dark">Sob Encomenda</span>'
-        
-        itens_data.append({
-            'produto_id': i.produto_id,
-            'nome': i.produto_nome,
-            'preco': float(i.valor_unitario),
-            'quantidade': i.quantidade,
-            'item_estoque_id': i.item_estoque_id,
-            'arma_cliente_id': i.arma_cliente_id,
-            'detalhe_html': detalhe_html # Usado no frontend para exibir na tabela
-        })
-
-    venda_data = {
-        'id': venda.id,
-        'cliente': {
-            'id': cliente.id, 
-            # CORREÇÃO DO BUG: Usar getattr com fallback para evitar AttributeError
-            'nome': getattr(cliente, 'razao_social', cliente.nome) or cliente.nome,
-            'documento': cliente.documento, 
-            'cr': cliente.cr
-        } if cliente else None,
-        'desconto': float(venda.desconto_valor) if venda.desconto_valor else 0.0,
-        'itens': itens_data
-    }
-    
-    return render_template(
-        "vendas/form.html",
-        venda=venda,
-        edicao=True,
-        venda_json=venda_data # Passa os dados serializados para o JS
-    )
-
-
-@vendas_bp.route("/<int:venda_id>/excluir", methods=["POST"])
-@login_required
-def excluir_venda(venda_id):
-    venda = Venda.query.get_or_404(venda_id)
-    try:
-        db.session.delete(venda)
-        db.session.commit()
-        flash(f"Venda #{venda_id} excluída com sucesso.", "success")
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Erro ao excluir venda: {str(e)}", "danger")
-        
-    return redirect(url_for("vendas.vendas"))
 
 
 @vendas_bp.route("/nova", methods=["GET", "POST"])
 @login_required
 def nova_venda():
-    """Rota principal de Nova Venda. REDIRECIONA para o Novo PDV (Ação 12)."""
+    """Rota principal de Nova Venda. REDIRECIONA para o Novo PDV."""
     flash("Você foi redirecionado para a Nova Tela de Vendas (PDV).", "info")
     # Redirecionamento 301 (Permanente) para a rota no novo Blueprint
     return redirect(url_for("sales_core.novo_pdv"), code=301)
 
 
 # ===============================================================
-# APIs INTERNAS (JSON) - Antigas (Devem ser descontinuadas ou migradas)
+# APIs INTERNAS (JSON) - Rotas antigas mantidas temporariamente
 # ===============================================================
 
 @vendas_bp.route("/api/clientes")
@@ -208,10 +43,9 @@ def api_buscar_clientes():
         (Cliente.documento.ilike(f"%{termo}%"))
     ).limit(10).all()
     
-    # CORREÇÃO DO BUG: Usar getattr com fallback para evitar AttributeError
     return jsonify([{
         "id": c.id, 
-        "nome": getattr(c, 'razao_social', c.nome) or c.nome, # Prefere nome mais completo
+        "nome": getattr(c, 'razao_social', c.nome) or c.nome,
         "documento": c.documento,
         "cr": c.cr
     } for c in clientes])
@@ -288,24 +122,20 @@ def api_armas_cliente(cliente_id):
 def api_produto_detalhes(produto_id):
     produto = Produto.query.get_or_404(produto_id)
     
-    # Busca as embalagens cadastradas (se existirem no futuro)
     embalagens = []
-    # for emb in produto.embalagens: ... (implementação futura)
     
-    # Adicionar quantidade padrão de venda 
     unidade_venda_padrao = getattr(produto, 'unidade_venda_padrao', 1) 
 
     return jsonify({
         "id": produto.id,
         "nome": produto.nome,
         "preco": float(produto.preco_a_vista or 0),
-        # "estoque": sum(i.quantidade for i in produto.itens_estoque if i.status == 'disponivel'), # Ajuste conforme sua lógica
         "estoque": 10, # Placeholder
         "tipo": (produto.tipo_rel.nome if produto.tipo_rel else "").lower(),
         "categoria": (produto.categoria.nome if produto.categoria else "").lower(),
         "calibre": (produto.calibre_rel.nome if produto.calibre_rel else ""),
         "embalagens": embalagens,
-        "unidade_venda_padrao": unidade_venda_padrao # NOVO CAMPO
+        "unidade_venda_padrao": unidade_venda_padrao
     })
 
 
@@ -359,7 +189,6 @@ def gerar_documento(venda_id, chave):
         "cr": "635069",
         "telefone": "(86) 3025-5885",
         "email": "falecom@m4tatica.com.br",
-        # ALTERADO PARA USAR A LOGO ESPECÍFICA 'logo_docs.png'
         "logo": url_for('static', filename='img/logo_docs.png', _external=True) 
     }
 
@@ -409,13 +238,11 @@ def upload_anexo(venda_id):
         return redirect(url_for("vendas.venda_detalhe", venda_id=venda_id))
 
     try:
-        # Enviar para o Cloudflare R2
         url_publica = upload_file_to_r2(arquivo, folder=f"vendas/{venda_id}")
         
         if not url_publica:
             raise Exception("Falha no upload para o storage.")
 
-        # Salvar no Banco
         novo_anexo = VendaAnexo(
             venda_id=venda.id,
             tipo_documento=tipo_doc,
@@ -426,7 +253,6 @@ def upload_anexo(venda_id):
         
         db.session.add(novo_anexo)
         
-        # Se for termo de retirada, avança status
         if tipo_doc == 'termo_assinado':
             venda.etapa = "CONCLUIDA"
             venda.status = "fechada"

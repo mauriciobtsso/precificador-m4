@@ -27,7 +27,7 @@ const cartState = {
  * =================================================================
  */
 
-// Função para exibir feedback (pode ser substituída por um Toast/Notificação do Bootstrap)
+// Função para exibir feedback (Usado no modal de configuração de item)
 function showFeedback(message, type = 'danger') {
     const feedbackArea = $('#config-validation-feedback');
     feedbackArea.empty().append(`
@@ -46,11 +46,11 @@ function calculateSummary() {
     let newSubtotal = 0.00;
     
     cartState.items.forEach(item => {
-        // Usa o total_item se o backend o retornar, ou recalcula
         newSubtotal += item.total_item || (item.quantity * item.unit_price);
     });
 
     cartState.subtotal = newSubtotal;
+    // O desconto é subtraído do subtotal
     cartState.total = Math.max(0, cartState.subtotal - cartState.discount);
 }
 
@@ -81,7 +81,6 @@ function renderPDV() {
             let statusIcon = '';
             
             if (item.is_controlled) {
-                // Se for controlado E tiver serial/lote preenchido, use um ícone de verificação
                 const iconClass = item.serial || item.lote ? 'bi-check-circle-fill text-success' : 'bi-lock-fill text-danger';
                 statusIcon = `<i class="bi ${iconClass} me-1" title="Item Controlado"></i>`;
             }
@@ -205,12 +204,16 @@ function renderProductResults(results) {
         return;
     }
     
+    // Usamos list-group para os resultados
     results.forEach(product => {
         const stockStatusClass = product.estoque_disponivel > 0 ? 'bg-success' : 'bg-danger';
         const stockStatusText = product.estoque_disponivel > 0 ? `${product.estoque_disponivel} em estoque` : `SEM ESTOQUE`;
 
         const controlledIcon = product.is_controlado ? 
             `<i class="bi bi-lock-fill text-danger me-1" title="Item Controlado"></i>` : '';
+
+        // Corrigido para garantir que o preço seja tratado como string ao usar toFixed
+        const priceDisplay = parseFloat(product.preco_venda).toFixed(2).replace('.', ',');
 
         const item = `
             <a href="#" class="list-group-item list-group-item-action product-select-item" 
@@ -219,7 +222,7 @@ function renderProductResults(results) {
                     <h6 class="mb-1">${controlledIcon} ${product.nome}</h6>
                     <span class="badge ${stockStatusClass}">${stockStatusText}</span>
                 </div>
-                <p class="mb-1">SKU: ${product.sku} | Preço: R$ ${product.preco_venda.toFixed(2).replace('.', ',')}</p>
+                <p class="mb-1">SKU: ${product.sku} | Preço: R$ ${priceDisplay}</p>
             </a>
         `;
         $resultsArea.append(item);
@@ -230,13 +233,12 @@ function renderProductResults(results) {
 
 /**
  * =================================================================
- * FUNÇÕES DE CONFIGURAÇÃO DE ITEM (Ações 8 & 9 da Fase 3)
+ * FUNÇÕES DE CONFIGURAÇÃO DE ITEM
  * =================================================================
  */
 
 // Função que preenche o modal com o item selecionado
 function configureItem(product) {
-    // 1. Armazena o produto selecionado temporariamente no estado
     cartState.tempItem = {
         product_id: product.id,
         product_name: product.nome,
@@ -244,13 +246,11 @@ function configureItem(product) {
         quantity: 1, 
         is_controlled: product.is_controlado,
         estoque_disponivel: product.estoque_disponivel,
-        // Campos complexos iniciais:
         serial: '',
         lote: '',
         craf: ''
     };
     
-    // 2. Oculta os resultados da busca e limpa o input
     $('#product-search-results').hide().empty();
     $('#product-search-input').val('');
     
@@ -272,7 +272,6 @@ function configureItem(product) {
     // 6. Mostra/Esconde campos controlados
     if (cartState.tempItem.is_controlled) {
         $('#controlled-fields-area').show();
-        // Limpa inputs de controle (para novo item)
         $('#config-serial-lote').val('');
         $('#config-craf').val('');
     } else {
@@ -288,13 +287,13 @@ function configureItem(product) {
 async function addItemToCart() {
     const tempItem = cartState.tempItem;
     
-    // 1. Coleta os valores atuais do formulário do modal
     const quantity = parseInt($('#config-quantity').val());
-    const price = parseFloat($('#config-unit-price').val());
+    // Substitui vírgula por ponto para garantir que o JS/API interprete como float
+    const price = parseFloat($('#config-unit-price').val().replace(',', '.')); 
     const serialLote = $('#config-serial-lote').val().trim();
     const craf = $('#config-craf').val().trim();
     
-    // 2. Validação local básica (evita chamada de API desnecessária)
+    // 2. Validação local básica 
     if (!cartState.clientId) {
         showFeedback('Selecione um cliente antes de adicionar produtos.', 'warning');
         return;
@@ -317,9 +316,13 @@ async function addItemToCart() {
         is_controlled: tempItem.is_controlled,
         serial_lote: serialLote,
         craf: craf
-        // Outros dados importantes podem ser adicionados aqui
     };
     
+    // Desabilita o botão para evitar cliques duplos
+    const $addButton = $('#add-to-cart-btn');
+    $addButton.prop('disabled', true).text('Adicionando...');
+
+
     // 4. Chamada AJAX/Fetch para o endpoint de validação/adição (POST)
     try {
         const response = await fetch('/vendas/api/cart/add_item', {
@@ -333,36 +336,32 @@ async function addItemToCart() {
         const data = await response.json();
 
         if (response.ok) {
-            // Sucesso na validação e adição (backend retornou 200)
-            
-            // 5. Adiciona o item final (validado pelo backend) ao estado local
+            // Sucesso na validação
             cartState.items.push(data.item);
-            
-            // 6. Limpa e atualiza a UI
             cartState.tempItem = null;
             renderPDV(); 
             $('#itemConfigModal').modal('hide'); 
-            // Feedback de sucesso (opcional)
-            // showFeedback(`Item ${data.item.product_name} adicionado com sucesso!`, 'success'); 
 
         } else {
-            // Erro de validação de negócio (backend retornou 400 ou 404)
+            // Erro de validação de negócio (ex: estoque insuficiente, Serial inválido)
             showFeedback(data.error || 'Erro desconhecido ao validar o item.', 'danger');
         }
 
     } catch (error) {
         console.error('Erro na comunicação com o servidor:', error);
         showFeedback('Erro de comunicação com o servidor. Verifique sua conexão.', 'danger');
+    } finally {
+        $addButton.prop('disabled', false).text('Adicionar ao Carrinho');
     }
 }
 
+
 /**
  * =================================================================
- * FUNÇÕES DE FINALIZAÇÃO DE VENDA (Ação 11 da Fase 3)
+ * FUNÇÕES DE FINALIZAÇÃO DE VENDA
  * =================================================================
  */
 
-// Função que abre o modal e preenche os totais
 function openPaymentModal() {
     if (!cartState.clientId) {
         alert('Selecione um cliente para finalizar a venda.');
@@ -373,22 +372,18 @@ function openPaymentModal() {
         return;
     }
 
-    // Garante que os valores no modal reflitam o total atual
     $('#payment-modal-total').text(`R$ ${cartState.total.toFixed(2).replace('.', ',')}`);
     $('#payment-modal-subtotal').text(`R$ ${cartState.subtotal.toFixed(2).replace('.', ',')}`);
     $('#payment-modal-discount').text(`R$ ${cartState.discount.toFixed(2).replace('.', ',')}`);
     
-    // Define o valor recebido inicial como o valor total (pagamento exato)
     $('#payment-received').val(cartState.total.toFixed(2));
     
-    // Força o cálculo inicial do troco
     calculateChange();
     
     const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
     paymentModal.show();
 }
 
-// Calcula o troco e habilita/desabilita o botão de confirmação
 function calculateChange() {
     const total = cartState.total;
     const received = parseFloat($('#payment-received').val().replace(',', '.')) || 0;
@@ -396,7 +391,6 @@ function calculateChange() {
 
     $('#payment-change').text(`R$ ${change.toFixed(2).replace('.', ',')}`);
     
-    // Habilita o botão se o valor recebido for suficiente
     if (change >= 0) {
         $('#confirm-payment-btn').prop('disabled', false).removeClass('btn-secondary').addClass('btn-success');
     } else {
@@ -404,7 +398,6 @@ function calculateChange() {
     }
 }
 
-// Função que envia o carrinho e o pagamento para o backend
 async function finalizeSale() {
     const paymentReceived = parseFloat($('#payment-received').val().replace(',', '.')) || 0;
     const paymentMethod = $('#payment-method').val();
@@ -435,9 +428,7 @@ async function finalizeSale() {
 
         if (response.ok) {
             alert(`Venda ${data.sale_id} finalizada com sucesso! Troco: R$ ${(payload.payment_details.change).toFixed(2).replace('.', ',')}`);
-            
-            // TODO: Redirecionar para a tela de Recibo/PDF
-            window.location.reload(); // Recarrega a página para nova venda
+            window.location.reload(); 
         } else {
             alert(`Erro ao finalizar venda: ${data.error || 'Erro desconhecido.'}`);
         }
@@ -450,39 +441,6 @@ async function finalizeSale() {
     }
 }
 
-// ... (bloco $(document).ready)
-
-$(document).ready(function() {
-    // ... (código existente) ...
-
-    // ----------------------------------------------------
-    // LÓGICA DE FINALIZAÇÃO DE VENDA (Ação 11)
-    // ----------------------------------------------------
-    
-    // 1. Abre o modal de pagamento
-    $('#finalize-sale-btn').on('click', function() {
-        openPaymentModal();
-    });
-
-    // 2. Cálculo de troco ao digitar valor recebido
-    $('#payment-received').on('keyup change', function() {
-        calculateChange();
-    });
-
-    // 3. Confirma e envia os dados finais para o backend
-    $('#confirm-payment-btn').on('click', function() {
-        finalizeSale();
-    });
-    
-    // ----------------------------------------------------
-    // OUTRAS AÇÕES FINAIS (Rascunho)
-    // ----------------------------------------------------
-    $('#save-draft-btn').on('click', function() {
-        // TODO: Implementar endpoint /api/cart/save_draft
-        alert('Funcionalidade de Salvar Orçamento (Rascunho) será implementada em breve. Dados atuais: ' + JSON.stringify(cartState));
-    });
-
-});
 
 /**
  * =================================================================
@@ -505,11 +463,10 @@ $(document).ready(function() {
     });
     
     // ----------------------------------------------------
-    // LÓGICA DE BUSCA DE CLIENTE
+    // LÓGICA DE BUSCA DE CLIENTE (Resolve Ponto 1)
     // ----------------------------------------------------
     const $clientInput = $('#client-search-input');
     
-    // ... (Manipuladores de cliente inalterados) ...
     $clientInput.on('keyup', function() { 
         clearTimeout(clientSearchTimeout);
         const query = $(this).val();
@@ -522,13 +479,14 @@ $(document).ready(function() {
         selectClient($item.data('client-id'), $item.data('client-name'), $item.data('client-doc'), $item.data('client-cr'));
     });
     $('#clientSearchModal').on('shown.bs.modal', function () {
+        // Garante que o input receba foco para o usuário começar a digitar/scanner
         $clientInput.trigger('focus');
         $('#client-search-results-area').empty(); 
     });
 
 
     // ----------------------------------------------------
-    // LÓGICA DE BUSCA E CONFIGURAÇÃO DE PRODUTOS
+    // LÓGICA DE BUSCA E CONFIGURAÇÃO DE PRODUTOS (Resolve Ponto 2)
     // ----------------------------------------------------
     const $productInput = $('#product-search-input');
     
@@ -553,19 +511,46 @@ $(document).ready(function() {
         configureItem(productData);
     });
     
-    // Ação ao clicar no botão de Adicionar ao Carrinho dentro do modal (CHAMADA API)
+    // Ação ao clicar no botão de Adicionar ao Carrinho dentro do modal
     $('#add-to-cart-btn').on('click', function() {
         addItemToCart();
     });
 
-    // Lógica para garantir que o campo de preço aceite apenas números e vírgulas (ajuste cultural)
+    // Lógica para garantir que o campo de preço aceite números e formate corretamente
     $('#config-unit-price').on('change', function() {
         let value = $(this).val().replace(',', '.');
-        $(this).val(parseFloat(value).toFixed(2));
+        if (!isNaN(parseFloat(value))) {
+             $(this).val(parseFloat(value).toFixed(2).replace('.', ',')); // Formata de volta para BRL
+        }
     });
 
     // Ação ao clicar no botão do scanner
     $('#scan-button').on('click', function() {
         $productInput.trigger('focus');
+        // Futuramente, aqui pode ser ativado um scanner de câmera/celular
+    });
+    
+    // ----------------------------------------------------
+    // LÓGICA DE FINALIZAÇÃO DE VENDA (Resolve Ponto 3)
+    // ----------------------------------------------------
+    
+    // 1. Abre o modal de pagamento
+    $('#finalize-sale-btn').on('click', function() {
+        openPaymentModal();
+    });
+
+    // 2. Cálculo de troco ao digitar valor recebido
+    $('#payment-received').on('keyup change', function() {
+        calculateChange();
+    });
+
+    // 3. Confirma e envia os dados finais para o backend
+    $('#confirm-payment-btn').on('click', function() {
+        finalizeSale();
+    });
+    
+    // 4. Placeholder para Salvar Rascunho
+    $('#save-draft-btn').on('click', function() {
+        alert('Funcionalidade de Salvar Orçamento (Rascunho) será implementada em breve.');
     });
 });

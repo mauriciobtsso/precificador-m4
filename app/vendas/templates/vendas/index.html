@@ -1,298 +1,299 @@
 {% extends "base.html" %}
+
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-  <div class="d-flex align-items-center">
-    <h2 class="fw-semibold text-dark mb-0 me-3">
-      <i class="fas fa-shopping-bag text-danger me-2"></i> Vendas
-    </h2>
-    <a href="{{ url_for('vendas.nova_venda') }}" class="btn btn-success rounded-pill px-3 shadow-sm">
-      <i class="fas fa-plus me-1"></i> Nova Venda
-    </a>
-  </div>
-  
-  <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-dark btn-sm rounded-pill px-3">
-    <i class="fas fa-home me-1"></i> Dashboard
-  </a>
+	<div class="d-flex align-items-center">
+		<h2 class="fw-semibold text-dark mb-0 me-3">
+			<i class="fas fa-shopping-bag text-danger me-2"></i> Vendas
+		</h2>
+		<a href="{{ url_for('sales_core.novo_pdv') }}" class="btn btn-success rounded-pill px-3 shadow-sm">
+			<i class="fas fa-plus me-1"></i> Nova Venda (PDV)
+		</a>
+	</div>
+	
+	<a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+		<i class="fas fa-home me-1"></i> Dashboard
+	</a>
 </div>
 
 <form method="get" class="row g-2 mb-3">
-  <div class="col-12 col-md-3">
-    <input type="text" name="cliente" value="{{ request.args.get('cliente','') }}"
-           class="form-control" placeholder="Cliente">
-  </div>
+	<div class="col-12 col-md-3">
+		<input type="text" name="cliente" value="{{ request.args.get('cliente','') }}"
+			   class="form-control" placeholder="Cliente">
+	</div>
 
-  <div class="col-6 col-md-2">
-    <select name="status" class="form-select">
-      <option value="">Todos os Status</option>
-      <option value="aberta"    {% if request.args.get('status')=='aberta' %}selected{% endif %}>Aberta</option>
-      <option value="fechada"   {% if request.args.get('status')=='fechada' %}selected{% endif %}>Fechada</option>
-      <option value="quitada"   {% if request.args.get('status')=='quitada' %}selected{% endif %}>Quitada</option>
-      <option value="devolução" {% if request.args.get('status')=='devolução' %}selected{% endif %}>Devolução</option>
-    </select>
-  </div>
+	<div class="col-6 col-md-2">
+		<select name="status" class="form-select">
+			<option value="">Todos os Status</option>
+			<option value="aberta" 	{% if request.args.get('status')=='aberta' %}selected{% endif %}>Aberta</option>
+			<option value="fechada" {% if request.args.get('status')=='fechada' %}selected{% endif %}>Fechada</option>
+			<option value="quitada" {% if request.args.get('status')=='quitada' %}selected{% endif %}>Quitada</option>
+			<option value="devolução" {% if request.args.get('status')=='devolução' %}selected{% endif %}>Devolução</option>
+		</select>
+	</div>
 
-  <div class="col-6 col-md-2">
-    <select name="periodo" class="form-select" id="filtro-periodo">
-      <option value="">Todos os períodos</option>
-      <option value="7d"            {% if request.args.get('periodo')=='7d' %}selected{% endif %}>Últimos 7 dias</option>
-      <option value="mes"           {% if request.args.get('periodo')=='mes' %}selected{% endif %}>Mês atual</option>
-      <option value="personalizado"{% if request.args.get('periodo')=='personalizado' %}selected{% endif %}>Personalizado</option>
-    </select>
-  </div>
+	<div class="col-6 col-md-2">
+		<select name="periodo" class="form-select" id="filtro-periodo">
+			<option value="">Todos os períodos</option>
+			<option value="7d" 			{% if request.args.get('periodo')=='7d' %}selected{% endif %}>Últimos 7 dias</option>
+			<option value="mes" 			{% if request.args.get('periodo')=='mes' %}selected{% endif %}>Mês atual</option>
+			<option value="personalizado"{% if request.args.get('periodo')=='personalizado' %}selected{% endif %}>Personalizado</option>
+		</select>
+	</div>
 
-  <div class="col-6 col-md-2 d-none" id="campo-inicio">
-    <input type="date" name="data_inicio" value="{{ request.args.get('data_inicio','') }}" class="form-control">
-  </div>
-  <div class="col-6 col-md-2 d-none" id="campo-fim">
-    <input type="date" name="data_fim" value="{{ request.args.get('data_fim','') }}" class="form-control">
-  </div>
+	<div class="col-6 col-md-2 d-none" id="campo-inicio">
+		<input type="date" name="data_inicio" value="{{ request.args.get('data_inicio','') }}" class="form-control">
+	</div>
+	<div class="col-6 col-md-2 d-none" id="campo-fim">
+		<input type="date" name="data_fim" value="{{ request.args.get('data_fim','') }}" class="form-control">
+	</div>
 
-  <div class="col-6 col-md-1">
-    <button type="submit" class="btn btn-primary w-100">
-      <i class="fas fa-search"></i>
-    </button>
-  </div>
-  <div class="col-6 col-md-1">
-    <a href="{{ url_for('vendas.vendas') }}" class="btn btn-outline-secondary w-100">
-      <i class="fas fa-eraser"></i>
-    </a>
-  </div>
+	<div class="col-6 col-md-1">
+		<button type="submit" class="btn btn-primary w-100">
+			<i class="fas fa-search"></i>
+		</button>
+	</div>
+	<div class="col-6 col-md-1">
+		<a href="{{ url_for('sales_core.vendas_lista') }}" class="btn btn-outline-secondary w-100">
+			<i class="fas fa-eraser"></i>
+		</a>
+	</div>
 </form>
 
 <div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm rounded-4 text-center py-3 h-100">
-      <div class="text-muted small"><i class="fas fa-receipt me-1 text-secondary"></i> Total de Vendas</div>
-      <div class="fs-5 fw-semibold text-dark mt-1">{{ resumo.total_vendas }}</div>
-    </div>
-  </div>
+	<div class="col-6 col-md-3">
+		<div class="card border-0 shadow-sm rounded-4 text-center py-3 h-100">
+			<div class="text-muted small"><i class="fas fa-receipt me-1 text-secondary"></i> Total de Vendas</div>
+			<div class="fs-5 fw-semibold text-dark mt-1">{{ resumo.total_vendas }}</div>
+		</div>
+	</div>
 
-  <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm rounded-4 text-center py-3 h-100">
-      <div class="text-muted small"><i class="fas fa-money-bill-wave me-1 text-success"></i> Valor Total Vendido</div>
-      <div class="fs-5 fw-semibold text-success mt-1">{{ resumo.soma_total|currency }}</div>
-    </div>
-  </div>
+	<div class="col-6 col-md-3">
+		<div class="card border-0 shadow-sm rounded-4 text-center py-3 h-100">
+			<div class="text-muted small"><i class="fas fa-money-bill-wave me-1 text-success"></i> Valor Total Vendido</div>
+			<div class="fs-5 fw-semibold text-success mt-1">{{ resumo.soma_total|currency }}</div>
+		</div>
+	</div>
 
-  <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm rounded-4 text-center py-3 h-100">
-      <div class="text-muted small"><i class="fas fa-hand-holding-usd me-1 text-primary"></i> Valor Recebido</div>
-      <div class="fs-5 fw-semibold text-primary mt-1">{{ resumo.soma_recebido|currency }}</div>
-    </div>
-  </div>
+	<div class="col-6 col-md-3">
+		<div class="card border-0 shadow-sm rounded-4 text-center py-3 h-100">
+			<div class="text-muted small"><i class="fas fa-hand-holding-usd me-1 text-primary"></i> Valor Recebido</div>
+			<div class="fs-5 fw-semibold text-primary mt-1">{{ resumo.soma_recebido|currency }}</div>
+		</div>
+	</div>
 
-  <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm rounded-4 text-center py-3 h-100">
-      <div class="text-muted small"><i class="fas fa-percentage me-1 text-danger"></i> Descontos Aplicados</div>
-      <div class="fs-5 fw-semibold text-danger mt-1">
-        {{ resumo.soma_descontos|currency if resumo.soma_descontos else "—" }}
-      </div>
-    </div>
-  </div>
+	<div class="col-6 col-md-3">
+		<div class="card border-0 shadow-sm rounded-4 text-center py-3 h-100">
+			<div class="text-muted small"><i class="fas fa-percentage me-1 text-danger"></i> Descontos Aplicados</div>
+			<div class="fs-5 fw-semibold text-danger mt-1">
+				{{ resumo.soma_descontos|currency if resumo.soma_descontos else "—" }}
+			</div>
+		</div>
+	</div>
 
-  <div class="col-12 col-md-3">
-    <div class="card border-0 shadow-sm rounded-4 text-center py-3 h-100">
-      <div class="text-muted small"><i class="fas fa-chart-line me-1 text-dark"></i> Média por Venda</div>
-      <div class="fs-5 fw-semibold text-dark mt-1">{{ resumo.media_venda|currency }}</div>
-    </div>
-  </div>
+	<div class="col-12 col-md-3">
+		<div class="card border-0 shadow-sm rounded-4 text-center py-3 h-100">
+			<div class="text-muted small"><i class="fas fa-chart-line me-1 text-dark"></i> Média por Venda</div>
+			<div class="fs-5 fw-semibold text-dark mt-1">{{ resumo.media_venda|currency }}</div>
+		</div>
+	</div>
 </div>
 
 <div class="d-none d-md-block">
-  <div class="card shadow-sm border-0 rounded-4">
-    <div class="card-body p-0">
-      <table class="table table-striped table-hover mb-0 align-middle">
-        <thead class="table-light">
-          <tr>
-            <th style="width: 80px;">ID</th>
-            <th>Cliente</th>
-            <th style="width: 200px;">Data</th>
-            <th style="width: 180px;">Valor Total</th>
-            <th style="width: 160px;">Status</th>
-            <th style="width: 180px;" class="text-end">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for venda in vendas.items %}
-          <tr>
-            <td>#{{ venda.id }}</td>
-            <td>{{ venda.cliente.nome if venda.cliente else "Não identificado" }}</td>
-            <td>{{ venda.data_abertura.strftime("%d/%m/%Y %H:%M") if venda.data_abertura else "-" }}</td>
-            <td>{{ venda.valor_total|currency }}</td>
-            <td>
-                {% set st = (venda.status or '').lower() %}
-                <span class="badge {% if 'aberta' in st %}bg-warning text-dark{% elif 'fechada' in st or 'quitada' in st %}bg-success{% elif 'canc' in st %}bg-danger{% else %}bg-secondary{% endif %}">
-                    {{ venda.status or "-" }}
-                </span>
-            </td>
-            <td class="text-end">
-              <a href="{{ url_for('vendas.venda_detalhe', venda_id=venda.id) }}" 
-                 class="btn btn-sm btn-light border" title="Ver Detalhes">
-                <i class="fas fa-eye"></i>
-              </a>
-              <a href="{{ url_for('vendas.editar_venda', venda_id=venda.id) }}" 
-                 class="btn btn-sm btn-outline-primary" title="Editar">
-                <i class="fas fa-edit"></i>
-              </a>
-              <button type="button" class="btn btn-sm btn-outline-danger" 
-                      data-bs-toggle="modal" 
-                      data-bs-target="#modalExcluirUnico"
-                      data-venda-id="{{ venda.id }}"
-                      data-cliente-nome="{{ venda.cliente.nome if venda.cliente else 'Cliente não identificado' }}"
-                      data-action-url="{{ url_for('vendas.excluir_venda', venda_id=venda.id) }}">
-                <i class="fas fa-trash"></i>
-              </button>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="6" class="text-center text-muted py-4">Nenhuma venda encontrada.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+	<div class="card shadow-sm border-0 rounded-4">
+		<div class="card-body p-0">
+			<table class="table table-striped table-hover mb-0 align-middle">
+				<thead class="table-light">
+					<tr>
+						<th style="width: 80px;">ID</th>
+						<th>Cliente</th>
+						<th style="width: 200px;">Data</th>
+						<th style="width: 180px;">Valor Total</th>
+						<th style="width: 160px;">Status</th>
+						<th style="width: 180px;" class="text-end">Ações</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for venda in vendas.items %}
+					<tr>
+						<td>#{{ venda.id }}</td>
+						<td>{{ venda.cliente.nome if venda.cliente else "Não identificado" }}</td>
+						<td>{{ venda.data_abertura.strftime("%d/%m/%Y %H:%M") if venda.data_abertura else "-" }}</td>
+						<td>{{ venda.valor_total|currency }}</td>
+						<td>
+							{% set st = (venda.status or '').lower() %}
+							<span class="badge {% if 'aberta' in st %}bg-warning text-dark{% elif 'fechada' in st or 'quitada' in st %}bg-success{% elif 'canc' in st %}bg-danger{% else %}bg-secondary{% endif %}">
+								{{ venda.status or "-" }}
+							</span>
+						</td>
+						<td class="text-end">
+							<a href="{{ url_for('sales_core.venda_detalhe', venda_id=venda.id) }}" 
+								class="btn btn-sm btn-light border" title="Ver Detalhes">
+								<i class="fas fa-eye"></i>
+							</a>
+							<a href="{{ url_for('sales_core.editar_venda', venda_id=venda.id) }}" 
+								class="btn btn-sm btn-outline-primary" title="Editar">
+								<i class="fas fa-edit"></i>
+							</a>
+							<button type="button" class="btn btn-sm btn-outline-danger" 
+									data-bs-toggle="modal" 
+									data-bs-target="#modalExcluirUnico"
+									data-venda-id="{{ venda.id }}"
+									data-cliente-nome="{{ venda.cliente.nome if venda.cliente else 'Cliente não identificado' }}"
+									data-action-url="{{ url_for('sales_core.excluir_venda', venda_id=venda.id) }}">
+								<i class="fas fa-trash"></i>
+							</button>
+						</td>
+					</tr>
+					{% else %}
+					<tr>
+						<td colspan="6" class="text-center text-muted py-4">Nenhuma venda encontrada.</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
 </div>
 
 <div class="d-md-none">
-  {% for venda in vendas.items %}
-  <div class="card shadow-sm border-0 mb-3 rounded-4">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-start">
-        <div>
-          <div class="fw-bold">#{{ venda.id }} • {{ venda.cliente.nome if venda.cliente else "Não identificado" }}</div>
-          <small class="text-muted">
-            {{ venda.data_abertura.strftime("%d/%m/%Y %H:%M") if venda.data_abertura else "-" }}
-          </small>
-        </div>
-        <span class="badge
-          {% if (venda.status or '').lower().startswith('aber') %} bg-warning text-dark
-          {% elif (venda.status or '').lower().startswith('fech') %} bg-secondary
-          {% elif (venda.status or '').lower().startswith('quit') %} bg-success
-          {% elif 'devol' in (venda.status or '').lower() %} bg-danger
-          {% else %} bg-info
-          {% endif %}">
-          {{ venda.status or "-" }}
-        </span>
-      </div>
+	{% for venda in vendas.items %}
+	<div class="card shadow-sm border-0 mb-3 rounded-4">
+		<div class="card-body">
+			<div class="d-flex justify-content-between align-items-start">
+				<div>
+					<div class="fw-bold">#{{ venda.id }} • {{ venda.cliente.nome if venda.cliente else "Não identificado" }}</div>
+					<small class="text-muted">
+						{{ venda.data_abertura.strftime("%d/%m/%Y %H:%M") if venda.data_abertura else "-" }}
+					</small>
+				</div>
+				<span class="badge
+					{% if (venda.status or '').lower().startswith('aber') %} bg-warning text-dark
+					{% elif (venda.status or '').lower().startswith('fech') %} bg-secondary
+					{% elif (venda.status or '').lower().startswith('quit') %} bg-success
+					{% elif 'devol' in (venda.status or '').lower() %} bg-danger
+					{% else %} bg-info
+					{% endif %}">
+					{{ venda.status or "-" }}
+				</span>
+			</div>
 
-      <div class="mt-2">
-        <div class="text-muted small">Valor total</div>
-        <div class="fs-6 fw-semibold">{{ venda.valor_total|currency }}</div>
-      </div>
+			<div class="mt-2">
+				<div class="text-muted small">Valor total</div>
+				<div class="fs-6 fw-semibold">{{ venda.valor_total|currency }}</div>
+			</div>
 
-      <div class="mt-3 d-flex justify-content-end gap-2">
-        <a href="{{ url_for('vendas.venda_detalhe', venda_id=venda.id) }}" class="btn btn-light border btn-sm rounded-pill px-3">
-          <i class="fas fa-eye"></i>
-        </a>
-        <a href="{{ url_for('vendas.editar_venda', venda_id=venda.id) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
-            <i class="fas fa-edit"></i>
-        </a>
-        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" 
-                data-bs-toggle="modal" 
-                data-bs-target="#modalExcluirUnico"
-                data-venda-id="{{ venda.id }}"
-                data-cliente-nome="{{ venda.cliente.nome if venda.cliente else 'Cliente não identificado' }}"
-                data-action-url="{{ url_for('vendas.excluir_venda', venda_id=venda.id) }}">
-            <i class="fas fa-trash"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-  {% else %}
-  <div class="text-center text-muted">Nenhuma venda encontrada.</div>
-  {% endfor %}
+			<div class="mt-3 d-flex justify-content-end gap-2">
+				<a href="{{ url_for('sales_core.venda_detalhe', venda_id=venda.id) }}" class="btn btn-light border btn-sm rounded-pill px-3">
+					<i class="fas fa-eye"></i>
+				</a>
+				<a href="{{ url_for('sales_core.editar_venda', venda_id=venda.id) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+					<i class="fas fa-edit"></i>
+				</a>
+				<button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" 
+						data-bs-toggle="modal" 
+						data-bs-target="#modalExcluirUnico"
+						data-venda-id="{{ venda.id }}"
+						data-cliente-nome="{{ venda.cliente.nome if venda.cliente else 'Cliente não identificado' }}"
+						data-action-url="{{ url_for('sales_core.excluir_venda', venda_id=venda.id) }}">
+					<i class="fas fa-trash"></i>
+				</button>
+			</div>
+		</div>
+	</div>
+	{% else %}
+	<div class="text-center text-muted">Nenhuma venda encontrada.</div>
+	{% endfor %}
 </div>
 
 {% if vendas.pages > 1 %}
 <nav aria-label="Paginação" class="mt-4">
-  <ul class="pagination justify-content-center mb-0">
-    {% if vendas.has_prev %}
-      <li class="page-item"><a class="page-link" href="?page={{ vendas.prev_num }}">&laquo; Anterior</a></li>
-    {% else %}
-      <li class="page-item disabled"><span class="page-link">&laquo; Anterior</span></li>
-    {% endif %}
+	<ul class="pagination justify-content-center mb-0">
+		{% if vendas.has_prev %}
+			<li class="page-item"><a class="page-link" href="?page={{ vendas.prev_num }}">&laquo; Anterior</a></li>
+		{% else %}
+			<li class="page-item disabled"><span class="page-link">&laquo; Anterior</span></li>
+		{% endif %}
 
-    {% for p in range(1, vendas.pages + 1) %}
-      <li class="page-item {% if p == vendas.page %}active{% endif %}">
-        <a class="page-link" href="?page={{ p }}">{{ p }}</a>
-      </li>
-    {% endfor %}
+		{% for p in range(1, vendas.pages + 1) %}
+			<li class="page-item {% if p == vendas.page %}active{% endif %}">
+				<a class="page-link" href="?page={{ p }}">{{ p }}</a>
+			</li>
+		{% endfor %}
 
-    {% if vendas.has_next %}
-      <li class="page-item"><a class="page-link" href="?page={{ vendas.next_num }}">Próxima &raquo;</a></li>
-    {% else %}
-      <li class="page-item disabled"><span class="page-link">Próxima &raquo;</span></li>
-    {% endif %}
-  </ul>
+		{% if vendas.has_next %}
+			<li class="page-item"><a class="page-link" href="?page={{ vendas.next_num }}">Próxima &raquo;</a></li>
+		{% else %}
+			<li class="page-item disabled"><span class="page-link">Próxima &raquo;</span></li>
+		{% endif %}
+	</ul>
 </nav>
 {% endif %}
 
 <div class="modal fade" id="modalExcluirUnico" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title">
-            <i class="fas fa-exclamation-triangle me-2"></i> Excluir Venda
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body text-center py-4">
-        <p class="fs-5">Tem certeza que deseja excluir a Venda <strong id="lblVendaId">#</strong>?</p>
-        <p class="text-muted mb-0">Cliente: <span id="lblClienteNome"></span></p>
-        <small class="text-danger d-block mt-3">Esta ação não pode ser desfeita automaticamente.</small>
-      </div>
-      <div class="modal-footer justify-content-center">
-        <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
-        <form id="formExcluirVenda" method="post" action="">
-          <button type="submit" class="btn btn-danger px-4">
-              <i class="fas fa-trash-alt me-2"></i> Confirmar Exclusão
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header bg-danger text-white">
+				<h5 class="modal-title">
+					<i class="fas fa-exclamation-triangle me-2"></i> Excluir Venda
+				</h5>
+				<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body text-center py-4">
+				<p class="fs-5">Tem certeza que deseja excluir a Venda <strong id="lblVendaId">#</strong>?</p>
+				<p class="text-muted mb-0">Cliente: <span id="lblClienteNome"></span></p>
+				<small class="text-danger d-block mt-3">Esta ação não pode ser desfeita automaticamente.</small>
+			</div>
+			<div class="modal-footer justify-content-center">
+				<button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+				<form id="formExcluirVenda" method="post" action="">
+					<button type="submit" class="btn btn-danger px-4">
+						<i class="fas fa-trash-alt me-2"></i> Confirmar Exclusão
+					</button>
+				</form>
+			</div>
+		</div>
+	</div>
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-  // Filtros de Data
-  const selectPeriodo = document.getElementById("filtro-periodo");
-  const campoInicio = document.getElementById("campo-inicio");
-  const campoFim = document.getElementById("campo-fim");
+	// Filtros de Data
+	const selectPeriodo = document.getElementById("filtro-periodo");
+	const campoInicio = document.getElementById("campo-inicio");
+	const campoFim = document.getElementById("campo-fim");
 
-  function toggleCampos() {
-    if (selectPeriodo.value === "personalizado") {
-      campoInicio.classList.remove("d-none");
-      campoFim.classList.remove("d-none");
-    } else {
-      campoInicio.classList.add("d-none");
-      campoFim.classList.add("d-none");
-    }
-  }
-  selectPeriodo.addEventListener("change", toggleCampos);
-  toggleCampos();
+	function toggleCampos() {
+		if (selectPeriodo.value === "personalizado") {
+			campoInicio.classList.remove("d-none");
+			campoFim.classList.remove("d-none");
+		} else {
+			campoInicio.classList.add("d-none");
+			campoFim.classList.add("d-none");
+		}
+	}
+	selectPeriodo.addEventListener("change", toggleCampos);
+	toggleCampos();
 
-  // Lógica do Modal Único
-  const modalExcluir = document.getElementById('modalExcluirUnico');
-  modalExcluir.addEventListener('show.bs.modal', function (event) {
-    // Botão que acionou o modal
-    const button = event.relatedTarget; 
-    
-    // Extrai info dos atributos data-*
-    const vendaId = button.getAttribute('data-venda-id');
-    const clienteNome = button.getAttribute('data-cliente-nome');
-    const actionUrl = button.getAttribute('data-action-url');
+	// Lógica do Modal Único
+	const modalExcluir = document.getElementById('modalExcluirUnico');
+	modalExcluir.addEventListener('show.bs.modal', function (event) {
+		// Botão que acionou o modal
+		const button = event.relatedTarget;	
+		
+		// Extrai info dos atributos data-*
+		const vendaId = button.getAttribute('data-venda-id');
+		const clienteNome = button.getAttribute('data-cliente-nome');
+		const actionUrl = button.getAttribute('data-action-url');
 
-    // Atualiza o conteúdo do modal
-    document.getElementById('lblVendaId').textContent = '#' + vendaId;
-    document.getElementById('lblClienteNome').textContent = clienteNome;
-    
-    // Atualiza o action do form
-    document.getElementById('formExcluirVenda').setAttribute('action', actionUrl);
-  });
+		// Atualiza o conteúdo do modal
+		document.getElementById('lblVendaId').textContent = '#' + vendaId;
+		document.getElementById('lblClienteNome').textContent = clienteNome;
+		
+		// Atualiza o action do form
+		document.getElementById('formExcluirVenda').setAttribute('action', actionUrl);
+	});
 });
 </script>
 {% endblock %}

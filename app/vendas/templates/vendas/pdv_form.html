@@ -137,7 +137,7 @@
                     <div class="mb-3">
                         <label for="config-serial-lote" class="form-label">Serial / Lote</label>
                         <input type="text" class="form-control" id="config-serial-lote" placeholder="Digite ou selecione o Serial/Lote" required>
-                        </div>
+                    </div>
                     
                     <div class="mb-0">
                         <label for="config-craf" class="form-label">CRAF (Se aplicável)</label>
@@ -159,6 +159,7 @@
         </div>
     </div>
 </div>
+
 <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -205,6 +206,11 @@
     </div>
 </div>
 
+{% endblock %}
 
-<script src="{{ url_for('static', filename='vendas/pdv_script.js') }}"></script>
+{# 🚨 AQUI ESTÁ A CORREÇÃO: O script customizado é movido para o bloco 'scripts' 
+   que é executado APÓS o JQUERY no base.html. #}
+{% block scripts %}
+    {{ super() }} 
+    <script src="{{ url_for('vendas.static', filename='vendas/pdv_script.js') }}"></script>
 {% endblock %}
