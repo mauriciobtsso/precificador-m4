@@ -24,36 +24,12 @@ document.addEventListener("DOMContentLoaded", function() {
     const feedbackLote = document.getElementById('feedback_lote');
     const selCraf = document.getElementById('temp_craf_id');
     const placeholderSelecao = document.getElementById('placeholder_selecao');
-    const inpQtd = document.getElementById('temp_quantidade'); // Adicionado
-    const inpPreco = document.getElementById('temp_preco'); // Adicionado
 
     // Carrinho e Totais
     const emptyMsg = document.getElementById('empty_cart_msg');
     const txtSubtotal = document.getElementById('resumo_subtotal');
     const txtTotalFinal = document.getElementById('resumo_total_final');
     const inpDesconto = document.getElementById('venda_desconto');
-    
-    
-    // --- NOVO: INICIALIZAÇÃO PARA EDIÇÃO (CORREÇÃO #3) ---
-    // A variável VENDA_INICIAL_DATA é injetada via Jinja
-    if (window.VENDA_INICIAL_DATA && window.VENDA_INICIAL_DATA.id) {
-        const data = window.VENDA_INICIAL_DATA;
-        
-        // 1. Cliente
-        if (data.cliente) {
-            selecionarCliente(data.cliente);
-        }
-        
-        // 2. Itens
-        CARRINHO = data.itens || [];
-        
-        // 3. Desconto
-        inpDesconto.value = data.desconto.toFixed(2);
-        
-        // 4. Renderiza
-        renderizarCarrinho();
-    }
-
 
     // --- 1. LÓGICA DE CLIENTE ---
 
@@ -171,12 +147,8 @@ document.addEventListener("DOMContentLoaded", function() {
             // Preenche campos básicos
             document.getElementById('temp_produto_id').value = PRODUTO_ATUAL.id;
             document.getElementById('busca_produto').value = PRODUTO_ATUAL.nome;
-            inpPreco.value = PRODUTO_ATUAL.preco.toFixed(2);
+            document.getElementById('temp_preco').value = PRODUTO_ATUAL.preco.toFixed(2);
             document.getElementById('info_estoque').textContent = `Estoque atual: ${PRODUTO_ATUAL.estoque} unidades.`;
-            
-            // NOVO: Preencher quantidade padrão se existir (CORREÇÃO #5)
-            const qtdPadrao = PRODUTO_ATUAL.unidade_venda_padrao || 1;
-            inpQtd.value = qtdPadrao;
 
             // --- DECISÃO DE INTERFACE (ENCRUZILHADA) ---
             const tipo = PRODUTO_ATUAL.tipo.toLowerCase();
@@ -206,7 +178,7 @@ document.addEventListener("DOMContentLoaded", function() {
             // CASO 3: LIVRE
             else {
                 placeholderSelecao.style.display = 'block';
-                placeholderSelecao.querySelector('span').textContent = "Produto Livre (Sem rastreio)";
+                placeholderSelecao.querySelector('input').value = "Produto Livre (Sem rastreio)";
             }
 
         } catch(e) { console.error("Erro detalhe produto", e); }
@@ -260,7 +232,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 opt.text = `⚠️ Nenhuma arma ${calibreExigido} encontrada!`;
                 opt.disabled = true;
                 selCraf.appendChild(opt);
+                
+                // Injeta botão de cadastro rápido se não existir
+                if(!document.getElementById('btnQuickAddArma')) {
+                    const btn = document.createElement('button');
+                    btn.id = 'btnQuickAddArma';
+                    btn.type = 'button';
+                    btn.className = 'btn btn-sm btn-outline-danger w-100 mt-1';
+                    btn.innerHTML = '<i class="fas fa-plus"></i> Cadastrar Arma Agora';
+                    btn.onclick = abrirModalNovaArma;
+                    selCraf.parentNode.appendChild(btn);
+                }
             } else {
+                const btn = document.getElementById('btnQuickAddArma');
+                if(btn) btn.remove();
+
                 armas.forEach(a => {
                     selCraf.innerHTML += `<option value="${a.id}">${a.descricao} - ${a.serial} (${a.sistema})</option>`;
                 });
@@ -306,21 +292,15 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const prodId = document.getElementById('temp_produto_id').value;
         const nome = document.getElementById('busca_produto').value;
-        const preco = parseFloat(inpPreco.value || 0);
-        const quantidade = parseInt(inpQtd.value > 0 ? inpQtd.value : 1);
+        const precoInput = document.getElementById('temp_preco').value.replace(',', '.');
+        const preco = parseFloat(precoInput || 0);
+        const qtdInput = document.getElementById('temp_quantidade');
+        const quantidade = parseInt(qtdInput.value > 0 ? qtdInput.value : 1);
 
         // Captura Contexto
         const serialId = selSerial ? selSerial.value : null;
         const loteId = hidLoteId ? hidLoteId.value : null;
         const crafId = selCraf ? selCraf.value : null;
-
-        // Determina o item_estoque_id a ser enviado ao backend
-        let itemEstoqueId = null;
-        if (serialId) {
-            itemEstoqueId = serialId;
-        } else if (loteId) {
-            itemEstoqueId = loteId;
-        }
 
         // --- VALIDAÇÕES DE REGRA DE NEGÓCIO ---
 
@@ -330,7 +310,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 alert("⚠️ Bloqueio Legal: Selecione a arma (CRAF) do cliente para vender esta munição.");
                 return; 
             }
-            // Não obrigamos o lote, permitimos encomenda de munição (futuro)
+            // Se quiser obrigar o scanner:
+            // if (!loteId) { alert("Bipe o lote da munição!"); return; }
         }
 
         // B. Arma
@@ -344,18 +325,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Monta Descrição Rica para a Tabela
         let detalheHtml = "";
+        let itemEstoqueId = null;
 
         // Se achou Lote (Scanner)
         if (loteId) {
             const l = ESTOQUE_ATUAL.find(x => x.id == loteId);
-            detalheHtml = `<span class="badge bg-info text-dark"><i class="fas fa-box"></i> Lote/Emb: ${l ? (l.lote || l.embalagem) : '?'}</span>`;
+            detalheHtml = `<span class="badge bg-info text-dark"><i class="fas fa-box"></i> Lote: ${l ? l.lote : '?'}</span>`;
+            itemEstoqueId = loteId;
         } 
         // Se achou Serial (Dropdown)
         else if (serialId) {
             const s = ESTOQUE_ATUAL.find(x => x.id == serialId);
             detalheHtml = `<span class="badge bg-dark"><i class="fas fa-fingerprint"></i> Serial: ${s ? s.serial : '?'}</span>`;
+            itemEstoqueId = serialId;
         } 
-        // Se não tem nenhum, é Encomenda (Arma) ou Livre (Outros)
+        // Se não tem nenhum, é Encomenda ou Livre
         else {
              if(divSerial.style.display !== 'none') detalheHtml = `<span class="badge bg-warning text-dark">Sob Encomenda</span>`;
              else detalheHtml = `<span class="text-muted small">Item de Varejo</span>`;
@@ -372,7 +356,7 @@ document.addEventListener("DOMContentLoaded", function() {
             nome: nome,
             preco: preco,
             quantidade: quantidade,
-            item_estoque_id: itemEstoqueId, // Lote ou Serial ID
+            item_estoque_id: itemEstoqueId,
             arma_cliente_id: crafId || null,
             detalhe_html: detalheHtml
         });
@@ -434,13 +418,10 @@ document.addEventListener("DOMContentLoaded", function() {
     function resetarSelecaoProduto() {
         document.getElementById('busca_produto').value = '';
         document.getElementById('temp_produto_id').value = '';
-        inpQtd.value = '1';
-        inpPreco.value = '';
+        document.getElementById('temp_quantidade').value = '1';
         document.getElementById('info_estoque').textContent = '';
         
         placeholderSelecao.style.display = 'block';
-        placeholderSelecao.querySelector('span').textContent = "Selecione um produto acima..."; // Reset texto
-        
         divSerial.style.display = 'none';
         divMunicao.style.display = 'none';
         
@@ -520,7 +501,7 @@ document.addEventListener("DOMContentLoaded", function() {
         };
 
         try {
-            const res = await fetch(`/clientes/api/${clienteId}/armas/novo`, { 
+            const res = await fetch(`/clientes/api/${clienteId}/armas/novo`, { // ATENÇÃO: Verifique se essa rota existe
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)

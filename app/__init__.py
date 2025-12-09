@@ -1,3 +1,5 @@
+# app/__init__.py
+
 from flask import Flask
 from jinja2.runtime import Undefined
 from sqlalchemy import inspect
@@ -6,19 +8,13 @@ from dotenv import load_dotenv
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from datetime import datetime
-import pytz # ✅ para fuso horário
 
 # Importa extensões centralizadas
 from app.extensions import db, login_manager, migrate
 from app.produtos.configs import models as configs_models
+from app.utils.datetime import now_local
 
 load_dotenv()
-
-# =========================================================
-# FUSO HORÁRIO PADRÃO — agora movido para app/utils/datetime.py
-# =========================================================
-from app.utils.datetime import now_local
 
 
 # =========================================================
@@ -41,7 +37,7 @@ def configure_logging(app):
         os.path.join(log_dir, "precificador.log"),
         maxBytes=10 * 1024 * 1024,
         backupCount=5,
-        encoding="utf-8"
+        encoding="utf-8",
     )
     file_handler.setLevel(level)
     file_handler.setFormatter(formatter)
@@ -60,23 +56,6 @@ def configure_logging(app):
 
 
 # =========================================================
-# FUSO HORÁRIO PADRÃO — AMÉRICA/FORTALEZA (UTC-3)
-# =========================================================
-import pytz
-from datetime import datetime, timedelta, timezone
-
-# Definição de timezone local (sem horário de verão)
-TZ_FORTALEZA = pytz.timezone("America/Fortaleza")
-
-def now_local():
-    """Retorna o horário local padronizado em UTC-3 (Teresina), ignorando horário de verão."""
-    # datetime.now(tz=TZ_FORTALEZA) respeita o offset real da região
-    dt = datetime.now(tz=TZ_FORTALEZA)
-    # Remove possíveis ajustes indevidos do Windows
-    return dt.replace(tzinfo=timezone(timedelta(hours=-3)))
-
-
-# =========================================================
 # APP FACTORY
 # =========================================================
 def create_app():
@@ -87,6 +66,7 @@ def create_app():
     upload_folder = app.config.get("UPLOAD_FOLDER")
     if not upload_folder:
         from app.config import UPLOAD_FOLDER
+
         upload_folder = UPLOAD_FOLDER
         app.config["UPLOAD_FOLDER"] = upload_folder
 
@@ -94,7 +74,9 @@ def create_app():
     app.logger.info(f"[UPLOAD] Pasta configurada em: {upload_folder}")
 
     # 🚨 Proteção: evita testes em banco de produção
-    if app.config.get("TESTING") and "neon.tech" in app.config.get("SQLALCHEMY_DATABASE_URI", ""):
+    if app.config.get("TESTING") and "neon.tech" in app.config.get(
+        "SQLALCHEMY_DATABASE_URI", ""
+    ):
         raise RuntimeError("⚠️ Testes NÃO podem rodar em banco de produção (Neon)!")
 
     # Logging
@@ -113,7 +95,7 @@ def create_app():
     from app.admin import admin_bp
     from app.clientes.routes import clientes_bp
     from app.vendas import vendas_bp
-    from app.vendas.routes.sales_core import sales_core # IMPORTADO
+    from app.vendas.routes.sales_core import sales_core
     from app.produtos import produtos_bp
     from app.produtos.configs.routes import configs_bp
     from app.produtos.categorias.routes import categorias_bp
@@ -125,6 +107,7 @@ def create_app():
     from app.notificacoes import notificacoes_bp
     from app.compras import compras_nf_bp
     from app.importacoes import importacoes_bp
+    from app.certidoes import certidoes_bp
 
     app.register_blueprint(uploads_bp, url_prefix="/uploads")
     app.register_blueprint(main)
@@ -132,13 +115,12 @@ def create_app():
     app.register_blueprint(produtos_bp)
     app.register_blueprint(estoque_bp)
     app.register_blueprint(configs_bp)
-    
-    # 🚨 AJUSTE AQUI: Registra o Blueprint original de vendas (contém a lista e detalhe)
+
+    # Blueprint original de vendas
     app.register_blueprint(vendas_bp, url_prefix="/vendas")
-    # 🚨 NOVO REGISTRO: Registra o Blueprint de core de vendas (PDV e novas APIs)
-    # Ele usará o mesmo prefixo, e o Flask priorizará as rotas mais específicas.
-    app.register_blueprint(sales_core, url_prefix="/vendas") 
-    
+    # Core de vendas (PDV e novas APIs)
+    app.register_blueprint(sales_core, url_prefix="/vendas")
+
     app.register_blueprint(categorias_bp)
     app.register_blueprint(taxas_bp)
     app.register_blueprint(pedidos_bp, url_prefix="/pedidos")
@@ -146,12 +128,14 @@ def create_app():
     app.register_blueprint(notificacoes_bp)
     app.register_blueprint(compras_nf_bp)
     app.register_blueprint(importacoes_bp)
+    app.register_blueprint(certidoes_bp, url_prefix="/certidoes")
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
     # =========================================================
     # AGENDADOR DE ALERTAS
     # =========================================================
     from app.alertas.tasks import iniciar_scheduler
+
     iniciar_scheduler(app)
 
     # =========================================================
@@ -162,7 +146,9 @@ def create_app():
             return "R$ 0,00"
         try:
             v = float(value)
-            formatted = f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            formatted = (
+                f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            )
             return f"R$ {formatted}"
         except Exception:
             return "R$ 0,00"
@@ -193,7 +179,6 @@ def create_app():
                 return str(dt)
 
     app.jinja_env.filters["dt_local"] = format_datetime_local
-
 
     # =========================================================
     # CONTEXTO GLOBAL DE DATA/HORA LOCAL

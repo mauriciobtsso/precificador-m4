@@ -14,7 +14,11 @@
                     <strong>CPF/CNPJ:</strong> {{ cliente.documento or 'não possui' }}
                     {% if cliente.cr %} / <strong>CR:</strong> {{ cliente.cr }}{% endif %}
                     {% if cliente.rg %} / <strong>RG:</strong> {{ cliente.rg }}{% endif %}
-                    {% if cliente.matricula %} / <strong>Matrícula:</strong> {{ cliente.matricula }}{% else %} / <strong>Matrícula:</strong> não possui{% endif %}
+                    {% if cliente.matricula %}
+                        / <strong>Matrícula:</strong> {{ cliente.matricula }}
+                    {% else %}
+                        / <strong>Matrícula:</strong> não possui
+                    {% endif %}
                 </p>
                 <p class="mb-1">
                     <strong>Data de Nascimento:</strong>
@@ -124,6 +128,14 @@
           <i class="fas fa-edit"></i> Editar Cliente
         </a>
 
+        <form method="post"
+              action="{{ url_for('certidoes.criar_pacote_certidoes', cliente_id=cliente.id) }}"
+              class="d-inline me-2">
+            <button type="submit" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-file-signature"></i> Gerar Certidões
+            </button>
+        </form>
+
         <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalExcluirCliente">
             <i class="fas fa-trash-alt"></i> Excluir Cliente
         </button>
@@ -161,18 +173,31 @@
     </div>
 
     <ul class="nav nav-tabs" id="clienteTabs" role="tablist">
-        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#visao">Visão Geral</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#vendas"><i class="fas fa-shopping-bag me-1"></i> Histórico de Compras</a></li> <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#info">Informações</a></li>
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#visao">Visão Geral</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#vendas">
+                <i class="fas fa-shopping-bag me-1"></i> Histórico de Compras
+            </a>
+        </li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#info">Informações</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#docs">Documentos</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#armas">Armas</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#com">Comunicações</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#proc">Processos</a></li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#certidoes">
+                <i class="fas fa-file-signature me-1"></i> Certidões
+            </a>
+        </li>
     </ul>
 
     <div class="tab-content border p-3 border-top-0 bg-white">
         <div class="tab-pane fade show active" id="visao">
             <div class="row g-3 mb-4 text-center">
-                <div class="col-6 col-md-3"> <div class="card shadow-sm border-0 h-100">
+                <div class="col-6 col-md-3">
+                    <div class="card shadow-sm border-0 h-100">
                         <div class="card-body">
                             <i class="fas fa-shopping-bag fa-2x text-secondary mb-2"></i>
                             <h6 class="card-title text-muted small">Compras</h6>
@@ -253,7 +278,9 @@
 
         <div class="tab-pane fade" id="vendas">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0 text-secondary"><i class="fas fa-list me-2"></i> Lista de Pedidos</h5>
+                <h5 class="mb-0 text-secondary">
+                    <i class="fas fa-list me-2"></i> Lista de Pedidos
+                </h5>
             </div>
             
             <div class="table-responsive">
@@ -286,7 +313,7 @@
                                 R$ {{ "{:,.2f}".format(venda.valor_total or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
                             </td>
                             <td class="text-end">
-                                <a href="{{ url_for('vendas.venda_detalhe', venda_id=venda.id) }}" 
+                                <a href="{{ url_for('sales_core.venda_detalhe', venda_id=venda.id) }}" 
                                    class="btn btn-sm btn-outline-primary rounded-pill px-3">
                                     <i class="fas fa-eye me-1"></i> Ver Detalhes
                                 </a>
@@ -323,6 +350,174 @@
 
         <div class="tab-pane fade" id="proc">
             {% include "clientes/abas/processos.html" %}
+        </div>
+
+        <div class="tab-pane fade" id="certidoes">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 text-secondary">
+                    <i class="fas fa-file-signature me-2"></i> Certidões
+                </h5>
+                <form method="post"
+                      action="{{ url_for('certidoes.criar_pacote_certidoes', cliente_id=cliente.id) }}"
+                      class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-plus-circle me-1"></i> Gerar certidões padrão
+                    </button>
+                </form>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Status</th>
+                            <th>Solicitada em</th>
+                            <th>Emitida em</th>
+                            <th>Validade</th>
+                            <th class="text-end">Portal / Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set certs_ordenadas = cliente.certidoes|sort(attribute='data_solicitacao', reverse=True) %}
+                        {% for c in certs_ordenadas %}
+                        <tr>
+                            <td>{{ c.label_tipo() }}</td>
+                            <td>
+                                {% set s = c.status.name if c.status is not none else '' %}
+                                <span class="badge
+                                    {% if s == 'PENDENTE' %} bg-warning text-dark
+                                    {% elif s == 'EM_PROCESSO' %} bg-info text-dark
+                                    {% elif s == 'EMITIDA' %} bg-success
+                                    {% elif s == 'ERRO' %} bg-danger
+                                    {% elif s == 'CANCELADA' %} bg-secondary
+                                    {% else %} bg-light text-dark
+                                    {% endif %}">
+                                    {{ c.label_status() }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if c.data_solicitacao %}
+                                    {{ c.data_solicitacao.strftime('%d/%m/%Y %H:%M') }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if c.data_emissao %}
+                                    {{ c.data_emissao.strftime('%d/%m/%Y %H:%M') }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if c.validade_ate %}
+                                    {{ c.validade_ate.strftime('%d/%m/%Y') }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if c.url_portal %}
+                                    <a href="{{ c.url_portal }}" target="_blank" class="btn btn-sm btn-outline-secondary me-1">
+                                        Abrir portal
+                                    </a>
+                                {% endif %}
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary me-1"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalCertidao{{ c.id }}">
+                                    Atualizar
+                                </button>
+                                {% if c.arquivo_storage_key %}
+                                    <a href="{{ url_for('certidoes.baixar_arquivo', certidao_id=c.id) }}"
+                                       class="btn btn-sm btn-outline-success">
+                                        PDF
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                Nenhuma certidão cadastrada para este cliente.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% for c in certs_ordenadas %}
+            <div class="modal fade" id="modalCertidao{{ c.id }}" tabindex="-1" aria-labelledby="modalCertidaoLabel{{ c.id }}" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                  <form method="post"
+                        action="{{ url_for('certidoes.atualizar_certidao', certidao_id=c.id) }}"
+                        enctype="multipart/form-data">
+                    <div class="modal-header bg-light">
+                      <h5 class="modal-title" id="modalCertidaoLabel{{ c.id }}">
+                        <i class="fas fa-file-signature me-2"></i>
+                        Atualizar Certidão – {{ c.label_tipo() }}
+                      </h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select form-select-sm">
+                          <option value="">Manter atual ({{ c.label_status() }})</option>
+                          <option value="pendente"      {% if c.status and c.status.value == 'pendente' %}selected{% endif %}>Pendente</option>
+                          <option value="em_processo"   {% if c.status and c.status.value == 'em_processo' %}selected{% endif %}>Em processo</option>
+                          <option value="emitida"       {% if c.status and c.status.value == 'emitida' %}selected{% endif %}>Emitida</option>
+                          <option value="erro"          {% if c.status and c.status.value == 'erro' %}selected{% endif %}>Erro</option>
+                          <option value="cancelada"     {% if c.status and c.status.value == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                        </select>
+                      </div>
+
+                      <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                          <label class="form-label">Data/hora de emissão</label>
+                          <input type="datetime-local"
+                                 name="data_emissao"
+                                 class="form-control form-control-sm"
+                                 value="{% if c.data_emissao %}{{ c.data_emissao.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Validade até</label>
+                          <input type="date"
+                                 name="validade_ate"
+                                 class="form-control form-control-sm"
+                                 value="{% if c.validade_ate %}{{ c.validade_ate.strftime('%Y-%m-%d') }}{% endif %}">
+                        </div>
+                      </div>
+
+                      <div class="mb-2">
+                        <label class="form-label">Arquivo PDF da certidão</label>
+                        <input type="file"
+                               name="arquivo_pdf"
+                               accept="application/pdf"
+                               class="form-control form-control-sm">
+                        {% if c.arquivo_storage_key %}
+                        <div class="form-text">
+                          Já existe um PDF salvo para esta certidão.
+                        </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                        Cancelar
+                      </button>
+                      <button type="submit" class="btn btn-primary btn-sm">
+                        Salvar alterações
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
 </div>

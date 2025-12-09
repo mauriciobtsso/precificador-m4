@@ -1,10 +1,14 @@
+# app/clientes/models.py
+
 # =======================================================
 # MÓDULO: app/clientes/models.py
 # =======================================================
 
-from app.extensions import db
 from datetime import datetime
+
+from app.extensions import db
 from app.utils.datetime import now_local
+
 
 # =========================
 # Cliente
@@ -30,7 +34,7 @@ class Cliente(db.Model):
     matricula = db.Column(db.String(100))
 
     # Documentos principais
-    documento = db.Column(db.String(30), unique=True)   # CPF
+    documento = db.Column(db.String(30), unique=True)  # CPF
     rg = db.Column(db.String(30))
     rg_emissor = db.Column(db.String(100))
     cnh = db.Column(db.String(30))
@@ -61,23 +65,66 @@ class Cliente(db.Model):
     updated_at = db.Column(db.DateTime, default=now_local, onupdate=now_local)
 
     # Relacionamentos
-    documentos = db.relationship("Documento", back_populates="cliente", cascade="all, delete-orphan")
-    armas = db.relationship("Arma", back_populates="cliente", cascade="all, delete-orphan")
-    comunicacoes = db.relationship("Comunicacao", back_populates="cliente", cascade="all, delete-orphan")
-    processos = db.relationship("Processo", back_populates="cliente", cascade="all, delete-orphan")
-    
-    # Vendas conecta aqui
-    vendas = db.relationship("Venda", back_populates="cliente", cascade="all, delete-orphan")
+    documentos = db.relationship(
+        "Documento",
+        back_populates="cliente",
+        cascade="all, delete-orphan",
+    )
+    armas = db.relationship(
+        "Arma",
+        back_populates="cliente",
+        cascade="all, delete-orphan",
+    )
+    comunicacoes = db.relationship(
+        "Comunicacao",
+        back_populates="cliente",
+        cascade="all, delete-orphan",
+    )
+    processos = db.relationship(
+        "Processo",
+        back_populates="cliente",
+        cascade="all, delete-orphan",
+    )
 
-    enderecos = db.relationship("EnderecoCliente", back_populates="cliente", cascade="all, delete-orphan", lazy="select")
-    contatos = db.relationship("ContatoCliente", back_populates="cliente", cascade="all, delete-orphan", lazy="select")
-    
+    # Vendas conecta aqui
+    vendas = db.relationship(
+        "Venda",
+        back_populates="cliente",
+        cascade="all, delete-orphan",
+    )
+
+    enderecos = db.relationship(
+        "EnderecoCliente",
+        back_populates="cliente",
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
+    contatos = db.relationship(
+        "ContatoCliente",
+        back_populates="cliente",
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
+
+    # Relacionamento com Certidões (sem importar o modelo para evitar circular import)
+    certidoes = db.relationship(
+        "Certidao",
+        back_populates="cliente",
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
+
     # CORREÇÃO DO ERRO KEYERROR:
     # O Estoque precisa deste relacionamento reverso para funcionar o back_populates="itens_fornecidos"
-    itens_fornecidos = db.relationship("ItemEstoque", back_populates="fornecedor", lazy="dynamic")
+    itens_fornecidos = db.relationship(
+        "ItemEstoque",
+        back_populates="fornecedor",
+        lazy="dynamic",
+    )
 
     def __repr__(self):
         return f"<Cliente {self.id} - {self.nome}>"
+
 
 # =========================
 # Endereço
@@ -86,7 +133,11 @@ class EnderecoCliente(db.Model):
     __tablename__ = "clientes_enderecos"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
+    cliente_id = db.Column(
+        db.Integer,
+        db.ForeignKey("clientes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
 
     cep = db.Column(db.String(20))
     logradouro = db.Column(db.String(255))
@@ -103,7 +154,10 @@ class EnderecoCliente(db.Model):
     cliente = db.relationship("Cliente", back_populates="enderecos")
 
     def __repr__(self):
-        return f"<EnderecoCliente {self.tipo} - {self.logradouro}, {self.numero} - {self.cidade}/{self.estado}>"
+        return (
+            f"<EnderecoCliente {self.tipo} - {self.logradouro}, "
+            f"{self.numero} - {self.cidade}/{self.estado}>"
+        )
 
 
 # =========================
@@ -113,7 +167,11 @@ class ContatoCliente(db.Model):
     __tablename__ = "clientes_contatos"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
+    cliente_id = db.Column(
+        db.Integer,
+        db.ForeignKey("clientes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
 
     tipo = db.Column(db.String(50))
     valor = db.Column(db.String(150))
@@ -160,7 +218,10 @@ class Documento(db.Model):
 
     created_at = db.Column(db.DateTime, nullable=False, default=now_local)
     updated_at = db.Column(
-        db.DateTime, nullable=False, default=now_local, onupdate=now_local
+        db.DateTime,
+        nullable=False,
+        default=now_local,
+        onupdate=now_local,
     )
 
     cliente = db.relationship(
@@ -197,7 +258,11 @@ class Arma(db.Model):
     __tablename__ = "armas"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
+    cliente_id = db.Column(
+        db.Integer,
+        db.ForeignKey("clientes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
 
     tipo = db.Column(db.String(50))
     funcionamento = db.Column(db.String(50))
@@ -229,7 +294,11 @@ class Comunicacao(db.Model):
     __tablename__ = "comunicacoes"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
+    cliente_id = db.Column(
+        db.Integer,
+        db.ForeignKey("clientes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     tipo = db.Column(db.String(50), nullable=False)
     assunto = db.Column(db.String(150))
     mensagem = db.Column(db.Text, nullable=False)
@@ -248,7 +317,11 @@ class Processo(db.Model):
     __tablename__ = "processos"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
+    cliente_id = db.Column(
+        db.Integer,
+        db.ForeignKey("clientes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     tipo = db.Column(db.String(100), nullable=False)
     status = db.Column(db.String(50), default="em_andamento")
     descricao = db.Column(db.Text)

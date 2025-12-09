@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% from "certidoes/_badges.html" import badge_status %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-0">
+                <i class="fas fa-file-signature me-2"></i>
+                Certidões
+            </h4>
+            <small class="text-muted">Painel geral de certidões por cliente</small>
+        </div>
+    </div>
+
+    <!-- FILTROS -->
+    <form method="get" class="card shadow-sm mb-3 border-0">
+        <div class="card-body row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    {% for s in CertidaoStatus %}
+                        <option value="{{ s.value }}" {% if filtros.status == s.value %}selected{% endif %}>
+                            {% if s == CertidaoStatus.PENDENTE %}
+                                Pendente
+                            {% elif s == CertidaoStatus.EM_PROCESSO %}
+                                Em processo
+                            {% elif s == CertidaoStatus.EMITIDA %}
+                                Emitida
+                            {% elif s == CertidaoStatus.ERRO %}
+                                Erro
+                            {% elif s == CertidaoStatus.CANCELADA %}
+                                Cancelada
+                            {% else %}
+                                {{ s.value }}
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label class="form-label mb-1">Tipo</label>
+                <select name="tipo" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    {% for t in CertidaoTipo %}
+                        <option value="{{ t.value }}" {% if filtros.tipo == t.value %}selected{% endif %}>
+                            {% if t == CertidaoTipo.ESTADUAL_TJPI %}
+                                Estadual TJPI (Criminal + Auditoria Militar)
+                            {% elif t == CertidaoTipo.MILITAR_STM %}
+                                Crimes Militares – STM
+                            {% elif t == CertidaoTipo.ELEITORAL_TSE %}
+                                Crimes Eleitorais – TSE
+                            {% elif t == CertidaoTipo.FEDERAL_TRF1 %}
+                                Criminal Federal – TRF1 (1ª Região)
+                            {% else %}
+                                {{ t.value }}
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label class="form-label mb-1">ID do Cliente</label>
+                <input
+                    type="number"
+                    name="cliente_id"
+                    class="form-control form-control-sm"
+                    value="{{ filtros.cliente_id or '' }}"
+                    placeholder="Ex: 1355"
+                >
+            </div>
+
+            <div class="col-12 col-md-3 text-md-end">
+                <button type="submit" class="btn btn-sm btn-primary me-2">
+                    <i class="fas fa-search me-1"></i> Filtrar
+                </button>
+                <a href="{{ url_for('certidoes.listar_certidoes') }}" class="btn btn-sm btn-outline-secondary">
+                    Limpar
+                </a>
+            </div>
+        </div>
+    </form>
+
+    <!-- LISTAGEM -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 70px;">ID</th>
+                            <th>Cliente</th>
+                            <th>Tipo</th>
+                            <th>Status</th>
+                            <th>Criada em</th>
+                            <th>Atualizada em</th>
+                            <th class="text-end" style="width: 220px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in certidoes %}
+                        <tr>
+                            <td class="fw-semibold text-muted">#{{ c.id }}</td>
+
+                            <td>
+                                {% if c.cliente %}
+                                    <a href="{{ url_for('clientes.detalhe', cliente_id=c.cliente.id) }}"
+                                       class="text-decoration-none">
+                                        <i class="fas fa-user me-1 text-secondary"></i>
+                                        {{ c.cliente.nome }}
+                                    </a>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ c.cliente.documento or 'CPF/CNPJ não informado' }}
+                                    </small>
+                                {% else %}
+                                    <span class="text-muted">Cliente removido</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ c.label_tipo() }}
+                            </td>
+
+                            <td>
+                                {{ badge_status(c) }}
+                            </td>
+
+                            <td>
+                                <small class="text-muted">
+                                    {{ c.criado_em|dt_local("%d/%m/%Y %H:%M") if c.criado_em else "-" }}
+                                </small>
+                            </td>
+
+                            <td>
+                                <small class="text-muted">
+                                    {{ c.atualizado_em|dt_local("%d/%m/%Y %H:%M") if c.atualizado_em else "-" }}
+                                </small>
+                            </td>
+
+                            <td class="text-end">
+                                {% if c.arquivo_storage_key %}
+                                    <a href="{{ url_for('certidoes.baixar_certidao', certidao_id=c.id) }}"
+                                       class="btn btn-sm btn-outline-success me-1">
+                                        <i class="fas fa-download me-1"></i> Abrir
+                                    </a>
+                                {% endif %}
+
+                                <form method="post"
+                                      action="{{ url_for('certidoes.gerar_certidao', certidao_id=c.id) }}"
+                                      class="d-inline">
+                                    {% if c.status == CertidaoStatus.EM_PROCESSO %}
+                                        <button type="submit" class="btn btn-sm btn-secondary" disabled>
+                                            <i class="fas fa-circle-notch fa-spin me-1"></i> Processando...
+                                        </button>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-cog me-1"></i> Gerar
+                                        </button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                Nenhuma certidão encontrada com os filtros atuais.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if pagination.pages > 1 %}
+            <div class="card-footer bg-white border-0 py-2">
+                <nav aria-label="Paginação">
+                    <ul class="pagination pagination-sm mb-0 justify-content-end">
+                        {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link"
+                               href="{{ url_for('certidoes.listar_certidoes',
+                                                page=pagination.prev_num,
+                                                status=filtros.status,
+                                                tipo=filtros.tipo,
+                                                cliente_id=filtros.cliente_id) }}">
+                                «
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">«</span></li>
+                        {% endif %}
+
+                        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                            {% if p %}
+                                {% if p == pagination.page %}
+                                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                           href="{{ url_for('certidoes.listar_certidoes',
+                                                            page=p,
+                                                            status=filtros.status,
+                                                            tipo=filtros.tipo,
+                                                            cliente_id=filtros.cliente_id) }}">
+                                            {{ p }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link"
+                               href="{{ url_for('certidoes.listar_certidoes',
+                                                page=pagination.next_num,
+                                                status=filtros.status,
+                                                tipo=filtros.tipo,
+                                                cliente_id=filtros.cliente_id) }}">
+                                »
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">»</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

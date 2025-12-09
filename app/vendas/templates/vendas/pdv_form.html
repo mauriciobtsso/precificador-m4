@@ -1,3 +1,4 @@
+{# app/vendas/templates/vendas/pdv_form.html #}
 {% extends "base.html" %}
 
 {% block content %}
@@ -23,7 +24,7 @@
                     </button>
                 </div>
                 <div id="product-search-results" class="position-absolute z-index-10 bg-white border w-50 shadow-lg mt-1" style="display: none;">
-                    </div>
+                </div>
             </section>
 
             <section id="cart-area" class="flex-grow-1 overflow-auto p-3">
@@ -122,12 +123,15 @@
 
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <label for="config-quantity" class="form-label">Quantidade</label>
-                        <input type="number" class="form-control form-control-lg" id="config-quantity" value="1" min="1" required>
-                    </div>
-                    <div class="col-md-6">
                         <label for="config-unit-price" class="form-label">Preço Unitário (R$)</label>
-                        <input type="number" class="form-control form-control-lg" id="config-unit-price" step="0.01" required>
+                        <input
+                            type="text"
+                            class="form-control form-control-lg"
+                            id="config-unit-price"
+                            inputmode="decimal"
+                            autocomplete="off"
+                            required
+                        >
                     </div>
                 </div>
 
@@ -208,8 +212,6 @@
 
 {% endblock %}
 
-{# 🚨 AQUI ESTÁ A CORREÇÃO: O script customizado é movido para o bloco 'scripts' 
-   que é executado APÓS o JQUERY no base.html. #}
 {% block scripts %}
     {{ super() }} 
     <script src="{{ url_for('vendas.static', filename='vendas/pdv_script.js') }}"></script>

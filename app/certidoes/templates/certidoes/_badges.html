@@ -1,0 +1,31 @@
+{% macro badge_status(certidao) %}
+  {% set s = certidao.status %}
+  {% set label = certidao.label_status() %}
+  {% if s.name == 'PENDENTE' %}
+    <span class="badge bg-warning text-dark">{{ label }}</span>
+  {% elif s.name == 'EM_PROCESSO' %}
+    <span class="badge bg-info text-dark">{{ label }}</span>
+  {% elif s.name == 'EMITIDA' %}
+    <span class="badge bg-success">{{ label }}</span>
+  {% elif s.name == 'ERRO' %}
+    <span class="badge bg-danger">{{ label }}</span>
+  {% elif s.name == 'CANCELADA' %}
+    <span class="badge bg-secondary">{{ label }}</span>
+  {% else %}
+    <span class="badge bg-light text-dark">{{ label }}</span>
+  {% endif %}
+{% endmacro %}
+
+{# Alias para compatibilizar com chamadas existentes: badges.status(c) #}
+{% macro status(certidao) %}
+  {{ badge_status(certidao) }}
+{% endmacro %}
+
+{% macro tipo(tipo) %}
+  {% set t = (tipo|string)|trim %}
+  {% if not t %}
+    <span class="badge bg-light text-muted">Tipo não informado</span>
+  {% else %}
+    <span class="badge bg-secondary">{{ t }}</span>
+  {% endif %}
+{% endmacro %}
