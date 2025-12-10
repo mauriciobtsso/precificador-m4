@@ -96,6 +96,8 @@ def emitir_certidao(certidao_id: int):
         db.session.commit()
 
         _log(f"Falha na emissão da certidão #{cert.id}: {e}")
+        # Re-raise a exceção para que o RQ a marque como falha e a mova para a fila de falhas
+        raise
 
 
 # ------------------------------------------------------------

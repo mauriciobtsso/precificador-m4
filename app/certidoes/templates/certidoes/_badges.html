@@ -21,8 +21,8 @@
   {{ badge_status(certidao) }}
 {% endmacro %}
 
-{% macro tipo(tipo) %}
-  {% set t = (tipo|string)|trim %}
+{% macro tipo(certidao) %}
+  {% set t = certidao.label_tipo() %}
   {% if not t %}
     <span class="badge bg-light text-muted">Tipo não informado</span>
   {% else %}

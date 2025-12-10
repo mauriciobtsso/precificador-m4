@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "certidoes/_badges.html" import badge_status %}
+{% import "certidoes/_badges.html" as badges %}
 
 {% block content %}
 <div class="container mt-4">
@@ -22,19 +22,7 @@
                     <option value="">Todos</option>
                     {% for s in CertidaoStatus %}
                         <option value="{{ s.value }}" {% if filtros.status == s.value %}selected{% endif %}>
-                            {% if s == CertidaoStatus.PENDENTE %}
-                                Pendente
-                            {% elif s == CertidaoStatus.EM_PROCESSO %}
-                                Em processo
-                            {% elif s == CertidaoStatus.EMITIDA %}
-                                Emitida
-                            {% elif s == CertidaoStatus.ERRO %}
-                                Erro
-                            {% elif s == CertidaoStatus.CANCELADA %}
-                                Cancelada
-                            {% else %}
-                                {{ s.value }}
-                            {% endif %}
+                            {{ s.name|replace('_', ' ')|title }}
                         </option>
                     {% endfor %}
                 </select>
@@ -46,17 +34,7 @@
                     <option value="">Todos</option>
                     {% for t in CertidaoTipo %}
                         <option value="{{ t.value }}" {% if filtros.tipo == t.value %}selected{% endif %}>
-                            {% if t == CertidaoTipo.ESTADUAL_TJPI %}
-                                Estadual TJPI (Criminal + Auditoria Militar)
-                            {% elif t == CertidaoTipo.MILITAR_STM %}
-                                Crimes Militares – STM
-                            {% elif t == CertidaoTipo.ELEITORAL_TSE %}
-                                Crimes Eleitorais – TSE
-                            {% elif t == CertidaoTipo.FEDERAL_TRF1 %}
-                                Criminal Federal – TRF1 (1ª Região)
-                            {% else %}
-                                {{ t.value }}
-                            {% endif %}
+                            {{ t.name|replace('_', ' ')|title }}
                         </option>
                     {% endfor %}
                 </select>
@@ -84,7 +62,7 @@
         </div>
     </form>
 
-    <!-- LISTAGEM -->
+    <!-- TABELA -->
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -122,11 +100,11 @@
                             </td>
 
                             <td>
-                                {{ c.label_tipo() }}
+                                {{ badges.tipo(c) }}
                             </td>
 
                             <td>
-                                {{ badge_status(c) }}
+                                {{ badges.status(c) }}
                             </td>
 
                             <td>
@@ -142,6 +120,7 @@
                             </td>
 
                             <td class="text-end">
+                                {# Se já tem arquivo no storage, botão Abrir #}
                                 {% if c.arquivo_storage_key %}
                                     <a href="{{ url_for('certidoes.baixar_certidao', certidao_id=c.id) }}"
                                        class="btn btn-sm btn-outline-success me-1">
@@ -149,12 +128,17 @@
                                     </a>
                                 {% endif %}
 
+                                {# Botão GERAR / REGERAR / PROCESSANDO #}
                                 <form method="post"
                                       action="{{ url_for('certidoes.gerar_certidao', certidao_id=c.id) }}"
                                       class="d-inline">
                                     {% if c.status == CertidaoStatus.EM_PROCESSO %}
                                         <button type="submit" class="btn btn-sm btn-secondary" disabled>
                                             <i class="fas fa-circle-notch fa-spin me-1"></i> Processando...
+                                        </button>
+                                    {% elif c.status == CertidaoStatus.EMITIDA %}
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-redo me-1"></i> Regerar
                                         </button>
                                     {% else %}
                                         <button type="submit" class="btn btn-sm btn-primary">

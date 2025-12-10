@@ -2,24 +2,20 @@
 
 import enum
 from datetime import datetime
-
 from app.extensions import db
 
-
 class CertidaoTipo(enum.Enum):
-    ESTADUAL_TJPI = "estadual_tjpi"       # TJPI – Estadual (Criminal + Auditoria Militar)
-    MILITAR_STM = "militar_stm"           # STM – Certidão Negativa de Crimes Militares
-    ELEITORAL_TSE = "eleitoral_tse"       # TSE – Crimes Eleitorais
-    FEDERAL_TRF1 = "federal_trf1"         # TRF1 – Criminal Federal (PI)
-
+    ESTADUAL_TJPI = "estadual_tjpi"
+    MILITAR_STM = "militar_stm"
+    ELEITORAL_TSE = "eleitoral_tse"
+    FEDERAL_TRF1 = "federal_trf1"
 
 class CertidaoStatus(enum.Enum):
-    PENDENTE = "pendente"         # criada, aguardando automação/analista
-    EM_PROCESSO = "em_processo"   # automação em execução
-    EMITIDA = "emitida"           # pdf obtido
-    ERRO = "erro"                 # erro na automação
-    CANCELADA = "cancelada"       # não será mais emitida
-
+    PENDENTE = "pendente"
+    EM_PROCESSO = "em_processo"
+    EMITIDA = "emitida"
+    ERRO = "erro"
+    CANCELADA = "cancelada"
 
 class Certidao(db.Model):
     __tablename__ = "certidoes"
@@ -68,14 +64,12 @@ class Certidao(db.Model):
     url_portal = db.Column(
         db.String(255),
         nullable=True,
-        doc="URL base do portal usado para emissão",
     )
 
     arquivo_storage_key = db.Column(
         db.String(255),
         nullable=True,
         unique=True,
-        doc="Chave/caminho no R2 ou outro storage para o PDF da certidão",
     )
 
     observacoes = db.Column(db.Text, nullable=True)
@@ -92,7 +86,7 @@ class Certidao(db.Model):
         onupdate=datetime.utcnow,
     )
 
-    # 👇 AJUSTE AQUI: tabela correta é "users", não "usuarios"
+    # Chave estrangeira para a tabela de usuários (users)
     criado_por_id = db.Column(
         db.Integer,
         db.ForeignKey("users.id"),
@@ -100,11 +94,7 @@ class Certidao(db.Model):
         index=True,
     )
 
-    # RELACIONAMENTOS
-    cliente = db.relationship(
-        "Cliente",
-        back_populates="certidoes",
-    )
+    cliente = db.relationship("Cliente", back_populates="certidoes")
 
     def label_tipo(self) -> str:
         mapping = {
