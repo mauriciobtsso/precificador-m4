@@ -13,7 +13,7 @@
         </div>
     </div>
 
-    <!-- FILTROS -->
+    {# FILTROS #}
     <form method="get" class="card shadow-sm mb-3 border-0">
         <div class="card-body row g-2 align-items-end">
             <div class="col-12 col-md-3">
@@ -22,24 +22,22 @@
                     <option value="">Todos</option>
                     {% for s in CertidaoStatus %}
                         <option value="{{ s.value }}" {% if filtros.status == s.value %}selected{% endif %}>
-                            {{ s.name|replace('_', ' ')|title }}
+                            {{ s.label }}
                         </option>
                     {% endfor %}
                 </select>
             </div>
-
             <div class="col-12 col-md-3">
                 <label class="form-label mb-1">Tipo</label>
                 <select name="tipo" class="form-select form-select-sm">
                     <option value="">Todos</option>
                     {% for t in CertidaoTipo %}
                         <option value="{{ t.value }}" {% if filtros.tipo == t.value %}selected{% endif %}>
-                            {{ t.name|replace('_', ' ')|title }}
+                            {{ t.label }}
                         </option>
                     {% endfor %}
                 </select>
             </div>
-
             <div class="col-12 col-md-3">
                 <label class="form-label mb-1">ID do Cliente</label>
                 <input
@@ -50,7 +48,6 @@
                     placeholder="Ex: 1355"
                 >
             </div>
-
             <div class="col-12 col-md-3 text-md-end">
                 <button type="submit" class="btn btn-sm btn-primary me-2">
                     <i class="fas fa-search me-1"></i> Filtrar
@@ -62,7 +59,7 @@
         </div>
     </form>
 
-    <!-- TABELA -->
+    {# TABELA #}
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -120,23 +117,19 @@
                             </td>
 
                             <td class="text-end">
-                                {# Se já tem arquivo no storage, botão Abrir #}
-                                {% if c.arquivo_storage_key %}
+                                {# EMITIDA → botão Abrir (se tiver arquivo) #}
+                                {% if c.status == CertidaoStatus.EMITIDA and (c.arquivo_storage_key or c.caminho_arquivo) %}
                                     <a href="{{ url_for('certidoes.baixar_certidao', certidao_id=c.id) }}"
                                        class="btn btn-sm btn-outline-success me-1">
                                         <i class="fas fa-download me-1"></i> Abrir
                                     </a>
                                 {% endif %}
 
-                                {# Botão GERAR / REGERAR / PROCESSANDO #}
+                                {# Botão GERAR / REGERAR conforme status (sem "Processando...") #}
                                 <form method="post"
                                       action="{{ url_for('certidoes.gerar_certidao', certidao_id=c.id) }}"
                                       class="d-inline">
-                                    {% if c.status == CertidaoStatus.EM_PROCESSO %}
-                                        <button type="submit" class="btn btn-sm btn-secondary" disabled>
-                                            <i class="fas fa-circle-notch fa-spin me-1"></i> Processando...
-                                        </button>
-                                    {% elif c.status == CertidaoStatus.EMITIDA %}
+                                    {% if c.status == CertidaoStatus.EMITIDA %}
                                         <button type="submit" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-redo me-1"></i> Regerar
                                         </button>
@@ -159,6 +152,7 @@
                 </table>
             </div>
 
+            {# PAGINAÇÃO #}
             {% if pagination.pages > 1 %}
             <div class="card-footer bg-white border-0 py-2">
                 <nav aria-label="Paginação">

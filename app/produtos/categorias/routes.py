@@ -1,8 +1,8 @@
 # ======================
-# ROTAS — CATEGORIAS DE PRODUTOS (com hierarquia)
+# ROTAS — CATEGORIAS DE PRODUTOS (ESTILO MAHRTE)
 # ======================
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
 from flask_login import login_required
 from app import db
 from app.produtos.categorias.models import CategoriaProduto
@@ -21,16 +21,16 @@ categorias_bp = Blueprint(
 @categorias_bp.route("/")
 @login_required
 def index():
-    categorias_pai = CategoriaProduto.query.filter_by(pai_id=None).order_by(CategoriaProduto.nome.asc()).all()
+    # Ordenamos pela 'ordem_exibicao' para respeitar a hierarquia visual do site
+    categorias_pai = CategoriaProduto.query.filter_by(pai_id=None).order_by(CategoriaProduto.ordem_exibicao.asc(), CategoriaProduto.nome.asc()).all()
     return render_template("categorias/categorias.html", categorias_pai=categorias_pai)
 
 # ======================
-# API: Adicionar categoria via AJAX (modal)
+# API: Adicionar categoria via AJAX (modal no form de produto)
 # ======================
-@categorias_bp.route("/nova", methods=["POST"])
+@categorias_bp.route("/nova/ajax", methods=["POST"])
 @login_required
 def adicionar_categoria_ajax():
-    from flask import request, jsonify
     data = request.get_json() or {}
     nome = (data.get("nome") or "").strip()
     pai_id = data.get("pai_id")
@@ -49,7 +49,7 @@ def adicionar_categoria_ajax():
     try:
         db.session.add(nova_cat)
         db.session.commit()
-        return jsonify({"id": nova_cat.id, "nome": nova_cat.nome})
+        return jsonify({"id": nova_cat.id, "nome": nova_cat.nome, "slug": nova_cat.slug})
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Erro ao criar categoria via AJAX: {e}")
@@ -57,7 +57,7 @@ def adicionar_categoria_ajax():
 
 
 # ======================
-# NOVA / EDITAR
+# NOVA / EDITAR (FORMULÁRIO COMPLETO)
 # ======================
 @categorias_bp.route("/nova", methods=["GET", "POST"])
 @categorias_bp.route("/<int:id>/editar", methods=["GET", "POST"])
@@ -71,6 +71,8 @@ def gerenciar_categoria(id=None):
         nome = data.get("nome", "").strip()
         descricao = data.get("descricao", "").strip()
         pai_id = data.get("pai_id") or None
+        icone_loja = data.get("icone_loja", "").strip()
+        ordem_exibicao = data.get("ordem_exibicao", 0)
 
         if not nome:
             flash("O nome da categoria é obrigatório.", "warning")
@@ -84,15 +86,18 @@ def gerenciar_categoria(id=None):
             categoria.nome = nome
             categoria.descricao = descricao or None
             categoria.pai_id = int(pai_id) if pai_id else None
+            categoria.icone_loja = icone_loja or None
+            categoria.ordem_exibicao = int(ordem_exibicao)
 
             db.session.commit()
-            flash("Categoria salva com sucesso!", "success")
+            flash("✅ Categoria salva com sucesso!", "success")
             return redirect(url_for("categorias.index"))
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Erro ao salvar categoria: {e}")
-            flash("Erro ao salvar categoria.", "danger")
+            flash("❌ Erro ao salvar categoria.", "danger")
 
+    # Reutilizamos o mesmo template para nova/editar
     return render_template("categorias/categoria_form.html", categoria=categoria, categorias_pai=categorias_pai)
 
 # ======================
@@ -104,10 +109,10 @@ def excluir_categoria(id):
     categoria = CategoriaProduto.query.get_or_404(id)
 
     if categoria.subcategorias:
-        flash("Não é possível excluir uma categoria que possui subcategorias.", "warning")
+        flash("⚠️ Não é possível excluir uma categoria que possui subcategorias.", "warning")
         return redirect(url_for("categorias.index"))
 
     db.session.delete(categoria)
     db.session.commit()
-    flash("Categoria excluída com sucesso.", "success")
+    flash("🗑️ Categoria excluída com sucesso.", "success")
     return redirect(url_for("categorias.index"))

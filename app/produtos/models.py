@@ -1,11 +1,12 @@
 # ======================
-# MODELO — PRODUTO
+# MODELO — PRODUTO (VERSÃO E-COMMERCE M4 - QAP TERESINA)
 # ======================
 
 from app import db
-from sqlalchemy import func, Index
+from sqlalchemy import func, Index, event
 from datetime import datetime
 import pytz
+import re
 from flask_login import current_user
 
 # Importações auxiliares
@@ -30,14 +31,39 @@ class Produto(db.Model):
         Index("idx_produto_marca", "marca_id"),
         Index("idx_produto_calibre", "calibre_id"),
         Index("idx_produto_tipo", "tipo_id"),
+        Index("idx_produto_slug", "slug"),
     )
 
-    foto_url = db.Column(db.String(512), nullable=True)
     id = db.Column(db.Integer, primary_key=True)
+    foto_url = db.Column(db.String(512), nullable=True)
     codigo = db.Column(db.String(50), unique=True, nullable=False, index=True)
     nome = db.Column(db.String(255), nullable=False, index=True)
     descricao = db.Column(db.Text, nullable=True)
 
+    # --- CAMPOS DE E-COMMERCE E VISIBILIDADE ---
+    slug = db.Column(db.String(255), unique=True, index=True) 
+    visivel_loja = db.Column(db.Boolean, default=False, index=True)
+    estoque_disponivel = db.Column(db.Integer, default=0)
+    
+    # Flags para Carrosséis Estilo Mahrte
+    destaque_home = db.Column(db.Boolean, default=False)
+    eh_lancamento = db.Column(db.Boolean, default=False)
+    eh_outdoor = db.Column(db.Boolean, default=False) # Para a seção específica
+    
+    # --- CONTROLE DE VENDA (HÍBRIDO) ---
+    requer_documentacao = db.Column(db.Boolean, default=True, index=True) # True = WhatsApp, False = Pagar.me
+
+    # --- CAMPOS DE SEO ---
+    meta_title = db.Column(db.String(70), nullable=True)
+    meta_description = db.Column(db.String(160), nullable=True)
+    tags_palavras_chave = db.Column(db.String(255), nullable=True)
+
+    # --- CONTEÚDO PÚBLICO (SITE) ---
+    descricao_comercial = db.Column(db.Text, nullable=True) # Texto "vendedor" para a loja
+    descricao_longa = db.Column(db.Text, nullable=True) # Detalhes técnicos longos
+    especificacoes_tecnicas = db.Column(db.JSON, nullable=True)
+
+    # --- RELACIONAMENTOS ---
     categoria_id = db.Column(db.Integer, db.ForeignKey("categoria_produto.id"), index=True)
     categoria = db.relationship("CategoriaProduto", backref="produtos")
 
@@ -53,10 +79,7 @@ class Produto(db.Model):
     funcionamento_id = db.Column(db.Integer, db.ForeignKey("funcionamento_produto.id"), nullable=True)
     funcionamento_rel = db.relationship("FuncionamentoProduto", backref="produtos")
 
-    tipo = db.Column(db.String(80), nullable=True)
-    marca = db.Column(db.String(80), nullable=True)
-    calibre = db.Column(db.String(50), nullable=True)
-
+    # --- FINANCEIRO E PRECIFICAÇÃO ---
     preco_fornecedor = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     desconto_fornecedor = db.Column(db.Numeric(5, 2), nullable=True, default=0)
     frete = db.Column(db.Numeric(10, 2), nullable=True, default=0)
@@ -66,7 +89,7 @@ class Produto(db.Model):
     difal = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     imposto_venda = db.Column(db.Numeric(10, 2), nullable=True, default=0)
 
-    # === CAMPOS DE PROMOÇÃO (Adicionados) ===
+    # --- CAMPOS DE PROMOÇÃO ---
     promo_ativada = db.Column(db.Boolean, default=False, index=True)
     promo_preco_fornecedor = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     promo_data_inicio = db.Column(db.DateTime(timezone=True), nullable=True)
@@ -82,31 +105,21 @@ class Produto(db.Model):
     criado_em = db.Column(db.DateTime(timezone=True), default=now_local, index=True)
     atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=now_local, default=now_local, index=True)
 
-    historicos = db.relationship(
-        "ProdutoHistorico",
-        back_populates="produto",
-        cascade="all, delete-orphan",
-        lazy=True,
-    )
+    historicos = db.relationship("ProdutoHistorico", back_populates="produto", cascade="all, delete-orphan", lazy=True)
 
     def calcular_precos(self):
-        # 1. Determina qual preço base usar (Normal ou Promoção)
         agora = now_local()
         preco_base = float(self.preco_fornecedor or 0)
-        
-        # Flag para indicar visualmente se está em promo
         em_oferta = False
 
-        # Lógica de verificação de data para Promoção
         if self.promo_ativada and self.promo_preco_fornecedor and self.promo_data_inicio and self.promo_data_fim:
             try:
                 p_promo = float(self.promo_preco_fornecedor)
-                # Verifica se a data atual está dentro do intervalo
                 if p_promo > 0 and self.promo_data_inicio <= agora <= self.promo_data_fim:
                     preco_base = p_promo
                     em_oferta = True
             except (ValueError, TypeError):
-                pass # Em caso de erro de conversão, mantém preço base normal
+                pass 
 
         desconto = float(self.desconto_fornecedor or 0)
         frete = float(self.frete or 0)
@@ -116,7 +129,6 @@ class Produto(db.Model):
         ipi = float(self.ipi or 0)
         ipi_tipo = (self.ipi_tipo or "%").strip()
 
-        # O cálculo usa o 'preco_base' definido acima
         base = preco_base * (1 - (desconto / 100))
         if ipi_tipo == "%_dentro":
             base_sem_ipi = base / (1 + (ipi / 100))
@@ -156,34 +168,28 @@ class Produto(db.Model):
     def __repr__(self):
         return f"<Produto {self.codigo} - {self.nome}>"
 
+# Listener de Slug mantido conforme original
+def gera_slug_automatico(target, value, oldvalue, initiator):
+    if value and (not target.slug or value != oldvalue):
+        texto = value.lower().strip()
+        texto = re.sub(r'[áàâãä]', 'a', texto); texto = re.sub(r'[éèêë]', 'e', texto)
+        texto = re.sub(r'[íìîï]', 'i', texto); texto = re.sub(r'[óòôõö]', 'o', texto)
+        texto = re.sub(r'[úùûü]', 'u', texto); texto = re.sub(r'[ç]', 'c', texto)
+        texto = re.sub(r'[^\w\s-]', '', texto)
+        texto = re.sub(r'[\s_-]+', '-', texto)
+        target.slug = texto
 
-# ======================================================
-# MODELO: HISTÓRICO DE ALTERAÇÕES DE PRODUTO
-# ======================================================
+event.listen(Produto.nome, 'set', gera_slug_automatico, retval=False)
+
 class ProdutoHistorico(db.Model):
     __tablename__ = "produto_historico"
-
     id = db.Column(db.Integer, primary_key=True)
-    produto_id = db.Column(
-        db.Integer,
-        db.ForeignKey("produtos.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    produto_id = db.Column(db.Integer, db.ForeignKey("produtos.id", ondelete="CASCADE"), nullable=False, index=True)
     campo = db.Column(db.String(100), nullable=False)
     valor_antigo = db.Column(db.Text)
     valor_novo = db.Column(db.Text)
-    usuario_id = db.Column(
-        db.Integer,
-        db.ForeignKey("users.id"),
-        nullable=True,
-        index=True,
-    )
+    usuario_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     usuario_nome = db.Column(db.String(120))
     data_modificacao = db.Column(db.DateTime(timezone=True), default=now_local, index=True)
     origem = db.Column(db.String(20), nullable=False, default="manual", index=True)
-
     produto = db.relationship("Produto", back_populates="historicos")
-
-    def __repr__(self):
-        return f"<Histórico Produto {self.produto_id} ({self.campo})>"

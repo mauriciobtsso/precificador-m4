@@ -1,61 +1,106 @@
 ﻿{% extends "base.html" %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h2 class="fw-semibold mb-0">
-    <i class="fas fa-folder-plus me-2"></i>
+  <h2 class="fw-bold text-dark mb-0">
+    <i class="fas {{ 'fa-edit text-primary' if categoria else 'fa-plus-circle text-success' }} me-2"></i>
     {{ 'Editar Categoria' if categoria else 'Nova Categoria' }}
   </h2>
-  <a href="{{ url_for('categorias.index') }}" class="btn btn-outline-secondary">
-    <i class="fas fa-arrow-left"></i> Voltar
+  <a href="{{ url_for('categorias.index') }}" class="btn btn-outline-secondary border-0 fw-bold">
+    <i class="fas fa-arrow-left me-1"></i> Voltar para Listagem
   </a>
 </div>
 
 <form method="POST">
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div class="row g-3">
-        <!-- Nome -->
-        <div class="col-md-6">
-          <label class="form-label fw-semibold">Nome</label>
-          <input type="text" name="nome" class="form-control" placeholder="Nome da categoria"
-                 value="{{ categoria.nome if categoria else '' }}" required>
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-0">
+          <h5 class="mb-0 fw-bold small text-uppercase text-muted">Informações da Categoria</h5>
         </div>
-
-        <!-- Categoria Pai -->
-        <div class="col-md-6">
-          <label class="form-label fw-semibold">Categoria Pai (opcional)</label>
-          <select name="pai_id" class="form-select">
-            <option value="">— Nenhuma (categoria principal) —</option>
-            {% for cat in categorias_pai %}
-              {% if not categoria or cat.id != categoria.id %}
-                <option value="{{ cat.id }}"
-                  {% if categoria and categoria.pai_id == cat.id %}selected{% endif %}>
-                  {{ cat.nome }}
-                </option>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-12">
+              <label class="form-label fw-bold small">NOME DA CATEGORIA</label>
+              <input type="text" name="nome" class="form-control form-control-lg border-0 bg-light shadow-sm" 
+                     placeholder="Ex: Armas Curtas, Cutelaria, etc."
+                     value="{{ categoria.nome if categoria else '' }}" required>
+              {% if categoria %}
+                <div class="form-text small">
+                  <strong>URL Amigável (Slug):</strong> <span class="text-primary">{{ categoria.slug }}</span>
+                </div>
               {% endif %}
-            {% endfor %}
-          </select>
-        </div>
+            </div>
 
-        <!-- Descrição -->
-        <div class="col-12">
-          <label class="form-label fw-semibold">Descrição (opcional)</label>
-          <textarea name="descricao" class="form-control" rows="3" placeholder="Descrição breve da categoria">{{ categoria.descricao if categoria else '' }}</textarea>
+            <div class="col-md-12">
+              <label class="form-label fw-bold small text-muted">HIERARQUIA (CATEGORIA PAI)</label>
+              <select name="pai_id" class="form-select border-0 bg-light shadow-sm">
+                <option value="">— Nenhuma (Esta é uma Categoria Principal) —</option>
+                {% for cat in categorias_pai %}
+                  {% if not categoria or cat.id != categoria.id %}
+                    <option value="{{ cat.id }}"
+                      {% if categoria and categoria.pai_id == cat.id %}selected{% endif %}>
+                      {{ cat.nome }}
+                    </option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-bold small text-muted">DESCRIÇÃO COMERCIAL (PARA O SITE)</label>
+              <textarea name="descricao" class="form-control border-0 bg-light shadow-sm" rows="4" 
+                        placeholder="Descreva brevemente o que o cliente encontrará nesta categoria...">{{ categoria.descricao if categoria else '' }}</textarea>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="card-footer text-end">
-      <button type="submit" class="btn btn-success">
-        <i class="fas fa-check me-1"></i> Salvar
-      </button>
-      {% if categoria %}
-        <a href="{{ url_for('categorias.excluir_categoria', id=categoria.id) }}"
-           onclick="return confirm('Deseja realmente excluir esta categoria?');"
-           class="btn btn-outline-danger">
-          <i class="fas fa-trash-alt"></i> Excluir
-        </a>
-      {% endif %}
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-0 text-center">
+          <h5 class="mb-0 fw-bold small text-uppercase text-muted">Exibição na Vitrine</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-bold small">ÍCONE (BOOTSTRAP ICONS)</label>
+              <div class="input-group shadow-sm">
+                <span class="input-group-text bg-white border-0">
+                  <i class="bi {{ categoria.icone_loja if categoria and categoria.icone_loja else 'bi-tag' }} fs-5"></i>
+                </span>
+                <input type="text" name="icone_loja" class="form-control border-0" 
+                       placeholder="Ex: bi-shield-lock"
+                       value="{{ categoria.icone_loja if categoria and categoria.icone_loja else '' }}">
+              </div>
+              <div class="form-text small" style="font-size: 0.75rem;">
+                Use nomes de <a href="https://icons.getbootstrap.com/" target="_blank">icons.getbootstrap.com</a>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-bold small text-muted">ORDEM DE PRIORIDADE</label>
+              <input type="number" name="ordem_exibicao" class="form-control border-0 bg-light shadow-sm" 
+                     value="{{ categoria.ordem_exibicao if categoria else 0 }}">
+              <div class="form-text small">Números menores aparecem primeiro no menu.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-dark btn-lg shadow fw-bold">
+          <i class="fas fa-save me-1"></i> SALVAR CATEGORIA
+        </button>
+        
+        {% if categoria %}
+          <a href="{{ url_for('categorias.excluir_categoria', id=categoria.id) }}"
+             onclick="return confirm('Deseja realmente excluir esta categoria? Os produtos perderão este vínculo.');"
+             class="btn btn-outline-danger btn-sm border-0 mt-2">
+            <i class="fas fa-trash-alt me-1"></i> Excluir Categoria permanentemente
+          </a>
+        {% endif %}
+      </div>
     </div>
   </div>
 </form>

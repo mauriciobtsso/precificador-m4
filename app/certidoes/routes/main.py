@@ -11,7 +11,6 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
-from redis.exceptions import ConnectionError as RedisConnectionError
 
 from app.extensions import db
 from app.utils.datetime import now_local
@@ -19,8 +18,6 @@ from app.certidoes.models import Certidao, CertidaoStatus, CertidaoTipo
 from app.clientes.models import Cliente
 from app.utils.storage import gerar_link_publico
 
-# IMPORTS DA FILA E TAREFAS
-from app.utils.queue import fila_certidoes
 from app.certidoes.tasks import emitir_certidao
 
 certidoes_bp = Blueprint(
@@ -124,49 +121,24 @@ def criar_pacote_certidoes(cliente_id):
 
 
 # =========================================================
-# GERAR CERTIDÃO (HÍBRIDO: Fila ou Síncrono)
+# GERAR CERTIDÃO (100% SÍNCRONO, SEM FILA)
 # =========================================================
 @certidoes_bp.route("/<int:certidao_id>/gerar", methods=["POST"])
 @login_required
 def gerar_certidao(certidao_id):
     cert = Certidao.query.get_or_404(certidao_id)
 
-    # Atualiza status inicial
-    cert.status = CertidaoStatus.EM_PROCESSO
-    db.session.commit()
-
-    # VERIFICAÇÃO INTELIGENTE DA FILA
-    if fila_certidoes:
-        # --- MODO ASSÍNCRONO (Produção / Redis Online) ---
-        try:
-            job = fila_certidoes.enqueue(emitir_certidao, certidao_id)
-            current_app.logger.info(
-                f"[CERTIDOES] Job enviado para fila Redis. Job ID: {job.id}"
-            )
-            flash("Certidão enviada para processamento em segundo plano.", "info")
-        
-        except Exception as e:
-            current_app.logger.error(f"[CERTIDOES] Erro ao enfileirar job: {e}")
-            # Se falhar ao colocar na fila, tenta síncrono ou avisa erro
-            cert.status = CertidaoStatus.ERRO
-            cert.observacoes = "Falha de conexão com a fila de processamento."
-            db.session.commit()
-            flash("Erro ao conectar ao serviço de filas. Tente novamente mais tarde.", "danger")
-
-    else:
-        # --- MODO SÍNCRONO (Local / Fallback) ---
-        current_app.logger.warning(
-            f"[CERTIDOES] Redis não disponível. Executando certidão {certidao_id} Sincronamente."
+    try:
+        current_app.logger.info(
+            f"[CERTIDOES] Iniciando emissão síncrona da certidão #{cert.id}"
         )
-        try:
-            # Chama a função diretamente (vai travar o navegador por 1-3 segundos, normal)
-            emitir_certidao(certidao_id)
-            flash("Certidão processada e emitida com sucesso (Modo Local).", "success")
-        except Exception as e:
-            current_app.logger.exception(f"[CERTIDOES] Erro na execução síncrona: {e}")
-            # A função emitir_certidao já trata o status ERRO no banco, 
-            # aqui só garantimos o feedback visual.
-            flash("Ocorreu um erro ao gerar a certidão.", "danger")
+        emitir_certidao(certidao_id)
+        flash("Certidão emitida com sucesso.", "success")
+    except Exception as e:
+        current_app.logger.exception(
+            f"[CERTIDOES] Erro na emissão síncrona da certidão #{cert.id}: {e}"
+        )
+        flash("Ocorreu um erro ao gerar a certidão.", "danger")
 
     return redirect(url_for("certidoes.listar_certidoes"))
 
@@ -192,16 +164,3 @@ def baixar_certidao(certidao_id):
         )
         flash("Não foi possível abrir o arquivo desta certidão.", "danger")
         return redirect(url_for("certidoes.listar_certidoes"))
-
-
-# =========================================================
-# ROTA DE TESTE (Mantida para Debug)
-# =========================================================
-@certidoes_bp.route("/teste/<int:certidao_id>")
-@login_required
-def teste_fila(certidao_id):
-    if fila_certidoes:
-        job = fila_certidoes.enqueue(emitir_certidao, certidao_id)
-        return f"Job enviado: {job.id}", 200
-    else:
-        return "Redis desconectado. Teste não realizado via fila.", 500

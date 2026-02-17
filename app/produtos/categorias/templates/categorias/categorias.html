@@ -1,70 +1,80 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h2 class="fw-semibold mb-0">
-    <i class="fas fa-sitemap me-2 text-primary"></i> Categorias de Produtos
+  <h2 class="fw-bold mb-0 text-dark">
+    <i class="bi bi-diagram-3-fill me-2 text-primary"></i> Hierarquia de Categorias
   </h2>
-  <a href="{{ url_for('categorias.gerenciar_categoria') }}" class="btn btn-success">
-    <i class="fas fa-plus"></i> Nova Categoria
+  <a href="{{ url_for('categorias.gerenciar_categoria') }}" class="btn btn-dark shadow-sm">
+    <i class="fas fa-plus me-1"></i> Nova Categoria
   </a>
 </div>
 
-<div class="card shadow-sm">
-  <div class="card-body">
-    {% if categorias_pai %}
-      <ul class="list-group">
-        {% for cat in categorias_pai %}
-          <li class="list-group-item">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <strong>{{ cat.nome }}</strong>
-                {% if cat.descricao %}
-                  <small class="text-muted ms-2">— {{ cat.descricao }}</small>
-                {% endif %}
-              </div>
-              <div>
-                <a href="{{ url_for('categorias.gerenciar_categoria', id=cat.id) }}" class="btn btn-sm btn-outline-primary">
-                  <i class="fas fa-edit"></i>
-                </a>
-                <a href="{{ url_for('categorias.excluir_categoria', id=cat.id) }}"
-                   onclick="return confirm('Excluir esta categoria?');"
-                   class="btn btn-sm btn-outline-danger">
-                  <i class="fas fa-trash"></i>
-                </a>
-              </div>
-            </div>
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-uppercase small fw-bold">
+          <tr>
+            <th class="ps-4" width="50">Ícone</th>
+            <th>Categoria / Subcategoria</th>
+            <th width="100">Ordem</th>
+            <th width="150" class="text-end pe-4">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if categorias_pai %}
+            {% for cat in categorias_pai %}
+              <tr class="table-group-divider">
+                <td class="ps-4">
+                  <span class="fs-4">
+                    <i class="bi {{ cat.icone_loja if cat.icone_loja else 'bi-folder' }} text-primary"></i>
+                  </span>
+                </td>
+                <td>
+                  <div class="fw-bold">{{ cat.nome }}</div>
+                  <small class="text-muted d-block">{{ cat.slug }}</small>
+                </td>
+                <td><span class="badge bg-light text-dark border">{{ cat.ordem_exibicao }}</span></td>
+                <td class="text-end pe-4">
+                  <a href="{{ url_for('categorias.gerenciar_categoria', id=cat.id) }}" class="btn btn-sm btn-outline-primary border-0">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <a href="{{ url_for('categorias.excluir_categoria', id=cat.id) }}"
+                     onclick="return confirm('Excluir esta categoria e seus vínculos?');"
+                     class="btn btn-sm btn-outline-danger border-0">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </td>
+              </tr>
 
-            {% if cat.subcategorias %}
-              <ul class="list-group list-group-flush mt-2 ms-3">
+              {% if cat.subcategorias %}
                 {% for sub in cat.subcategorias %}
-                  <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                      <i class="fas fa-level-up-alt text-secondary me-2"></i>
-                      {{ sub.nome }}
-                      {% if sub.descricao %}
-                        <small class="text-muted ms-2">— {{ sub.descricao }}</small>
-                      {% endif %}
-                    </div>
-                    <div>
-                      <a href="{{ url_for('categorias.gerenciar_categoria', id=sub.id) }}" class="btn btn-sm btn-outline-primary">
+                  <tr class="bg-light bg-opacity-50">
+                    <td class="ps-4 text-center">
+                      <i class="bi bi-arrow-return-right text-secondary"></i>
+                    </td>
+                    <td class="ps-3">
+                      <div class="small fw-semibold text-secondary">{{ sub.nome }}</div>
+                      <small class="text-muted d-block" style="font-size: 0.75rem;">{{ sub.slug }}</small>
+                    </td>
+                    <td><span class="badge bg-white text-muted border" style="font-size: 0.7rem;">{{ sub.ordem_exibicao }}</span></td>
+                    <td class="text-end pe-4">
+                      <a href="{{ url_for('categorias.gerenciar_categoria', id=sub.id) }}" class="btn btn-sm btn-outline-secondary border-0">
                         <i class="fas fa-edit"></i>
                       </a>
-                      <a href="{{ url_for('categorias.excluir_categoria', id=sub.id) }}"
-                         onclick="return confirm('Excluir esta subcategoria?');"
-                         class="btn btn-sm btn-outline-danger">
-                        <i class="fas fa-trash"></i>
-                      </a>
-                    </div>
-                  </li>
+                    </td>
+                  </tr>
                 {% endfor %}
-              </ul>
-            {% endif %}
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="text-muted mb-0">Nenhuma categoria cadastrada.</p>
-    {% endif %}
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="4" class="text-center py-5 text-muted">Nenhuma categoria cadastrada.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 {% endblock %}

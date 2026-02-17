@@ -1,7 +1,7 @@
 # app/certidoes/tasks.py
 
 """
-Tarefas de background para o módulo de Certidões.
+Tarefas para o módulo de Certidões.
 
 Fluxo principal:
 - emitir_certidao(certidao_id):
@@ -36,7 +36,7 @@ def _log(msg: str):
 
 
 # ------------------------------------------------------------
-# TAREFA PRINCIPAL: EMITIR UMA CERTIDÃO
+# TAREFA PRINCIPAL: EMITIR UMA CERTIDÃO (SÍNCRONA OU ASSÍNCRONA)
 # ------------------------------------------------------------
 
 def emitir_certidao(certidao_id: int):
@@ -44,7 +44,7 @@ def emitir_certidao(certidao_id: int):
     Emite uma certidão específica (por ID), gerando um PDF e
     salvando no Cloudflare R2.
 
-    Essa função é chamada em background via RQ (fila_certidoes).
+    Pode ser chamada tanto em background (fila) quanto de forma síncrona.
     """
     cert = Certidao.query.get(certidao_id)
     if not cert:
@@ -96,19 +96,16 @@ def emitir_certidao(certidao_id: int):
         db.session.commit()
 
         _log(f"Falha na emissão da certidão #{cert.id}: {e}")
-        # Re-raise a exceção para que o RQ a marque como falha e a mova para a fila de falhas
         raise
 
 
 # ------------------------------------------------------------
-# EMISSORES POR TIPO (STUBS / PLACEHOLDERS)
+# EMISSORES POR TIPO
 # ------------------------------------------------------------
 
 def _emitir_por_tipo(cert: Certidao) -> bytes:
     """
     Despacha para o emissor correto conforme CertidaoTipo.
-    Aqui você pluga, no futuro, integrações reais (robôs, APIs, etc.).
-    Por enquanto, geramos PDFs "fake" com o ReportLab.
     """
     tipo = cert.tipo
 
@@ -121,7 +118,6 @@ def _emitir_por_tipo(cert: Certidao) -> bytes:
     elif tipo == CertidaoTipo.FEDERAL_TRF1:
         return _emitir_federal_trf1(cert)
 
-    # Se chegar aqui, é porque o tipo não está mapeado
     raise RuntimeError(f"Tipo de certidão não implementado: {tipo.name}")
 
 
@@ -221,9 +217,64 @@ def _emitir_eleitoral_tse(cert: Certidao) -> bytes:
     return pdf_bytes
 
 
+# ------------------------------------------------------------
+# FEDERAL TRF1 – AQUI VOCÊ PLUGA O ROBÔ REAL
+# ------------------------------------------------------------
+
 def _emitir_federal_trf1(cert: Certidao) -> bytes:
     """
-    Stub de emissão da certidão criminal federal (TRF1).
+    Emissão da certidão criminal federal (TRF1).
+
+    - Se CERTIDOES_TRF1_MODO_STUB = True no config, usa stub.
+    - Caso contrário, usa a integração REAL (_emitir_federal_trf1_real).
+    """
+    if current_app and current_app.config.get("CERTIDOES_TRF1_MODO_STUB"):
+        _log("CERTIDOES_TRF1_MODO_STUB=TRUE, usando stub TRF1.")
+        return _emitir_federal_trf1_stub(cert)
+
+    return _emitir_federal_trf1_real(cert)
+
+
+def _emitir_federal_trf1_real(cert: Certidao) -> bytes:
+    """
+    AQUI vai a integração REAL com o TRF1.
+
+    Substitua o corpo desta função pelo seu código que:
+      - acessa o TRF1 (Selenium / requests / etc.)
+      - preenche os dados do cliente
+      - baixa o PDF
+      - retorna os bytes
+
+    Enquanto não implementar, vou levantar um erro explícito para não te enganar
+    gerando certidão fake.
+    """
+    cliente = getattr(cert, "cliente", None)
+    if not cliente:
+        raise RuntimeError("Certidão TRF1 sem cliente associado.")
+
+    if not getattr(cliente, "cpf", None):
+        raise RuntimeError("Cliente sem CPF cadastrado para emissão TRF1.")
+
+    # ================================
+    # COLE AQUI O SEU ROBÔ TRF1 REAL:
+    # pdf_bytes = seu_robo_trf1(
+    #     nome=cliente.nome,
+    #     cpf=cliente.cpf,
+    #     data_nascimento=cliente.data_nascimento,
+    #     nome_mae=cliente.nome_mae,
+    # )
+    # return pdf_bytes
+    # ================================
+
+    raise RuntimeError(
+        "Integração TRF1 real ainda não implementada em _emitir_federal_trf1_real."
+    )
+
+
+def _emitir_federal_trf1_stub(cert: Certidao) -> bytes:
+    """
+    Stub de emissão da certidão criminal federal (TRF1),
+    usado apenas quando CERTIDOES_TRF1_MODO_STUB = True.
     """
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
@@ -274,13 +325,12 @@ def _salvar_pdf_no_r2(cert: Certidao, pdf_bytes: bytes) -> str:
 
 
 # ------------------------------------------------------------
-# TAREFA DE TESTE (ROTA /teste/<id>)
+# TAREFA DE TESTE (AINDA UTILIZÁVEL EM MODO ASSÍNCRONO SE HOUVER FILA)
 # ------------------------------------------------------------
 
 def tarefa_teste(certidao_id: int):
     """
-    Tarefa de teste para debug da fila: em vez de só logar,
-    já dispara a emissão de verdade.
+    Tarefa de teste para debug: dispara a emissão da certidão.
     """
     _log(f"[TESTE] Iniciando tarefa_teste para certidão #{certidao_id}")
     emitir_certidao(certidao_id)

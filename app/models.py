@@ -46,24 +46,45 @@ class Taxa(db.Model):
 
 
 # =========================
-# Configuração
+# Configuração (Turbinada para E-commerce M4)
 # =========================
 class Configuracao(db.Model):
     __tablename__ = "configuracoes"
 
     id = db.Column(db.Integer, primary_key=True)
     chave = db.Column(db.String(64), unique=True, nullable=False)
-    valor = db.Column(db.String(255), nullable=False)
+    valor = db.Column(db.Text, nullable=False) # Alterado para Text para suportar endereços longos
 
     def __repr__(self):
         return f"<Config {self.chave}={self.valor}>"
 
     @classmethod
     def seed_defaults(cls):
+        """
+        Popula o banco com as configurações institucionais da M4 Tática Teresina.
+        """
         defaults = {
+            # --- Configurações de Venda ---
             "incluir_pix": "true",
             "debito_percent": "1.09",
-            "mensagem_whats_prefixo": "",
+            "mensagem_whats_prefixo": "Olá! Vi este produto no site e gostaria de mais informações:",
+            
+            # --- Dados Institucionais (Teresina-PI) ---
+            "loja_nome_fantasia": "M4 Tática",
+            "loja_razao_social": "M4 TÁTICA E EQUIPAMENTOS LTDA",
+            "loja_cnpj": "00.000.000/0001-00",
+            "loja_cr": "000000",
+            "loja_rm": "10ª Região Militar",
+            "loja_endereco": "Av. Universitária, 750, Edifício Diamond Center, Loja 23, Fátima, Teresina-PI",
+            "loja_cep": "64049-494",
+            "loja_telefone": "(86) 3025-5885",
+            "loja_email": "falecom@m4tatica.com.br",
+            "loja_instagram": "@m4tatica",
+            "loja_whatsapp": "558630255885",
+
+            # --- Configurações de Interface ---
+            "cor_primaria": "#1a1a1a", # Preto M4
+            "cor_destaque": "#c5a059", # Dourado M4
         }
         for k, v in defaults.items():
             if not cls.query.filter_by(chave=k).first():
@@ -81,8 +102,6 @@ class PedidoCompra(db.Model):
     data_pedido = db.Column(db.Date, nullable=False)
     cond_pagto = db.Column(db.String(100))
 
-    # === STATUS DO FLUXO (Adicionado) ===
-    # Opções: Aguardando, Confirmado, Aguardando NF, Em Transito, Recebido, Cancelado
     status = db.Column(db.String(30), default="Aguardando", index=True)
 
     modo_desconto = db.Column(db.String(20), default="por_tipo")
@@ -91,13 +110,9 @@ class PedidoCompra(db.Model):
     percentual_unico = db.Column(db.Float, default=0.0)
 
     fornecedor_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)
-
-    # Relacionamento com Cliente atuando como fornecedor
     fornecedor = db.relationship("Cliente", backref="pedidos_compra", foreign_keys=[fornecedor_id])
 
     itens = db.relationship("ItemPedido", backref="pedido", cascade="all, delete-orphan")
-    
-    # O relacionamento com notas fiscais (nfs) será criado pelo backref em CompraNF
 
 
 class ItemPedido(db.Model):
@@ -127,13 +142,11 @@ class Notificacao(db.Model):
     status = db.Column(db.String(20), default="enviado")  # enviado, lido
     erro = db.Column(db.Text, nullable=True)
 
-    # 🔹 Relação ORM com Cliente
     cliente = db.relationship("Cliente", backref="notificacoes", lazy=True)
 
     def to_dict(self):
         cliente_nome = None
         if self.cliente:
-            # tenta obter o nome pelo campo disponível
             cliente_nome = getattr(self.cliente, "nome_razao", None) \
                 or getattr(self.cliente, "razao_social", None) \
                 or getattr(self.cliente, "nome", None) \
@@ -159,9 +172,9 @@ class ModeloDocumento(db.Model):
     __tablename__ = "modelos_documento"
 
     id = db.Column(db.Integer, primary_key=True)
-    titulo = db.Column(db.String(100), nullable=False)  # Ex: Contrato de Arma
-    chave = db.Column(db.String(50), unique=True, nullable=False)  # Ex: contrato_arma
-    conteudo = db.Column(db.Text, nullable=False)  # HTML com placeholders Jinja2
+    titulo = db.Column(db.String(100), nullable=False)
+    chave = db.Column(db.String(50), unique=True, nullable=False)
+    conteudo = db.Column(db.Text, nullable=False)
     
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

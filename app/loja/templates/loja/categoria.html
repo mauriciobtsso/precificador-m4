@@ -1,0 +1,59 @@
+{% extends 'loja/base.html' %}
+
+{% block content %}
+<div class="container-fluid px-lg-5">
+    <div class="row">
+        <aside class="col-lg-3 d-none d-lg-block">
+            <div class="sidebar-loja filter-section">
+                <div class="bg-white p-4 border shadow-sm">
+                    <h5 class="fw-bold mb-4 text-uppercase">Filtrar Por</h5>
+                    
+                    <div class="mb-4">
+                        <h6>Marca</h6>
+                        <ul class="list-unstyled small">
+                            <li><input type="checkbox" class="me-2"> Glock</li>
+                            <li><input type="checkbox" class="me-2"> Taurus</li>
+                            <li><input type="checkbox" class="me-2"> CBC</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Calibre</h6>
+                        <ul class="list-unstyled small">
+                            <li><input type="checkbox" class="me-2"> 9mm</li>
+                            <li><input type="checkbox" class="me-2"> .380</li>
+                            <li><input type="checkbox" class="me-2"> .40</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Preço</h6>
+                        <input type="range" class="form-range" min="0" max="50000">
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>R$ 0</span>
+                            <span>R$ 50.000</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Disponibilidade</h6>
+                        <ul class="list-unstyled small">
+                            <li><input type="checkbox" class="me-2"> Em estoque</li>
+                            <li><input type="checkbox" class="me-2"> Sob Encomenda</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <div class="col-lg-9">
+            <h2 class="h4 fw-bold text-uppercase mb-4">{{ categoria_ativa.nome }}</h2>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                {% for produto in produtos %}
+                    {% include 'loja/_card_produto.html' %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,31 +1,45 @@
-{% macro badge_status(certidao) %}
-  {% set s = certidao.status %}
-  {% set label = certidao.label_status() %}
-  {% if s.name == 'PENDENTE' %}
-    <span class="badge bg-warning text-dark">{{ label }}</span>
-  {% elif s.name == 'EM_PROCESSO' %}
-    <span class="badge bg-info text-dark">{{ label }}</span>
-  {% elif s.name == 'EMITIDA' %}
-    <span class="badge bg-success">{{ label }}</span>
-  {% elif s.name == 'ERRO' %}
-    <span class="badge bg-danger">{{ label }}</span>
-  {% elif s.name == 'CANCELADA' %}
-    <span class="badge bg-secondary">{{ label }}</span>
-  {% else %}
-    <span class="badge bg-light text-dark">{{ label }}</span>
-  {% endif %}
-{% endmacro %}
-
-{# Alias para compatibilizar com chamadas existentes: badges.status(c) #}
-{% macro status(certidao) %}
-  {{ badge_status(certidao) }}
-{% endmacro %}
-
+{# app/certidoes/templates/certidoes/_badges.html #}
 {% macro tipo(certidao) %}
-  {% set t = certidao.label_tipo() %}
-  {% if not t %}
-    <span class="badge bg-light text-muted">Tipo não informado</span>
-  {% else %}
-    <span class="badge bg-secondary">{{ t }}</span>
-  {% endif %}
+    {# 
+        Mostra o "tipo" da certidão usando o Enum que está em certidao.tipo.
+        Cada Enum tem atributo .label (visto no filtro do index).
+    #}
+    {% set t = certidao.tipo %}
+    {% if not t %}
+        <span class="badge bg-secondary text-wrap">Sem tipo</span>
+    {% else %}
+        <span class="badge bg-dark text-light text-wrap">
+            {{ t.label }}
+        </span>
+    {% endif %}
+{% endmacro %}
+
+
+{% macro status(certidao) %}
+    {# 
+        Mostra o "status" da certidão usando o Enum em certidao.status.
+        Também usa o atributo .label dos Enums (CertidaoStatus).
+    #}
+    {% set s = certidao.status %}
+    {% if not s %}
+        <span class="badge bg-secondary text-wrap">Sem status</span>
+    {% else %}
+        {# Classe de cor conforme o status.name #}
+        {% set css = 'bg-secondary' %}
+        {% if s.name == 'PENDENTE' %}
+            {% set css = 'bg-warning text-dark' %}
+        {% elif s.name == 'EM_PROCESSO' %}
+            {% set css = 'bg-info text-dark' %}
+        {% elif s.name == 'EMITIDA' %}
+            {% set css = 'bg-success' %}
+        {% elif s.name == 'ERRO' %}
+            {% set css = 'bg-danger' %}
+        {% elif s.name == 'CANCELADA' %}
+            {% set css = 'bg-secondary' %}
+        {% endif %}
+
+        <span class="badge {{ css }} text-wrap">
+            {{ s.label }}
+        </span>
+    {% endif %}
 {% endmacro %}

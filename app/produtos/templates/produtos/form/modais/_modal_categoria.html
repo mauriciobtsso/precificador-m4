@@ -1,31 +1,24 @@
-<!-- =======================
-     MODAL: NOVA CATEGORIA
-======================= -->
 <div class="modal fade" id="modalNovaCategoria" tabindex="-1" aria-labelledby="modalNovaCategoriaLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header bg-dark text-white">
-        <h5 class="modal-title fw-semibold" id="modalNovaCategoriaLabel">
-          <i class="fas fa-folder-plus me-2"></i>Nova Categoria
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-dark text-white border-bottom border-warning">
+        <h5 class="modal-title fw-bold text-uppercase small" id="modalNovaCategoriaLabel">
+          <i class="bi bi-folder-plus me-2 text-warning"></i>Rápido: Adicionar Categoria
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
 
-      <div class="modal-body">
-        <div class="alert alert-light border small mb-3">
-          Preencha os campos abaixo para adicionar uma nova categoria. Ela será adicionada automaticamente ao seletor principal.
-        </div>
-
+      <div class="modal-body bg-light bg-opacity-50">
         <div class="row g-3">
           <div class="col-12">
-            <label class="form-label fw-semibold" for="nc_nome">Nome</label>
-            <input type="text" id="nc_nome" class="form-control" placeholder="Ex: Pistolas">
+            <label class="form-label fw-bold small text-muted text-uppercase" for="nc_nome">Nome da Categoria</label>
+            <input type="text" id="nc_nome" class="form-control border-0 shadow-sm" placeholder="Ex: Cutelaria Premium">
           </div>
 
           <div class="col-12">
-            <label class="form-label fw-semibold" for="nc_pai">Categoria Pai (opcional)</label>
-            <select id="nc_pai" class="form-select">
-              <option value="">— Nenhuma (categoria principal) —</option>
+            <label class="form-label fw-bold small text-muted text-uppercase" for="nc_pai">Categoria Hierárquica (Pai)</label>
+            <select id="nc_pai" class="form-select border-0 shadow-sm">
+              <option value="">— Categoria Principal —</option>
               {% for c in categorias %}
                 <option value="{{ c.id }}">{{ c.nome }}</option>
               {% endfor %}
@@ -33,22 +26,29 @@
           </div>
 
           <div class="col-12">
-            <label class="form-label fw-semibold" for="nc_descricao">Descrição (opcional)</label>
-            <textarea id="nc_descricao" class="form-control" rows="3" placeholder="Descrição breve da categoria"></textarea>
+            <label class="form-label fw-bold small text-muted text-uppercase" for="nc_icone">Ícone da Vitrine (Bootstrap Icon)</label>
+            <div class="input-group shadow-sm">
+              <span class="input-group-text bg-white border-0"><i class="bi bi-star"></i></span>
+              <input type="text" id="nc_icone" class="form-control border-0" placeholder="Ex: bi-backpack">
+            </div>
+            <div class="form-text small">Consulte em: icons.getbootstrap.com</div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-bold small text-muted text-uppercase" for="nc_descricao">Breve Descrição Comercial</label>
+            <textarea id="nc_descricao" class="form-control border-0 shadow-sm" rows="2" placeholder="Ex: Seleção de facas e canivetes táticos."></textarea>
           </div>
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button type="button"
-                class="btn btn-success"
+      <div class="modal-footer border-0 bg-white shadow-top">
+        <button type="button" class="btn btn-outline-secondary btn-sm fw-bold text-uppercase" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" 
+                class="btn btn-dark btn-sm fw-bold text-uppercase px-4"
+                id="btnSalvarCategoriaAjax"
                 data-tabela="categorias"
-                data-input="nc_nome"
-                data-select="categoria_id">
-          <i class="fas fa-check me-1"></i>Salvar Categoria
-        </button>
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-          <i class="fas fa-times me-1"></i>Fechar
+                data-input="nc_nome">
+          <i class="fas fa-check me-1"></i> Criar Categoria
         </button>
       </div>
     </div>

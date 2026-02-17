@@ -108,6 +108,7 @@ def create_app():
     from app.compras import compras_nf_bp
     from app.importacoes import importacoes_bp
     from app.certidoes import certidoes_bp
+    from app.loja import loja_bp
 
     app.register_blueprint(uploads_bp, url_prefix="/uploads")
     app.register_blueprint(main)
@@ -115,6 +116,7 @@ def create_app():
     app.register_blueprint(produtos_bp)
     app.register_blueprint(estoque_bp)
     app.register_blueprint(configs_bp)
+    app.register_blueprint(loja_bp)
 
     # Blueprint original de vendas
     app.register_blueprint(vendas_bp, url_prefix="/vendas")
@@ -225,5 +227,25 @@ def create_app():
 
                 Configuracao.seed_defaults()
                 db.session.commit()
+
+    # =========================================================
+    # FILTROS CUSTOMIZADOS JINJA
+    # =========================================================
+    def format_currency(value):
+        if value is None or isinstance(value, Undefined):
+            return "R$ 0,00"
+        try:
+            v = float(value)
+            formatted = (
+                f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            )
+            return f"R$ {formatted}"
+        except Exception:
+            return "R$ 0,00"
+
+    # Registramos com o nome 'currency' (que você já usa) 
+    # e também com 'formato_moeda' para evitar erros nos templates novos
+    app.jinja_env.filters["currency"] = format_currency
+    app.jinja_env.filters["formato_moeda"] = format_currency
 
     return app

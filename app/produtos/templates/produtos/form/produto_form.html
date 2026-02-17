@@ -3,24 +3,12 @@
 
 <div class="container py-3" data-produto-id="{{ produto.id or '' }}">
   {# =========================
-     CABEÇALHO (include)
+      CABEÇALHO (include)
   ========================== #}
   {% include "produtos/form/includes/_header.html" %}
   
-  {# =========================
-     BLOCO DA FOTO DO PRODUTO (upload e preview, SOMENTE NO FORM)
-     IDs: inputFotoProduto, btnSelecionarFoto, btnRemoverFoto, fotoProdutoPreview, inputFotoUrl
-     MOVIDO PARA _geral.html
-  ========================== #}
-
-  <!-- ============================================================
-       FORMULÁRIO PRINCIPAL
-  ============================================================ -->
   <form method="POST" action="" class="needs-validation" novalidate id="produtoForm">
 
-
-
-	  <!-- ABAS -->
     <ul class="nav nav-tabs" id="produtoTabs" role="tablist">
       <li class="nav-item" role="presentation">
         <button class="nav-link active" id="tab-geral" type="button" role="tab"
@@ -47,6 +35,14 @@
       </li>
 
       <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-ecommerce" type="button" role="tab"
+                data-bs-toggle="tab" data-bs-target="#abaEcommerce"
+                aria-controls="abaEcommerce" aria-selected="false">
+          <i class="fas fa-shopping-cart me-1"></i> E-commerce
+        </button>
+      </li>
+
+      <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-historico" type="button" role="tab"
                 data-bs-toggle="tab" data-bs-target="#abaHistorico"
                 aria-controls="abaHistorico" aria-selected="false">
@@ -55,8 +51,7 @@
       </li>
     </ul>
 
-	    <!-- CONTEÚDO DAS ABAS -->
-	    <div class="tab-content p-3 border border-top-0 rounded-bottom fade-in">
+    <div class="tab-content p-3 border border-top-0 rounded-bottom fade-in bg-white shadow-sm">
       <div class="tab-pane fade show active" id="abaGeral" role="tabpanel">
         {% include "produtos/form/abas/_geral.html" %}
       </div>
@@ -66,21 +61,26 @@
       <div class="tab-pane fade" id="abaTecnicos" role="tabpanel">
         {% include "produtos/form/abas/_tecnicos.html" %}
       </div>
+
+      <div class="tab-pane fade" id="abaEcommerce" role="tabpanel">
+        {% include "produtos/form/abas/_ecommerce.html" %}
+      </div>
+
       <div class="tab-pane fade" id="abaHistorico" role="tabpanel" data-produto-id="{{ produto.id }}">
         {% include "produtos/form/abas/_historico.html" %}
       </div>
     </div>
 
-	    {# Rodapé com botão salvar #}
-	    {% include "produtos/form/includes/_footer.html" %}
-	  </form>
-	</div>
+    {# Rodapé com botão salvar #}
+    {% include "produtos/form/includes/_footer.html" %}
+  </form>
+</div>
 
 {# Toast de sucesso #}
 {% include "produtos/form/includes/_toast.html" %}
 
 {# ================================
-   MODAIS (categorias, tipo, marca…)
+    MODAIS (categorias, tipo, marca…)
 ================================ #}
 {% include "produtos/form/modais/_modal_categoria.html" %}
 {% include "produtos/form/modais/_modal_tipo.html" %}
@@ -91,18 +91,13 @@
 {% endblock %}
 
 {# ============================================================
-   SCRIPTS (ordem crítica para restaurar comportamentos)
+    SCRIPTS
 ============================================================ #}
 {% block scripts %}
   {{ super() }}
 
-  <!-- CSS específico da Fase 5 -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/produtos_form.css') }}">
-
-  <!-- AutoNumeric -->
   <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.5"></script>
-
-  <!-- Módulos JS -->
   <script src="{{ url_for('static', filename='js/produtos_form.js') }}"></script>
   <script src="{{ url_for('static', filename='js/produtos_autosave.js') }}"></script>
   <script src="{{ url_for('static', filename='js/produtos_historico.js') }}"></script>
@@ -114,10 +109,6 @@
       document.querySelectorAll("button:not([type])").forEach(btn => btn.setAttribute("type", "button"));
       const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
       tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
-
-      // ⚙️ Inicialização do módulo de foto foi movida para produtos_form.js
-      // para garantir que o DOM esteja pronto antes de anexar eventos.
-      // O código de inicialização do módulo de foto foi removido daqui.
     });
 
     window.addEventListener("load", () => {

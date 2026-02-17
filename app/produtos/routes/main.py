@@ -17,7 +17,7 @@ from app.produtos.configs.models import (
 
 from app.models import Taxa
 import app.utils.parcelamento as parc
-from app.utils.datetime import now_local  # <--- IMPORTAÇÃO CORRETA
+from app.utils.datetime import now_local 
 
 from urllib.parse import urlparse
 from app.produtos.routes.utils import _key_from_url
@@ -105,7 +105,6 @@ def index():
     wants_fragment = request.args.get("ajax") == "1" or request.headers.get("X-Requested-With") == "XMLHttpRequest"
     has_any_filter = any([bool(termo), bool(tipo), bool(categoria), bool(marca), bool(calibre)])
 
-    # Define a data atual para passar ao template
     agora = now_local()
 
     if wants_fragment:
@@ -116,7 +115,6 @@ def index():
                 resp.headers["Cache-Control"] = "no-store"
                 return resp
 
-        # Passamos 'agora' para o fragmento
         html = render_template("produtos/_lista.html", produtos=produtos, pagination=pagination, per_page=per_page, request=request, agora=agora)
         if not has_any_filter:
             _set_cached_fragment(page, per_page, ordenar, html)
@@ -124,12 +122,11 @@ def index():
         resp.headers["Cache-Control"] = "no-store"
         return resp
 
-    # Passamos 'agora' para a página principal também
     return render_template("produtos/index.html", produtos=produtos, pagination=pagination, tipos=tipos, categorias=categorias, marcas=marcas, calibres=calibres, per_page=per_page, agora=agora)
 
 
 # ============================================================
-# CADASTRAR / EDITAR PRODUTO
+# CADASTRAR / EDITAR PRODUTO (ATUALIZADO PARA E-COMMERCE)
 # ============================================================
 @produtos_bp.route("/novo", methods=["GET", "POST"])
 @produtos_bp.route("/<int:produto_id>/editar", methods=["GET", "POST"])
@@ -158,6 +155,9 @@ def gerenciar_produto(produto_id=None):
                 ipi=produto_ref.ipi,
                 difal=produto_ref.difal,
                 imposto_venda=produto_ref.imposto_venda,
+                # Campos de E-commerce na duplicação
+                requer_documentacao=produto_ref.requer_documentacao,
+                visivel_loja=False # Sempre inicia invisível ao duplicar
             )
             flash(f"Produto '{produto_ref.nome}' duplicado. Revise antes de salvar.", "info")
         else:
@@ -183,83 +183,71 @@ def gerenciar_produto(produto_id=None):
             try: return int(value) if value else None
             except ValueError: return None
 
-        # --- CORREÇÃO PARA PERSISTÊNCIA ---
-        # Remove símbolos (R$, %) e espaços antes de converter
         def to_decimal(value):
             if not value: return Decimal(0)
             try:
-                # Limpeza robusta
                 val_str = str(value).replace("R$", "").replace("%", "").strip()
-                val_str = val_str.replace(",", ".") # Padrão backend: ponto decimal
+                val_str = val_str.replace(",", ".") 
                 return Decimal(val_str)
             except InvalidOperation:
                 return Decimal(0)
 
-        # Atualizando campos auditados para incluir os de Promoção
+        # Campos auditados incluindo os novos de e-commerce
         campos_auditados = [
             "codigo", "nome", "descricao",
             "categoria_id", "marca_id", "calibre_id", "tipo_id", "funcionamento_id",
             "preco_fornecedor", "desconto_fornecedor", "frete",
             "margem", "lucro_alvo", "preco_final",
             "ipi", "ipi_tipo", "difal", "imposto_venda",
-            "promo_ativada", "promo_preco_fornecedor", "promo_data_inicio", "promo_data_fim"
+            "promo_ativada", "promo_preco_fornecedor", "promo_data_inicio", "promo_data_fim",
+            "visivel_loja", "requer_documentacao", "destaque_home", "eh_lancamento", "eh_outdoor"
         ]
         antes = {c: getattr(produto, c, None) for c in campos_auditados}
 
         codigo = (data.get("codigo") or "").strip().upper()
         nome = (data.get("nome") or "").strip()
-        descricao = (data.get("descricao") or "").strip() or None
-
+        
+        # Persistência básica
+        produto.codigo = codigo
+        produto.nome = nome
+        produto.descricao = (data.get("descricao") or "").strip() or None
         produto.categoria_id = to_int(data.get("categoria_id"))
         produto.marca_id = to_int(data.get("marca_id"))
         produto.calibre_id = to_int(data.get("calibre_id"))
         produto.tipo_id = to_int(data.get("tipo_id"))
         produto.funcionamento_id = to_int(data.get("funcionamento_id"))
-
-        existente = Produto.query.filter(Produto.codigo == codigo).filter(Produto.id != produto.id if produto.id else True).first()
-        if existente:
-            flash(f"⚠️ Já existe um produto com o código {codigo}.", "warning")
-            return redirect(url_for("produtos.gerenciar_produto", produto_id=produto.id))
-
-        produto.codigo = codigo
-        produto.nome = nome
-        produto.descricao = descricao
         produto.foto_url = data.get("foto_url") or foto_atual
 
+        # Persistência Financeira
         produto.preco_fornecedor = to_decimal(data.get("preco_fornecedor"))
         produto.desconto_fornecedor = to_decimal(data.get("desconto_fornecedor"))
         produto.frete = to_decimal(data.get("frete"))
         produto.margem = to_decimal(data.get("margem"))
         produto.lucro_alvo = to_decimal(data.get("lucro_alvo"))
         produto.preco_final = to_decimal(data.get("preco_final"))
-        
-        # IPI e Outros
         produto.ipi = to_decimal(data.get("ipi"))
         produto.difal = to_decimal(data.get("difal"))
         produto.imposto_venda = to_decimal(data.get("imposto_venda"))
         produto.ipi_tipo = data.get("ipi_tipo", "%_dentro")
 
-        # === NOVOS CAMPOS DE PROMOÇÃO ===
+        # === NOVOS CAMPOS DE E-COMMERCE E CONTEÚDO WEB ===
+        produto.visivel_loja = True if data.get("visivel_loja") == "on" else False
+        produto.requer_documentacao = True if data.get("requer_documentacao") == "on" else False
+        produto.destaque_home = True if data.get("destaque_home") == "on" else False
+        produto.eh_lancamento = True if data.get("eh_lancamento") == "on" else False
+        produto.eh_outdoor = True if data.get("eh_outdoor") == "on" else False
+        
+        produto.descricao_comercial = (data.get("descricao_comercial") or "").strip() or None
+        produto.meta_title = (data.get("meta_title") or "").strip() or None
+        produto.meta_description = (data.get("meta_description") or "").strip() or None
+
+        # Promoção
         produto.promo_ativada = True if data.get("promo_ativada") == "on" else False
         produto.promo_preco_fornecedor = to_decimal(data.get("promo_preco_fornecedor"))
         
-        # Datas (HTML datetime-local vem como 'YYYY-MM-DDTHH:MM')
-        def parse_dt(dt_str):
-            if not dt_str: return None
-            try:
-                # Na conversão, assumimos que o input do user é local, mas salvamos em UTC ou aware
-                # Dependendo de como seu BD está configurado. O ideal é converter para UTC.
-                # Simplificando:
-                dt = datetime.fromisoformat(dt_str)
-                # Se o now_local usa timezone, aqui também deveria
-                return dt.replace(tzinfo=timezone.utc) # Ajuste conforme necessário
-            except ValueError: return None
-
-        # Tratamento de datas vindo do form
         p_inicio = data.get("promo_data_inicio")
         p_fim = data.get("promo_data_fim")
         if p_inicio:
-            # Converte string '2025-11-27T10:00' para datetime
             produto.promo_data_inicio = datetime.strptime(p_inicio, "%Y-%m-%dT%H:%M").replace(tzinfo=pytz.timezone("America/Fortaleza"))
         else:
             produto.promo_data_inicio = None
@@ -269,7 +257,6 @@ def gerenciar_produto(produto_id=None):
         else:
             produto.promo_data_fim = None
 
-
         try:
             if hasattr(produto, "calcular_precos"):
                 produto.calcular_precos()
@@ -277,7 +264,7 @@ def gerenciar_produto(produto_id=None):
             db.session.add(produto)
             db.session.flush()
 
-            # Auditoria (Simplificada para exibição)
+            # Auditoria
             registros = []
             if not produto_id:
                 registros.append(ProdutoHistorico(
@@ -289,15 +276,6 @@ def gerenciar_produto(produto_id=None):
                     data_modificacao=datetime.utcnow(),
                 ))
 
-            campos_percentuais = ["ipi", "ipi_tipo", "difal", "imposto_venda"]
-            def normalizar_valor(v, campo_nome):
-                if v is None: return None
-                try:
-                    v_float = float(v)
-                    if campo_nome in campos_percentuais: return f"{v_float:.2f} %"
-                    return f"{v_float:.2f}"
-                except (ValueError, TypeError): return str(v)
-
             depois = {c: getattr(produto, c, None) for c in campos_auditados}
             for campo in campos_auditados:
                 a, d = antes.get(campo), depois.get(campo)
@@ -305,8 +283,8 @@ def gerenciar_produto(produto_id=None):
                     registros.append(ProdutoHistorico(
                         produto_id=produto.id,
                         campo=campo,
-                        valor_antigo=normalizar_valor(a, campo),
-                        valor_novo=normalizar_valor(d, campo),
+                        valor_antigo=str(a) if a is not None else None,
+                        valor_novo=str(d) if d is not None else None,
                         usuario_id=getattr(current_user, "id", None),
                         usuario_nome=getattr(current_user, "nome", None) or getattr(current_user, "username", None),
                         data_modificacao=datetime.utcnow(),
@@ -325,6 +303,7 @@ def gerenciar_produto(produto_id=None):
             current_app.logger.error(f"Erro ao salvar produto: {e}")
             flash("❌ Ocorreu um erro ao salvar o produto.", "danger")
 
+    # Tratamento de fuso para exibição
     if getattr(produto, "atualizado_em", None):
         try:
             fuso_fortaleza = pytz.timezone("America/Fortaleza")
@@ -334,7 +313,6 @@ def gerenciar_produto(produto_id=None):
         except Exception:
             produto.atualizado_em_local = produto.atualizado_em
 
-    # URL da Foto (Proxy)
     foto_proxy = None
     if produto and produto.foto_url:
         key = _key_from_url(produto.foto_url)
