@@ -16,6 +16,7 @@ class MarcaProduto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(120), nullable=False, unique=True)
     descricao = db.Column(db.String(255))
+    logo_url = db.Column(db.String(512), nullable=True) # <-- NOVO CAMPO
     criado_em = db.Column(db.DateTime, default=now_local)
     atualizado_em = db.Column(db.DateTime, default=now_local, onupdate=now_local)
 

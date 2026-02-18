@@ -109,6 +109,8 @@ def create_app():
     from app.importacoes import importacoes_bp
     from app.certidoes import certidoes_bp
     from app.loja import loja_bp
+    # NOVO BLUEPRINT: Admin da Loja
+    from app.loja_admin import loja_admin_bp
 
     app.register_blueprint(uploads_bp, url_prefix="/uploads")
     app.register_blueprint(main)
@@ -117,6 +119,9 @@ def create_app():
     app.register_blueprint(estoque_bp)
     app.register_blueprint(configs_bp)
     app.register_blueprint(loja_bp)
+    
+    # Registro do Admin da Loja com prefixo exclusivo
+    app.register_blueprint(loja_admin_bp, url_prefix="/admin-loja")
 
     # Blueprint original de vendas
     app.register_blueprint(vendas_bp, url_prefix="/vendas")

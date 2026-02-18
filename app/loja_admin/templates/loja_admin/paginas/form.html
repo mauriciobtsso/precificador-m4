@@ -1,0 +1,115 @@
+{% extends 'loja_admin/base_admin.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">{{ 'Editar' if pagina else 'Nova' }} Página Institucional</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="paginaForm">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Título da Página</label>
+                    <input type="text" name="titulo" class="form-control form-control-lg" 
+                           placeholder="Ex: Política de Trocas" value="{{ pagina.titulo if pagina else '' }}" required>
+                    <small class="text-muted">A URL amigável (slug) será gerada automaticamente a partir do título.</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Conteúdo da Página</label>
+                    
+                    <div id="toolbar-container" class="border"></div>
+                    
+                    <div id="editor" class="border shadow-sm bg-white" style="min-height: 500px; padding: 20px;">
+                        {{ pagina.conteudo|safe if pagina else '' }}
+                    </div>
+
+                    <input type="hidden" name="conteudo" id="conteudo_input">
+                </div>
+
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" name="visivel_rodape" id="visivel" 
+                           {{ 'checked' if not pagina or pagina.visivel_rodape }}>
+                    <label class="form-check-label" for="visivel">Exibir link no rodapé da loja</label>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success btn-lg px-5">
+                        <i class="bi bi-save me-2"></i>Salvar Página
+                    </button>
+                    <a href="{{ url_for('loja_admin.paginas') }}" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/decoupled-document/ckeditor.js"></script>
+<script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/decoupled-document/translations/pt-br.js"></script>
+
+<script>
+    DecoupledEditor
+        .create(document.querySelector('#editor'), {
+            language: 'pt-br',
+            toolbar: {
+                items: [
+                    'heading', '|',
+                    'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', '|',
+                    'bold', 'italic', 'underline', 'strikethrough', '|',
+                    'alignment', '|',  // <--- AQUI ESTÁ O JUSTIFICADO
+                    'numberedList', 'bulletedList', '|',
+                    'outdent', 'indent', '|',
+                    'link', 'insertTable', 'blockQuote', '|',
+                    'undo', 'redo', 'removeFormat'
+                ]
+            },
+            alignment: {
+                options: [ 'left', 'center', 'right', 'justify' ] // Habilita o justificado explicitamente
+            }
+        })
+        .then(editor => {
+            const toolbarContainer = document.querySelector('#toolbar-container');
+            // Anexa a barra de ferramentas no container superior
+            toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+            
+            // Antes de enviar o formulário, pegamos o HTML do editor e jogamos no input oculto
+            const form = document.querySelector('#paginaForm');
+            form.onsubmit = () => {
+                const conteudoInput = document.querySelector('#conteudo_input');
+                conteudoInput.value = editor.getData();
+            };
+        })
+        .catch(error => {
+            console.error('Erro ao carregar o editor:', error);
+        });
+</script>
+
+<style>
+    /* Estilização para o editor parecer uma folha de papel/documento */
+    #editor {
+        border-top: none !important;
+        font-family: 'Inter', sans-serif;
+        color: #333;
+        font-size: 16px;
+        line-height: 1.6;
+    }
+    
+    #toolbar-container {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    /* Estilo para tabelas dentro do editor */
+    .ck-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+    }
+    .ck-content table td, .ck-content table th {
+        border: 1px solid #dee2e6;
+        padding: 8px;
+    }
+</style>
+{% endblock %}

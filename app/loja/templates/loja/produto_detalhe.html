@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <style>
-    /* Estilos Premium para Detalhe */
+    /* Estilos Premium M4 Tática */
     .detail-container { padding-top: 2rem; padding-bottom: 4rem; }
     
     .img-main-container {
@@ -14,11 +14,22 @@
         align-items: center;
         justify-content: center;
         height: 600px;
-        padding: 20px;
+        padding: 40px;
         position: sticky;
         top: 100px;
+        overflow: hidden;
     }
-    .img-main-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    
+    .img-main-container img { 
+        max-width: 100%; 
+        max-height: 100%; 
+        object-fit: contain; 
+        transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+
+    .img-main-container:hover img {
+        transform: scale(1.1);
+    }
 
     .badge-controlled-premium {
         background-color: #000;
@@ -34,19 +45,34 @@
     }
 
     .price-box-premium {
-        background-color: #f9f9f9;
-        padding: 2rem;
-        border: 1px solid #eee;
+        background-color: #fdfdfd;
+        padding: 2.5rem;
+        border: 1px solid #f0f0f0;
         margin-bottom: 2rem;
+        border-radius: 4px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.02);
     }
 
     .btn-buy-now {
         padding: 1.2rem;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        border-radius: 0;
+        letter-spacing: 1.5px;
+        border-radius: 4px;
         transition: all 0.3s ease;
+    }
+
+    .btn-whatsapp-buy {
+        background-color: #25d366;
+        border-color: #25d366;
+        color: #fff;
+    }
+
+    .btn-whatsapp-buy:hover {
+        background-color: #1ebe57;
+        border-color: #1ebe57;
+        color: #fff;
+        transform: translateY(-3px);
     }
 
     .specs-label {
@@ -54,35 +80,39 @@
         text-transform: uppercase;
         color: #999;
         font-weight: 700;
-        letter-spacing: 0.5px;
-        width: 35%;
+        letter-spacing: 0.8px;
+        width: 40%;
+        padding: 10px 0;
     }
-    .specs-value { font-weight: 600; color: #333; font-size: 0.9rem; }
+    .specs-value { font-weight: 600; color: #111; font-size: 0.9rem; padding: 10px 0; }
 
     .section-title-premium {
-        font-weight: 800;
+        font-weight: 900;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        border-bottom: 3px solid #000;
+        letter-spacing: 1.5px;
+        border-bottom: 4px solid var(--m4-gold);
         display: inline-block;
         padding-bottom: 5px;
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
     }
+
+    .description-commercial { font-size: 1.05rem; line-height: 1.8; }
 
     /* Modal de Parcelas */
     .modal-content-m4 { border: none; border-radius: 0; }
-    .modal-header-m4 { background-color: var(--m4-dark); color: white; border-bottom: 2px solid var(--m4-gold); }
-    .table-parcelas thead th { background-color: #f8f9fa; font-size: 0.75rem; text-transform: uppercase; }
+    .modal-header-m4 { background-color: #000; color: white; border-bottom: 2px solid var(--m4-gold); }
+    .table-parcelas thead th { background-color: #f8f9fa; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
     .row-pix { background-color: #f1fcf1 !important; }
 
-    @media (max-width: 768px) {
-        .img-main-container { height: 350px; position: static; }
+    @media (max-width: 991px) {
+        .img-main-container { height: 400px; position: static; margin-bottom: 2rem; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container detail-container">
+    {# BREADCRUMB #}
     <nav aria-label="breadcrumb" class="mb-5">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a href="{{ url_for('loja.index') }}" class="text-decoration-none text-muted">Início</a></li>
@@ -98,8 +128,9 @@
     </nav>
 
     <div class="row g-5">
+        {# COLUNA DA ESQUERDA: FOTO DO PRODUTO #}
         <div class="col-lg-7">
-            <div class="img-main-container shadow-sm">
+            <div class="img-main-container rounded">
                 {% if produto.foto_url %}
                     <img src="{{ gerar_link(produto.foto_url) }}" alt="{{ produto.nome }}">
                 {% else %}
@@ -111,6 +142,7 @@
             </div>
         </div>
 
+        {# COLUNA DA DIREITA: INFO E COMPRA #}
         <div class="col-lg-5">
             {% if produto.requer_documentacao %}
             <div class="badge-controlled-premium">
@@ -118,44 +150,44 @@
             </div>
             {% endif %}
 
-            <h1 class="display-6 fw-bold text-dark mb-2" style="letter-spacing: -1px;">{{ produto.nome }}</h1>
-            <p class="text-muted small mb-4">REF: <span class="fw-bold">{{ produto.codigo }}</span></p>
+            <h1 class="display-6 fw-900 text-dark mb-2" style="letter-spacing: -1px; font-weight: 900;">{{ produto.nome }}</h1>
+            <p class="text-muted small mb-4">REFERÊNCIA: <span class="fw-bold">{{ produto.codigo }}</span></p>
 
-            <div class="mb-5 lh-lg text-secondary description-commercial">
+            <div class="mb-5 text-secondary description-commercial">
                 {% if produto.descricao_comercial %}
                     {{ produto.descricao_comercial | safe }}
                 {% else %}
-                    {{ produto.descricao or 'Nenhuma descrição comercial disponível.' }}
+                    <p>{{ produto.descricao or 'Conheça o novo ' ~ produto.nome ~ ', disponível na M4 Tática.' }}</p>
                 {% endif %}
             </div>
 
-            <div class="price-box-premium">
+            <div class="price-box-premium rounded">
                 {% if precos.em_oferta %}
-                    <span class="text-muted text-decoration-line-through small">De: {{ produto.preco_a_vista | currency }}</span>
-                    <div class="d-flex align-items-baseline">
-                        <h2 class="fw-bold text-dark mb-0">{{ precos.preco_a_vista | currency }}</h2>
-                        <span class="ms-2 badge bg-danger">OFERTA</span>
+                    <span class="text-muted text-decoration-line-through small d-block mb-1">De: {{ produto.preco_a_vista | currency }}</span>
+                    <div class="d-flex align-items-baseline mb-2">
+                        <h2 class="fw-bold text-dark mb-0" style="font-size: 2.5rem; font-weight: 900;">{{ precos.preco_a_vista | currency }}</h2>
+                        <span class="ms-3 badge bg-danger py-2 px-3">OFERTA</span>
                     </div>
                 {% else %}
-                    <h2 class="fw-bold text-dark mb-0">{{ produto.preco_a_vista | currency }}</h2>
+                    <h2 class="fw-bold text-dark mb-2" style="font-size: 2.5rem; font-weight: 900;">{{ precos.preco_a_vista | currency }}</h2>
                 {% endif %}
                 
-                <div class="text-success fw-bold mt-2 small">
-                    <i class="bi bi-lightning-fill"></i> PAGAMENTO À VISTA NO PIX
+                <div class="text-success fw-bold d-flex align-items-center mb-4">
+                    <i class="bi bi-lightning-fill me-2"></i> PAGAMENTO À VISTA NO PIX OU DINHEIRO
                 </div>
 
                 {% if parcela_12x %}
                 <div class="mt-4 pt-3 border-top">
                     <div class="d-flex align-items-center text-dark">
-                        <i class="bi bi-credit-card fs-3 me-3 opacity-50"></i>
+                        <i class="bi bi-credit-card fs-2 me-3 opacity-50"></i>
                         <div>
-                            <span class="d-block small text-muted">Ou no cartão de crédito</span>
-                            <span class="fw-bold">Até {{ parcela_12x.rotulo }} de {{ parcela_12x.parcela | currency }}</span>
+                            <span class="d-block small text-muted">Parcelado no cartão de crédito</span>
+                            <span class="fw-bold h5 mb-0">Até {{ parcela_12x.rotulo }} de {{ parcela_12x.parcela | currency }}</span>
                         </div>
                     </div>
-                    <button class="btn btn-link btn-sm p-0 mt-2 text-decoration-none text-gold fw-bold" 
+                    <button class="btn btn-link btn-sm p-0 mt-3 text-decoration-none text-gold fw-bold" 
                             data-bs-toggle="modal" data-bs-target="#modalParcelas">
-                        <i class="bi bi-plus-circle me-1"></i> Ver todas as formas de parcelamento
+                        <i class="bi bi-info-circle me-1"></i> Ver todas as formas de parcelamento
                     </button>
                 </div>
                 {% endif %}
@@ -163,38 +195,40 @@
 
             <div class="d-grid gap-3">
                 {% if produto.requer_documentacao %}
-                    <a href="https://wa.me/558630255885?text=Olá M4 Tática! Tenho interesse em iniciar o processo de aquisição para: {{ produto.nome }} (SKU: {{ produto.codigo }})" 
-                       target="_blank" class="btn btn-dark btn-buy-now shadow-lg">
+                    <a href="https://wa.me/558630255885?text=Olá M4 Tática! Tenho interesse no processo de aquisição do produto: {{ produto.nome }} (Ref: {{ produto.codigo }})" 
+                       target="_blank" class="btn btn-whatsapp-buy btn-buy-now shadow-sm">
                         <i class="bi bi-whatsapp me-2"></i> INICIAR PROCESSO DE AQUISIÇÃO
                     </a>
-                    <div class="text-center p-3 bg-light small text-muted border">
-                        <i class="bi bi-info-circle me-1"></i> A venda de armas e munições exige CR ativo ou autorização de compra emitida pelo órgão competente.
+                    <div class="alert alert-light border small text-muted mt-2" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill text-gold me-2"></i>
+                        A aquisição de armas e munições depende de autorização prévia (Exército ou Polícia Federal).
                     </div>
                 {% else %}
-                    <button class="btn btn-m4 btn-buy-now shadow-lg">
-                        <i class="bi bi-cart-plus me-2"></i> COMPRAR AGORA
+                    <button class="btn btn-dark btn-buy-now shadow-sm py-3">
+                        <i class="bi bi-cart-plus me-2"></i> ADICIONAR AO CARRINHO
                     </button>
                     <div class="d-flex justify-content-center gap-4 mt-2">
-                        <div class="small"><i class="bi bi-truck me-1"></i> Frete Seguro</div>
-                        <div class="small"><i class="bi bi-shield-check me-1"></i> Compra Protegida</div>
+                        <div class="small text-muted"><i class="bi bi-truck me-1"></i> Envio Seguro</div>
+                        <div class="small text-muted"><i class="bi bi-shield-check me-1"></i> Garantia Oficial</div>
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
 
+    {# ESPECIFICAÇÕES TÉCNICAS E DESCRIÇÃO #}
     <div class="row mt-5 pt-5">
         <div class="col-12">
             <h4 class="section-title-premium">Especificações Técnicas</h4>
-            <div class="row g-5">
+            <div class="row g-lg-5">
                 <div class="col-md-5">
-                    <div class="bg-light p-4 border shadow-sm">
-                        <table class="table table-sm table-borderless mb-0">
+                    <div class="bg-white p-4 border rounded shadow-sm">
+                        <table class="table table-sm table-hover mb-0">
                             <tbody>
                                 {% if produto.marca_rel %}
                                 <tr>
-                                    <td class="specs-label">Fabricante</td>
-                                    <td class="specs-value">{{ produto.marca_rel.nome }}</td>
+                                    <td class="specs-label border-0">Fabricante</td>
+                                    <td class="specs-value border-0">{{ produto.marca_rel.nome }}</td>
                                 </tr>
                                 {% endif %}
                                 {% if produto.calibre_rel %}
@@ -216,6 +250,7 @@
                                 </tr>
                                 {% endif %}
                                 
+                                {# LOOP DINÂMICO PARA JSON DE ESPECIFICAÇÕES #}
                                 {% if produto.especificacoes_tecnicas %}
                                     {% for chave, valor in produto.especificacoes_tecnicas.items() %}
                                     <tr>
@@ -228,20 +263,23 @@
                         </table>
                     </div>
                 </div>
-                <div class="col-md-7">
-                    <div class="lh-lg text-secondary ps-md-4" style="text-align: justify; border-left: 1px solid #eee;">
-                        <h6 class="fw-bold text-dark text-uppercase mb-3">Descrição Detalhada</h6>
-                        {% if produto.descricao_longa %}
-                            {{ produto.descricao_longa | safe }}
-                        {% else %}
-                            {{ produto.descricao | replace('\n', '<br>') | safe if produto.descricao else 'Para mais informações sobre este produto, entre em contato com nosso atendimento especializado.' }}
-                        {% endif %}
+                <div class="col-md-7 mt-4 mt-md-0">
+                    <div class="ps-md-4">
+                        <h6 class="fw-bold text-dark text-uppercase mb-4 pb-2 border-bottom">Informações Detalhadas</h6>
+                        <div class="lh-lg text-secondary" style="text-align: justify;">
+                            {% if produto.descricao_longa %}
+                                {{ produto.descricao_longa | safe }}
+                            {% else %}
+                                {{ produto.descricao | replace('\n', '<br>') | safe if produto.descricao else 'Entre em contato para mais detalhes sobre as características deste equipamento.' }}
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    {# PRODUTOS RELACIONADOS #}
     {% if relacionados %}
     <div class="row mt-5 pt-5">
         <div class="col-12">
@@ -260,11 +298,12 @@
     {% endif %}
 </div>
 
+{# MODAL DE PARCELAMENTO #}
 <div class="modal fade" id="modalParcelas" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-content-m4 shadow-lg">
             <div class="modal-header modal-header-m4">
-                <h5 class="modal-title text-uppercase fw-bold small">Condições de Pagamento</h5>
+                <h5 class="modal-title text-uppercase fw-bold small">Formas de Pagamento</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body p-0">
@@ -272,7 +311,7 @@
                     <table class="table table-parcelas border-0 mb-0">
                         <thead class="text-muted">
                             <tr>
-                                <th class="ps-4">Forma</th>
+                                <th class="ps-4">Opção</th>
                                 <th>Parcela</th>
                                 <th class="text-end pe-4">Total</th>
                             </tr>
@@ -280,14 +319,14 @@
                         <tbody>
                             {% for item in opcoes_parcelamento %}
                                 <tr class="{{ 'row-pix fw-bold' if item.rotulo == 'PIX' else '' }}">
-                                    <td class="ps-4">
+                                    <td class="ps-4 py-3">
                                         {% if item.rotulo == 'PIX' %}<i class="bi bi-qr-code text-success me-2"></i>
                                         {% elif item.rotulo == 'Débito' %}<i class="bi bi-credit-card-2-front me-2"></i>
                                         {% else %}<i class="bi bi-credit-card me-2"></i>{% endif %}
                                         {{ item.rotulo }}
                                     </td>
-                                    <td class="{{ 'text-success' if item.rotulo == 'PIX' else 'text-dark' }}">{{ item.parcela | currency }}</td>
-                                    <td class="text-end pe-4 text-muted small">{{ item.total | currency }}</td>
+                                    <td class="py-3 {{ 'text-success' if item.rotulo == 'PIX' else 'text-dark' }}">{{ item.parcela | currency }}</td>
+                                    <td class="text-end py-3 pe-4 text-muted small">{{ item.total | currency }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -295,7 +334,7 @@
                 </div>
             </div>
             <div class="modal-footer bg-light py-2">
-                <small class="text-muted w-100 text-center">Os valores podem variar conforme políticas de crédito da operadora.</small>
+                <small class="text-muted w-100 text-center">Valores baseados nas taxas atuais da loja.</small>
             </div>
         </div>
     </div>

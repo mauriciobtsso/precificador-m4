@@ -1,0 +1,62 @@
+{% extends 'loja_admin/base_admin.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard da Loja</h1>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase small fw-bold">Banners Ativos</h6>
+                        <h2 class="mb-0 fw-bold">{{ total_banners }}</h2>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-images fs-3 text-primary"></i>
+                    </div>
+                </div>
+                <a href="{{ url_for('loja_admin.banners') }}" class="btn btn-sm btn-link text-decoration-none mt-3 p-0 text-primary">Gerenciar Banners &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase small fw-bold">Páginas Criadas</h6>
+                        <h2 class="mb-0 fw-bold">{{ total_paginas }}</h2>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-file-text fs-3 text-success"></i>
+                    </div>
+                </div>
+                <a href="{{ url_for('loja_admin.paginas') }}" class="btn btn-sm btn-link text-decoration-none mt-3 p-0 text-success">Gerenciar Conteúdo &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4 text-center">
+                <i class="bi bi-gear-fill fs-1 text-secondary opacity-25 mb-2 d-block"></i>
+                <h6 class="text-muted text-uppercase small fw-bold">Configurações</h6>
+                <a href="{{ url_for('loja_admin.configuracoes') }}" class="btn btn-dark w-100 mt-2">Acessar Dados da Loja</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="bg-white p-5 rounded shadow-sm text-center">
+            <h4 class="fw-bold">Bem-vindo ao Painel M4</h4>
+            <p class="text-muted">Utilize o menu lateral para gerenciar os elementos visuais e institucionais da sua vitrine.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

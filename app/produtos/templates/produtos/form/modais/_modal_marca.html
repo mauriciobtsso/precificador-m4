@@ -2,7 +2,7 @@
      MODAL: NOVA MARCA
 ======================= -->
 <div class="modal fade" id="modalNovaMarca" tabindex="-1" aria-labelledby="modalNovaMarcaLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable">
+  <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header bg-dark text-white">
         <h5 class="modal-title fw-semibold" id="modalNovaMarcaLabel">
@@ -13,22 +13,28 @@
 
       <div class="modal-body">
         <div class="alert alert-light border small mb-3">
-          Cadastre uma nova <strong>marca</strong> (Ex: Taurus, Glock, CBC...).
+          Cadastre o fabricante e a logo para exibição na vitrine.
         </div>
 
         <div class="row g-3">
           <div class="col-12">
-            <label class="form-label fw-semibold" for="nm_nome">Nome</label>
-            <input type="text" id="nm_nome" class="form-control" placeholder="Ex: Glock">
+            <label class="form-label fw-semibold" for="nm_nome">Nome da Marca</label>
+            <input type="text" id="nm_nome" class="form-control" placeholder="Ex: Glock" required>
+          </div>
+          
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="nm_logo">Logo da Marca (PNG/JPG)</label>
+            <input type="file" id="nm_logo" class="form-control" accept="image/*">
+            <div class="form-text">Dê preferência a logos horizontais com fundo transparente.</div>
           </div>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button type="button"
-                class="btn btn-success"
-                data-tabela="marcas"
-                data-input="nm_nome"
+        <button type="button" 
+                class="btn btn-success" 
+                data-tabela="marcas" 
+                data-input="nm_nome" 
                 data-select="marca_id">
           <i class="fas fa-check me-1"></i>Salvar Marca
         </button>

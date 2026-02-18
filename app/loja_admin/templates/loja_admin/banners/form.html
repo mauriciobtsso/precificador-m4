@@ -1,0 +1,59 @@
+{% extends 'loja_admin/base_admin.html' %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="h3">Novo Banner</h1>
+    <p class="text-muted small">Publique artes promocionais no carrossel principal da loja.</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form action="{{ url_for('loja_admin.novo_banner') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Título Interno</label>
+                        <input type="text" name="titulo" class="form-control" placeholder="Ex: Campanha Taurus 2026" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Arquivo da Imagem</label>
+                        <input type="file" name="imagem" class="form-control" accept="image/*" required>
+                        <div class="form-text text-danger font-monospace" style="font-size: 11px;">
+                            Recomendado: 1920x600px | Máx 300KB
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label fw-bold">Link de Destino (URL)</label>
+                            <input type="text" name="link_destino" class="form-control" placeholder="https://...">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Ordem</label>
+                            <input type="number" name="ordem" class="form-control" value="0">
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                        <a href="{{ url_for('loja_admin.banners') }}" class="btn btn-light px-4">CANCELAR</a>
+                        <button type="submit" class="btn btn-dark px-5 fw-bold">PUBLICAR BANNER</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card border-0 bg-dark text-white p-4 h-100 shadow-lg">
+            <h5 class="text-gold fw-bold mb-3"><i class="bi bi-lightbulb me-2"></i>Área de Inteligência</h5>
+            <p class="small opacity-75">Siga as proporções para evitar que o banner "quebre" em dispositivos móveis:</p>
+            <ul class="small opacity-75">
+                <li><strong>Proporção ideal:</strong> 1920x600px.</li>
+                <li><strong>Cores:</strong> Use fundos escuros se quiser manter o padrão M4.</li>
+                <li><strong>Mobile:</strong> O banner será cortado nas laterais em celulares. Deixe o conteúdo importante no centro da imagem.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'loja_admin/base_admin.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dados Institucionais da Loja</h1>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('loja_admin.index') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Configurações</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="m-0 fw-bold text-dark"><i class="bi bi-pencil-square me-2"></i>Editar Informações</h6>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('loja_admin.configuracoes') }}" method="POST">
+                    <div class="row g-3">
+                        {% for config in configs %}
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ config.chave }}" class="form-label small fw-bold text-uppercase text-muted">
+                                {{ config.chave.replace('loja_', '').replace('_', ' ') }}
+                            </label>
+                            
+                            {% if config.chave == 'loja_endereco' %}
+                            <textarea name="{{ config.chave }}" id="{{ config.chave }}" class="form-control" rows="3">{{ config.valor }}</textarea>
+                            {% else %}
+                            <input type="text" name="{{ config.chave }}" id="{{ config.chave }}" class="form-control" value="{{ config.valor }}">
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                        <button type="submit" class="btn btn-dark px-5 fw-bold">
+                            <i class="bi bi-check-circle me-2"></i>SALVAR ALTERAÇÕES
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm bg-light mb-4">
+            <div class="card-body">
+                <h6 class="fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i>Dica Tática</h6>
+                <p class="small text-muted mb-0">
+                    Estas informações são exibidas no <strong>Rodapé</strong>, na página <strong>Fale Conosco</strong> e nos <strong>E-mails</strong> enviados aos clientes. Mantenha os dados atualizados para garantir a confiança do consumidor.
+                </p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-instagram fs-1 text-danger opacity-50 mb-2"></i>
+                <h6 class="fw-bold">Redes Sociais</h6>
+                <p class="small text-muted">Certifique-se de incluir o "@" ou o link completo conforme o campo exigir.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

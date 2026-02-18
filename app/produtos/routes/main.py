@@ -22,6 +22,8 @@ from app.utils.datetime import now_local
 from urllib.parse import urlparse
 from app.produtos.routes.utils import _key_from_url
 
+from app.utils.r2_helpers import gerar_link_r2
+
 # ============================================================
 #  Cache leve em memória para fragmentos da listagem (AJAX)
 # ============================================================
@@ -44,6 +46,20 @@ def _get_cached_fragment(page: int, per_page: int, ordenar: str):
 def _set_cached_fragment(page: int, per_page: int, ordenar: str, html: str):
     key = _cache_key_for_list(page, per_page, ordenar)
     _LIST_CACHE[key] = (time.time() + _LIST_CACHE_TTL, html)
+
+@produtos_bp.app_context_processor
+def utility_processor():
+    def gerar_link(path):
+        if not path:
+            return ""
+        # Se já for uma URL completa, retorna ela mesma
+        if path.startswith('http'):
+            return path
+        # Caso contrário, usa o helper do R2 para montar o link assinado ou público
+        return gerar_link_r2(path)
+    
+    return dict(gerar_link=gerar_link)
+
 
 # ============================================================
 # LISTAGEM DE PRODUTOS
@@ -390,3 +406,4 @@ def visualizar_produto(produto_id):
         "funcionamento": produto.funcionamento_rel.nome if produto.funcionamento_rel else "-",
         "preco_avista": currency(valor_base), "parcelado_label": parcelado_label, "parcelas": parcelas_fmt,
     }
+

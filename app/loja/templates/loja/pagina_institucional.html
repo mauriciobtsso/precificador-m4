@@ -1,0 +1,34 @@
+{% extends 'loja/base.html' %}
+
+{% block content %}
+<div class="container py-5" style="min-height: 60vh;">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('loja.index') }}" class="text-dark">Home</a></li>
+                    <li class="breadcrumb-item active">{{ pagina.titulo }}</li>
+                </ol>
+            </nav>
+
+            <article class="bg-white p-4 p-md-5 shadow-sm rounded border">
+                <h1 class="display-5 fw-bold mb-4" style="font-family: 'Oswald', sans-serif; color: var(--m4-dark);">
+                    {{ pagina.titulo }}
+                </h1>
+                <hr class="mb-5" style="width: 80px; height: 5px; background-color: var(--m4-gold); opacity: 1;">
+                
+                <div class="conteudo-institucional" style="line-height: 1.8; color: #333; font-size: 1.1rem;">
+                    {# O filtro |safe permite que o HTML do editor apareça formatado #}
+                    {{ pagina.conteudo|safe }}
+                </div>
+            </article>
+        </div>
+    </div>
+</div>
+
+<style>
+    .conteudo-institucional h2 { margin-top: 2rem; font-weight: 700; color: #000; }
+    .conteudo-institucional p { margin-bottom: 1.2rem; }
+    .conteudo-institucional ul { margin-bottom: 1.2rem; }
+</style>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'loja_admin/base_admin.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">Banners da Home</h1>
+    <a href="{{ url_for('loja_admin.novo_banner') }}" class="btn btn-dark fw-bold">
+        <i class="bi bi-plus-lg me-2"></i>NOVO BANNER
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th width="100">Ordem</th>
+                    <th>Prévia</th>
+                    <th>Título</th>
+                    <th>Destino</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for banner in banners %}
+                <tr>
+                    <td class="fw-bold">#{{ banner.ordem }}</td>
+                    <td>
+                        {# Aqui está a correção: usamos gerar_link para converter a Key em URL acessível #}
+                        {% if banner.imagem_url %}
+                            <img src="{{ gerar_link(banner.imagem_url) }}" class="rounded shadow-sm" style="height: 50px; width: 120px; object-fit: cover; background-color: #eee;">
+                        {% else %}
+                            <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="height: 50px; width: 120px;">
+                                <i class="bi bi-image small"></i>
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>{{ banner.titulo }}</td>
+                    <td><small class="text-muted">{{ banner.link_destino or 'Sem link' }}</small></td>
+                    <td class="text-end">
+                        <a href="{{ url_for('loja_admin.excluir_banner', id=banner.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir este banner permanentemente?')">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">Nenhum banner cadastrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

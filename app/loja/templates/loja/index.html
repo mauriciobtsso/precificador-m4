@@ -1,81 +1,99 @@
 {% extends 'loja/base.html' %}
+
 {% block content %}
 {# =============================================
-   HOMEPAGE — HERO + CATEGORIAS + PRATELEIRAS
+   1. BANNER CARROSSEL (DINÂMICO PELO ADMIN)
    ============================================= #}
-{% if not termo_busca and not categoria_ativa and pagination.page == 1 %}
-<!-- HERO CAROUSEL -->
-<div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="6000">
-    <div class="carousel-indicators">
-        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
-        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
-    </div>
-    <div class="carousel-inner">
-        <div class="carousel-item active" style="height: 75vh; min-height: 400px;">
-            <a href="{{ url_for('loja.categoria', slug_categoria='pistolas') }}">
-                <img src="{{ url_for('static', filename='img/banner-loja.jpg') }}" class="d-block w-100 h-100" alt="Linha de Precisão 2026" style="object-fit: cover;">
-                <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.2), transparent);"></div>
-                <div class="carousel-caption text-start" style="bottom: 15%; left: 5%; right: auto; max-width: 500px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); padding: 32px; border-left: 4px solid var(--m4-gold);">
-                    <h2 class="font-display fw-bold text-uppercase" style="font-size: 2.8rem; letter-spacing: 1px;">Linha de Precisão 2026</h2>
-                    <p class="fs-5 opacity-75">As melhores marcas mundiais você encontra aqui em Teresina.</p>
-                    <span class="btn-m4 mt-2">VER OFERTAS</span>
-                </div>
-            </a>
+{% if not termo_busca and not categoria_ativa %}
+    {% if banners %}
+    <div id="heroCarousel" class="carousel slide carousel-fade mb-5" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            {% for banner in banners %}
+            <div class="carousel-item {{ 'active' if loop.first }}">
+                {% if banner.link_destino %}
+                    <a href="{{ banner.link_destino }}">
+                        <img src="{{ gerar_link(banner.imagem_url) }}" class="d-block w-100" alt="{{ banner.titulo }}">
+                    </a>
+                {% else %}
+                    <img src="{{ gerar_link(banner.imagem_url) }}" class="d-block w-100" alt="{{ banner.titulo }}">
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
-        <div class="carousel-item" style="height: 75vh; min-height: 400px;">
-            <a href="{{ url_for('loja.categoria', slug_categoria='outdoor') }}">
-                <img src="{{ url_for('static', filename='img/banner-outdoor.jpg') }}" class="d-block w-100 h-100" alt="Equipamentos Operacionais" style="object-fit: cover;">
-                <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.2), transparent);"></div>
-                <div class="carousel-caption text-end" style="bottom: 15%; right: 5%; left: auto; max-width: 500px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); padding: 32px; border-right: 4px solid var(--m4-gold);">
-                    <h2 class="font-display fw-bold text-uppercase" style="font-size: 2.8rem; letter-spacing: 1px;">Equipamentos Operacionais</h2>
-                    <p class="fs-5 opacity-75">Resistência extrema para qualquer missão tática.</p>
-                    <span class="btn-m4 mt-2">EXPLORAR OUTDOOR</span>
-                </div>
-            </a>
-        </div>
+        {% if banners|length > 1 %}
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+        {% endif %}
     </div>
-    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon"></span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-        <span class="carousel-control-next-icon"></span>
-    </button>
-</div>
-<!-- GRID DE CATEGORIAS -->
-<div class="container py-5">
-    <div class="row g-4 justify-content-center text-center">
-        {% set cat_icons = [
-            ('Pistolas', 'bi-crosshair', 'pistolas'),
-            ('Munições', 'bi-box-seam', 'municoes'),
-            ('Coldres', 'bi-shield', 'acessorios'),
-            ('Rifles', 'bi-bullseye', 'rifles'),
-            ('Outdoor', 'bi-tree', 'outdoor'),
-            ('Ofertas', 'bi-percent text-danger', 'ofertas')
-        ] %}
-        {% for nome, icon, slug in cat_icons %}
-        <div class="col-4 col-sm-2">
-            <a href="{{ url_for('loja.categoria', slug_categoria=slug) }}" class="text-decoration-none text-dark d-block category-item">
-                <div class="mx-auto mb-2 d-flex align-items-center justify-content-center rounded-circle shadow-sm" style="width: 80px; height: 80px; background: var(--m4-gray-bg); transition: 0.3s;">
-                    <i class="bi {{ icon }}" style="font-size: 28px;"></i>
-                </div>
-                <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">{{ nome }}</span>
-            </a>
+    {% else %}
+        <div class="py-5 bg-dark text-center mb-5">
+            <p class="text-white opacity-50 m-0">Cadastre banners no painel administrativo.</p>
         </div>
-        {% endfor %}
-    </div>
-</div>
+    {% endif %}
 {% endif %}
-<div class="container">
-    {# =============================================
-       HOME — PRATELEIRAS
-       ============================================= #}
+
+{# =============================================
+   2. VITRINE DE MARCAS (LOGOS DINÂMICAS)
+   ============================================= #}
+{% if not termo_busca and not categoria_ativa %}
+    <div class="container py-4 overflow-hidden">
+        <div class="brands-slider">
+            <div class="brands-track">
+                {% for marca in marcas %}
+                <div class="brand-slide">
+                    <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none">
+                        <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
+                            {% if marca.logo_url %}
+                                <img src="{{ gerar_link(marca.logo_url) }}" alt="{{ marca.nome }}" class="img-fluid brand-img">
+                            {% else %}
+                                <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+                
+                {# Duplicamos o loop para garantir o efeito infinito #}
+                {% for marca in marcas %}
+                <div class="brand-slide d-none d-md-block">
+                    <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none">
+                        <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
+                            {% if marca.logo_url %}
+                                <img src="{{ gerar_link(marca.logo_url) }}" alt="{{ marca.nome }}" class="img-fluid brand-img">
+                            {% else %}
+                                <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .brands-slider { width: 100%; position: relative; padding: 10px 0; }
+        .brands-track { display: flex; gap: 20px; animation: scrollBrands 70s linear infinite; width: fit-content; }
+        .brand-slide { width: 180px; flex-shrink: 0; }
+        .brand-card { transition: 0.3s; border: 1px solid #eee !important; }
+        .brand-img { max-height: 50px; max-width: 120px; filter: grayscale(100%); opacity: 0.6; transition: 0.3s; object-fit: contain; }
+        .brand-card:hover { border-color: var(--m4-gold) !important; transform: translateY(-5px); }
+        .brand-card:hover .brand-img { filter: grayscale(0%); opacity: 1; transform: scale(1.05); }
+        
+        @keyframes scrollBrands { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .brands-slider:hover .brands-track { animation-play-state: paused; }
+    </style>
+{% endif %}
+
+<div class="container mt-5">
     {% if not termo_busca and not categoria_ativa %}
-        <!-- LANÇAMENTOS -->
+        
+        {# 3. LANÇAMENTOS (Últimos Cadastrados) #}
         {% if lancamentos %}
         <section class="mb-5">
             <div class="shelf-header">
                 <h4 class="shelf-title">Lançamentos</h4>
-                <a href="#" class="shelf-link">Ver Tudo</a>
+                <span class="text-muted small ms-2">Novidades na armaria</span>
             </div>
             <div class="row row-cols-2 row-cols-md-4 g-4">
                 {% for produto in lancamentos %}
@@ -84,122 +102,124 @@
             </div>
         </section>
         {% endif %}
-        <!-- BANNER PROMO DESPACHANTE -->
-        <section class="mb-5">
-            <div class="promo-banner">
-                <h2>Despachante M4 Tática</h2>
-                <p class="mb-4 mx-auto" style="max-width: 500px;">Saiba como adquirir sua arma legalmente com nossa assessoria completa.</p>
-                <a href="#" class="btn-m4-outline">Saiba Mais</a>
-            </div>
-        </section>
-        <!-- PISTOLAS E REVÓLVERES -->
-        {% if prateleiras.pistolas %}
+
+        {# 4. DESTAQUES DA SEMANA #}
+        {% if destaques %}
         <section class="mb-5">
             <div class="shelf-header">
-                <h4 class="shelf-title">Pistolas e Revólveres</h4>
-                <a href="{{ url_for('loja.categoria', slug_categoria='pistolas') }}" class="shelf-link">Ver Tudo</a>
+                <h4 class="shelf-title">Destaques da Semana</h4>
+                <a href="#" class="shelf-link">Ver Seleção</a>
             </div>
             <div class="row row-cols-2 row-cols-md-4 g-4">
-                {% for produto in prateleiras.pistolas %}
+                {% for produto in destaques %}
                     {% include 'loja/_card_produto.html' %}
                 {% endfor %}
             </div>
         </section>
         {% endif %}
-        <!-- RIFLES E CARABINAS -->
-        {% if prateleiras.rifles %}
+
+        {# 5. BANNER INSTITUCIONAL / DESPACHANTE #}
         <section class="mb-5">
-            <div class="shelf-header">
-                <h4 class="shelf-title">Rifles e Carabinas</h4>
-                <a href="{{ url_for('loja.categoria', slug_categoria='rifles') }}" class="shelf-link">Ver Tudo</a>
-            </div>
-            <div class="row row-cols-2 row-cols-md-4 g-4">
-                {% for produto in prateleiras.rifles %}
-                    {% include 'loja/_card_produto.html' %}
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
-        <!-- ESPINGARDAS -->
-        {% if prateleiras.espingardas %}
-        <section class="mb-5">
-            <div class="shelf-header">
-                <h4 class="shelf-title">Espingardas</h4>
-                <a href="{{ url_for('loja.categoria', slug_categoria='espingardas') }}" class="shelf-link">Ver Tudo</a>
-            </div>
-            <div class="row row-cols-2 row-cols-md-4 g-4">
-                {% for produto in prateleiras.espingardas %}
-                    {% include 'loja/_card_produto.html' %}
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
-    {% endif %}
-    {# =============================================
-       BUSCA / CATEGORIA — GRID COM FILTROS
-       ============================================= #}
-    {% if termo_busca or categoria_ativa or pagination.page > 1 %}
-    <div class="row">
-        <!-- SIDEBAR FILTROS -->
-        <aside class="col-lg-3 d-none d-lg-block">
-            <div class="sidebar-loja bg-white p-4 border shadow-sm">
-                <h6 class="filter-title">Filtrar por</h6>
-                <div class="mb-4">
-                    <small class="fw-bold d-block mb-2">Marca</small>
-                    <div class="form-check small">
-                        <input class="form-check-input" type="checkbox"> <label class="form-check-label">Taurus</label>
-                    </div>
-                    <div class="form-check small">
-                        <input class="form-check-input" type="checkbox"> <label class="form-check-label">Glock</label>
-                    </div>
-                    <div class="form-check small">
-                        <input class="form-check-input" type="checkbox"> <label class="form-check-label">CBC</label>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <small class="fw-bold d-block mb-2">Preço</small>
-                    <input type="range" class="form-range" min="0" max="50000">
+            <div class="promo-banner shadow-sm rounded overflow-hidden">
+                <div class="p-5 bg-dark text-center position-relative" style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('/static/img/bg-despachante.jpg') center/cover;">
+                    <h2 class="text-gold fw-bold mb-2">Despachante M4 Tática</h2>
+                    <p class="text-white opacity-75 mb-4">Assessoria completa para aquisição legal de armas de fogo e CR.</p>
+                    <a href="#" class="btn btn-gold fw-bold px-5 py-2">QUERO MINHA ARMA LEGALIZADA</a>
                 </div>
             </div>
-        </aside>
-        <!-- GRID DE PRODUTOS -->
-        <div class="col-lg-9">
-            <h2 class="h5 fw-bold text-uppercase mb-4">
-                {% if termo_busca %}
-                    Resultado da busca: <span style="color: var(--m4-gold);">"{{ termo_busca }}"</span>
-                {% elif categoria_ativa %}
-                    Categoria: <span style="color: var(--m4-gold);">{{ categoria_ativa.nome }}</span>
-                {% else %}
-                    Catálogo de Produtos
+        </section>
+
+        {# 6. VITRINES DINÂMICAS POR CATEGORIA (Pistolas, Rifles, etc) #}
+        {% for nome_cat, prods in prateleiras.items() %}
+            {% if prods %}
+            <section class="mb-5">
+                <div class="shelf-header">
+                    <h4 class="shelf-title">{{ nome_cat|title }}</h4>
+                    {% set slug_temp = prods[0].categoria.slug if prods[0].categoria else 'geral' %}
+                    <a href="{{ url_for('loja.categoria', slug_categoria=slug_temp) }}" class="shelf-link">Ver Tudo</a>
+                </div>
+                <div class="row row-cols-2 row-cols-md-4 g-4">
+                    {% for produto in prods %}
+                        {% include 'loja/_card_produto.html' %}
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+        {% endfor %}
+
+    {% else %}
+        {# VIEW DE BUSCA OU FILTRO DE CATEGORIA (Com Paginação se necessário) #}
+        <div class="row mt-4">
+            <div class="col-12">
+                 <h2 class="h5 fw-bold text-uppercase mb-4">
+                    {% if termo_busca %}Busca: <span class="text-gold">"{{ termo_busca }}"</span>
+                    {% elif categoria_ativa %}Categoria: <span class="text-gold">{{ categoria_ativa.nome }}</span>
+                    {% endif %}
+                </h2>
+                <div class="row row-cols-2 row-cols-md-4 g-4">
+                    {% for produto in produtos %}
+                        {% include 'loja/_card_produto.html' %}
+                    {% endfor %}
+                </div>
+                
+                {% if pagination and pagination.pages > 1 %}
+                <nav class="mt-5"><ul class="pagination justify-content-center">
+                    {% for num in pagination.iter_pages() %}{% if num %}
+                    <li class="page-item {{ 'active' if num == pagination.page }}">
+                        <a class="page-link border-0 text-dark" href="{{ url_for(request.endpoint, page=num, q=termo_busca, slug_categoria=categoria_ativa.slug if categoria_ativa else None) }}">{{ num }}</a>
+                    </li>
+                    {% endif %}{% endfor %}
+                </ul></nav>
                 {% endif %}
-            </h2>
-            <div class="row row-cols-2 row-cols-md-3 g-4">
-                {% for produto in produtos %}
-                    {% include 'loja/_card_produto.html' %}
-                {% endfor %}
             </div>
         </div>
-    </div>
-    {% endif %}
-    {# PAGINAÇÃO #}
-    {% if pagination and pagination.pages > 1 %}
-    <nav class="mt-5">
-        <ul class="pagination justify-content-center">
-            <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
-                <a class="page-link border-0 shadow-sm mx-1 text-dark" href="{{ url_for('loja.index', page=pagination.prev_num, q=termo_busca) if pagination.has_prev else '#' }}">&laquo;</a>
-            </li>
-            {% for num in pagination.iter_pages() %}
-                {% if num %}
-                <li class="page-item {{ 'active' if num == pagination.page }}">
-                    <a class="page-link border-0 shadow-sm mx-1 {{ 'text-white' if num == pagination.page else 'text-dark bg-white' }}" href="{{ url_for('loja.index', page=num, q=termo_busca) }}" {% if num == pagination.page %}style="background-color: var(--m4-dark);"{% endif %}>{{ num }}</a>
-                </li>
-                {% endif %}
-            {% endfor %}
-            <li class="page-item {{ 'disabled' if not pagination.has_next }}">
-                <a class="page-link border-0 shadow-sm mx-1 text-dark" href="{{ url_for('loja.index', page=pagination.next_num, q=termo_busca) if pagination.has_next else '#' }}">&raquo;</a>
-            </li>
-        </ul>
-    </nav>
     {% endif %}
 </div>
+
+<style>
+    /* Estilização Geral de Vitrines */
+    .shelf-header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 24px; 
+        border-bottom: 1px solid rgba(0,0,0,0.05); 
+        padding-bottom: 12px; 
+    }
+    .shelf-title { 
+        font-weight: 800; 
+        text-transform: uppercase; 
+        font-size: 1.1rem; 
+        border-left: 5px solid var(--m4-gold); 
+        padding-left: 15px; 
+        margin: 0; 
+        letter-spacing: 0.5px;
+        color: #1a1a1a;
+    }
+    .shelf-link { 
+        color: var(--m4-gold); 
+        font-size: 11px; 
+        font-weight: 800; 
+        text-transform: uppercase; 
+        text-decoration: none; 
+        transition: 0.3s;
+        border: 1px solid var(--m4-gold);
+        padding: 4px 12px;
+        border-radius: 20px;
+    }
+    .shelf-link:hover { background: var(--m4-gold); color: #000; }
+    
+    .promo-banner .btn-gold {
+        background-color: var(--m4-gold);
+        border-color: var(--m4-gold);
+        color: #000;
+        transition: 0.3s;
+    }
+    .promo-banner .btn-gold:hover {
+        background-color: #fff;
+        border-color: #fff;
+        transform: scale(1.05);
+    }
+    .text-gold { color: var(--m4-gold) !important; }
+</style>
 {% endblock %}
