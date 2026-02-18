@@ -218,17 +218,16 @@ def gerenciar_produto(produto_id=None):
 
         # --- SALVAMENTO ---
         produto.codigo = (data.get("codigo") or "").strip().upper()
-        
-        # Ajuste Crítico: Garante que o nome interno (aba Geral) seja preservado
-        # e o nome comercial (aba Ecommerce) vá para o meta_title
-        produto.nome = (data.get("nome") or "").strip()
-        
-        nome_comercial = data.get("nome_comercial", "").strip()
-        if nome_comercial:
-            produto.meta_title = nome_comercial
+        produto.nome = (data.get("nome") or "").strip() # Nome Interno (Aba Geral)
+
+        # AJUSTE TÁTICO: Nome Comercial vs SEO
+        nome_comercial_input = data.get("nome_comercial", "").strip()
+        if nome_comercial_input:
+            produto.nome_comercial = nome_comercial_input
+            produto.meta_title = nome_comercial_input # Meta Title segue o Amigável
         else:
-            # Caso o usuário limpe o comercial, usamos o nome interno por padrão no SEO
-            produto.meta_title = produto.nome
+            produto.nome_comercial = None
+            produto.meta_title = produto.nome # Fallback para o nome interno
 
         if data.get("slug"):
             produto.slug = data.get("slug").strip().lower()
@@ -236,7 +235,10 @@ def gerenciar_produto(produto_id=None):
         produto.descricao = (data.get("descricao") or "").strip() or None
         produto.descricao_longa = data.get("descricao_longa")
         produto.descricao_comercial = data.get("descricao_comercial", "").strip() or None
-        produto.meta_description = (data.get("meta_description") or "").strip() or None
+        
+        # TRATAMENTO DO ERRO 160 CARACTERES:
+        desc_google = (data.get("meta_description") or "").strip()
+        produto.meta_description = desc_google[:160] if desc_google else None
 
         produto.categoria_id = to_int(data.get("categoria_id"))
         produto.marca_id = to_int(data.get("marca_id"))

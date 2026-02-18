@@ -111,29 +111,30 @@
     });
   };
 
-  const coletarDados = () => {
+const coletarDados = () => {
     const data = {};
 
-    // 1. SINCRONIZAÇÃO DO EDITOR RICO
+    // 1. SINCRONIZAÇÃO FORÇADA (O PULO DO GATO)
+    // Antes de ler os campos, forçamos o Summernote a despejar o HTML no textarea
     if (typeof $ !== 'undefined' && $.fn.summernote) {
-        $('textarea.richeditor, #editor_loja_m4').each(function() {
+        // Alvos: classe genérica ou o ID específico que definimos
+        $('textarea.richeditor, #editor_loja_m4, #summernote_loja').each(function() {
             try {
-                if ($(this).next().hasClass('note-editor')) {
-                    const htmlContent = $(this).summernote('code');
-                    if ($(this).val() !== htmlContent) {
-                        $(this).val(htmlContent);
-                    }
-                }
+                // Pega o código HTML do editor e joga no valor do textarea
+                const htmlContent = $(this).summernote('code');
+                $(this).val(htmlContent);
+                console.log("[M4] Sincronizando editor antes de coletar dados.");
             } catch (e) {
-                console.warn("[M4] Erro ao sincronizar Summernote:", e);
+                console.warn("[M4] Erro na sincronização do editor:", e);
             }
         });
     }
 
-    // 2. COLETA DOS CAMPOS DO FORMULÁRIO
+    // 2. COLETA DOS DEMAIS CAMPOS
     form.querySelectorAll("input, select, textarea").forEach(el => {
       if (el.name) {
         if (el.type === "checkbox") {
+          // Mantendo a correção de booleano que o Python exige
           data[el.name] = el.checked ? "1" : "0";
         } else {
           data[el.name] = el.value;

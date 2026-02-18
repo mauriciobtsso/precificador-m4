@@ -66,96 +66,61 @@ def _parse_decimal(valor):
         # Em caso de falha na conversão final, retorna None para não quebrar a transação.
         return None
 
-# ===========================================================
-# ROTA — Autosave de campos individuais do produto
-# ===========================================================
 @produtos_bp.route("/autosave/<int:produto_id>", methods=["POST"])
 @login_required
 def autosave_produto(produto_id):
-    """
-    Recebe alterações parciais via AJAX e salva no banco em tempo real.
-    """
     produto = Produto.query.get_or_404(produto_id)
     data = request.get_json() or {}
-
     alteracoes = {}
 
-    # Lista de campos booleanos (checkboxes/switches) para tratamento correto
-    CAMPOS_BOOLEANOS = [
-        "promo_ativada", "visivel_loja", "destaque_home", 
-        "eh_lancamento", "eh_outdoor", "requer_documentacao"
-    ]
+    CAMPOS_BOOLEANOS = ["promo_ativada", "visivel_loja", "destaque_home", "eh_lancamento", "eh_outdoor", "requer_documentacao"]
 
     for campo, valor_novo in data.items():
-        # Ignora campos que não existem no modelo
         if not hasattr(produto, campo):
             continue
 
         valor_atual = getattr(produto, campo)
         valor_final = valor_novo
 
-        # 1. Tratamento Específico por Tipo de Campo
         if campo in CAMPOS_DECIMAIS:
-            # É dinheiro/número: usa o parser seguro
             valor_final = _parse_decimal(valor_novo)
-            
         elif campo in CAMPOS_BOOLEANOS:
-            # Checkbox/Switch: Converte '1', 'on' ou True para Booleano real
             valor_final = str(valor_novo).lower() in ['true', 'on', '1']
-            
+        elif campo == "meta_description":
+            # Proteção contra erro de tamanho do PostgreSQL
+            valor_final = str(valor_novo)[:160] if valor_novo else None
+        elif campo == "nome_comercial":
+            # Sincroniza o SEO simultaneamente
+            produto.meta_title = valor_novo
+            valor_final = valor_novo
         elif campo in CAMPOS_DATAS:
-            # Datas: Se vier vazio, é None
-            if not valor_novo:
-                valor_final = None
-                
+            valor_final = None if not valor_novo else valor_novo
         else:
-            # Texto Puro e campos como 'meta_title', 'slug', 'descricao_longa'
             if isinstance(valor_novo, str):
-                # Para descrições longas (HTML), o strip deve ser cauteloso, 
-                # mas mantemos para consistência.
                 valor_final = valor_novo.strip()
-                if valor_final == "":
-                    valor_final = None
-            
-        # 2. Proteção contra Nulos em Campos Obrigatórios
+                if valor_final == "": valor_final = None
+
         if campo in ["nome", "codigo"] and not valor_final:
             continue
 
-        # 3. Comparação para detectar mudança
-        # Para HTML (Summernote), a comparação de strings é essencial
-        str_atual = str(valor_atual) if valor_atual is not None else ""
-        str_novo = str(valor_final) if valor_final is not None else ""
-        
-        if str_atual != str_novo:
+        if str(valor_atual) != str(valor_final):
             alteracoes[campo] = {"antigo": valor_atual, "novo": valor_final}
             setattr(produto, campo, valor_final)
 
-    # Nenhuma mudança → resposta imediata
     if not alteracoes:
         return jsonify({"status": "no_changes"}), 200
 
-    # Recalcula preços se necessário (Margem, Lucro, etc)
     if hasattr(produto, 'calcular_precos'):
         produto.calcular_precos()
 
-    # Atualiza timestamp
     produto.atualizado_em = datetime.utcnow()
-
-    # Registra histórico automático
     registrar_historico(produto, current_user, "autosave", alteracoes)
 
     try:
         db.session.commit()
-        return jsonify({
-            "status": "success",
-            "alteracoes": list(alteracoes.keys()),
-            "produto_id": produto.id,
-            "updated": True,
-            "atualizado_em": produto.atualizado_em.strftime('%H:%M')
-        }), 200
+        return jsonify({"status": "success", "atualizado_em": produto.atualizado_em.strftime('%H:%M')}), 200
     except Exception as e:
         db.session.rollback()
-        print(f"[Autosave Error] {e}") 
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # ===========================================================
