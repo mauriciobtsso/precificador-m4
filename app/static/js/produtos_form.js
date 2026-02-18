@@ -33,6 +33,63 @@
     return Number.isFinite(id) && id > 0 ? id : null;
   }
 
+
+// ============================================================
+  // ESPECIFICAÇÕES DINÂMICAS (JSON)
+  // ============================================================
+  function addEspecificacao(chave = "", valor = "") {
+    const container = document.getElementById("container-especificacoes");
+    if (!container) return;
+
+    const div = document.createElement("div");
+    div.className = "row g-2 mb-2 especificacao-row animate__animated animate__fadeIn";
+    div.innerHTML = `
+      <div class="col-5">
+        <input type="text" class="form-control form-control-sm espec-chave" placeholder="Atributo" value="${chave}">
+      </div>
+      <div class="col-6">
+        <input type="text" class="form-control form-control-sm espec-valor" placeholder="Valor" value="${valor}">
+      </div>
+      <div class="col-1 text-end">
+        <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="this.closest('.especificacao-row').remove(); window.ProdutosForm.serializarEspecificacoes();">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    `;
+    container.appendChild(div);
+
+    // Listeners para atualizar o JSON oculto sempre que digitar
+    div.querySelectorAll('input').forEach(input => {
+      input.addEventListener('input', debounce(serializarEspecificacoes, 500));
+    });
+  }
+
+  function serializarEspecificacoes() {
+    const rows = document.querySelectorAll(".especificacao-row");
+    const data = {};
+    rows.forEach(row => {
+      const chave = row.querySelector(".espec-chave").value.trim();
+      const valor = row.querySelector(".espec-valor").value.trim();
+      if (chave) {
+        data[chave] = valor;
+      }
+    });
+    const jsonInput = document.getElementById("in_especificacoes_tecnicas_json");
+    if (jsonInput) {
+      jsonInput.value = JSON.stringify(data);
+      // Notifica o Autosave que o campo oculto mudou
+      jsonInput.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+
+  function initEspecificacoes() {
+    // Adiciona listeners nas linhas já renderizadas pelo Jinja2
+    document.querySelectorAll(".especificacao-row input").forEach(input => {
+      input.addEventListener('input', debounce(serializarEspecificacoes, 500));
+    });
+    serializarEspecificacoes(); // Primeira carga
+  }
+
   // ============================================================
   // SUMMERNOTE: Inicialização segura para aba Ecommerce (FIX DEFINITIVO)
   // ============================================================
@@ -523,6 +580,7 @@
       initMasks(); 
       setupStaticListeners();
       corrigirAlturaAbas();
+      initEspecificacoes();
 
       // Se abrir direto na aba Ecommerce (ex: url com hash ou cache)
       setTimeout(() => {
@@ -540,6 +598,9 @@
     // Método chamado ao trocar de aba
     reinitMasks: initMasks,
     refreshResumo: recalcular,
+    
+    addEspecificacao: addEspecificacao,
+    serializarEspecificacoes: serializarEspecificacoes,
 
     // NOVO: exposto para o produto_form.html chamar
     initSummernoteEcommerce: initSummernoteEcommerce,

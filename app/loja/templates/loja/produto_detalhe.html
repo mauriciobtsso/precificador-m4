@@ -1,6 +1,8 @@
 {% extends 'loja/base.html' %}
 
-{% block title %}{{ produto.meta_title if produto.meta_title else produto.nome + ' | M4 Tática' }}{% endblock %}
+{% block title %}
+    {{ produto.meta_title if produto.meta_title else (produto.nome_comercial if produto.nome_comercial else produto.nome) }} | M4 Tática
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -137,7 +139,9 @@
                 </a>
             </li>
             {% endif %}
-            <li class="breadcrumb-item active text-dark fw-bold">{{ produto.meta_title if produto.meta_title else produto.nome }}</li>
+            <li class="breadcrumb-item active text-dark fw-bold">
+                {{ produto.nome_comercial if produto.nome_comercial else produto.nome }}
+            </li>
         </ol>
     </nav>
 
@@ -147,7 +151,7 @@
             <div class="img-main-container rounded shadow-sm">
                 {% set imagem = produto.foto_url or produto.imagem_principal %}
                 {% if imagem %}
-                    <img src="{{ gerar_link(imagem) }}" alt="{{ produto.nome }}">
+                    <img src="{{ gerar_link(imagem) }}" alt="{{ produto.nome_comercial or produto.nome }}">
                 {% else %}
                     <div class="text-center text-muted opacity-50">
                         <i class="bi bi-image fs-1 d-block mb-2"></i>
@@ -166,7 +170,8 @@
             {% endif %}
 
             <h1 class="display-6 fw-bold text-dark mb-2" style="font-weight: 900; letter-spacing: -1px;">
-                {{ produto.meta_title if produto.meta_title else produto.nome }}
+                {# PRIORIDADE: Nome Comercial para o título visível na página #}
+                {{ produto.nome_comercial if produto.nome_comercial else produto.nome }}
             </h1>
             <p class="text-muted small mb-4">REFERÊNCIA: <span class="fw-bold">{{ produto.codigo }}</span></p>
 
@@ -205,7 +210,7 @@
                         </div>
                     </div>
                     <button class="btn btn-link btn-sm p-0 mt-3 text-decoration-none text-gold fw-bold" 
-                            data-bs-toggle="modal" data-bs-target="#modalParcelas">
+                             data-bs-toggle="modal" data-bs-target="#modalParcelas">
                         <i class="bi bi-plus-circle me-1"></i> Ver todas as formas de parcelamento
                     </button>
                 </div>
@@ -213,7 +218,7 @@
             </div>
 
             <div class="d-grid gap-3">
-                <a href="https://wa.me/558630255885?text=Olá M4 Tática! Tenho interesse no produto: {{ produto.meta_title if produto.meta_title else produto.nome }} (Ref: {{ produto.codigo }})" 
+                <a href="https://wa.me/558630255885?text=Olá M4 Tática! Tenho interesse no produto: {{ produto.nome_comercial if produto.nome_comercial else produto.nome }} (Ref: {{ produto.codigo }})" 
                    target="_blank" class="btn btn-whatsapp-buy btn-buy-now shadow-sm">
                     <i class="bi bi-whatsapp me-2"></i> COMPRAR PELO WHATSAPP
                 </a>
@@ -249,9 +254,14 @@
                         {% endif %}
                         
                         {% if produto.especificacoes_tecnicas %}
-                            {% for chave, valor in produto.especificacoes_tecnicas.items() %}
-                            <tr><td class="specs-label">{{ chave }}</td><td class="specs-value">{{ valor }}</td></tr>
-                            {% endfor %}
+                            {# Blindagem: verifica se é um dicionário/objeto e não uma string #}
+                            {% if produto.especificacoes_tecnicas is mapping %}
+                                {% for chave, valor in produto.especificacoes_tecnicas.items() %}
+                                    {% if valor %}
+                                    <tr><td class="specs-label">{{ chave }}</td><td class="specs-value">{{ valor }}</td></tr>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
                         {% endif %}
                     </tbody>
                 </table>
@@ -262,7 +272,6 @@
                 <h4 class="section-title-premium">Descrição Detalhada</h4>
                 <div class="description-rich-text text-secondary">
                     {% if produto.descricao_longa %}
-                        {# O filtro | safe é vital para o Editor Rico funcionar #}
                         {{ produto.descricao_longa | safe }}
                     {% else %}
                         {{ produto.descricao | replace('\n', '<br>') | safe if produto.descricao else 'Entre em contato para detalhes técnicos.' }}

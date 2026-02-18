@@ -69,6 +69,7 @@ def _parse_decimal(valor):
 @produtos_bp.route("/autosave/<int:produto_id>", methods=["POST"])
 @login_required
 def autosave_produto(produto_id):
+    import json
     produto = Produto.query.get_or_404(produto_id)
     data = request.get_json() or {}
     alteracoes = {}
@@ -82,15 +83,19 @@ def autosave_produto(produto_id):
         valor_atual = getattr(produto, campo)
         valor_final = valor_novo
 
-        if campo in CAMPOS_DECIMAIS:
+        if campo == "especificacoes_tecnicas":
+            try:
+                # Converte string em dicionário se necessário
+                valor_final = json.loads(valor_novo) if isinstance(valor_novo, str) else valor_novo
+            except:
+                valor_final = {}
+        elif campo in CAMPOS_DECIMAIS:
             valor_final = _parse_decimal(valor_novo)
         elif campo in CAMPOS_BOOLEANOS:
             valor_final = str(valor_novo).lower() in ['true', 'on', '1']
         elif campo == "meta_description":
-            # Proteção contra erro de tamanho do PostgreSQL
             valor_final = str(valor_novo)[:160] if valor_novo else None
         elif campo == "nome_comercial":
-            # Sincroniza o SEO simultaneamente
             produto.meta_title = valor_novo
             valor_final = valor_novo
         elif campo in CAMPOS_DATAS:

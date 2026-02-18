@@ -8,6 +8,7 @@ from datetime import datetime
 import pytz
 import re
 from flask_login import current_user
+from decimal import Decimal, InvalidOperation
 
 # Importações auxiliares
 from app.utils.datetime import now_local
@@ -37,10 +38,16 @@ class Produto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     foto_url = db.Column(db.String(512), nullable=True)
     codigo = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    
+    # NOME 1: Nome Interno (Administrativo/Fiscal)
     nome = db.Column(db.String(255), nullable=False, index=True)
+    
     descricao = db.Column(db.Text, nullable=True)
 
     # --- CAMPOS DE E-COMMERCE E VISIBILIDADE ---
+    # NOME 2: Nome de Exibição na Loja (Amigável)
+    nome_comercial = db.Column(db.String(255), nullable=True) 
+    
     slug = db.Column(db.String(255), unique=True, index=True) 
     visivel_loja = db.Column(db.Boolean, default=False, index=True)
     estoque_disponivel = db.Column(db.Integer, default=0)
@@ -48,19 +55,19 @@ class Produto(db.Model):
     # Flags para Carrosséis Estilo Mahrte
     destaque_home = db.Column(db.Boolean, default=False)
     eh_lancamento = db.Column(db.Boolean, default=False)
-    eh_outdoor = db.Column(db.Boolean, default=False) # Para a seção específica
+    eh_outdoor = db.Column(db.Boolean, default=False) 
     
     # --- CONTROLE DE VENDA (HÍBRIDO) ---
-    requer_documentacao = db.Column(db.Boolean, default=True, index=True) # True = WhatsApp, False = Pagar.me
+    requer_documentacao = db.Column(db.Boolean, default=True, index=True) 
 
-    # --- CAMPOS DE SEO ---
-    meta_title = db.Column(db.String(70), nullable=True)
-    meta_description = db.Column(db.String(160), nullable=True)
+    # --- CAMPOS DE SEO (NOME 3: ABA DO NAVEGADOR / GOOGLE) ---
+    meta_title = db.Column(db.String(120), nullable=True) # Aumentado para segurança
+    meta_description = db.Column(db.String(250), nullable=True) # Aumentado para 250 conforme solicitado
     tags_palavras_chave = db.Column(db.String(255), nullable=True)
 
     # --- CONTEÚDO PÚBLICO (SITE) ---
-    descricao_comercial = db.Column(db.Text, nullable=True) # Texto "vendedor" para a loja
-    descricao_longa = db.Column(db.Text, nullable=True) # Detalhes técnicos longos
+    descricao_comercial = db.Column(db.Text, nullable=True) # Resumo breve
+    descricao_longa = db.Column(db.Text, nullable=True) # HTML do Summernote
     especificacoes_tecnicas = db.Column(db.JSON, nullable=True)
 
     # --- RELACIONAMENTOS ---
@@ -168,7 +175,7 @@ class Produto(db.Model):
     def __repr__(self):
         return f"<Produto {self.codigo} - {self.nome}>"
 
-# Listener de Slug mantido conforme original
+# Listener de Slug
 def gera_slug_automatico(target, value, oldvalue, initiator):
     if value and (not target.slug or value != oldvalue):
         texto = value.lower().strip()

@@ -32,16 +32,16 @@
                 <div class="mb-3">
                     <label class="form-label small fw-bold text-dark text-uppercase">Título da Página (Meta Title)</label>
                     <input type="text" class="form-control border-dark text-dark fw-bold" name="meta_title" 
-                           value="{{ produto.meta_title or '' }}" placeholder="Título para busca" 
+                           value="{{ produto.meta_title or '' }}" placeholder="Título para a aba do navegador" 
                            style="background-color: #ffffff !important; color: #000000 !important; border: 1px solid #000 !important;">
                 </div>
                 <div class="mb-0">
                     <label class="form-label small fw-bold text-dark text-uppercase d-flex justify-content-between">
                         Descrição de Busca
-                        <span id="char-count-seo" class="badge bg-secondary">0 / 160</span>
+                        <span id="char-count-seo" class="badge bg-secondary">0 / 250</span>
                     </label>
                     <textarea class="form-control border-dark text-dark" name="meta_description" id="seo_description_input" rows="5" 
-                              maxlength="160" placeholder="Resumo para o Google..." 
+                              maxlength="250" placeholder="Resumo para o Google..." 
                               style="background-color: #ffffff !important; color: #000000 !important; border: 1px solid #000 !important;">{{ produto.meta_description or '' }}</textarea>
                 </div>
             </div>
@@ -55,7 +55,8 @@
                 <div class="mb-4">
                     <label class="form-label fw-bold text-primary">Nome de Exibição na Loja (Amigável)</label>
                     <input type="text" class="form-control form-control-lg border-primary fw-bold" 
-                           name="nome_comercial" value="{{ produto.meta_title or produto.nome }}">
+                           name="nome_comercial" value="{{ produto.nome_comercial or '' }}" 
+                           placeholder="Ex: Pistola Taurus G3C 9mm">
                 </div>
                 <div class="mb-4">
                     <label class="form-label fw-bold small text-muted text-uppercase">Caminho da URL (Slug)</label>
@@ -118,14 +119,14 @@ window.dispararSummernoteM4 = function() {
     }
 };
 
-// Contador de SEO
+// Contador de SEO atualizado para 250
 $(document).ready(function() {
     const $seoInput = $('#seo_description_input');
     const $seoCount = $('#char-count-seo');
     $seoInput.on('input', function() {
         const len = $(this).val().length;
-        $seoCount.text(len + ' / 160');
-        $seoCount.toggleClass('bg-danger', len >= 155);
+        $seoCount.text(len + ' / 250');
+        $seoCount.toggleClass('bg-danger', len >= 240);
     }).trigger('input');
 });
 </script>

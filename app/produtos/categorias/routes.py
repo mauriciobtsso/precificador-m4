@@ -64,40 +64,56 @@ def adicionar_categoria_ajax():
 @login_required
 def gerenciar_categoria(id=None):
     categoria = CategoriaProduto.query.get(id) if id else None
+    # Busca categorias pai para o dropdown de hierarquia
     categorias_pai = CategoriaProduto.query.filter_by(pai_id=None).order_by(CategoriaProduto.nome).all()
 
     if request.method == "POST":
         data = request.form
         nome = data.get("nome", "").strip()
         descricao = data.get("descricao", "").strip()
-        pai_id = data.get("pai_id") or None
+        pai_id_raw = data.get("pai_id")
         icone_loja = data.get("icone_loja", "").strip()
-        ordem_exibicao = data.get("ordem_exibicao", 0)
+        ordem_raw = data.get("ordem_exibicao", 0)
+        
+        # Coleta a flag de exibição (checkbox HTML envia 'on' se marcado)
+        exibir_check = request.form.get("exibir_no_menu") == "on"
 
         if not nome:
             flash("O nome da categoria é obrigatório.", "warning")
             return redirect(request.url)
 
         try:
+            # Se for nova categoria, instancia
             if not categoria:
                 categoria = CategoriaProduto(nome=nome)
                 db.session.add(categoria)
 
+            # Atribuição de valores com tratamento de tipos
             categoria.nome = nome
             categoria.descricao = descricao or None
-            categoria.pai_id = int(pai_id) if pai_id else None
             categoria.icone_loja = icone_loja or None
-            categoria.ordem_exibicao = int(ordem_exibicao)
+            categoria.exibir_no_menu = exibir_check
+            
+            # Tratamento seguro para IDs e Ordem (evita erro de string vazia)
+            try:
+                categoria.pai_id = int(pai_id_raw) if pai_id_raw else None
+            except (ValueError, TypeError):
+                categoria.pai_id = None
+                
+            try:
+                categoria.ordem_exibicao = int(ordem_raw)
+            except (ValueError, TypeError):
+                categoria.ordem_exibicao = 0
 
             db.session.commit()
             flash("✅ Categoria salva com sucesso!", "success")
             return redirect(url_for("categorias.index"))
+            
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Erro ao salvar categoria: {e}")
-            flash("❌ Erro ao salvar categoria.", "danger")
+            flash(f"❌ Erro ao salvar categoria: {str(e)}", "danger")
 
-    # Reutilizamos o mesmo template para nova/editar
     return render_template("categorias/categoria_form.html", categoria=categoria, categorias_pai=categorias_pai)
 
 # ======================
@@ -112,7 +128,13 @@ def excluir_categoria(id):
         flash("⚠️ Não é possível excluir uma categoria que possui subcategorias.", "warning")
         return redirect(url_for("categorias.index"))
 
-    db.session.delete(categoria)
-    db.session.commit()
-    flash("🗑️ Categoria excluída com sucesso.", "success")
+    try:
+        db.session.delete(categoria)
+        db.session.commit()
+        flash("🗑️ Categoria excluída com sucesso.", "success")
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erro ao excluir categoria: {e}")
+        flash("❌ Erro ao excluir categoria. Verifique se existem produtos vinculados.", "danger")
+        
     return redirect(url_for("categorias.index"))

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <title>{% block title %}{{ title if title else 'M4 Tática - Loja Oficial' }}{% endblock %}</title>
+    <title>{% block title %}{{ title if title else 'M4 Tática | Armas, Munições e Acessórios' }}{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}{{ meta_desc if meta_desc else 'A maior variedade de armas e munições com a qualidade M4 Tática.' }}{% endblock %}">
     <link rel="canonical" href="{{ request.url }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
@@ -73,32 +73,36 @@
             .nav-departments .nav-link:hover { color: var(--m4-gold) !important; background: #fdfdfd; }
         }
 
-        .dropdown-menu { border-radius: 0; border: none; border-top: 3px solid var(--m4-gold); box-shadow: 0 10px 30px rgba(0,0,0,0.1); min-width: 220px; }
-        .dropdown-item { font-size: 13px; font-weight: 600; padding: 10px 20px; }
-        .dropdown-item:hover { background-color: var(--m4-gray-bg); color: var(--m4-gold); }
-
-        /* CARROSSEL */
-        .carousel-item img { height: 500px; object-fit: cover; width: 100%; }
-
-        /* BANNER PROMO */
-        .promo-banner { 
-            background: linear-gradient(90deg, #000 0%, #1a1a1a 100%); 
-            color: #fff; 
-            padding: 60px 40px; 
-            text-align: center; 
-            border-radius: 4px;
-            background-size: cover;
-            background-position: center;
+        /* AJUSTE PARA MENUS LONGOS (MUNIÇÕES) */
+        .dropdown-menu { 
+            border-radius: 0; 
+            border: none; 
+            border-top: 3px solid var(--m4-gold); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            min-width: 250px; 
+            padding: 10px 0;
+            max-height: 80vh; /* Limita a altura a 80% da tela */
+            overflow-y: auto; /* Adiciona scroll se necessário */
         }
+        
+        /* Estilização da barra de rolagem do menu */
+        .dropdown-menu::-webkit-scrollbar { width: 5px; }
+        .dropdown-menu::-webkit-scrollbar-track { background: #f1f1f1; }
+        .dropdown-menu::-webkit-scrollbar-thumb { background: var(--m4-gold); }
+
+        .dropdown-item { font-size: 13px; font-weight: 600; padding: 10px 25px; transition: 0.2s; }
+        .dropdown-item:hover { background-color: var(--m4-gray-bg); color: var(--m4-gold); padding-left: 30px; }
 
         /* FOOTER */
         footer { background-color: #111; color: #fff; padding: 60px 0 20px; margin-top: 80px; }
         footer h6 { color: #fff; font-weight: 800; text-transform: uppercase; font-size: 14px; margin-bottom: 25px; letter-spacing: 1px; border-left: 3px solid var(--m4-gold); padding-left: 10px; }
         footer a { color: #999; text-decoration: none; transition: 0.3s; font-size: 13px; }
         footer a:hover { color: var(--m4-gold); padding-left: 5px; }
+        
+        /* Garante que o texto informativo tenha a mesma cor clara */
+        .footer-info-text { color: #999 !important; font-size: 13px; }
 
         @media (max-width: 991px) {
-            .carousel-item img { height: 250px; }
             .search-container { order: 3; max-width: 100%; margin-top: 15px; }
         }
     </style>
@@ -129,44 +133,41 @@
             </div>
         </div>
 
-<nav class="nav-departments d-none d-lg-block">
-    <div class="container">
-        <ul class="nav justify-content-center">
-            
-            {# 1. ITEM FIXO: ARMAS DE FOGO (Agrupando subcategorias) #}
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#">Armas de Fogo</a>
-                <ul class="dropdown-menu">
-                    {# Aqui buscamos as subcategorias que pertencem ao grupo de Armas #}
+        <nav class="nav-departments d-none d-lg-block">
+            <div class="container">
+                <ul class="nav justify-content-center">
                     {% for cat in categorias_menu %}
-                        {% if "arma" in cat.nome.lower() or "pistola" in cat.nome.lower() or "rifle" in cat.nome.lower() %}
-                            <li><a class="dropdown-item" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">{{ cat.nome }}</a></li>
+                        {% if cat.exibir_no_menu %}
+                            {% set subcategorias_ativas = cat.subcategorias|selectattr("exibir_no_menu", "equalto", True)|list %}
+                            
+                            {% if subcategorias_ativas %}
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">
+                                        {{ cat.nome }}
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item fw-bold text-dark border-bottom mb-1" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">VER TUDO EM {{ cat.nome|upper }}</a></li>
+                                        {% for sub in subcategorias_ativas %}
+                                            <li><a class="dropdown-item" href="{{ url_for('loja.categoria', slug_categoria=sub.slug) }}">{{ sub.nome }}</a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                            {% else %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">{{ cat.nome }}</a>
+                                </li>
+                            {% endif %}
                         {% endif %}
                     {% endfor %}
-                </ul>
-            </li>
 
-            {# 2. ITENS DINÂMICOS: O RESTANTE DAS CATEGORIAS (Limitado para não quebrar) #}
-            {% for cat in categorias_menu %}
-                {# Filtramos para não repetir as armas que já estão no dropdown acima #}
-                {% if "arma" not in cat.nome.lower() and "pistola" not in cat.nome.lower() and "rifle" not in cat.nome.lower() %}
-                    {# Limitamos a exibição no menu principal para as 6 mais importantes #}
-                    {% if loop.index < 8 %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">
-                            {{ cat.nome }}
+                        <a class="nav-link text-danger fw-bold" href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank">
+                            <i class="bi bi-shield-check me-1"></i> SERVIÇOS / CR
                         </a>
                     </li>
-                    {% endif %}
-                {% endif %}
-            {% endfor %}
-
-            <li class="nav-item">
-                <a class="nav-link text-danger fw-bold" href="#">Serviços / CR</a>
-            </li>
-        </ul>
-    </div>
-</nav>
+                </ul>
+            </div>
+        </nav>
     </header>
 
     <main>{% block content %}{% endblock %}</main>
@@ -188,19 +189,21 @@
                     <h6>Categorias Principais</h6>
                     <ul class="list-unstyled">
                         {% for cat in categorias_menu[:6] %}
-                        <li><a href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">{{ cat.nome }}</a></li>
+                            {% if cat.exibir_no_menu %}
+                                <li><a href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">{{ cat.nome }}</a></li>
+                            {% endif %}
                         {% endfor %}
                     </ul>
                 </div>
 
                 <div class="col-lg-3 col-md-6">
                     <h6>Informações da Loja</h6>
-                    <p class="mb-1"><strong>{{ loja.loja_nome_fantasia if loja.loja_nome_fantasia else 'M4 Tática' }}</strong></p>
-                    <p class="mb-1 small text-muted">CNPJ: {{ loja.loja_cnpj if loja.loja_cnpj else '00.000.000/0001-00' }}</p>
+                    <p class="mb-1 fw-bold text-white">{{ loja.loja_nome_fantasia if loja.loja_nome_fantasia else 'M4 Tática' }}</p>
+                    <p class="mb-1 footer-info-text">CNPJ: {{ loja.loja_cnpj if loja.loja_cnpj else '41.654.218/0001-47' }}</p>
                     
                     <p class="mb-1">
-                        <a href="https://wa.me/{{ loja.loja_whatsapp }}" target="_blank" class="text-decoration-none">
-                            <i class="bi bi-whatsapp text-success"></i> {{ loja.loja_telefone if loja.loja_telefone else '(86) 3025-5885' }}
+                        <a href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank" class="text-decoration-none">
+                            <i class="bi bi-whatsapp text-success"></i> <span class="footer-info-text">{{ loja.loja_telefone if loja.loja_telefone else '(86) 3025-5885' }}</span>
                         </a>
                     </p>
                     
@@ -230,7 +233,7 @@
 
             <div class="footer-bottom mt-5 pt-4 border-top border-secondary text-center">
                 <p class="small text-muted">© 2026 {{ loja.loja_nome_fantasia|upper if loja.loja_nome_fantasia else 'M4 TÁTICA' }}. TODOS OS DIREITOS RESERVADOS. <br>
-                Venda de armas e munições exclusiva para maiores de 25 anos com documentação legal e CR ativo.</p>
+                Venda de armas e munições de acordo com a legislação vigente.</p>
             </div>
         </div>
     </footer>

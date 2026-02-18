@@ -6,6 +6,7 @@ from decimal import Decimal, InvalidOperation
 from datetime import datetime, timezone
 import pytz
 import time
+import json
 
 from app import db
 from .. import produtos_bp
@@ -148,6 +149,7 @@ def index():
 @produtos_bp.route("/<int:produto_id>/editar", methods=["GET", "POST"])
 @login_required
 def gerenciar_produto(produto_id=None):
+    import json # Import necessário para tratar o JSON
     duplicar_de = request.args.get("duplicar_de", type=int)
 
     if duplicar_de:
@@ -155,6 +157,7 @@ def gerenciar_produto(produto_id=None):
         if produto_ref:
             produto = Produto(
                 nome=produto_ref.nome,
+                nome_comercial=produto_ref.nome_comercial,
                 descricao=produto_ref.descricao,
                 descricao_comercial=produto_ref.descricao_comercial,
                 descricao_longa=produto_ref.descricao_longa,
@@ -208,7 +211,7 @@ def gerenciar_produto(produto_id=None):
             except InvalidOperation: return Decimal(0)
 
         campos_auditados = [
-            "codigo", "nome", "slug", "descricao", "descricao_comercial", "descricao_longa",
+            "codigo", "nome", "nome_comercial", "slug", "descricao", "descricao_comercial", "descricao_longa",
             "categoria_id", "marca_id", "calibre_id", "tipo_id", "funcionamento_id",
             "preco_fornecedor", "desconto_fornecedor", "frete", "margem", "lucro_alvo", "preco_final",
             "ipi", "ipi_tipo", "difal", "imposto_venda", "meta_title", "meta_description",
@@ -218,27 +221,20 @@ def gerenciar_produto(produto_id=None):
 
         # --- SALVAMENTO ---
         produto.codigo = (data.get("codigo") or "").strip().upper()
-        produto.nome = (data.get("nome") or "").strip() # Nome Interno (Aba Geral)
+        produto.nome = (data.get("nome") or "").strip()
 
-        # AJUSTE TÁTICO: Nome Comercial vs SEO
-        nome_comercial_input = data.get("nome_comercial", "").strip()
-        if nome_comercial_input:
-            produto.nome_comercial = nome_comercial_input
-            produto.meta_title = nome_comercial_input # Meta Title segue o Amigável
-        else:
-            produto.nome_comercial = None
-            produto.meta_title = produto.nome # Fallback para o nome interno
+        produto.nome_comercial = (data.get("nome_comercial") or "").strip() or None
+        produto.meta_title = (data.get("meta_title") or "").strip() or None
 
         if data.get("slug"):
             produto.slug = data.get("slug").strip().lower()
 
         produto.descricao = (data.get("descricao") or "").strip() or None
         produto.descricao_longa = data.get("descricao_longa")
-        produto.descricao_comercial = data.get("descricao_comercial", "").strip() or None
+        produto.descricao_comercial = (data.get("descricao_comercial") or "").strip() or None
         
-        # TRATAMENTO DO ERRO 160 CARACTERES:
         desc_google = (data.get("meta_description") or "").strip()
-        produto.meta_description = desc_google[:160] if desc_google else None
+        produto.meta_description = desc_google[:250] if desc_google else None
 
         produto.categoria_id = to_int(data.get("categoria_id"))
         produto.marca_id = to_int(data.get("marca_id"))
@@ -266,6 +262,14 @@ def gerenciar_produto(produto_id=None):
 
         produto.promo_ativada = data.get("promo_ativada") == "on"
         produto.promo_preco_fornecedor = to_decimal(data.get("promo_preco_fornecedor"))
+
+        # --- TRATAMENTO ESPECIFICAÇÕES TÉCNICAS (BLINDAGEM) ---
+        specs_json = data.get("especificacoes_tecnicas")
+        if specs_json:
+            try:
+                produto.especificacoes_tecnicas = json.loads(specs_json)
+            except (ValueError, TypeError):
+                produto.especificacoes_tecnicas = {}
 
         try:
             if hasattr(produto, "calcular_precos"):

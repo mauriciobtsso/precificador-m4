@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Dados Institucionais da Loja</h1>
+    <h1 class="h2">Dados Institucionais e Aparência</h1>
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{{ url_for('loja_admin.index') }}">Dashboard</a></li>
@@ -11,57 +11,98 @@
     </nav>
 </div>
 
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3">
-                <h6 class="m-0 fw-bold text-dark"><i class="bi bi-pencil-square me-2"></i>Editar Informações</h6>
-            </div>
-            <div class="card-body p-4">
-                <form action="{{ url_for('loja_admin.configuracoes') }}" method="POST">
+<form action="{{ url_for('loja_admin.configuracoes') }}" method="POST">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3 border-0">
+                    <h6 class="m-0 fw-bold text-dark"><i class="bi bi-pencil-square me-2"></i>Informações de Contato e Identidade</h6>
+                </div>
+                <div class="card-body p-4">
                     <div class="row g-3">
                         {% for config in configs %}
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ config.chave }}" class="form-label small fw-bold text-uppercase text-muted">
-                                {{ config.chave.replace('loja_', '').replace('_', ' ') }}
-                            </label>
-                            
-                            {% if config.chave == 'loja_endereco' %}
-                            <textarea name="{{ config.chave }}" id="{{ config.chave }}" class="form-control" rows="3">{{ config.valor }}</textarea>
-                            {% else %}
-                            <input type="text" name="{{ config.chave }}" id="{{ config.chave }}" class="form-control" value="{{ config.valor }}">
+                            {# Ocultamos as chaves do banner aqui para mostrá-las em uma seção separada e organizada #}
+                            {% if config.chave not in ['loja_banner_despachante_url', 'loja_despachante_titulo', 'loja_despachante_texto'] %}
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ config.chave }}" class="form-label small fw-bold text-uppercase text-muted">
+                                    {{ config.chave.replace('loja_', '').replace('_', ' ') }}
+                                </label>
+                                
+                                {% if config.chave == 'loja_endereco' %}
+                                <textarea name="{{ config.chave }}" id="{{ config.chave }}" class="form-control" rows="3">{{ config.valor }}</textarea>
+                                {% else %}
+                                <input type="text" name="{{ config.chave }}" id="{{ config.chave }}" class="form-control" value="{{ config.valor }}">
+                                {% endif %}
+                            </div>
                             {% endif %}
-                        </div>
                         {% endfor %}
                     </div>
+                </div>
+            </div>
 
-                    <div class="mt-4 pt-3 border-top d-flex justify-content-end">
-                        <button type="submit" class="btn btn-dark px-5 fw-bold">
-                            <i class="bi bi-check-circle me-2"></i>SALVAR ALTERAÇÕES
-                        </button>
+            <div class="card border-0 shadow-sm mb-4 border-start border-4 border-warning">
+                <div class="card-header bg-white py-3 border-0">
+                    <h6 class="m-0 fw-bold text-dark"><i class="bi bi-image me-2"></i>Banner do Despachante (Home)</h6>
+                </div>
+                <div class="card-body p-4">
+                    <p class="small text-muted mb-4">Gerencie o conteúdo do quadro central que aparece na página inicial.</p>
+                    
+                    <div class="row g-3">
+                        <div class="col-12 mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Título do Banner</label>
+                            <input type="text" name="loja_despachante_titulo" class="form-control" 
+                                   value="{{ (configs|selectattr('chave', 'equalto', 'loja_despachante_titulo')|first).valor if configs|selectattr('chave', 'equalto', 'loja_despachante_titulo')|first else 'DESPACHANTE M4 TÁTICA' }}">
+                        </div>
+                        
+                        <div class="col-12 mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Texto de Apoio (Descrição)</label>
+                            <textarea name="loja_despachante_texto" class="form-control" rows="2">{{ (configs|selectattr('chave', 'equalto', 'loja_despachante_texto')|first).valor if configs|selectattr('chave', 'equalto', 'loja_despachante_texto')|first else 'Assessoria completa para aquisição legal de armas de fogo e CR.' }}</textarea>
+                        </div>
+
+                        <div class="col-12 mb-3">
+                            <label class="form-label small fw-bold text-uppercase">URL da Imagem de Fundo (R2)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-link-45deg"></i></span>
+                                <input type="text" name="loja_banner_despachante_url" class="form-control" 
+                                       placeholder="Caminho da imagem no R2 (ex: banners/bg-fundo.jpg)"
+                                       value="{{ (configs|selectattr('chave', 'equalto', 'loja_banner_despachante_url')|first).valor if configs|selectattr('chave', 'equalto', 'loja_banner_despachante_url')|first else '' }}">
+                            </div>
+                            <div class="form-text mt-2">Dica: Suba a imagem em "Banners", copie o link e cole aqui.</div>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <div class="col-lg-4">
-        <div class="card border-0 shadow-sm bg-light mb-4">
-            <div class="card-body">
-                <h6 class="fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i>Dica Tática</h6>
-                <p class="small text-muted mb-0">
-                    Estas informações são exibidas no <strong>Rodapé</strong>, na página <strong>Fale Conosco</strong> e nos <strong>E-mails</strong> enviados aos clientes. Mantenha os dados atualizados para garantir a confiança do consumidor.
-                </p>
+            <div class="mt-4 pt-3 d-flex justify-content-end mb-5">
+                <button type="submit" class="btn btn-dark btn-lg px-5 fw-bold shadow">
+                    <i class="bi bi-check-circle me-2"></i>SALVAR TODAS AS ALTERAÇÕES
+                </button>
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center py-4">
-                <i class="bi bi-instagram fs-1 text-danger opacity-50 mb-2"></i>
-                <h6 class="fw-bold">Redes Sociais</h6>
-                <p class="small text-muted">Certifique-se de incluir o "@" ou o link completo conforme o campo exigir.</p>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm bg-light mb-4">
+                <div class="card-body">
+                    <h6 class="fw-bold text-primary"><i class="bi bi-info-circle me-2"></i>Dica de Design</h6>
+                    <p class="small text-muted mb-0">
+                        Para o banner do despachante, use imagens escuras ou com texturas (como metal ou couro) para que o texto dourado e branco tenha contraste máximo.
+                    </p>
+                </div>
+            </div>
+            
+            {# Preview Simples #}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-dark text-white py-2 small fw-bold">DASHBOARD PREVIEW</div>
+                <div class="card-body p-0">
+                    <div style="height: 150px; background: #222; display:flex; align-items:center; justify-content:center; text-align:center; padding: 10px;">
+                        <div>
+                            <h6 style="color: var(--m4-gold); font-size: 12px; margin:0;">BANNER PREVIEW</h6>
+                            <p style="color: white; font-size: 10px; opacity: 0.7; margin:0;">A imagem de fundo aparecerá aqui no site.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
+</form>
 {% endblock %}

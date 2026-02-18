@@ -1,7 +1,7 @@
 import os
 import re
 import unicodedata
-from flask import render_template, redirect, url_for, flash, request, current_app
+from flask import render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required
 from app.loja_admin import loja_admin_bp
 from app.loja.models_admin import Banner, PaginaInstitucional
@@ -81,7 +81,7 @@ def nova_pagina():
         nova = PaginaInstitucional(
             titulo=titulo,
             slug=slugify(titulo),
-            conteudo=request.form.get('conteudo'), # HTML do CKEditor
+            conteudo=request.form.get('conteudo'),
             visivel_rodape='visivel_rodape' in request.form
         )
         db.session.add(nova)
@@ -114,18 +114,36 @@ def excluir_pagina(id):
     return redirect(url_for('loja_admin.paginas'))
 
 # =========================================================
-# CONFIGURAÇÕES DA LOJA
+# CONFIGURAÇÕES DA LOJA (VERSÃO INTELIGENTE: CRIA CHAVES NOVAS)
 # =========================================================
 @loja_admin_bp.route('/configuracoes', methods=['GET', 'POST'])
 @login_required
 def configuracoes():
-    configs = Configuracao.query.filter(Configuracao.chave.like('loja_%')).all()
     if request.method == 'POST':
-        for config in configs:
-            novo_valor = request.form.get(config.chave)
-            if novo_valor is not None:
-                config.valor = novo_valor
-        db.session.commit()
-        flash("Configurações salvas!", "success")
+        # 1. Pegamos tudo o que veio do formulário (chaves e valores)
+        for chave, valor in request.form.items():
+            # Filtramos apenas chaves que comecem com 'loja_' para segurança
+            if chave.startswith('loja_'):
+                # Tenta encontrar a configuração no banco
+                config = Configuracao.query.filter_by(chave=chave).first()
+                
+                if config:
+                    # Se existe, apenas atualiza o valor
+                    config.valor = valor
+                else:
+                    # Se não existe (como as chaves do banner), CRIA UMA NOVA
+                    nova_config = Configuracao(chave=chave, valor=valor)
+                    db.session.add(nova_config)
+        
+        try:
+            db.session.commit()
+            flash("✅ Todas as alterações e novas chaves foram salvas!", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"❌ Erro ao salvar: {str(e)}", "danger")
+            
         return redirect(url_for('loja_admin.configuracoes'))
+    
+    # Busca todas as configs atuais para exibir na lista
+    configs = Configuracao.query.filter(Configuracao.chave.like('loja_%')).all()
     return render_template('loja_admin/configuracoes.html', configs=configs)

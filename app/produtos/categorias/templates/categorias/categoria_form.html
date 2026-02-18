@@ -63,6 +63,15 @@
         </div>
         <div class="card-body">
           <div class="row g-3">
+            <div class="col-12 mb-3">
+              <div class="form-check form-switch p-3 border rounded bg-light">
+                <input class="form-check-input ms-0 me-2" type="checkbox" name="exibir_no_menu" id="exibir_no_menu" 
+                       {% if not categoria or categoria.exibir_no_menu %}checked{% endif %}>
+                <label class="form-check-label fw-bold text-dark" for="exibir_no_menu">Exibir no Menu Superior</label>
+                <div class="form-text mt-1" style="font-size: 0.7rem;">Se desativado, a categoria não aparecerá na navegação principal da loja.</div>
+              </div>
+            </div>
+
             <div class="col-12">
               <label class="form-label fw-bold small">ÍCONE (BOOTSTRAP ICONS)</label>
               <div class="input-group shadow-sm">

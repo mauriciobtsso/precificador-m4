@@ -22,7 +22,7 @@
                 
                 {% if imagem %}
                     <img src="{{ gerar_link(imagem) }}" 
-                         alt="{{ produto.meta_title if produto.meta_title else produto.nome }}" 
+                         alt="{{ produto.nome_comercial if produto.nome_comercial else produto.nome }}" 
                          class="m4-product-img"
                          onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';">
                 {% else %}
@@ -42,8 +42,8 @@
             
             <h6 class="m4-product-name">
                 <a href="{{ url_for('loja.detalhe_produto', slug=produto.slug) }}">
-                    {# PRIORIDADE: Nome Comercial (meta_title) cadastrado na aba E-commerce #}
-                    {{ produto.meta_title if produto.meta_title else produto.nome }}
+                    {# PRIORIDADE: Nome Comercial amigável para o card da vitrine #}
+                    {{ produto.nome_comercial if produto.nome_comercial else produto.nome }}
                 </a>
             </h6>
             

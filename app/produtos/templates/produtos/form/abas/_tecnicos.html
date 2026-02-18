@@ -8,96 +8,125 @@
   <div class="row g-4">
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label small fw-semibold">Número de série</label>
-      <input type="text" name="numero_serie" id="in_numero_serie" class="form-control" placeholder="Ex.: ABC12345" maxlength="50">
+      <input type="text" name="numero_serie" id="in_numero_serie" class="form-control" value="{{ produto.numero_serie or '' }}" placeholder="Ex.: ABC12345" maxlength="50">
     </div>
 
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label small fw-semibold">Tipo de arma</label>
       <select name="tipo_produto" id="in_tipo_produto" class="form-select">
         <option value="">Selecione...</option>
-        <option>Pistola</option>
-        <option>Revólver</option>
-        <option>Carabina</option>
-        <option>Espingarda</option>
-        <option>Rifle</option>
-        <option>Pressão / Airsoft</option>
-        <option>Acessório</option>
+        {% for t in ["Pistola", "Revólver", "Carabina", "Espingarda", "Rifle", "Pressão / Airsoft", "Acessório"] %}
+          <option {% if produto.tipo_produto == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
       </select>
     </div>
 
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label small fw-semibold">Calibre</label>
-      <input type="text" name="calibre" id="in_calibre" class="form-control" placeholder="Ex.: 9 mm, .380 ACP, .40 S&W">
+      <input type="text" name="calibre" id="in_calibre" class="form-control" value="{{ produto.calibre or '' }}" placeholder="Ex.: 9 mm, .380 ACP">
     </div>
 
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label small fw-semibold">Funcionamento</label>
       <select name="funcionamento" id="in_funcionamento" class="form-select">
         <option value="">Selecione...</option>
-        <option>Semiautomática</option>
-        <option>Repetição</option>
-        <option>Ferrolho</option>
-        <option>Simples ação</option>
-        <option>Dupla ação</option>
-        <option>SA/DA</option>
+        {% for f in ["Semiautomática", "Repetição", "Ferrolho", "Simples ação", "Dupla ação", "SA/DA"] %}
+          <option {% if produto.funcionamento == f %}selected{% endif %}>{{ f }}</option>
+        {% endfor %}
       </select>
     </div>
 
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label small fw-semibold">Capacidade (tiros)</label>
-      <input type="number" name="capacidade" id="in_capacidade" class="form-control" min="1" placeholder="Ex.: 15">
+      <input type="number" name="capacidade" id="in_capacidade" class="form-control" value="{{ produto.capacidade or '' }}" min="1" placeholder="Ex.: 15">
     </div>
 
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label small fw-semibold">Origem / País</label>
-      <input type="text" name="origem" id="in_origem" class="form-control" placeholder="Ex.: Brasil, EUA, Turquia...">
+      <input type="text" name="origem" id="in_origem" class="form-control" value="{{ produto.origem or '' }}" placeholder="Ex.: Brasil, EUA...">
     </div>
   </div>
 </div>
 
-<!-- DADOS BALÍSTICOS -->
 <div class="m4-card mb-4">
   <h5><i class="fas fa-bullseye me-2"></i>Dados balísticos / técnicos</h5>
   <div class="row g-4">
     <div class="col-12 col-sm-6 col-lg-3">
-      <label class="form-label small fw-semibold">Comprimento do cano (mm)</label>
-      <input type="number" step="0.1" name="comprimento_cano" id="in_comprimento_cano" class="form-control" placeholder="Ex.: 115">
+      <label class="form-label small fw-semibold">Cano (mm)</label>
+      <input type="number" step="0.1" name="comprimento_cano" id="in_comprimento_cano" class="form-control" value="{{ produto.comprimento_cano or '' }}">
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
-      <label class="form-label small fw-semibold">Comprimento total (mm)</label>
-      <input type="number" step="0.1" name="comprimento_total" id="in_comprimento_total" class="form-control" placeholder="Ex.: 200">
+      <label class="form-label small fw-semibold">Total (mm)</label>
+      <input type="number" step="0.1" name="comprimento_total" id="in_comprimento_total" class="form-control" value="{{ produto.comprimento_total or '' }}">
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
       <label class="form-label small fw-semibold">Peso (g)</label>
-      <input type="number" step="0.1" name="peso" id="in_peso" class="form-control" placeholder="Ex.: 940">
+      <input type="number" step="0.1" name="peso" id="in_peso" class="form-control" value="{{ produto.peso or '' }}">
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
-      <label class="form-label small fw-semibold">Acabamento / Cor</label>
-      <input type="text" name="acabamento" id="in_acabamento" class="form-control" placeholder="Ex.: Inox, Fosco, Preto...">
+      <label class="form-label small fw-semibold">Acabamento</label>
+      <input type="text" name="acabamento" id="in_acabamento" class="form-control" value="{{ produto.acabamento or '' }}">
     </div>
   </div>
 </div>
 
-<!-- DOCUMENTAÇÃO -->
+<div class="m4-card mb-4 border-primary shadow-sm">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 text-primary"><i class="fas fa-list-ul me-2"></i>Ficha Técnica Dinâmica</h5>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.ProdutosForm.addEspecificacao()">
+      <i class="fas fa-plus me-1"></i> Adicionar Campo
+    </button>
+  </div>
+  
+  <p class="text-muted small mb-4">Adicione campos extras que aparecerão na tabela de especificações do site.</p>
+
+  <div id="container-especificacoes">
+    {# FIX CRÍTICO: Verifica se é mapping (dicionário) antes de tentar o .items() #}
+    {% if produto.especificacoes_tecnicas and produto.especificacoes_tecnicas is mapping %}
+      {% for chave, valor in produto.especificacoes_tecnicas.items() %}
+        <div class="row g-2 mb-2 especificacao-row">
+          <div class="col-5">
+            <input type="text" class="form-control form-control-sm espec-chave" placeholder="Ex: Mira" value="{{ chave }}">
+          </div>
+          <div class="col-6">
+            <input type="text" class="form-control form-control-sm espec-valor" placeholder="Ex: Tritium" value="{{ valor }}">
+          </div>
+          <div class="col-1 text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="this.closest('.especificacao-row').remove(); window.ProdutosForm.serializarEspecificacoes();">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+    {% elif produto.especificacoes_tecnicas and produto.especificacoes_tecnicas is string %}
+      {# Caso o dado esteja como string no banco, o Admin carrega vazio mas evita o erro 500 #}
+      <div class="alert alert-warning py-2 small">
+        <i class="fas fa-exclamation-triangle me-2"></i> Atenção: Dados técnicos antigos detectados. Por favor, adicione-os novamente para converter ao novo formato.
+      </div>
+    {% endif %}
+  </div>
+
+  <input type="hidden" name="especificacoes_tecnicas" id="in_especificacoes_tecnicas_json">
+</div>
+
 <div class="m4-card mb-4">
   <h5><i class="fas fa-file-alt me-2"></i>Documentação e controle</h5>
   <div class="row g-4">
     <div class="col-12 col-sm-6 col-lg-4">
       <label class="form-label small fw-semibold">Registro SIGMA / CRAF</label>
-      <input type="text" name="registro_sigma" id="in_registro_sigma" class="form-control" placeholder="Ex.: SIGMA 1234567">
+      <input type="text" name="registro_sigma" id="in_registro_sigma" class="form-control" value="{{ produto.registro_sigma or '' }}">
     </div>
     <div class="col-12 col-sm-6 col-lg-4">
-      <label class="form-label small fw-semibold">Número do CR (se aplicável)</label>
-      <input type="text" name="numero_cr" id="in_numero_cr" class="form-control" placeholder="Ex.: 123456/2025">
+      <label class="form-label small fw-semibold">Número do CR</label>
+      <input type="text" name="numero_cr" id="in_numero_cr" class="form-control" value="{{ produto.numero_cr or '' }}">
     </div>
     <div class="col-12 col-sm-6 col-lg-4">
-      <label class="form-label small fw-semibold">Validade do registro</label>
-      <input type="date" name="validade_registro" id="in_validade_registro" class="form-control">
+      <label class="form-label small fw-semibold">Validade</label>
+      <input type="date" name="validade_registro" id="in_validade_registro" class="form-control" value="{{ produto.validade_registro.strftime('%Y-%m-%d') if (produto.validade_registro and produto.validade_registro.strftime) else '' }}">
     </div>
     <div class="col-12">
       <label class="form-label small fw-semibold">Observações técnicas</label>
-      <textarea name="observacoes_tecnicas" id="in_observacoes_tecnicas" class="form-control" rows="3"
-                placeholder="Anotações, números de lote, observações de manutenção, etc."></textarea>
+      <textarea name="observacoes_tecnicas" id="in_observacoes_tecnicas" class="form-control" rows="3">{{ produto.observacoes_tecnicas or '' }}</textarea>
     </div>
   </div>
 </div>

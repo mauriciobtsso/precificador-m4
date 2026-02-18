@@ -127,14 +127,20 @@
     });
 
     // Evento unificado para abas (APENAS 1)
-    document.addEventListener('shown.bs.tab', evt => {
+      document.addEventListener('shown.bs.tab', evt => {
       const targetId = evt.target.getAttribute('data-bs-target');
       console.log("[M4] Aba ativada:", targetId);
 
       if (window.ProdutosForm?.reinitMasks) window.ProdutosForm.reinitMasks();
       if (window.ProdutosForm?.refreshResumo) window.ProdutosForm.refreshResumo();
 
-      // Ecommerce: força reinit do editor rico
+      // Técnicos: Garante que a serialização esteja em dia
+      if (targetId === '#abaTecnicos') {
+          if (window.ProdutosForm?.serializarEspecificacoes) {
+              window.ProdutosForm.serializarEspecificacoes();
+          }
+      }
+
       if (targetId === '#abaEcommerce') {
         if (window.ProdutosForm?.initSummernoteEcommerce) {
           window.ProdutosForm.initSummernoteEcommerce();
