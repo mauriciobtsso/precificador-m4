@@ -133,25 +133,34 @@ def index():
 @loja_bp.route('/produto/<string:slug>')
 def detalhe_produto(slug):
     """Página de Detalhes — Foco em Conversão e Dados Técnicos"""
-    # Busca o produto pelo slug e garante que esteja visível
     produto = Produto.query.filter_by(slug=slug, visivel_loja=True).first_or_404()
     
-    # Executa a lógica financeira do seu Model para obter os preços atuais
+    # 1. Executa a lógica financeira do Model
     precos = produto.calcular_precos()
     
-    # Busca 4 produtos relacionados da mesma categoria (aleatórios)
+    # 2. GERAÇÃO DE PARCELAMENTO (O QUE FALTAVA)
+    # Buscamos as taxas cadastradas no banco para calcular a tabela real
+    valor_base = float(precos.get('preco_a_vista') or 0.0)
+    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+    opcoes_parcelamento = parcelamento_logic.gerar_linhas_parcelas(valor_base, taxas)
+    
+    # Pega a linha de 12x especificamente para o resumo no topo
+    parcela_12x = next((item for item in opcoes_parcelamento if item["rotulo"] == "12x"), None)
+    
+    # 3. Produtos Relacionados
     relacionados = Produto.query.filter(
         Produto.categoria_id == produto.categoria_id, 
         Produto.id != produto.id,
         Produto.visivel_loja == True
     ).order_by(func.random()).limit(4).all()
 
-    # Helper para o R2 (garantindo que o caminho seja limpo)
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
     return render_template('loja/produto_detalhe.html', 
                            produto=produto, 
                            precos=precos,
+                           opcoes_parcelamento=opcoes_parcelamento,
+                           parcela_12x=parcela_12x,
                            relacionados=relacionados,
                            gerar_link=gerador_limpo,
                            title=f"{produto.nome} - M4 Tática")

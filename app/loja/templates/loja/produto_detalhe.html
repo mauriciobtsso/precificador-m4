@@ -4,9 +4,10 @@
 
 {% block extra_css %}
 <style>
-    /* Estilos Premium M4 Tática */
+    /* Estilos Premium M4 Tática - Foco em Performance Visual */
     .detail-container { padding-top: 2rem; padding-bottom: 4rem; }
     
+    /* Container de Imagem com Zoom Suave */
     .img-main-container {
         background-color: #fff;
         border: 1px solid #eee;
@@ -19,18 +20,15 @@
         top: 100px;
         overflow: hidden;
     }
-    
     .img-main-container img { 
         max-width: 100%; 
         max-height: 100%; 
         object-fit: contain; 
         transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
     }
+    .img-main-container:hover img { transform: scale(1.1); }
 
-    .img-main-container:hover img {
-        transform: scale(1.1);
-    }
-
+    /* Badges e Identidade Black & Gold */
     .badge-controlled-premium {
         background-color: #000;
         color: #fff;
@@ -44,6 +42,7 @@
         margin-bottom: 1.5rem;
     }
 
+    /* Caixa de Preço e Gatilhos de Conversão */
     .price-box-premium {
         background-color: #fdfdfd;
         padding: 2.5rem;
@@ -51,6 +50,36 @@
         margin-bottom: 2rem;
         border-radius: 4px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.02);
+    }
+
+    /* Estilização da Ficha Técnica */
+    .specs-table { width: 100%; margin-bottom: 2rem; }
+    .specs-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: #999;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        width: 40%;
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
+    }
+    .specs-value { 
+        font-weight: 600; 
+        color: #111; 
+        font-size: 0.9rem; 
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .section-title-premium {
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        border-bottom: 4px solid var(--m4-gold);
+        display: inline-block;
+        padding-bottom: 5px;
+        margin-bottom: 2.5rem;
     }
 
     .btn-buy-now {
@@ -67,7 +96,6 @@
         border-color: #25d366;
         color: #fff;
     }
-
     .btn-whatsapp-buy:hover {
         background-color: #1ebe57;
         border-color: #1ebe57;
@@ -75,28 +103,14 @@
         transform: translateY(-3px);
     }
 
-    .specs-label {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        color: #999;
-        font-weight: 700;
-        letter-spacing: 0.8px;
-        width: 40%;
-        padding: 10px 0;
+    /* Formatação para Descrição (HTML Seguro) */
+    .description-rich-text { font-size: 1.05rem; line-height: 1.8; color: #444; }
+    .description-rich-text h2, .description-rich-text h3 { 
+        font-weight: 800; text-transform: uppercase; margin-top: 2rem; margin-bottom: 1rem; color: #000;
     }
-    .specs-value { font-weight: 600; color: #111; font-size: 0.9rem; padding: 10px 0; }
-
-    .section-title-premium {
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        border-bottom: 4px solid var(--m4-gold);
-        display: inline-block;
-        padding-bottom: 5px;
-        margin-bottom: 2.5rem;
-    }
-
-    .description-commercial { font-size: 1.05rem; line-height: 1.8; }
+    .description-rich-text ul { padding-left: 1.2rem; margin-bottom: 1.5rem; }
+    .description-rich-text table { width: 100% !important; border: 1px solid #eee; margin: 1.5rem 0; }
+    .description-rich-text td { padding: 10px; border: 1px solid #eee; }
 
     /* Modal de Parcelas */
     .modal-content-m4 { border: none; border-radius: 0; }
@@ -112,7 +126,7 @@
 
 {% block content %}
 <div class="container detail-container">
-    {# BREADCRUMB #}
+    {# 1. NAVEGAÇÃO #}
     <nav aria-label="breadcrumb" class="mb-5">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a href="{{ url_for('loja.index') }}" class="text-decoration-none text-muted">Início</a></li>
@@ -123,16 +137,17 @@
                 </a>
             </li>
             {% endif %}
-            <li class="breadcrumb-item active text-dark fw-bold" aria-current="page">{{ produto.nome }}</li>
+            <li class="breadcrumb-item active text-dark fw-bold">{{ produto.meta_title if produto.meta_title else produto.nome }}</li>
         </ol>
     </nav>
 
     <div class="row g-5">
-        {# COLUNA DA ESQUERDA: FOTO DO PRODUTO #}
+        {# 2. COLUNA DA ESQUERDA: IMAGEM #}
         <div class="col-lg-7">
-            <div class="img-main-container rounded">
-                {% if produto.foto_url %}
-                    <img src="{{ gerar_link(produto.foto_url) }}" alt="{{ produto.nome }}">
+            <div class="img-main-container rounded shadow-sm">
+                {% set imagem = produto.foto_url or produto.imagem_principal %}
+                {% if imagem %}
+                    <img src="{{ gerar_link(imagem) }}" alt="{{ produto.nome }}">
                 {% else %}
                     <div class="text-center text-muted opacity-50">
                         <i class="bi bi-image fs-1 d-block mb-2"></i>
@@ -142,7 +157,7 @@
             </div>
         </div>
 
-        {# COLUNA DA DIREITA: INFO E COMPRA #}
+        {# 3. COLUNA DA DIREITA: COMPRA #}
         <div class="col-lg-5">
             {% if produto.requer_documentacao %}
             <div class="badge-controlled-premium">
@@ -150,30 +165,34 @@
             </div>
             {% endif %}
 
-            <h1 class="display-6 fw-900 text-dark mb-2" style="letter-spacing: -1px; font-weight: 900;">{{ produto.nome }}</h1>
+            <h1 class="display-6 fw-bold text-dark mb-2" style="font-weight: 900; letter-spacing: -1px;">
+                {{ produto.meta_title if produto.meta_title else produto.nome }}
+            </h1>
             <p class="text-muted small mb-4">REFERÊNCIA: <span class="fw-bold">{{ produto.codigo }}</span></p>
 
-            <div class="mb-5 text-secondary description-commercial">
+            {# Descrição Comercial Curta #}
+            <div class="mb-5 description-rich-text">
                 {% if produto.descricao_comercial %}
                     {{ produto.descricao_comercial | safe }}
                 {% else %}
-                    <p>{{ produto.descricao or 'Conheça o novo ' ~ produto.nome ~ ', disponível na M4 Tática.' }}</p>
+                    <p class="text-secondary">{{ produto.descricao or 'Equipamento disponível na M4 Tática.' }}</p>
                 {% endif %}
             </div>
 
+            {# BOX DE PREÇO #}
             <div class="price-box-premium rounded">
                 {% if precos.em_oferta %}
-                    <span class="text-muted text-decoration-line-through small d-block mb-1">De: {{ produto.preco_a_vista | currency }}</span>
+                    <span class="text-muted text-decoration-line-through small d-block mb-1">De: R$ {{ "{:,.2f}".format(precos.preco_a_vista * 1.15).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span>
                     <div class="d-flex align-items-baseline mb-2">
-                        <h2 class="fw-bold text-dark mb-0" style="font-size: 2.5rem; font-weight: 900;">{{ precos.preco_a_vista | currency }}</h2>
+                        <h2 class="fw-bold text-dark mb-0" style="font-size: 2.8rem; font-weight: 900;">R$ {{ "{:,.2f}".format(precos.preco_a_vista).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h2>
                         <span class="ms-3 badge bg-danger py-2 px-3">OFERTA</span>
                     </div>
                 {% else %}
-                    <h2 class="fw-bold text-dark mb-2" style="font-size: 2.5rem; font-weight: 900;">{{ precos.preco_a_vista | currency }}</h2>
+                    <h2 class="fw-bold text-dark mb-2" style="font-size: 2.8rem; font-weight: 900;">R$ {{ "{:,.2f}".format(precos.preco_a_vista).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h2>
                 {% endif %}
                 
                 <div class="text-success fw-bold d-flex align-items-center mb-4">
-                    <i class="bi bi-lightning-fill me-2"></i> PAGAMENTO À VISTA NO PIX OU DINHEIRO
+                    <i class="bi bi-lightning-fill me-2"></i> À VISTA NO PIX OU DINHEIRO
                 </div>
 
                 {% if parcela_12x %}
@@ -182,109 +201,83 @@
                         <i class="bi bi-credit-card fs-2 me-3 opacity-50"></i>
                         <div>
                             <span class="d-block small text-muted">Parcelado no cartão de crédito</span>
-                            <span class="fw-bold h5 mb-0">Até {{ parcela_12x.rotulo }} de {{ parcela_12x.parcela | currency }}</span>
+                            <span class="fw-bold h5 mb-0">Até {{ parcela_12x.rotulo }} de R$ {{ "{:,.2f}".format(parcela_12x.parcela).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span>
                         </div>
                     </div>
                     <button class="btn btn-link btn-sm p-0 mt-3 text-decoration-none text-gold fw-bold" 
                             data-bs-toggle="modal" data-bs-target="#modalParcelas">
-                        <i class="bi bi-info-circle me-1"></i> Ver todas as formas de parcelamento
+                        <i class="bi bi-plus-circle me-1"></i> Ver todas as formas de parcelamento
                     </button>
                 </div>
                 {% endif %}
             </div>
 
             <div class="d-grid gap-3">
+                <a href="https://wa.me/558630255885?text=Olá M4 Tática! Tenho interesse no produto: {{ produto.meta_title if produto.meta_title else produto.nome }} (Ref: {{ produto.codigo }})" 
+                   target="_blank" class="btn btn-whatsapp-buy btn-buy-now shadow-sm">
+                    <i class="bi bi-whatsapp me-2"></i> COMPRAR PELO WHATSAPP
+                </a>
+                
                 {% if produto.requer_documentacao %}
-                    <a href="https://wa.me/558630255885?text=Olá M4 Tática! Tenho interesse no processo de aquisição do produto: {{ produto.nome }} (Ref: {{ produto.codigo }})" 
-                       target="_blank" class="btn btn-whatsapp-buy btn-buy-now shadow-sm">
-                        <i class="bi bi-whatsapp me-2"></i> INICIAR PROCESSO DE AQUISIÇÃO
-                    </a>
-                    <div class="alert alert-light border small text-muted mt-2" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill text-gold me-2"></i>
-                        A aquisição de armas e munições depende de autorização prévia (Exército ou Polícia Federal).
-                    </div>
-                {% else %}
-                    <button class="btn btn-dark btn-buy-now shadow-sm py-3">
-                        <i class="bi bi-cart-plus me-2"></i> ADICIONAR AO CARRINHO
-                    </button>
-                    <div class="d-flex justify-content-center gap-4 mt-2">
-                        <div class="small text-muted"><i class="bi bi-truck me-1"></i> Envio Seguro</div>
-                        <div class="small text-muted"><i class="bi bi-shield-check me-1"></i> Garantia Oficial</div>
-                    </div>
+                <div class="alert alert-light border small text-muted mt-2" role="alert">
+                    <i class="bi bi-info-circle-fill text-dark me-2"></i>
+                    A venda de PCE exige autorização prévia e documentação legal (Exército ou PF).
+                </div>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    {# ESPECIFICAÇÕES TÉCNICAS E DESCRIÇÃO #}
-    <div class="row mt-5 pt-5">
-        <div class="col-12">
-            <h4 class="section-title-premium">Especificações Técnicas</h4>
-            <div class="row g-lg-5">
-                <div class="col-md-5">
-                    <div class="bg-white p-4 border rounded shadow-sm">
-                        <table class="table table-sm table-hover mb-0">
-                            <tbody>
-                                {% if produto.marca_rel %}
-                                <tr>
-                                    <td class="specs-label border-0">Fabricante</td>
-                                    <td class="specs-value border-0">{{ produto.marca_rel.nome }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if produto.calibre_rel %}
-                                <tr>
-                                    <td class="specs-label">Calibre</td>
-                                    <td class="specs-value">{{ produto.calibre_rel.nome }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if produto.tipo_rel %}
-                                <tr>
-                                    <td class="specs-label">Espécie</td>
-                                    <td class="specs-value">{{ produto.tipo_rel.nome }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if produto.funcionamento_rel %}
-                                <tr>
-                                    <td class="specs-label">Funcionamento</td>
-                                    <td class="specs-value">{{ produto.funcionamento_rel.nome }}</td>
-                                </tr>
-                                {% endif %}
-                                
-                                {# LOOP DINÂMICO PARA JSON DE ESPECIFICAÇÕES #}
-                                {% if produto.especificacoes_tecnicas %}
-                                    {% for chave, valor in produto.especificacoes_tecnicas.items() %}
-                                    <tr>
-                                        <td class="specs-label">{{ chave }}</td>
-                                        <td class="specs-value">{{ valor }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="col-md-7 mt-4 mt-md-0">
-                    <div class="ps-md-4">
-                        <h6 class="fw-bold text-dark text-uppercase mb-4 pb-2 border-bottom">Informações Detalhadas</h6>
-                        <div class="lh-lg text-secondary" style="text-align: justify;">
-                            {% if produto.descricao_longa %}
-                                {{ produto.descricao_longa | safe }}
-                            {% else %}
-                                {{ produto.descricao | replace('\n', '<br>') | safe if produto.descricao else 'Entre em contato para mais detalhes sobre as características deste equipamento.' }}
-                            {% endif %}
-                        </div>
-                    </div>
+    {# 4. SEÇÃO TÉCNICA E DESCRIÇÃO LONGA #}
+    <div class="row mt-5 pt-5 border-top">
+        <div class="col-lg-5">
+            <h4 class="section-title-premium">Ficha Técnica</h4>
+            <div class="bg-white p-4 border rounded shadow-sm">
+                <table class="specs-table">
+                    <tbody>
+                        {% if produto.marca_rel %}
+                        <tr><td class="specs-label border-0">Fabricante</td><td class="specs-value border-0 text-gold">{{ produto.marca_rel.nome }}</td></tr>
+                        {% endif %}
+                        {% if produto.calibre_rel %}
+                        <tr><td class="specs-label">Calibre</td><td class="specs-value">{{ produto.calibre_rel.nome }}</td></tr>
+                        {% endif %}
+                        {% if produto.tipo_rel %}
+                        <tr><td class="specs-label">Espécie</td><td class="specs-value">{{ produto.tipo_rel.nome }}</td></tr>
+                        {% endif %}
+                        {% if produto.funcionamento_rel %}
+                        <tr><td class="specs-label">Funcionamento</td><td class="specs-value">{{ produto.funcionamento_rel.nome }}</td></tr>
+                        {% endif %}
+                        
+                        {% if produto.especificacoes_tecnicas %}
+                            {% for chave, valor in produto.especificacoes_tecnicas.items() %}
+                            <tr><td class="specs-label">{{ chave }}</td><td class="specs-value">{{ valor }}</td></tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-lg-7 mt-4 mt-lg-0">
+            <div class="ps-lg-5">
+                <h4 class="section-title-premium">Descrição Detalhada</h4>
+                <div class="description-rich-text text-secondary">
+                    {% if produto.descricao_longa %}
+                        {# O filtro | safe é vital para o Editor Rico funcionar #}
+                        {{ produto.descricao_longa | safe }}
+                    {% else %}
+                        {{ produto.descricao | replace('\n', '<br>') | safe if produto.descricao else 'Entre em contato para detalhes técnicos.' }}
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    {# PRODUTOS RELACIONADOS #}
+    {# 5. RELACIONADOS #}
     {% if relacionados %}
     <div class="row mt-5 pt-5">
         <div class="col-12">
-            <h4 class="section-title-premium">Você também pode precisar</h4>
-            <div class="row row-cols-1 row-cols-md-4 g-4 mt-2">
+            <h4 class="section-title-premium">Quem viu, também comprou</h4>
+            <div class="row row-cols-2 row-cols-md-4 g-4 mt-2">
                 {% for p_rel in relacionados %}
                 <div class="col">
                     {% with produto = p_rel %}
@@ -298,12 +291,12 @@
     {% endif %}
 </div>
 
-{# MODAL DE PARCELAMENTO #}
+{# 6. MODAL DE PARCELAMENTO #}
 <div class="modal fade" id="modalParcelas" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-content-m4 shadow-lg">
             <div class="modal-header modal-header-m4">
-                <h5 class="modal-title text-uppercase fw-bold small">Formas de Pagamento</h5>
+                <h5 class="modal-title text-uppercase fw-bold small">Condições de Pagamento</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body p-0">
@@ -311,7 +304,7 @@
                     <table class="table table-parcelas border-0 mb-0">
                         <thead class="text-muted">
                             <tr>
-                                <th class="ps-4">Opção</th>
+                                <th class="ps-4">Forma</th>
                                 <th>Parcela</th>
                                 <th class="text-end pe-4">Total</th>
                             </tr>
@@ -325,16 +318,17 @@
                                         {% else %}<i class="bi bi-credit-card me-2"></i>{% endif %}
                                         {{ item.rotulo }}
                                     </td>
-                                    <td class="py-3 {{ 'text-success' if item.rotulo == 'PIX' else 'text-dark' }}">{{ item.parcela | currency }}</td>
-                                    <td class="text-end py-3 pe-4 text-muted small">{{ item.total | currency }}</td>
+                                    <td class="py-3 {{ 'text-success' if item.rotulo == 'PIX' else 'text-dark' }}">
+                                        R$ {{ "{:,.2f}".format(item.parcela).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                    </td>
+                                    <td class="text-end py-3 pe-4 text-muted small">
+                                        R$ {{ "{:,.2f}".format(item.total).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                    </td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-            </div>
-            <div class="modal-footer bg-light py-2">
-                <small class="text-muted w-100 text-center">Valores baseados nas taxas atuais da loja.</small>
             </div>
         </div>
     </div>

@@ -80,6 +80,12 @@ def autosave_produto(produto_id):
 
     alteracoes = {}
 
+    # Lista de campos booleanos (checkboxes/switches) para tratamento correto
+    CAMPOS_BOOLEANOS = [
+        "promo_ativada", "visivel_loja", "destaque_home", 
+        "eh_lancamento", "eh_outdoor", "requer_documentacao"
+    ]
+
     for campo, valor_novo in data.items():
         # Ignora campos que não existem no modelo
         if not hasattr(produto, campo):
@@ -90,33 +96,36 @@ def autosave_produto(produto_id):
 
         # 1. Tratamento Específico por Tipo de Campo
         if campo in CAMPOS_DECIMAIS:
-            # É dinheiro/número: usa o parser seguro (agora corrigido)
+            # É dinheiro/número: usa o parser seguro
             valor_final = _parse_decimal(valor_novo)
-        elif campo == "promo_ativada":
-            # Checkbox: vem como boolean ou string "on"/"true"
+            
+        elif campo in CAMPOS_BOOLEANOS:
+            # Checkbox/Switch: Converte '1', 'on' ou True para Booleano real
             valor_final = str(valor_novo).lower() in ['true', 'on', '1']
+            
         elif campo in CAMPOS_DATAS:
-            # Datas: Se vier vazio, é None. 
+            # Datas: Se vier vazio, é None
             if not valor_novo:
                 valor_final = None
+                
         else:
-            # Texto Puro (Nome, Código, Descrição): Mantém original, remove espaços extras
+            # Texto Puro e campos como 'meta_title', 'slug', 'descricao_longa'
             if isinstance(valor_novo, str):
+                # Para descrições longas (HTML), o strip deve ser cauteloso, 
+                # mas mantemos para consistência.
                 valor_final = valor_novo.strip()
                 if valor_final == "":
                     valor_final = None
             
         # 2. Proteção contra Nulos em Campos Obrigatórios
         if campo in ["nome", "codigo"] and not valor_final:
-            # Se tentar limpar o nome ou código, ignoramos essa alteração específica
             continue
 
         # 3. Comparação para detectar mudança
+        # Para HTML (Summernote), a comparação de strings é essencial
         str_atual = str(valor_atual) if valor_atual is not None else ""
         str_novo = str(valor_final) if valor_final is not None else ""
         
-        # NOTE: A comparação de strings pode ser frágil para floats/Decimals.
-        # Devido ao _parse_decimal retornar None em falha, a mudança é detectada corretamente.
         if str_atual != str_novo:
             alteracoes[campo] = {"antigo": valor_atual, "novo": valor_final}
             setattr(produto, campo, valor_final)
@@ -125,14 +134,14 @@ def autosave_produto(produto_id):
     if not alteracoes:
         return jsonify({"status": "no_changes"}), 200
 
-    # Recalcula preços se necessário
+    # Recalcula preços se necessário (Margem, Lucro, etc)
     if hasattr(produto, 'calcular_precos'):
         produto.calcular_precos()
 
     # Atualiza timestamp
     produto.atualizado_em = datetime.utcnow()
 
-    # Registra histórico
+    # Registra histórico automático
     registrar_historico(produto, current_user, "autosave", alteracoes)
 
     try:
@@ -146,10 +155,8 @@ def autosave_produto(produto_id):
         }), 200
     except Exception as e:
         db.session.rollback()
-        # Log do erro para debug mas retorno JSON amigável
         print(f"[Autosave Error] {e}") 
         return jsonify({"status": "error", "message": str(e)}), 500
-
 
 # ===========================================================
 # ROTA — Autosave em lote (Mantido estrutura, aplicado fix)

@@ -34,6 +34,100 @@
   }
 
   // ============================================================
+  // SUMMERNOTE: Inicialização segura para aba Ecommerce (FIX DEFINITIVO)
+  // ============================================================
+  function initSummernoteEcommerce() {
+    const editorId = "editor_loja_m4";
+    const textarea = document.getElementById(editorId);
+
+    if (!textarea) {
+      console.warn("[M4] Summernote: textarea #editor_loja_m4 não encontrado.");
+      return;
+    }
+
+    // Garante jQuery
+    if (typeof window.$ === "undefined") {
+      console.error("[M4] Summernote: jQuery não está carregado.");
+      return;
+    }
+
+    // Garante plugin
+    if (!$.fn || typeof $.fn.summernote === "undefined") {
+      console.error("[M4] Summernote: plugin não está carregado ($.fn.summernote undefined).");
+      return;
+    }
+
+    const $editor = $("#editor_loja_m4");
+
+    // Se já existe instância mas o DOM ficou bugado, reinicia
+    const hasEditorUI = $editor.next().hasClass("note-editor");
+    const isSummernoteActive = !!$editor.data("summernote");
+
+    // Caso exista UI mas data sumiu (bug clássico)
+    if (hasEditorUI && !isSummernoteActive) {
+      console.warn("[M4] Summernote: UI existe mas instância não. Resetando...");
+      try { $editor.summernote("destroy"); } catch (_) {}
+    }
+
+    // Caso já esteja inicializado corretamente
+    if ($editor.data("summernote")) {
+      // Força refresh visual ao mostrar aba
+      setTimeout(() => {
+        try {
+          const current = $editor.summernote("code");
+          $editor.summernote("code", current);
+        } catch (_) {}
+      }, 80);
+      return;
+    }
+
+    // Se tinha UI antiga, destrói
+    if ($editor.next().hasClass("note-editor")) {
+      try {
+        $editor.summernote("destroy");
+      } catch (e) {
+        console.warn("[M4] Summernote: falha ao destruir instância antiga:", e);
+      }
+    }
+
+    console.log("[M4] Summernote: inicializando agora...");
+
+    $editor.summernote({
+      height: 450,
+      lang: "pt-BR",
+      placeholder: "Utilize as ferramentas acima para formatar negritos, listas, tabelas e inserir links...",
+      toolbar: [
+        ["style", ["style"]],
+        ["font", ["bold", "underline", "clear"]],
+        ["color", ["color"]],
+        ["para", ["ul", "ol", "paragraph"]],
+        ["table", ["table"]],
+        ["insert", ["link", "picture", "video"]],
+        ["view", ["fullscreen", "codeview"]]
+      ],
+      callbacks: {
+        onChange: function(contents) {
+          // Mantém o textarea sincronizado para o autosave
+          $editor.val(contents);
+          textarea.dispatchEvent(new Event("change", { bubbles: true }));
+          textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        },
+        onInit: function() {
+          console.log("[M4] Summernote: renderizado com sucesso ✅");
+
+          // Corrige altura se o Bootstrap tab ainda estiver ajeitando layout
+          setTimeout(() => {
+            try {
+              const current = $editor.summernote("code");
+              $editor.summernote("code", current);
+            } catch (_) {}
+          }, 120);
+        }
+      }
+    });
+  }
+
+  // ============================================================
   // FOTO: Lógica para seleção, preview e upload (CORREÇÃO DA PERSISTÊNCIA)
   // ============================================================
   
@@ -425,36 +519,33 @@
   const ProdutosForm = {
     // Método principal chamado em window.load
     init: function() {
-      // 1. Inicializa a lógica de foto (CORREÇÃO)
       initFotoProduto(); 
-
-      // 2. Inicializa as máscaras e listeners do AutoNumeric
       initMasks(); 
-
-      // 3. Configura listeners para campos estáticos
       setupStaticListeners();
-      
-      // 4. Corrige altura das abas
       corrigirAlturaAbas();
-      
-      // 5. Dispara cálculo inicial com delay
+
+      // Se abrir direto na aba Ecommerce (ex: url com hash ou cache)
+      setTimeout(() => {
+        if (document.querySelector("#abaEcommerce.active")) {
+          initSummernoteEcommerce();
+        }
+      }, 500);
+
       setTimeout(() => {
         recalcular();
         console.info("[M4] Inicialização Completa e Recalcular inicial OK.");
       }, 800);
     },
     
-    // Método chamado ao trocar de aba (para re-aplicar máscaras se necessário)
+    // Método chamado ao trocar de aba
     reinitMasks: initMasks,
-
-    // Método chamado ao trocar de aba (para recalcular resumo)
     refreshResumo: recalcular,
+
+    // NOVO: exposto para o produto_form.html chamar
+    initSummernoteEcommerce: initSummernoteEcommerce,
   };
   
-  // EXPÕE O MÓDULO GLOBALMENTE
   window.ProdutosForm = ProdutosForm; 
-
-  // Exposição legada (mantida por segurança)
   window.recalcularProduto = recalcular;
 
 })();

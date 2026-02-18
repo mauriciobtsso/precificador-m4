@@ -1,99 +1,136 @@
 <div class="row g-4 py-2">
-    
     <div class="col-md-4">
-        <div class="card border-0 bg-light shadow-sm mb-4">
-            <div class="card-body">
-                <h6 class="fw-bold mb-3 text-uppercase small text-muted"><i class="fas fa-eye me-2"></i>Visibilidade na Loja</h6>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body bg-light rounded border">
+                <h6 class="fw-bold mb-3 text-uppercase small text-muted">
+                    <i class="fas fa-eye me-2"></i>Exibição na Vitrine
+                </h6>
                 
                 <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" id="visivel_loja" name="visivel_loja" 
-                           {% if produto.visivel_loja %}checked{% endif %}>
-                    <label class="form-check-label fw-bold" for="visivel_loja">Publicar na Loja Online</label>
-                    <div class="form-text small">Se desativado, o produto não aparecerá na vitrine pública.</div>
+                    <input class="form-check-input" type="checkbox" id="visivel_loja" name="visivel_loja" {% if produto.visivel_loja %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="visivel_loja">Publicar na Loja</label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Destaques</label>
+                    <div class="form-check mb-1 small">
+                        <input class="form-check-input" type="checkbox" name="destaque_home" {% if produto.destaque_home %}checked{% endif %}>
+                        <label class="form-check-label">Destaque na Home</label>
+                    </div>
+                    <div class="form-check mb-1 small">
+                        <input class="form-check-input" type="checkbox" name="eh_lancamento" {% if produto.eh_lancamento %}checked{% endif %}>
+                        <label class="form-check-label">Selo Lançamento</label>
+                    </div>
                 </div>
 
                 <hr>
 
-                <h6 class="fw-bold mb-3 text-uppercase small text-muted"><i class="fas fa-star me-2"></i>Destaques (Home)</h6>
-                
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="destaque_home" name="destaque_home" 
-                           {% if produto.destaque_home %}checked{% endif %}>
-                    <label class="form-check-label" for="destaque_home">Destaque Principal</label>
-                </div>
-
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="eh_lancamento" name="eh_lancamento" 
-                           {% if produto.eh_lancamento %}checked{% endif %}>
-                    <label class="form-check-label" for="eh_lancamento">Marcar como Lançamento</label>
-                </div>
-
-                <div class="form-check mb-0">
-                    <input class="form-check-input" type="checkbox" id="eh_outdoor" name="eh_outdoor" 
-                           {% if produto.eh_outdoor %}checked{% endif %}>
-                    <label class="form-check-label" for="eh_outdoor">Linha Outdoor/Acessórios</label>
+                <h6 class="fw-bold mb-3 text-uppercase small text-muted">
+                    <i class="fas fa-shield-alt me-2"></i>Regra de Venda
+                </h6>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="requer_documentacao" {% if produto.requer_documentacao %}checked{% endif %}>
+                    <label class="form-check-label fw-bold small">Requer CR (WhatsApp)</label>
                 </div>
             </div>
         </div>
 
-        <div class="card border-0 bg-light shadow-sm">
-            <div class="card-body">
-                <h6 class="fw-bold mb-3 text-uppercase small text-muted"><i class="fas fa-shield-alt me-2"></i>Regra de Venda</h6>
-                
-                <div class="form-check form-switch">
-                    <input class="form-check-input text-danger" type="checkbox" id="requer_documentacao" name="requer_documentacao" 
-                           {% if produto.requer_documentacao %}checked{% endif %}>
-                    <label class="form-check-label fw-bold" for="requer_documentacao">Requer Documentação (CR/PF)</label>
-                    <div class="form-text small">
-                        <strong>Ativado:</strong> Botão direciona para WhatsApp.<br>
-                        <strong>Desativado:</strong> Checkout via Pagar.me liberado.
-                    </div>
+        <div class="card border-0 shadow-sm border-dark">
+            <div class="card-header bg-dark text-warning fw-bold small py-2">
+                <i class="fas fa-search me-2"></i>SEO / GOOGLE
+            </div>
+            <div class="card-body bg-white text-dark">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-dark text-uppercase">Título da Página (Meta Title)</label>
+                    <input type="text" class="form-control border-dark text-dark fw-bold" name="meta_title" 
+                           value="{{ produto.meta_title or '' }}" placeholder="Título para busca" 
+                           style="background-color: #ffffff !important; color: #000000 !important; border: 1px solid #000 !important;">
+                </div>
+
+                <div class="mb-0">
+                    <label class="form-label small fw-bold text-dark text-uppercase">Descrição de Busca (Snippet)</label>
+                    <textarea class="form-control border-dark text-dark" name="meta_description" rows="6" 
+                              placeholder="Resumo para o Google..." 
+                              style="background-color: #ffffff !important; color: #000000 !important; border: 1px solid #000 !important;">{{ produto.meta_description or '' }}</textarea>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="col-md-8">
-        <div class="card border-0 shadow-sm mb-4">
+        <div class="card border-0 shadow-sm mb-4 border-start border-4 border-primary">
             <div class="card-body">
-                <h6 class="fw-bold mb-3 text-uppercase small text-muted"><i class="fas fa-pen-nib me-2"></i>Conteúdo Comercial</h6>
+                <h6 class="fw-bold mb-4 text-uppercase small text-muted border-bottom pb-2">Conteúdo Comercial</h6>
                 
-                <div class="mb-3">
-                    <label for="descricao_comercial" class="form-label fw-bold">Descrição Curta (Site)</label>
-                    <textarea class="form-control" id="descricao_comercial" name="descricao_comercial" rows="3" 
-                              placeholder="Breve texto que aparece abaixo do preço ou na listagem...">{{ produto.descricao_comercial or '' }}</textarea>
-                    <div class="form-text small">Foque nos benefícios e diferenciais do produto.</div>
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-primary">Nome de Exibição na Loja (Amigável)</label>
+                    <input type="text" class="form-control form-control-lg border-primary fw-bold" 
+                           name="nome_comercial" value="{{ produto.meta_title or produto.nome }}">
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-info-circle me-1"></i> Nome que aparecerá no site. O nome interno (Geral) não será alterado.
+                    </small>
                 </div>
 
-                <div class="mb-0">
-                    <label for="slug" class="form-label fw-bold text-primary">URL Amigável (Slug)</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-white">m4tatica.com.br/loja/</span>
-                        <input type="text" class="form-control bg-light" id="slug" name="slug" value="{{ produto.slug or '' }}" readonly>
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-muted text-uppercase">Caminho da URL (Slug)</label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-light text-muted" style="font-size: 0.9rem;">/produto/</span>
+                        <input type="text" class="form-control border-dark-subtle" id="slug_input_ecommerce" name="slug" 
+                               value="{{ produto.slug or '' }}" readonly style="background-color: #f8f9fa; font-size: 0.9rem;">
+                        <button class="btn btn-warning px-4" type="button" id="btn_lock_ecommerce" onclick="handleSlugUnlockEcommerce()">
+                            <i id="slug_icon_ecommerce" class="fas fa-lock"></i>
+                        </button>
                     </div>
-                    <div class="form-text small text-info"><i class="fas fa-info-circle me-1"></i>Gerado automaticamente a partir do nome do produto.</div>
                 </div>
-            </div>
-        </div>
 
-        <div class="card border-0 shadow-sm border-start border-4 border-warning">
-            <div class="card-body">
-                <h6 class="fw-bold mb-3 text-uppercase small text-muted"><i class="fas fa-search me-2"></i>SEO (Google e Buscas)</h6>
-                
-                <div class="mb-3">
-                    <label for="meta_title" class="form-label fw-bold">Título da Página (Meta Title)</label>
-                    <input type="text" class="form-control" id="meta_title" name="meta_title" 
-                           maxlength="70" value="{{ produto.meta_title or '' }}" placeholder="Ex: Pistola Taurus G3C 9mm - M4 Tática Teresina">
-                    <div class="form-text small">Recomendado até 70 caracteres.</div>
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-muted text-uppercase">Resumo de Venda (Breve)</label>
+                    <textarea class="form-control" name="descricao_comercial" rows="2">{{ produto.descricao_comercial or '' }}</textarea>
                 </div>
 
                 <div class="mb-0">
-                    <label for="meta_description" class="form-label fw-bold">Descrição de Busca (Meta Description)</label>
-                    <textarea class="form-control" id="meta_description" name="meta_description" rows="2" 
-                              maxlength="160" placeholder="Descrição que aparece nos resultados do Google...">{{ produto.meta_description or '' }}</textarea>
-                    <div class="form-text small">Recomendado até 160 caracteres.</div>
+                    <label class="form-label fw-bold text-dark text-uppercase small mb-2">Descrição Detalhada / Ficha Técnica (HTML)</label>
+                    <div class="editor-wrapper-m4 border rounded bg-white shadow-sm" style="min-height: 460px;">
+                        <textarea id="editor_loja_m4" class="richeditor" name="descricao_longa">{{ produto.descricao_longa or '' }}</textarea>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .editor-wrapper-m4 { width: 100%; display: block; clear: both; position: relative; }
+
+    /* CSS SEGURO: sem flex no note-editor */
+    .note-editor.note-frame {
+        width: 100% !important;
+        min-height: 450px !important;
+    }
+    .note-editable {
+        min-height: 400px !important;
+        background: #fff !important;
+        color: #000 !important;
+    }
+</style>
+
+<script>
+function handleSlugUnlockEcommerce() {
+    const input = document.getElementById('slug_input_ecommerce');
+    const icon = document.getElementById('slug_icon_ecommerce');
+    const btn = document.getElementById('btn_lock_ecommerce');
+    if (!input || !icon || !btn) return;
+
+    if (input.readOnly) {
+        input.readOnly = false;
+        input.style.backgroundColor = "#fff";
+        icon.className = "fas fa-lock-open";
+        btn.className = "btn btn-danger";
+    } else {
+        input.readOnly = true;
+        input.style.backgroundColor = "#f8f9fa";
+        icon.className = "fas fa-lock";
+        btn.className = "btn btn-warning";
+    }
+}
+</script>

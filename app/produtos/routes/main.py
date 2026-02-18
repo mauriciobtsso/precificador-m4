@@ -142,7 +142,7 @@ def index():
 
 
 # ============================================================
-# CADASTRAR / EDITAR PRODUTO (ATUALIZADO PARA E-COMMERCE)
+# CADASTRAR / EDITAR PRODUTO (VERSÃO FINAL BLINDADA)
 # ============================================================
 @produtos_bp.route("/novo", methods=["GET", "POST"])
 @produtos_bp.route("/<int:produto_id>/editar", methods=["GET", "POST"])
@@ -156,6 +156,8 @@ def gerenciar_produto(produto_id=None):
             produto = Produto(
                 nome=produto_ref.nome,
                 descricao=produto_ref.descricao,
+                descricao_comercial=produto_ref.descricao_comercial,
+                descricao_longa=produto_ref.descricao_longa,
                 categoria_id=produto_ref.categoria_id,
                 tipo_id=produto_ref.tipo_id,
                 marca_id=produto_ref.marca_id,
@@ -171,13 +173,12 @@ def gerenciar_produto(produto_id=None):
                 ipi=produto_ref.ipi,
                 difal=produto_ref.difal,
                 imposto_venda=produto_ref.imposto_venda,
-                # Campos de E-commerce na duplicação
                 requer_documentacao=produto_ref.requer_documentacao,
-                visivel_loja=False # Sempre inicia invisível ao duplicar
+                visivel_loja=False 
             )
             flash(f"Produto '{produto_ref.nome}' duplicado. Revise antes de salvar.", "info")
         else:
-            flash("⚠️ Produto de origem não encontrado para duplicação.", "warning")
+            flash("⚠️ Produto de origem não encontrado.", "warning")
             produto = Produto()
     else:
         if produto_id:
@@ -202,31 +203,41 @@ def gerenciar_produto(produto_id=None):
         def to_decimal(value):
             if not value: return Decimal(0)
             try:
-                val_str = str(value).replace("R$", "").replace("%", "").strip()
-                val_str = val_str.replace(",", ".") 
+                val_str = str(value).replace("R$", "").replace("%", "").strip().replace(",", ".") 
                 return Decimal(val_str)
-            except InvalidOperation:
-                return Decimal(0)
+            except InvalidOperation: return Decimal(0)
 
-        # Campos auditados incluindo os novos de e-commerce
         campos_auditados = [
-            "codigo", "nome", "descricao",
+            "codigo", "nome", "slug", "descricao", "descricao_comercial", "descricao_longa",
             "categoria_id", "marca_id", "calibre_id", "tipo_id", "funcionamento_id",
-            "preco_fornecedor", "desconto_fornecedor", "frete",
-            "margem", "lucro_alvo", "preco_final",
-            "ipi", "ipi_tipo", "difal", "imposto_venda",
-            "promo_ativada", "promo_preco_fornecedor", "promo_data_inicio", "promo_data_fim",
+            "preco_fornecedor", "desconto_fornecedor", "frete", "margem", "lucro_alvo", "preco_final",
+            "ipi", "ipi_tipo", "difal", "imposto_venda", "meta_title", "meta_description",
             "visivel_loja", "requer_documentacao", "destaque_home", "eh_lancamento", "eh_outdoor"
         ]
         antes = {c: getattr(produto, c, None) for c in campos_auditados}
 
-        codigo = (data.get("codigo") or "").strip().upper()
-        nome = (data.get("nome") or "").strip()
+        # --- SALVAMENTO ---
+        produto.codigo = (data.get("codigo") or "").strip().upper()
         
-        # Persistência básica
-        produto.codigo = codigo
-        produto.nome = nome
+        # Ajuste Crítico: Garante que o nome interno (aba Geral) seja preservado
+        # e o nome comercial (aba Ecommerce) vá para o meta_title
+        produto.nome = (data.get("nome") or "").strip()
+        
+        nome_comercial = data.get("nome_comercial", "").strip()
+        if nome_comercial:
+            produto.meta_title = nome_comercial
+        else:
+            # Caso o usuário limpe o comercial, usamos o nome interno por padrão no SEO
+            produto.meta_title = produto.nome
+
+        if data.get("slug"):
+            produto.slug = data.get("slug").strip().lower()
+
         produto.descricao = (data.get("descricao") or "").strip() or None
+        produto.descricao_longa = data.get("descricao_longa")
+        produto.descricao_comercial = data.get("descricao_comercial", "").strip() or None
+        produto.meta_description = (data.get("meta_description") or "").strip() or None
+
         produto.categoria_id = to_int(data.get("categoria_id"))
         produto.marca_id = to_int(data.get("marca_id"))
         produto.calibre_id = to_int(data.get("calibre_id"))
@@ -234,7 +245,6 @@ def gerenciar_produto(produto_id=None):
         produto.funcionamento_id = to_int(data.get("funcionamento_id"))
         produto.foto_url = data.get("foto_url") or foto_atual
 
-        # Persistência Financeira
         produto.preco_fornecedor = to_decimal(data.get("preco_fornecedor"))
         produto.desconto_fornecedor = to_decimal(data.get("desconto_fornecedor"))
         produto.frete = to_decimal(data.get("frete"))
@@ -246,32 +256,14 @@ def gerenciar_produto(produto_id=None):
         produto.imposto_venda = to_decimal(data.get("imposto_venda"))
         produto.ipi_tipo = data.get("ipi_tipo", "%_dentro")
 
-        # === NOVOS CAMPOS DE E-COMMERCE E CONTEÚDO WEB ===
-        produto.visivel_loja = True if data.get("visivel_loja") == "on" else False
-        produto.requer_documentacao = True if data.get("requer_documentacao") == "on" else False
-        produto.destaque_home = True if data.get("destaque_home") == "on" else False
-        produto.eh_lancamento = True if data.get("eh_lancamento") == "on" else False
-        produto.eh_outdoor = True if data.get("eh_outdoor") == "on" else False
-        
-        produto.descricao_comercial = (data.get("descricao_comercial") or "").strip() or None
-        produto.meta_title = (data.get("meta_title") or "").strip() or None
-        produto.meta_description = (data.get("meta_description") or "").strip() or None
+        produto.visivel_loja = data.get("visivel_loja") == "on"
+        produto.requer_documentacao = data.get("requer_documentacao") == "on"
+        produto.destaque_home = data.get("destaque_home") == "on"
+        produto.eh_lancamento = data.get("eh_lancamento") == "on"
+        produto.eh_outdoor = data.get("eh_outdoor") == "on"
 
-        # Promoção
-        produto.promo_ativada = True if data.get("promo_ativada") == "on" else False
+        produto.promo_ativada = data.get("promo_ativada") == "on"
         produto.promo_preco_fornecedor = to_decimal(data.get("promo_preco_fornecedor"))
-        
-        p_inicio = data.get("promo_data_inicio")
-        p_fim = data.get("promo_data_fim")
-        if p_inicio:
-            produto.promo_data_inicio = datetime.strptime(p_inicio, "%Y-%m-%dT%H:%M").replace(tzinfo=pytz.timezone("America/Fortaleza"))
-        else:
-            produto.promo_data_inicio = None
-
-        if p_fim:
-            produto.promo_data_fim = datetime.strptime(p_fim, "%Y-%m-%dT%H:%M").replace(tzinfo=pytz.timezone("America/Fortaleza"))
-        else:
-            produto.promo_data_fim = None
 
         try:
             if hasattr(produto, "calcular_precos"):
@@ -280,35 +272,20 @@ def gerenciar_produto(produto_id=None):
             db.session.add(produto)
             db.session.flush()
 
-            # Auditoria
             registros = []
             if not produto_id:
-                registros.append(ProdutoHistorico(
-                    produto_id=produto.id,
-                    campo="__acao__",
-                    valor_novo="Criação de produto",
-                    usuario_id=getattr(current_user, "id", None),
-                    usuario_nome=getattr(current_user, "nome", None) or getattr(current_user, "username", None),
-                    data_modificacao=datetime.utcnow(),
-                ))
+                registros.append(ProdutoHistorico(produto_id=produto.id, campo="__acao__", valor_novo="Criação de produto",
+                    usuario_id=getattr(current_user, "id", None), usuario_nome=getattr(current_user, "nome", None), data_modificacao=datetime.utcnow()))
 
             depois = {c: getattr(produto, c, None) for c in campos_auditados}
             for campo in campos_auditados:
                 a, d = antes.get(campo), depois.get(campo)
                 if str(a) != str(d):
-                    registros.append(ProdutoHistorico(
-                        produto_id=produto.id,
-                        campo=campo,
-                        valor_antigo=str(a) if a is not None else None,
-                        valor_novo=str(d) if d is not None else None,
-                        usuario_id=getattr(current_user, "id", None),
-                        usuario_nome=getattr(current_user, "nome", None) or getattr(current_user, "username", None),
-                        data_modificacao=datetime.utcnow(),
-                    ))
+                    registros.append(ProdutoHistorico(produto_id=produto.id, campo=campo, valor_antigo=str(a) if a is not None else None,
+                        valor_novo=str(d) if d is not None else None, usuario_id=getattr(current_user, "id", None), 
+                        usuario_nome=getattr(current_user, "nome", None), data_modificacao=datetime.utcnow()))
 
-            if registros:
-                db.session.add_all(registros)
-
+            if registros: db.session.add_all(registros)
             db.session.commit()
             _LIST_CACHE.clear()
             flash("✅ Produto salvo com sucesso!", "success")
@@ -317,9 +294,8 @@ def gerenciar_produto(produto_id=None):
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Erro ao salvar produto: {e}")
-            flash("❌ Ocorreu um erro ao salvar o produto.", "danger")
+            flash(f"❌ Erro ao salvar: {str(e)}", "danger")
 
-    # Tratamento de fuso para exibição
     if getattr(produto, "atualizado_em", None):
         try:
             fuso_fortaleza = pytz.timezone("America/Fortaleza")

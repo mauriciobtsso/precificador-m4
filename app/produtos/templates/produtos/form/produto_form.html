@@ -97,6 +97,16 @@
   {{ super() }}
 
   <link rel="stylesheet" href="{{ url_for('static', filename='css/produtos_form.css') }}">
+
+  {# ============================================================
+      SUMMERNOTE - GARANTIDO AQUI
+      (não depende de base_admin.html)
+  ============================================================ #}
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-lite.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/lang/summernote-pt-BR.min.js"></script>
+
   <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.5"></script>
   <script src="{{ url_for('static', filename='js/produtos_form.js') }}"></script>
   <script src="{{ url_for('static', filename='js/produtos_autosave.js') }}"></script>
@@ -116,9 +126,20 @@
       if (window.ConfigsModals?.init) window.ConfigsModals.init();
     });
 
+    // Evento unificado para abas (APENAS 1)
     document.addEventListener('shown.bs.tab', evt => {
+      const targetId = evt.target.getAttribute('data-bs-target');
+      console.log("[M4] Aba ativada:", targetId);
+
       if (window.ProdutosForm?.reinitMasks) window.ProdutosForm.reinitMasks();
       if (window.ProdutosForm?.refreshResumo) window.ProdutosForm.refreshResumo();
+
+      // Ecommerce: força reinit do editor rico
+      if (targetId === '#abaEcommerce') {
+        if (window.ProdutosForm?.initSummernoteEcommerce) {
+          window.ProdutosForm.initSummernoteEcommerce();
+        }
+      }
     });
   </script>
 {% endblock %}

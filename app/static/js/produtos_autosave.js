@@ -93,24 +93,54 @@
     const activeTab = document.querySelector("#produtoTabs .nav-link.active");
     if (activeTab && !activeTab.classList.contains("tab-changed")) {
       activeTab.classList.add("tab-changed");
-      activeTab.innerHTML = activeTab.textContent + " <span class='text-warning'>•</span>";
+      // Preserva o ícone se existir
+      const icon = activeTab.querySelector('i');
+      const text = activeTab.textContent.trim();
+      activeTab.innerHTML = (icon ? icon.outerHTML + " " : "") + text + " <span class='text-warning'>•</span>";
     }
   };
 
   const limparMarcador = () => {
     document.querySelectorAll("#produtoTabs .nav-link").forEach(tab => {
-      tab.innerHTML = tab.textContent.replace(" •", "");
-      tab.classList.remove("tab-changed");
+      if (tab.classList.contains("tab-changed")) {
+          const icon = tab.querySelector('i');
+          const text = tab.textContent.replace(" •", "").trim();
+          tab.innerHTML = (icon ? icon.outerHTML + " " : "") + text;
+          tab.classList.remove("tab-changed");
+      }
     });
   };
 
   const coletarDados = () => {
     const data = {};
+
+    // 1. SINCRONIZAÇÃO DO EDITOR RICO
+    if (typeof $ !== 'undefined' && $.fn.summernote) {
+        $('textarea.richeditor, #editor_loja_m4').each(function() {
+            try {
+                if ($(this).next().hasClass('note-editor')) {
+                    const htmlContent = $(this).summernote('code');
+                    if ($(this).val() !== htmlContent) {
+                        $(this).val(htmlContent);
+                    }
+                }
+            } catch (e) {
+                console.warn("[M4] Erro ao sincronizar Summernote:", e);
+            }
+        });
+    }
+
+    // 2. COLETA DOS CAMPOS DO FORMULÁRIO
     form.querySelectorAll("input, select, textarea").forEach(el => {
-      if (el.name && el.value !== undefined) {
-        data[el.name] = el.value;
+      if (el.name) {
+        if (el.type === "checkbox") {
+          data[el.name] = el.checked ? "1" : "0";
+        } else {
+          data[el.name] = el.value;
+        }
       }
     });
+    
     return data;
   };
 
@@ -175,7 +205,7 @@
         setTimeout(() => (statusEl.style.display = "none"), 2500);
         showToast(`✅ Alterações salvas às ${hora}`, "success");
 
-        atualizarUltimaModificacao(result.atualizado_em);
+        if (result.atualizado_em) atualizarUltimaModificacao(result.atualizado_em);
         limparMarcador();
 
         // Atualiza memória local com os valores recém-salvos

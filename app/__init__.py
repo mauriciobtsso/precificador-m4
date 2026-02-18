@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 import os
 import logging
 from logging.handlers import RotatingFileHandler
+from flask_ckeditor import CKEditor
+
+ckeditor = CKEditor()
 
 # Importa extensões centralizadas
 from app.extensions import db, login_manager, migrate
@@ -87,6 +90,7 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = "main.login"
     migrate.init_app(app, db)
+    ckeditor.init_app(app)
 
     # =========================================================
     # REGISTRO DE BLUEPRINTS
