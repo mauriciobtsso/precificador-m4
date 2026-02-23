@@ -1,4 +1,4 @@
-from flask import render_template, abort, request, url_for, send_from_directory, current_app, redirect
+from flask import render_template, abort, request, url_for, send_from_directory, current_app, redirect, Response, make_response
 from app.loja import loja_bp
 from app.loja.models_admin import Banner, PaginaInstitucional
 from app.produtos.models import Produto
@@ -213,3 +213,36 @@ def google_verification():
     static_dir = os.path.join(current_app.root_path, 'static')
 
     return send_from_directory(static_dir, 'google8fe23db2fb19380f.html')
+
+# ROTA SITEMAP CORRIGIDA
+@loja_bp.route('/sitemap.xml')
+def sitemap():
+    """Gera um sitemap XML dinamicamente."""
+    pages = []
+    
+    # 1. Home
+    pages.append({'loc': url_for('loja.index', _external=True)})
+    
+    # 2. Categorias
+    categorias = CategoriaProduto.query.all()
+    for cat in categorias:
+        pages.append({'loc': url_for('loja.categoria', slug_categoria=cat.slug, _external=True)})
+        
+    # 3. Produtos (Ajustado para bater com o nome da função e campo de visibilidade)
+    produtos = Produto.query.filter_by(visivel_loja=True).all()
+    for prod in produtos:
+        pages.append({'loc': url_for('loja.detalhe_produto', slug=prod.slug, _external=True)})
+
+    # Renderiza o XML
+    from app.utils.datetime import now_local # Garante que o template tenha acesso à data
+    sitemap_xml = render_template('loja/sitemap.xml', pages=pages, now_local=now_local)
+    
+    response = make_response(sitemap_xml)
+    response.headers["Content-Type"] = "application/xml"
+    
+    return response
+
+@loja_bp.route('/robots.txt')
+def robots_txt():
+    return send_from_directory(os.path.join(current_app.root_path, 'static'), 'robots.txt')
+
