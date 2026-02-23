@@ -44,8 +44,9 @@
     </div>
 </div>
 
-<script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/decoupled-document/ckeditor.js"></script>
-<script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/decoupled-document/translations/pt-br.js"></script>
+<!-- Local CKEditor -->
+<script src="{{ url_for('static', filename='vendor/ckeditor/ckeditor.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/ckeditor/pt-br.js') }}"></script>
 
 <script>
     DecoupledEditor

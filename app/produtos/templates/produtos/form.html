@@ -52,7 +52,8 @@
 <!-- ============================================================
      SCRIPTS — Máscaras, Cálculos e Autosave
 ============================================================ -->
-<script src="https://cdn.jsdelivr.net/npm/autonumeric@4.10.5"></script>
+<!-- Local AutoNumeric -->
+<script src="{{ url_for('static', filename='vendor/autonumeric/autoNumeric.min.js') }}"></script>
 
 <!-- Módulo principal (cálculo, resumo e foto) -->
 <script src="{{ url_for('static', filename='js/produtos_form.js') }}"></script>

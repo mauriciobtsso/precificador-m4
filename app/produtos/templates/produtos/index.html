@@ -455,7 +455,7 @@
 
 {% include 'produtos/modal_visualizar.html' %}
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="{{ url_for("static", filename="vendor/html2canvas/html2canvas.min.js") }}"></script>
 
 <script>
 document.getElementById("vp_btn_print").addEventListener("click", async () => {
