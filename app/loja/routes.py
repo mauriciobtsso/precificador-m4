@@ -1,4 +1,4 @@
-from flask import render_template, abort, request, url_for, send_from_directory
+from flask import render_template, abort, request, url_for, send_from_directory, current_app, redirect
 from app.loja import loja_bp
 from app.loja.models_admin import Banner, PaginaInstitucional
 from app.produtos.models import Produto
@@ -205,9 +205,11 @@ def fale_conosco():
     """Página de contato utilizando os dados dinâmicos da loja"""
     return render_template('loja/fale_conosco.html', title="Fale Conosco - M4 Tática")
 
+# ROTA DE VERIFICAÇÃO DO GOOGLE
 @loja_bp.route('/google8fe23db2fb19380f.html')
 def google_verification():
-    # Caminho para a pasta onde você salvou o arquivo
-    static_dir = os.path.join(current_app.root_path, 'loja', 'static')
-    return send_from_directory(static_dir, 'google8fe23db2fb19380f.html')
+    # current_app.root_path aponta para a pasta /app/
+    # Como seu arquivo está em /app/static/, o join fica assim:
+    static_dir = os.path.join(current_app.root_path, 'static')
 
+    return send_from_directory(static_dir, 'google8fe23db2fb19380f.html')
