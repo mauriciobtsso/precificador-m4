@@ -1,4 +1,4 @@
-from flask import render_template, abort, request, url_for
+from flask import render_template, abort, request, url_for, send_from_directory
 from app.loja import loja_bp
 from app.loja.models_admin import Banner, PaginaInstitucional
 from app.produtos.models import Produto
@@ -7,6 +7,7 @@ from app.models import Taxa, Configuracao
 from app.utils.r2_helpers import gerar_link_r2
 import app.utils.parcelamento as parcelamento_logic
 from sqlalchemy import or_, func
+import os
 
 def limpar_caminho_r2(caminho):
     """
@@ -203,3 +204,10 @@ def exibir_pagina(slug):
 def fale_conosco():
     """Página de contato utilizando os dados dinâmicos da loja"""
     return render_template('loja/fale_conosco.html', title="Fale Conosco - M4 Tática")
+
+@loja_bp.route('/google8fe23db2fb19380f.html')
+def google_verification():
+    # Caminho para a pasta onde você salvou o arquivo
+    static_dir = os.path.join(current_app.root_path, 'loja', 'static')
+    return send_from_directory(static_dir, 'google8fe23db2fb19380f.html')
+
