@@ -21,11 +21,11 @@
                 {% set imagem = produto.foto_url or produto.imagem_principal or produto.imagem_url or produto.foto %}
                 
                 {% if imagem %}
-                    {# OTIMIZAÇÃO: loading="lazy" adicionado para performance (TTFB e LCP) #}
                     <img src="{{ gerar_link(imagem) }}" 
                          alt="{{ produto.nome_comercial if produto.nome_comercial else produto.nome }}" 
                          class="m4-product-img"
                          loading="lazy"
+                         decoding="async"
                          onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';">
                 {% else %}
                     <div class="text-center opacity-25">
@@ -36,15 +36,22 @@
             </div>
         </a>
 
-        {# 3. Informações do Produto (Sincronizado com Nome Comercial) #}
+        {# 3. Informações do Produto (Link na Marca Corrigido) #}
         <div class="card-body p-0 pt-3 text-start">
             <span class="m4-brand-label">
-                {{ produto.marca_rel.nome if produto.marca_rel else (produto.marca.nome if produto.marca else 'M4 TÁTICA') }}
+                {% if produto.marca_rel and produto.categoria %}
+                    <a href="{{ url_for('loja.categoria', slug_categoria=produto.categoria.slug, marca=produto.marca_rel.id) }}" class="text-decoration-none" style="color: inherit;">
+                        {{ produto.marca_rel.nome }}
+                    </a>
+                {% elif produto.marca_rel %}
+                    {{ produto.marca_rel.nome }}
+                {% else %}
+                    M4 TÁTICA
+                {% endif %}
             </span>
             
             <h6 class="m4-product-name">
                 <a href="{{ url_for('loja.detalhe_produto', slug=produto.slug) }}">
-                    {# PRIORIDADE: Nome Comercial amigável para o card da vitrine #}
                     {{ produto.nome_comercial if produto.nome_comercial else produto.nome }}
                 </a>
             </h6>
@@ -66,7 +73,7 @@
             </div>
         </div>
 
-        {# 4. Chamada para Ação (CTA) #}
+        {# 4. Chamada para Ação #}
         <div class="mt-3">
             <a href="{{ url_for('loja.detalhe_produto', slug=produto.slug) }}" class="m4-btn-details">
                 VER PRODUTO
@@ -81,170 +88,26 @@
         --m4-danger: #d9534f;
         --m4-gray-bg: #f8f9fa;
     }
-
-    .product-card-m4 {
-        background: transparent;
-        position: relative;
-        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-    }
-
-    .product-card-m4:hover {
-        transform: translateY(-10px);
-    }
-
-    /* Badges Estilizados */
-    .m4-badge-container {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 10;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .m4-badge {
-        color: #fff;
-        font-size: 9px;
-        font-weight: 900;
-        padding: 4px 10px;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
+    .product-card-m4 { background: transparent; position: relative; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
+    .product-card-m4:hover { transform: translateY(-10px); }
+    .m4-badge-container { position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; flex-direction: column; gap: 4px; }
+    .m4-badge { color: #fff; font-size: 9px; font-weight: 900; padding: 4px 10px; letter-spacing: 0.5px; text-transform: uppercase; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .badge-sale { background: var(--m4-danger); }
     .badge-new { background: var(--m4-gold); color: #000 !important; }
-
-    .m4-wishlist-btn {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 10;
-        background: white;
-        border: 1px solid #eee;
-        color: #ddd;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: 0.3s;
-        cursor: pointer;
-    }
-
-    .m4-wishlist-btn:hover {
-        background: var(--m4-danger);
-        color: white;
-        border-color: var(--m4-danger);
-    }
-
-    /* Container de Imagem Profissional */
-    .m4-img-container {
-        background-color: var(--m4-gray-bg);
-        height: 260px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        overflow: hidden;
-        border-radius: 6px;
-        transition: 0.3s;
-    }
-
-    .product-card-m4:hover .m4-img-container {
-        background-color: #fff;
-        box-shadow: inset 0 0 0 1px #eee;
-    }
-
-    .m4-product-img {
-        max-height: 100%;
-        max-width: 100%;
-        object-fit: contain;
-        transition: transform 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
-    }
-
-    .product-card-m4:hover .m4-product-img {
-        transform: scale(1.1);
-    }
-
-    /* Tipografia e Preços */
-    .m4-brand-label {
-        font-size: 10px;
-        font-weight: 800;
-        color: var(--m4-gold);
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        margin-bottom: 5px;
-    }
-
-    .m4-product-name {
-        font-size: 14px;
-        font-weight: 700;
-        height: 42px;
-        line-height: 1.4;
-        margin: 0;
-    }
-
-    .m4-product-name a {
-        color: #111;
-        text-decoration: none;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
+    .m4-wishlist-btn { position: absolute; top: 10px; left: 10px; z-index: 10; background: white; border: 1px solid #eee; color: #ddd; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.3s; cursor: pointer; }
+    .m4-wishlist-btn:hover { background: var(--m4-danger); color: white; border-color: var(--m4-danger); }
+    .m4-img-container { background-color: var(--m4-gray-bg); height: 260px; display: flex; align-items: center; justify-content: center; padding: 20px; overflow: hidden; border-radius: 6px; transition: 0.3s; }
+    .product-card-m4:hover .m4-img-container { background-color: #fff; box-shadow: inset 0 0 0 1px #eee; }
+    .m4-product-img { max-height: 100%; max-width: 100%; object-fit: contain; transition: transform 0.8s cubic-bezier(0.165, 0.84, 0.44, 1); }
+    .product-card-m4:hover .m4-product-img { transform: scale(1.1); }
+    .m4-brand-label { font-size: 10px; font-weight: 800; color: var(--m4-gold); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
+    .m4-product-name { font-size: 14px; font-weight: 700; height: 42px; line-height: 1.4; margin: 0; }
+    .m4-product-name a { color: #111; text-decoration: none; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .price-box { min-height: 90px; }
-
-    .m4-old-price {
-        font-size: 11px;
-        text-decoration: line-through;
-        color: #bbb;
-        margin: 0;
-    }
-
-    .m4-main-price {
-        font-size: 22px;
-        font-weight: 900;
-        color: #000;
-        margin: 0;
-        letter-spacing: -0.5px;
-    }
-
-    .m4-installments {
-        font-size: 12px;
-        color: #666;
-        margin: 0;
-    }
-
-    /* Botão de Ação Estilo Loja Integrada */
-    .m4-btn-details {
-        display: block;
-        width: 100%;
-        padding: 12px;
-        background: #fdfdfd;
-        border: 1px solid #eee;
-        color: #111;
-        font-size: 11px;
-        font-weight: 800;
-        text-align: center;
-        text-decoration: none;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        border-radius: 4px;
-        transition: 0.3s;
-    }
-
-    .product-card-m4:hover .m4-btn-details {
-        background-color: #000;
-        color: #fff;
-        border-color: #000;
-    }
-
-    @media (max-width: 768px) {
-        .m4-img-container { height: 180px; }
-        .m4-main-price { font-size: 18px; }
-    }
+    .m4-old-price { font-size: 11px; text-decoration: line-through; color: #bbb; margin: 0; }
+    .m4-main-price { font-size: 22px; font-weight: 900; color: #000; margin: 0; letter-spacing: -0.5px; }
+    .m4-installments { font-size: 12px; color: #666; margin: 0; }
+    .m4-btn-details { display: block; width: 100%; padding: 12px; background: #fdfdfd; border: 1px solid #eee; color: #111; font-size: 11px; font-weight: 800; text-align: center; text-decoration: none; letter-spacing: 1px; text-transform: uppercase; border-radius: 4px; transition: 0.3s; }
+    .product-card-m4:hover .m4-btn-details { background-color: #000; color: #fff; border-color: #000; }
+    @media (max-width: 768px) { .m4-img-container { height: 180px; } .m4-main-price { font-size: 18px; } }
 </style>

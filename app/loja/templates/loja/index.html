@@ -12,10 +12,10 @@
             <div class="carousel-item {{ 'active' if loop.first }}">
                 {% if banner.link_destino %}
                     <a href="{{ banner.link_destino }}">
-                        <img src="{{ gerar_link(banner.imagem_url) }}" class="d-block w-100" alt="{{ banner.titulo }}">
+                        <img src="{{ gerar_link(banner.imagem_url) }}" class="d-block w-100" alt="{{ banner.titulo }}" loading="lazy" decoding="async">
                     </a>
                 {% else %}
-                    <img src="{{ gerar_link(banner.imagem_url) }}" class="d-block w-100" alt="{{ banner.titulo }}">
+                    <img src="{{ gerar_link(banner.imagem_url) }}" class="d-block w-100" alt="{{ banner.titulo }}" loading="lazy" decoding="async">
                 {% endif %}
             </div>
             {% endfor %}
@@ -46,7 +46,7 @@
                     <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none">
                         <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
                             {% if marca.logo_url %}
-                                <img src="{{ gerar_link(marca.logo_url) }}" alt="{{ marca.nome }}" class="img-fluid brand-img">
+                                <img src="{{ gerar_link(marca.logo_url) }}" alt="{{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async">
                             {% else %}
                                 <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
                             {% endif %}
@@ -61,7 +61,7 @@
                     <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none">
                         <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
                             {% if marca.logo_url %}
-                                <img src="{{ gerar_link(marca.logo_url) }}" alt="{{ marca.nome }}" class="img-fluid brand-img">
+                                <img src="{{ gerar_link(marca.logo_url) }}" alt="{{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async">
                             {% else %}
                                 <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
                             {% endif %}

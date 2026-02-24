@@ -7,7 +7,33 @@ from app.models import Taxa, Configuracao
 from app.utils.r2_helpers import gerar_link_r2
 import app.utils.parcelamento as parcelamento_logic
 from sqlalchemy import or_, func
+from sqlalchemy.orm import joinedload
 import os
+
+try:
+    from flask_caching import Cache
+    cache_enabled = True
+    cache = Cache(config={
+        'CACHE_TYPE': 'simple',  # SimpleCache para memória local
+        'CACHE_DEFAULT_TIMEOUT': 300 # 5 minutos
+    })
+    def init_cache(app):
+        cache.init_app(app)
+except ImportError:
+    cache_enabled = False
+    class NoOpCache:
+        def cached(self, *args, **kwargs):
+            def decorator(f):
+                return f
+            return decorator
+        def get(self, key):
+            return None
+        def set(self, key, value, timeout=None):
+            pass
+    cache = NoOpCache()
+    init_cache = lambda app: None
+    # Log de aviso caso o módulo não esteja presente
+    print("Flask-Caching não instalado. Performance reduzida.")
 
 def limpar_caminho_r2(caminho):
     """
@@ -17,7 +43,7 @@ def limpar_caminho_r2(caminho):
     if not caminho:
         return ""
     
-    if caminho.startswith('http'):
+    if caminho.startswith("http"):
         from urllib.parse import urlparse
         caminho = urlparse(caminho).path
 
@@ -36,11 +62,13 @@ def limpar_caminho_r2(caminho):
 # CONTEXT PROCESSOR: DISPONIBILIZA CATEGORIAS EM TODA A LOJA
 # ============================================================
 @loja_bp.app_context_processor
+@cache.cached(timeout=3600, key_prefix='loja_data_v2') # Cache por 1 hora
 def inject_loja_data():
-    """Busca categorias PAI e configurações de forma otimizada."""
+    """Busca categorias PAI e configurações de forma otimizada e com cache."""
     try:
-        # Carrega apenas categorias principais necessárias para o menu
+        # CORREÇÃO CRÍTICA: joinedload(subcategorias) resolve o DetachedInstanceError
         categorias_menu = CategoriaProduto.query.filter_by(pai_id=None, exibir_no_menu=True)\
+            .options(joinedload(CategoriaProduto.subcategorias))\
             .order_by(CategoriaProduto.ordem_exibicao.asc()).all()
         
         paginas_rodape = PaginaInstitucional.query.filter_by(visivel_rodape=True).all()
@@ -58,13 +86,15 @@ def inject_loja_data():
 
         return dict(categorias_menu=categorias_menu, loja=loja, paginas_rodape=paginas_rodape)
     except Exception as e:
-        current_app.logger.error(f"Erro no inject_loja_data: {e}")
+        # Usamos print aqui para log simples caso o current_app.logger falhe no context
+        print(f"Erro no inject_loja_data: {e}")
         return dict(categorias_menu=[], loja={}, paginas_rodape=[])
 
 # ============================================================
 # VITRINE PRINCIPAL
 # ============================================================
 @loja_bp.route('/')
+@cache.cached(timeout=60, query_string=True, key_prefix='index_v6') # query_string=True resolve o travamento
 def index():
     termo_busca = request.args.get('q', '').strip()
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
@@ -74,7 +104,7 @@ def index():
         busca_like = f"%{termo_busca}%"
         query = Produto.query.filter_by(visivel_loja=True).filter(
             or_(Produto.nome.ilike(busca_like), Produto.codigo.ilike(busca_like))
-        )
+        ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria)) # Proteção na busca
         pagination = query.order_by(Produto.criado_em.desc()).paginate(page=request.args.get('page', 1, type=int), per_page=12)
         return render_template('loja/index.html', 
                                produtos=pagination.items, 
@@ -82,30 +112,58 @@ def index():
                                gerar_link=gerador_limpo, 
                                termo_busca=termo_busca)
 
-    # 2. LANÇAMENTOS E DESTAQUES (Consultas rápidas e limitadas)
-    lancamentos = Produto.query.filter_by(visivel_loja=True).order_by(Produto.criado_em.desc()).limit(4).all()
-    destaques = Produto.query.filter_by(visivel_loja=True).order_by(func.random()).limit(4).all()
+    # 2. LANÇAMENTOS E DESTAQUES (Joinedload para Marca E Categoria)
+    lancamentos = cache.get('lancamentos_home_v4')
+    if lancamentos is None:
+        lancamentos = Produto.query.filter_by(visivel_loja=True)\
+            .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
+            .order_by(Produto.criado_em.desc()).limit(4).all()
+        cache.set('lancamentos_home_v4', lancamentos, timeout=300)
 
-    # 3. PRATELEIRAS INTELIGENTES (Otimizadas para evitar N+1 queries)
-    def get_smart_cat(termo):
-        cat = CategoriaProduto.query.filter(
-            or_(CategoriaProduto.slug.ilike(f"%{termo}%"), CategoriaProduto.nome.ilike(f"%{termo}%"))
-        ).first()
-        if not cat: return []
-        ids = [cat.id] + [s.id for s in cat.subcategorias]
-        return Produto.query.filter(Produto.visivel_loja==True, Produto.categoria_id.in_(ids))\
-                      .order_by(Produto.criado_em.desc()).limit(4).all()
+    destaques = cache.get('destaques_home_v4')
+    if destaques is None:
+        destaques = Produto.query.filter_by(visivel_loja=True)\
+            .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
+            .order_by(func.random()).limit(4).all()
+        cache.set('destaques_home_v4', destaques, timeout=300)
 
-    prateleiras = {
-        "Pistolas": get_smart_cat("pistola"),
-        "Rifles": get_smart_cat("rifle"),
-        "Munições": get_smart_cat("muni")
-    }
-
-    banners = Banner.query.filter_by(ativo=True).order_by(Banner.ordem.asc()).all()
+# 3. PRATELEIRAS INTELIGENTES (v5 - Correção da abrangência de Munições)
+    prateleiras = cache.get('prateleiras_home_v5')
+    if prateleiras is None:
+        def get_smart_cat(termo):
+            # Busca a categoria pai pelo nome ou slug
+            cat = CategoriaProduto.query.filter(
+                or_(CategoriaProduto.slug.ilike(f"%{termo}%"), CategoriaProduto.nome.ilike(f"%{termo}%"))
+            ).first()
+            if not cat: return []
+            
+            # Pega o ID da categoria pai + IDs de TODAS as subcategorias filhas
+            ids_alvo = [cat.id]
+            if cat.subcategorias:
+                ids_alvo.extend([s.id for s in cat.subcategorias])
+            
+            # Busca produtos que estejam em qualquer um desses IDs
+            return Produto.query.filter(Produto.visivel_loja == True, Produto.categoria_id.in_(ids_alvo))\
+                          .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
+                          .order_by(Produto.criado_em.desc()).limit(4).all()
+        
+        prateleiras = {
+            "Pistolas": get_smart_cat("pistola"),
+            "Rifles": get_smart_cat("rifle"),
+            "Munições": get_smart_cat("muni") # Agora pegará Cal. 12, 9mm, .380, etc.
+        }
+        cache.set('prateleiras_home_v5', prateleiras, timeout=300)
+    
+    banners = cache.get('banners_home')
+    if banners is None:
+        banners = Banner.query.filter_by(ativo=True).order_by(Banner.ordem.asc()).all()
+        cache.set('banners_home', banners, timeout=300)
 
     from app.produtos.configs.models import MarcaProduto
-    marcas_home = MarcaProduto.query.filter(MarcaProduto.logo_url != None).all()
+    marcas_home = cache.get('marcas_home')
+    if marcas_home is None:
+        marcas_home = MarcaProduto.query.filter(MarcaProduto.logo_url != None).all()
+        cache.set('marcas_home', marcas_home, timeout=3600)
 
     return render_template('loja/index.html', 
                            lancamentos=lancamentos, 
@@ -119,23 +177,36 @@ def index():
 # DETALHE DO PRODUTO
 # ============================================================
 @loja_bp.route('/produto/<string:slug>')
+@cache.cached(timeout=300, make_cache_key=lambda *args, **kwargs: request.path)
 def detalhe_produto(slug):
     produto = Produto.query.filter_by(slug=slug, visivel_loja=True).first_or_404()
-    precos = produto.calcular_precos()
     
-    valor_base = float(precos.get('preco_a_vista') or 0.0)
-    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
-    opcoes_parcelamento = parcelamento_logic.gerar_linhas_parcelas(valor_base, taxas)
+    precos_key = f'precos_{produto.id}'
+    opcoes_parcelamento_key = f'opcoes_parcelamento_{produto.id}'
+
+    precos = cache.get(precos_key)
+    opcoes_parcelamento = cache.get(opcoes_parcelamento_key)
+
+    if precos is None or opcoes_parcelamento is None:
+        precos = produto.calcular_precos()
+        valor_base = float(precos.get('preco_a_vista') or 0.0)
+        taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+        opcoes_parcelamento = parcelamento_logic.gerar_linhas_parcelas(valor_base, taxas)
+        cache.set(precos_key, precos, timeout=300)
+        cache.set(opcoes_parcelamento_key, opcoes_parcelamento, timeout=300)
     
     parcela_12x = next((item for item in opcoes_parcelamento if item["rotulo"] == "12x"), None)
     
-    # Busca relacionados da mesma categoria (Otimizado)
-    relacionados = Produto.query.filter(
-        Produto.categoria_id == produto.categoria_id, 
-        Produto.id != produto.id,
-        Produto.visivel_loja == True
-    ).limit(4).all()
-
+    # 3. Produtos Relacionados (Otimizado com joinedload para evitar erro de Cache)
+    relacionados_key = f'relacionados_{produto.categoria_id}'
+    relacionados = cache.get(relacionados_key)
+    if relacionados is None:
+        relacionados = Produto.query.filter(
+            Produto.categoria_id == produto.categoria_id, 
+            Produto.id != produto.id,
+            Produto.visivel_loja == True
+        ).options(joinedload(Produto.marca_rel)).limit(4).all() # <--- ADICIONADO JOINEDLOAD AQUI
+        cache.set(relacionados_key, relacionados, timeout=300)
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
     return render_template('loja/produto_detalhe.html', 
@@ -151,6 +222,7 @@ def detalhe_produto(slug):
 # PÁGINA DE CATEGORIA
 # ============================================================
 @loja_bp.route('/categoria/<string:slug_categoria>')
+@cache.cached(timeout=300, make_cache_key=lambda *args, **kwargs: request.full_path)
 def categoria(slug_categoria):
     categoria_obj = CategoriaProduto.query.filter_by(slug=slug_categoria).first_or_404()
     
@@ -177,8 +249,19 @@ def categoria(slug_categoria):
     pagination = query.paginate(page=page, per_page=12)
 
     from app.produtos.configs.models import MarcaProduto, CalibreProduto
-    marcas_vivas = MarcaProduto.query.join(Produto).filter(Produto.categoria_id.in_(cat_ids)).distinct().all()
-    calibres_vivos = CalibreProduto.query.join(Produto).filter(Produto.categoria_id.in_(cat_ids)).distinct().all()
+    marcas_vivas_key = f'marcas_vivas_{categoria_obj.id}'
+    calibres_vivos_key = f'calibres_vivos_{categoria_obj.id}'
+
+    marcas_vivas = cache.get(marcas_vivas_key)
+    calibres_vivos = cache.get(calibres_vivos_key)
+
+    if marcas_vivas is None:
+        marcas_vivas = MarcaProduto.query.join(Produto).filter(Produto.categoria_id.in_(cat_ids)).distinct().all()
+        cache.set(marcas_vivas_key, marcas_vivas, timeout=300)
+    
+    if calibres_vivos is None:
+        calibres_vivos = CalibreProduto.query.join(Produto).filter(Produto.categoria_id.in_(cat_ids)).distinct().all()
+        cache.set(calibres_vivos_key, calibres_vivos, timeout=300)
 
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
@@ -190,6 +273,7 @@ def categoria(slug_categoria):
                            gerar_link=gerador_limpo)
 
 @loja_bp.route('/p/<string:slug>')
+@cache.cached(timeout=3600, make_cache_key=lambda *args, **kwargs: request.path)
 def exibir_pagina(slug):
     pagina = PaginaInstitucional.query.filter_by(slug=slug).first_or_404()
     return render_template('loja/pagina_institucional.html', pagina=pagina)
@@ -204,18 +288,18 @@ def google_verification():
     return send_from_directory(static_dir, 'google8fe23db2fb19380f.html')
 
 @loja_bp.route('/sitemap.xml')
+@cache.cached(timeout=86400, key_prefix='sitemap_xml_v2')
 def sitemap():
-    """Gera sitemap otimizado apenas com os slugs."""
     pages = []
     pages.append({'loc': url_for('loja.index', _external=True)})
     
-    categorias = CategoriaProduto.query.with_entities(CategoriaProduto.slug).all()
-    for cat in categorias:
-        pages.append({'loc': url_for('loja.categoria', slug_categoria=cat.slug, _external=True)})
+    categorias_slugs = CategoriaProduto.query.with_entities(CategoriaProduto.slug).all()
+    for cat_slug in categorias_slugs:
+        pages.append({'loc': url_for('loja.categoria', slug_categoria=cat_slug.slug, _external=True)})
         
-    produtos = Produto.query.filter_by(visivel_loja=True).with_entities(Produto.slug).all()
-    for prod in produtos:
-        pages.append({'loc': url_for('loja.detalhe_produto', slug=prod.slug, _external=True)})
+    produtos_slugs = Produto.query.filter_by(visivel_loja=True).with_entities(Produto.slug).all()
+    for prod_slug in produtos_slugs:
+        pages.append({'loc': url_for('loja.detalhe_produto', slug=prod_slug.slug, _external=True)})
 
     from app.utils.datetime import now_local
     sitemap_xml = render_template('loja/sitemap.xml', pages=pages, now_local=now_local)

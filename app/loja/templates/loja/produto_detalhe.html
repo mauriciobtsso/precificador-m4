@@ -67,6 +67,7 @@
         box-shadow: 0 5px 15px rgba(0,0,0,0.02);
     }
 
+    /* Estilização da Ficha Técnica */
     .specs-table { width: 100%; margin-bottom: 2rem; }
     .specs-label {
         font-size: 0.7rem;
@@ -117,6 +118,7 @@
         transform: translateY(-3px);
     }
 
+    /* Formatação para Descrição */
     .description-rich-text { font-size: 1.05rem; line-height: 1.8; color: #444; }
     .description-rich-text h2, .description-rich-text h3 { 
         font-weight: 800; text-transform: uppercase; margin-top: 2rem; margin-bottom: 1rem; color: #000;
@@ -125,14 +127,47 @@
     .description-rich-text table { width: 100% !important; border: 1px solid #eee; margin: 1.5rem 0; }
     .description-rich-text td { padding: 10px; border: 1px solid #eee; }
 
+    /* Estilos Gerais do Modal */
+    .modal-content-m4 { border: none; border-radius: 0; display: flex; flex-direction: column; }
+    .modal-header-m4 { background-color: #000; color: white; border-bottom: 2px solid var(--m4-gold); flex-shrink: 0; }
+    .table-parcelas thead th { background-color: #f8f9fa; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+    .row-pix { background-color: #f1fcf1 !important; }
+
+    /* AJUSTES MOBILE EXCLUSIVOS */
     @media (max-width: 991px) {
         .img-main-container { height: 400px; position: static; margin-bottom: 2rem; }
+        
+        /* Força o modal a não ocupar a tela toda */
+        .modal-dialog.modal-dialog-centered {
+            margin: 1.5rem !important;
+            align-items: center !important;
+            min-height: auto !important;
+            max-height: 80vh !important;
+        }
+
+        .modal-content-m4 {
+            max-height: 80vh !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
+        }
+
+        /* Garante o scroll apenas no corpo do modal */
+        .modal-body {
+            overflow-y: auto !important;
+            padding: 0 !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Tabela compacta para mobile */
+        .table-parcelas { font-size: 12px; }
+        .table-parcelas td, .table-parcelas th { padding: 8px !important; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container detail-container">
+    {# 1. NAVEGAÇÃO #}
     <nav aria-label="breadcrumb" class="mb-5">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a href="{{ url_for('loja.index') }}" class="text-decoration-none text-muted">Início</a></li>
@@ -150,11 +185,12 @@
     </nav>
 
     <div class="row g-5">
+        {# 2. COLUNA DA ESQUERDA: IMAGEM #}
         <div class="col-lg-7">
             <div class="img-main-container rounded shadow-sm">
                 {% set imagem = produto.foto_url or produto.imagem_principal %}
                 {% if imagem %}
-                    <img src="{{ gerar_link(imagem) }}" alt="{{ produto.nome_comercial or produto.nome }}">
+                    <img src="{{ gerar_link(imagem) }}" alt="{{ produto.nome_comercial or produto.nome }}" loading="eager" decoding="async">
                 {% else %}
                     <div class="text-center text-muted opacity-50">
                         <i class="bi bi-image fs-1 d-block mb-2"></i>
@@ -164,6 +200,7 @@
             </div>
         </div>
 
+        {# 3. COLUNA DA DIREITA: COMPRA #}
         <div class="col-lg-5">
             {% if produto.requer_documentacao %}
             <div class="badge-controlled-premium">
@@ -232,6 +269,7 @@
         </div>
     </div>
 
+    {# 4. SEÇÃO TÉCNICA E DESCRIÇÃO LONGA (RESTAURADA) #}
     <div class="row mt-5 pt-5 border-top">
         <div class="col-lg-5">
             <h4 class="section-title-premium">Ficha Técnica</h4>
@@ -276,6 +314,7 @@
         </div>
     </div>
 
+    {# 5. RELACIONADOS (RESTAURADA) #}
     {% if relacionados %}
     <div class="row mt-5 pt-5">
         <div class="col-12">
@@ -294,9 +333,9 @@
     {% endif %}
 </div>
 
-{# MODAL DE PARCELAMENTO #}
+{# 6. MODAL DE PARCELAMENTO - CORRIGIDO COM SCROLLABLE #}
 <div class="modal fade" id="modalParcelas" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content modal-content-m4 shadow-lg">
             <div class="modal-header modal-header-m4">
                 <h5 class="modal-title text-uppercase fw-bold small">Condições de Pagamento</h5>

@@ -20,12 +20,12 @@
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
     <link rel="icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
 
-    <link href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" rel="stylesheet" media="print" onload="this.media='all'">
     
     <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/all.min.css') }}">
     
     <style>
@@ -46,7 +46,6 @@
             overflow-x: hidden;
         }
 
-        /* HEADER FIXO */
         header {
             position: sticky;
             top: 0;
@@ -55,8 +54,10 @@
             background-color: var(--m4-dark);
         }
 
-        /* NAVBAR PRINCIPAL */
         .navbar-main { padding: 15px 0; border-bottom: 1px solid #222; }
+        
+        /* Ajuste Logo Mobile */
+        .navbar-brand { position: relative; z-index: 2001; display: inline-block; }
         .logo-img { height: 55px; width: auto; object-fit: contain; }
         
         .search-container { max-width: 500px; width: 100%; }
@@ -67,7 +68,6 @@
         .header-icon:hover { color: var(--m4-gold); }
         .cart-badge { position: absolute; top: -5px; right: -2px; background: var(--m4-gold); color: #000; font-size: 10px; font-weight: 900; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 
-        /* MENU DE CATEGORIAS DINÂMICO */
         .nav-departments { background-color: #ffffff; border-bottom: 3px solid var(--m4-gold); }
         .nav-departments .nav-link { 
             color: #111 !important; 
@@ -84,7 +84,6 @@
             .nav-departments .nav-link:hover { color: var(--m4-gold) !important; background: #fdfdfd; }
         }
 
-        /* AJUSTE PARA MENUS LONGOS (MUNIÇÕES) */
         .dropdown-menu { 
             border-radius: 0; 
             border: none; 
@@ -103,7 +102,6 @@
         .dropdown-item { font-size: 13px; font-weight: 600; padding: 10px 25px; transition: 0.2s; }
         .dropdown-item:hover { background-color: var(--m4-gray-bg); color: var(--m4-gold); padding-left: 30px; }
 
-        /* FOOTER */
         footer { background-color: #111; color: #fff; padding: 60px 0 20px; margin-top: 80px; }
         footer h6 { color: #fff; font-weight: 800; text-transform: uppercase; font-size: 14px; margin-bottom: 25px; letter-spacing: 1px; border-left: 3px solid var(--m4-gold); padding-left: 10px; }
         footer a { color: #999; text-decoration: none; transition: 0.3s; font-size: 13px; }
@@ -111,8 +109,17 @@
         
         .footer-info-text { color: #999 !important; font-size: 13px; }
 
+        /* Ajuste do Copyright */
+        .copyright-text { 
+            font-size: 11px; 
+            color: #bbb !important; /* Mais visível que o muted padrão */
+            letter-spacing: 0.5px;
+            line-height: 1.6;
+        }
+
         @media (max-width: 991px) {
             .search-container { order: 3; max-width: 100%; margin-top: 15px; }
+            .logo-img { height: 40px; }
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -168,7 +175,6 @@
                             {% endif %}
                         {% endif %}
                     {% endfor %}
-
                     <li class="nav-item">
                         <a class="nav-link text-danger fw-bold" href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank">
                             <i class="bi bi-shield-check me-1"></i> SERVIÇOS / CR
@@ -229,9 +235,9 @@
                 <div class="col-lg-3 col-md-6">
                     <h6>Pagamento & Segurança</h6>
                     <div class="payment-icons mb-3">
-                        <img src="https://img.icons8.com/color/38/visa.png" alt="Visa">
-                        <img src="https://img.icons8.com/color/38/mastercard.png" alt="Mastercard">
-                        <img src="https://img.icons8.com/color/38/pix.png" alt="Pix">
+                        <img src="https://img.icons8.com/color/38/visa.png" alt="Visa" loading="lazy">
+                        <img src="https://img.icons8.com/color/38/mastercard.png" alt="Mastercard" loading="lazy">
+                        <img src="https://img.icons8.com/color/38/pix.png" alt="Pix" loading="lazy">
                     </div>
                     <div class="d-flex gap-2">
                         <i class="bi bi-shield-check fs-2 text-success" title="Site Seguro"></i>
@@ -241,13 +247,13 @@
             </div>
 
             <div class="footer-bottom mt-5 pt-4 border-top border-secondary text-center">
-                <p class="small text-muted">© 2026 {{ loja.loja_nome_fantasia|upper if loja.loja_nome_fantasia else 'M4 TÁTICA' }}. TODOS OS DIREITOS RESERVADOS. <br>
+                <p class="copyright-text">© 2026 {{ loja.loja_nome_fantasia|upper if loja.loja_nome_fantasia else 'M4 TÁTICA' }}. TODOS OS DIREITOS RESERVADOS. <br>
                 Venda de armas e munições de acordo com a legislação vigente.</p>
             </div>
         </div>
     </footer>
 
-    <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}" defer></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
