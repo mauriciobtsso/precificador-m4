@@ -14,6 +14,7 @@ ckeditor = CKEditor()
 
 # Importa extensões centralizadas
 from app.extensions import db, login_manager, migrate
+from app.loja.routes import cache
 from app.produtos.configs import models as configs_models
 from app.utils.datetime import now_local
 
@@ -91,6 +92,18 @@ def create_app():
     login_manager.login_view = "main.login"
     migrate.init_app(app, db)
     ckeditor.init_app(app)
+
+# =========================================================
+    # INICIALIZAÇÃO DO CACHE (CORREÇÃO PARA RENDER)
+    # =========================================================
+    try:
+        # Configuração do cache antes de inicializar
+        app.config['CACHE_TYPE'] = 'SimpleCache'
+        app.config['CACHE_DEFAULT_TIMEOUT'] = 300
+        cache.init_app(app) # <--- Agora o app reconhece a extensão 'cache'
+        app.logger.info("[CACHE] Sistema de cache inicializado com sucesso.")
+    except Exception as e:
+        app.logger.warning(f"[CACHE] Erro ao inicializar cache: {e}")
 
     # =========================================================
     # REGISTRO DE BLUEPRINTS
@@ -240,7 +253,7 @@ def create_app():
     # =========================================================
     # FILTROS CUSTOMIZADOS JINJA
     # =========================================================
-    def format_currency(value):
+    def format_currency_v2(value):
         if value is None or isinstance(value, Undefined):
             return "R$ 0,00"
         try:
@@ -254,7 +267,7 @@ def create_app():
 
     # Registramos com o nome 'currency' (que você já usa) 
     # e também com 'formato_moeda' para evitar erros nos templates novos
-    app.jinja_env.filters["currency"] = format_currency
-    app.jinja_env.filters["formato_moeda"] = format_currency
+    app.jinja_env.filters["currency"] = format_currency_v2
+    app.jinja_env.filters["formato_moeda"] = format_currency_v2
 
     return app

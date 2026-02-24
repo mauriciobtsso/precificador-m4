@@ -10,14 +10,19 @@ from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload
 import os
 
+# --- AJUSTE PARA O RENDER ---
 try:
     from flask_caching import Cache
     cache_enabled = True
-    cache = Cache(config={
-        'CACHE_TYPE': 'simple',  # SimpleCache para memória local
-        'CACHE_DEFAULT_TIMEOUT': 300 # 5 minutos
-    })
+    # Criamos o objeto cache aqui para que ele possa ser importado no __init__.py
+    cache = Cache() 
+    
     def init_cache(app):
+        # A configuração de fato ocorre aqui
+        app.config.update({
+            'CACHE_TYPE': 'simple',
+            'CACHE_DEFAULT_TIMEOUT': 300
+        })
         cache.init_app(app)
 except ImportError:
     cache_enabled = False
@@ -32,7 +37,6 @@ except ImportError:
             pass
     cache = NoOpCache()
     init_cache = lambda app: None
-    # Log de aviso caso o módulo não esteja presente
     print("Flask-Caching não instalado. Performance reduzida.")
 
 def limpar_caminho_r2(caminho):
