@@ -10,12 +10,21 @@
         <div class="carousel-inner">
             {% for banner in banners %}
             <div class="carousel-item {{ 'active' if loop.first }}">
+                {% set banner_link = gerar_link(banner.imagem_url) %}
                 {% if banner.link_destino %}
                     <a href="{{ banner.link_destino }}">
-                        <img src="{{ gerar_link(banner.imagem_url) }}" class="d-block w-100" alt="{{ banner.titulo }}" loading="lazy" decoding="async">
+                        <img src="{{ banner_link }}" 
+                             class="d-block w-100" 
+                             alt="{{ banner.titulo }}" 
+                             {% if loop.first %} fetchpriority="high" {% else %} loading="lazy" {% endif %}
+                             decoding="async">
                     </a>
                 {% else %}
-                    <img src="{{ gerar_link(banner.imagem_url) }}" class="d-block w-100" alt="{{ banner.titulo }}" loading="lazy" decoding="async">
+                    <img src="{{ banner_link }}" 
+                         class="d-block w-100" 
+                         alt="{{ banner.titulo }}" 
+                         {% if loop.first %} fetchpriority="high" {% else %} loading="lazy" {% endif %}
+                         decoding="async">
                 {% endif %}
             </div>
             {% endfor %}
@@ -122,15 +131,14 @@
         </section>
         {% endif %}
 
-{# 5. BANNER INSTITUCIONAL / DESPACHANTE (DINÂMICO) #}
+        {# 5. BANNER INSTITUCIONAL / DESPACHANTE (DINÂMICO) #}
         <section class="mb-5">
             <div class="promo-banner shadow-sm rounded overflow-hidden">
-                {# A imagem de fundo agora vem da variável loja.banner_despachante_link #}
                 <div class="p-5 bg-dark text-center position-relative" 
                      style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('{{ loja.banner_despachante_link }}') center/cover; min-height: 350px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
                     
                     <h2 class="text-gold fw-bold mb-2" style="letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
-                        {{ loja.loja_despachante_titulo if loja.loja_despachante_titulo else 'DESPACHANTE M4 TÁTICA' }}
+                        {{ loja.lo_despachante_titulo if loja.loja_despachante_titulo else 'DESPACHANTE M4 TÁTICA' }}
                     </h2>
                     
                     <p class="text-white opacity-75 mb-4 mx-auto" style="max-width: 700px; font-size: 1.1rem;">
@@ -144,7 +152,7 @@
             </div>
         </section>
 
-        {# 6. VITRINES DINÂMICAS POR CATEGORIA (Pistolas, Rifles, etc) #}
+        {# 6. VITRINES DINÂMICAS POR CATEGORIA #}
         {% if prateleiras %}
             {% for nome_cat, prods in prateleiras.items() %}
                 {% if prods %}
@@ -194,49 +202,12 @@
 </div>
 
 <style>
-    /* Estilização Geral de Vitrines */
-    .shelf-header { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        margin-bottom: 24px; 
-        border-bottom: 1px solid rgba(0,0,0,0.05); 
-        padding-bottom: 12px; 
-    }
-    .shelf-title { 
-        font-weight: 800; 
-        text-transform: uppercase; 
-        font-size: 1.1rem; 
-        border-left: 5px solid var(--m4-gold); 
-        padding-left: 15px; 
-        margin: 0; 
-        letter-spacing: 0.5px;
-        color: #1a1a1a;
-    }
-    .shelf-link { 
-        color: var(--m4-gold); 
-        font-size: 11px; 
-        font-weight: 800; 
-        text-transform: uppercase; 
-        text-decoration: none; 
-        transition: 0.3s;
-        border: 1px solid var(--m4-gold);
-        padding: 4px 12px;
-        border-radius: 20px;
-    }
+    .shelf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 12px; }
+    .shelf-title { font-weight: 800; text-transform: uppercase; font-size: 1.1rem; border-left: 5px solid var(--m4-gold); padding-left: 15px; margin: 0; letter-spacing: 0.5px; color: #1a1a1a; }
+    .shelf-link { color: var(--m4-gold); font-size: 11px; font-weight: 800; text-transform: uppercase; text-decoration: none; transition: 0.3s; border: 1px solid var(--m4-gold); padding: 4px 12px; border-radius: 20px; }
     .shelf-link:hover { background: var(--m4-gold); color: #000; }
-    
-    .promo-banner .btn-gold {
-        background-color: var(--m4-gold);
-        border-color: var(--m4-gold);
-        color: #000;
-        transition: 0.3s;
-    }
-    .promo-banner .btn-gold:hover {
-        background-color: #fff;
-        border-color: #fff;
-        transform: scale(1.05);
-    }
+    .promo-banner .btn-gold { background-color: var(--m4-gold); border-color: var(--m4-gold); color: #000; transition: 0.3s; }
+    .promo-banner .btn-gold:hover { background-color: #fff; border-color: #fff; transform: scale(1.05); }
     .text-gold { color: var(--m4-gold) !important; }
 </style>
 {% endblock %}

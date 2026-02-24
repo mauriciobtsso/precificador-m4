@@ -201,16 +201,21 @@ def detalhe_produto(slug):
     
     parcela_12x = next((item for item in opcoes_parcelamento if item["rotulo"] == "12x"), None)
     
-    # 3. Produtos Relacionados (Otimizado com joinedload para evitar erro de Cache)
-    relacionados_key = f'relacionados_{produto.categoria_id}'
+   # 3. Produtos Relacionados (Otimizado com joinedload para evitar erro de Cache)
+    relacionados_key = f'relacionados_v8_{produto.categoria_id}' # Mudei para v8 para limpar cache antigo
     relacionados = cache.get(relacionados_key)
+    
     if relacionados is None:
         relacionados = Produto.query.filter(
             Produto.categoria_id == produto.categoria_id, 
             Produto.id != produto.id,
             Produto.visivel_loja == True
-        ).options(joinedload(Produto.marca_rel)).limit(4).all() # <--- ADICIONADO JOINEDLOAD AQUI
+        ).options(
+            joinedload(Produto.marca_rel), 
+            joinedload(Produto.categoria) # <--- CARREGAMENTO ESSENCIAL AQUI
+        ).limit(4).all()
         cache.set(relacionados_key, relacionados, timeout=300)
+
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
     return render_template('loja/produto_detalhe.html', 
