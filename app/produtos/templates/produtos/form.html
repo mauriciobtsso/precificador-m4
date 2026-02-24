@@ -20,7 +20,7 @@
   <!-- ============================================================
        BOTÕES DE AÇÃO (fixos no final do formulário)
   ============================================================ -->
-  <div class="d-flex gap-2 mt-3">
+  <div class="d-flex gap-2 mt-3 flex-wrap">
     <button type="button" id="btnSalvarProduto" class="btn btn-orange">
       <span class="icon me-1"><i class="fas fa-save"></i></span> Salvar
     </button>
@@ -29,14 +29,13 @@
     </a>
 
     {% if produto and produto.id %}
-      <form action="{{ url_for('produtos.excluir_produto', produto_id=produto.id) }}"
-            method="POST"
-            onsubmit="return confirm('Tem certeza que deseja excluir este produto?');"
-            class="ms-auto">
-        <button type="submit" class="btn btn-outline-danger" title="Excluir produto">
-          <i class="fas fa-trash-alt"></i>
-        </button>
-      </form>
+      <button type="button" id="btnExcluirProduto" class="btn btn-outline-danger ms-auto" 
+              data-produto-id="{{ produto.id }}"
+              data-produto-nome="{{ produto.nome }}"
+              data-produto-codigo="{{ produto.codigo or '-' }}"
+              title="Excluir este produto">
+        <i class="fas fa-trash-alt me-1"></i> Excluir
+      </button>
     {% endif %}
   </div>
 
@@ -47,6 +46,47 @@
     <small id="saveStatus" class="text-muted">Aguardando alterações...</small>
   </div>
 
+</div>
+
+<!-- ============================================================
+     MODAL DE CONFIRMAÇÃO DE EXCLUSÃO
+============================================================ -->
+<div class="modal fade" id="modalConfirmarExclusao" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i> Confirmar exclusão</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2"><strong>Tem certeza que deseja excluir este produto?</strong></p>
+        <div class="alert alert-warning mb-3">
+          <i class="fas fa-exclamation-circle me-2"></i>
+          <strong>Atenção:</strong> Esta ação é irreversível e não poderá ser desfeita.
+        </div>
+        <div class="border rounded p-3 bg-light">
+          <div class="mb-2">
+            <strong>Nome:</strong> 
+            <span id="modal_ex_nome" class="text-dark">—</span>
+          </div>
+          <div>
+            <strong>Código:</strong> 
+            <span id="modal_ex_codigo" class="text-dark">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i> Cancelar
+        </button>
+        <form id="formExcluirProduto" method="POST" class="d-inline">
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash-alt me-1"></i> Sim, excluir produto
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ============================================================
@@ -71,6 +111,32 @@
   document.addEventListener("DOMContentLoaded", () => {
     console.log("[M4] produto_form HTML carregado ✅");
 
+    // ============================================================
+    // HANDLER PARA EXCLUSÃO DE PRODUTO
+    // ============================================================
+    const btnExcluir = document.getElementById("btnExcluirProduto");
+    if (btnExcluir) {
+      btnExcluir.addEventListener("click", (e) => {
+        e.preventDefault();
+        
+        const produtoId = btnExcluir.getAttribute("data-produto-id");
+        const produtoNome = btnExcluir.getAttribute("data-produto-nome");
+        const produtoCodigo = btnExcluir.getAttribute("data-produto-codigo");
+        
+        // Preenche os dados no modal
+        document.getElementById("modal_ex_nome").textContent = produtoNome;
+        document.getElementById("modal_ex_codigo").textContent = produtoCodigo;
+        
+        // Configura a ação do formulário de exclusão
+        const formExcluir = document.getElementById("formExcluirProduto");
+        formExcluir.action = `{{ url_for('produtos.excluir_produto', produto_id=0) }}`.replace('0', produtoId);
+        
+        // Mostra o modal
+        const modal = new bootstrap.Modal(document.getElementById("modalConfirmarExclusao"));
+        modal.show();
+      });
+    }
+
     // Inicialização da foto (Sprint 6E)
     if (typeof initFotoProduto === "function") {
       console.log("[M4] initFotoProduto() disparado ✅");
@@ -91,6 +157,16 @@
   .card-header { font-size: .95rem; }
   .input-group-text i { font-size: .9rem; }
   .form-label { font-weight: 500; }
+  
+  #btnExcluirProduto {
+    transition: all 0.3s ease;
+  }
+  
+  #btnExcluirProduto:hover {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+  }
 </style>
 
 {% endblock %}

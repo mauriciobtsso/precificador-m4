@@ -2,6 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, current_ap
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_, text
+from sqlalchemy.exc import IntegrityError
 from decimal import Decimal, InvalidOperation
 from datetime import datetime, timezone
 import pytz
@@ -219,59 +220,112 @@ def gerenciar_produto(produto_id=None):
         ]
         antes = {c: getattr(produto, c, None) for c in campos_auditados}
 
-        # --- SALVAMENTO ---
-        produto.codigo = (data.get("codigo") or "").strip().upper()
-        produto.nome = (data.get("nome") or "").strip()
-
-        produto.nome_comercial = (data.get("nome_comercial") or "").strip() or None
-        produto.meta_title = (data.get("meta_title") or "").strip() or None
-
-        if data.get("slug"):
-            produto.slug = data.get("slug").strip().lower()
-
-        produto.descricao = (data.get("descricao") or "").strip() or None
-        produto.descricao_longa = data.get("descricao_longa")
-        produto.descricao_comercial = (data.get("descricao_comercial") or "").strip() or None
-        
-        desc_google = (data.get("meta_description") or "").strip()
-        produto.meta_description = desc_google[:250] if desc_google else None
-
-        produto.categoria_id = to_int(data.get("categoria_id"))
-        produto.marca_id = to_int(data.get("marca_id"))
-        produto.calibre_id = to_int(data.get("calibre_id"))
-        produto.tipo_id = to_int(data.get("tipo_id"))
-        produto.funcionamento_id = to_int(data.get("funcionamento_id"))
-        produto.foto_url = data.get("foto_url") or foto_atual
-
-        produto.preco_fornecedor = to_decimal(data.get("preco_fornecedor"))
-        produto.desconto_fornecedor = to_decimal(data.get("desconto_fornecedor"))
-        produto.frete = to_decimal(data.get("frete"))
-        produto.margem = to_decimal(data.get("margem"))
-        produto.lucro_alvo = to_decimal(data.get("lucro_alvo"))
-        produto.preco_final = to_decimal(data.get("preco_final"))
-        produto.ipi = to_decimal(data.get("ipi"))
-        produto.difal = to_decimal(data.get("difal"))
-        produto.imposto_venda = to_decimal(data.get("imposto_venda"))
-        produto.ipi_tipo = data.get("ipi_tipo", "%_dentro")
-
-        produto.visivel_loja = data.get("visivel_loja") == "on"
-        produto.requer_documentacao = data.get("requer_documentacao") == "on"
-        produto.destaque_home = data.get("destaque_home") == "on"
-        produto.eh_lancamento = data.get("eh_lancamento") == "on"
-        produto.eh_outdoor = data.get("eh_outdoor") == "on"
-
-        produto.promo_ativada = data.get("promo_ativada") == "on"
-        produto.promo_preco_fornecedor = to_decimal(data.get("promo_preco_fornecedor"))
-
-        # --- TRATAMENTO ESPECIFICAÇÕES TÉCNICAS (BLINDAGEM) ---
-        specs_json = data.get("especificacoes_tecnicas")
-        if specs_json:
-            try:
-                produto.especificacoes_tecnicas = json.loads(specs_json)
-            except (ValueError, TypeError):
-                produto.especificacoes_tecnicas = {}
-
+        # --- SALVAMENTO COM VALIDAÇÕES DETALHADAS ---
         try:
+            # Validação: Código é obrigatório
+            codigo = (data.get("codigo") or "").strip().upper()
+            if not codigo:
+                flash("❌ Erro: O código do produto é obrigatório.", "danger")
+                return render_template(
+                    "produtos/form/produto_form.html",
+                    produto=produto,
+                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
+                )
+            produto.codigo = codigo
+
+            # Validação: Nome é obrigatório
+            nome = (data.get("nome") or "").strip()
+            if not nome:
+                flash("❌ Erro: O nome do produto é obrigatório.", "danger")
+                return render_template(
+                    "produtos/form/produto_form.html",
+                    produto=produto,
+                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
+                )
+            produto.nome = nome
+
+            produto.nome_comercial = (data.get("nome_comercial") or "").strip() or None
+            produto.meta_title = (data.get("meta_title") or "").strip() or None
+
+            if data.get("slug"):
+                produto.slug = data.get("slug").strip().lower()
+
+            produto.descricao = (data.get("descricao") or "").strip() or None
+            produto.descricao_longa = data.get("descricao_longa")
+            produto.descricao_comercial = (data.get("descricao_comercial") or "").strip() or None
+            
+            desc_google = (data.get("meta_description") or "").strip()
+            produto.meta_description = desc_google[:250] if desc_google else None
+
+            # Validação: Categoria é obrigatória
+            categoria_id = to_int(data.get("categoria_id"))
+            if not categoria_id:
+                flash("❌ Erro: A categoria do produto é obrigatória.", "danger")
+                return render_template(
+                    "produtos/form/produto_form.html",
+                    produto=produto,
+                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
+                )
+            produto.categoria_id = categoria_id
+
+            produto.marca_id = to_int(data.get("marca_id"))
+            produto.calibre_id = to_int(data.get("calibre_id"))
+            
+            # Validação: Tipo é obrigatório
+            tipo_id = to_int(data.get("tipo_id"))
+            if not tipo_id:
+                flash("❌ Erro: O tipo do produto é obrigatório.", "danger")
+                return render_template(
+                    "produtos/form/produto_form.html",
+                    produto=produto,
+                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
+                )
+            produto.tipo_id = tipo_id
+
+            produto.funcionamento_id = to_int(data.get("funcionamento_id"))
+
+            # Validação: Preço do fornecedor deve ser positivo
+            preco_fornecedor = to_decimal(data.get("preco_fornecedor"))
+            if preco_fornecedor <= 0:
+                flash("❌ Erro: O preço do fornecedor deve ser maior que zero.", "danger")
+                return render_template(
+                    "produtos/form/produto_form.html",
+                    produto=produto,
+                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
+                )
+            produto.preco_fornecedor = preco_fornecedor
+
+            produto.desconto_fornecedor = to_decimal(data.get("desconto_fornecedor"))
+            produto.frete = to_decimal(data.get("frete"))
+            produto.margem = to_decimal(data.get("margem"))
+            produto.lucro_alvo = to_decimal(data.get("lucro_alvo"))
+            produto.preco_final = to_decimal(data.get("preco_final"))
+            produto.ipi = to_decimal(data.get("ipi"))
+            produto.difal = to_decimal(data.get("difal"))
+            produto.imposto_venda = to_decimal(data.get("imposto_venda"))
+            produto.ipi_tipo = data.get("ipi_tipo", "%_dentro")
+
+            produto.visivel_loja = data.get("visivel_loja") == "on"
+            produto.requer_documentacao = data.get("requer_documentacao") == "on"
+            produto.destaque_home = data.get("destaque_home") == "on"
+            produto.eh_lancamento = data.get("eh_lancamento") == "on"
+            produto.eh_outdoor = data.get("eh_outdoor") == "on"
+
+            produto.promo_ativada = data.get("promo_ativada") == "on"
+            produto.promo_preco_fornecedor = to_decimal(data.get("promo_preco_fornecedor"))
+
+            produto.foto_url = data.get("foto_url") or foto_atual
+
+            # --- TRATAMENTO ESPECIFICAÇÕES TÉCNICAS (BLINDAGEM) ---
+            specs_json = data.get("especificacoes_tecnicas")
+            if specs_json:
+                try:
+                    produto.especificacoes_tecnicas = json.loads(specs_json)
+                except (ValueError, TypeError) as e:
+                    flash(f"⚠️ Aviso: Especificações técnicas inválidas (JSON malformado). Foram ignoradas.", "warning")
+                    produto.especificacoes_tecnicas = {}
+
+            # --- CÁLCULO E SALVAMENTO ---
             if hasattr(produto, "calcular_precos"):
                 produto.calcular_precos()
 
@@ -280,27 +334,56 @@ def gerenciar_produto(produto_id=None):
 
             registros = []
             if not produto_id:
-                registros.append(ProdutoHistorico(produto_id=produto.id, campo="__acao__", valor_novo="Criação de produto",
-                    usuario_id=getattr(current_user, "id", None), usuario_nome=getattr(current_user, "nome", None), data_modificacao=datetime.utcnow()))
+                registros.append(ProdutoHistorico(
+                    produto_id=produto.id, 
+                    campo="__acao__", 
+                    valor_novo="Criação de produto",
+                    usuario_id=getattr(current_user, "id", None), 
+                    usuario_nome=getattr(current_user, "nome", None), 
+                    data_modificacao=datetime.utcnow()
+                ))
 
             depois = {c: getattr(produto, c, None) for c in campos_auditados}
             for campo in campos_auditados:
                 a, d = antes.get(campo), depois.get(campo)
                 if str(a) != str(d):
-                    registros.append(ProdutoHistorico(produto_id=produto.id, campo=campo, valor_antigo=str(a) if a is not None else None,
-                        valor_novo=str(d) if d is not None else None, usuario_id=getattr(current_user, "id", None), 
-                        usuario_nome=getattr(current_user, "nome", None), data_modificacao=datetime.utcnow()))
+                    registros.append(ProdutoHistorico(
+                        produto_id=produto.id, 
+                        campo=campo, 
+                        valor_antigo=str(a) if a is not None else None,
+                        valor_novo=str(d) if d is not None else None, 
+                        usuario_id=getattr(current_user, "id", None), 
+                        usuario_nome=getattr(current_user, "nome", None), 
+                        data_modificacao=datetime.utcnow()
+                    ))
 
-            if registros: db.session.add_all(registros)
+            if registros: 
+                db.session.add_all(registros)
+            
             db.session.commit()
             _LIST_CACHE.clear()
             flash("✅ Produto salvo com sucesso!", "success")
             return redirect(url_for("produtos.index"))
 
+        except ValueError as ve:
+            db.session.rollback()
+            current_app.logger.error(f"Erro de validação ao salvar produto: {ve}")
+            flash(f"❌ Erro de validação: {str(ve)}", "danger")
+        except IntegrityError as ie:
+            db.session.rollback()
+            # Trata erro de chave única (código duplicado)
+            if "duplicate key" in str(ie).lower() or "unique constraint" in str(ie).lower():
+                if "codigo" in str(ie).lower() or "ix_produtos_codigo" in str(ie).lower():
+                    flash(f"❌ Erro: Já existe um produto cadastrado com o código '{produto.codigo}'. Por favor, use um código único.", "danger")
+                else:
+                    flash(f"❌ Erro: Dados duplicados encontrados. Verifique se este produto já existe.", "danger")
+            else:
+                current_app.logger.error(f"Erro de integridade ao salvar produto: {ie}", exc_info=True)
+                flash(f"❌ Erro ao salvar produto: Dados inválidos ou duplicados.", "danger")
         except Exception as e:
             db.session.rollback()
-            current_app.logger.error(f"Erro ao salvar produto: {e}")
-            flash(f"❌ Erro ao salvar: {str(e)}", "danger")
+            current_app.logger.error(f"Erro ao salvar produto: {e}", exc_info=True)
+            flash(f"❌ Erro ao salvar produto: {str(e)}", "danger")
 
     if getattr(produto, "atualizado_em", None):
         try:
@@ -329,16 +412,31 @@ def gerenciar_produto(produto_id=None):
 @produtos_bp.route("/<int:produto_id>/excluir", methods=["POST"])
 @login_required
 def excluir_produto(produto_id):
-    produto = Produto.query.get_or_404(produto_id)
+    """
+    Rota para excluir um produto específico.
+    
+    - Valida se o produto existe
+    - Tenta excluir o produto do banco de dados
+    - Limpa o cache de listagem
+    - Retorna mensagens de sucesso ou erro detalhadas
+    """
     try:
+        produto = Produto.query.get_or_404(produto_id)
+        nome_produto = produto.nome
+        codigo_produto = produto.codigo
+        
         db.session.delete(produto)
         db.session.commit()
         _LIST_CACHE.clear()
-        flash("🗑️ Produto excluído com sucesso!", "success")
+        
+        flash(f"🗑️ Produto '{nome_produto}' (Código: {codigo_produto}) foi excluído com sucesso!", "success")
+        current_app.logger.info(f"Produto {produto_id} ({nome_produto}) excluído por {current_user.nome if hasattr(current_user, 'nome') else 'usuário desconhecido'}")
+        
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"Erro ao excluir produto: {e}")
-        flash("❌ Erro ao excluir produto.", "danger")
+        current_app.logger.error(f"Erro ao excluir produto {produto_id}: {e}", exc_info=True)
+        flash(f"❌ Erro ao excluir produto: {str(e)}", "danger")
+    
     return redirect(url_for("produtos.index"))
 
 # ============================================================
@@ -388,4 +486,3 @@ def visualizar_produto(produto_id):
         "funcionamento": produto.funcionamento_rel.nome if produto.funcionamento_rel else "-",
         "preco_avista": currency(valor_base), "parcelado_label": parcelado_label, "parcelas": parcelas_fmt,
     }
-
