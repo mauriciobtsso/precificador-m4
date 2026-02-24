@@ -21,9 +21,11 @@
                 {% set imagem = produto.foto_url or produto.imagem_principal or produto.imagem_url or produto.foto %}
                 
                 {% if imagem %}
+                    {# OTIMIZAÇÃO: loading="lazy" adicionado para performance (TTFB e LCP) #}
                     <img src="{{ gerar_link(imagem) }}" 
                          alt="{{ produto.nome_comercial if produto.nome_comercial else produto.nome }}" 
                          class="m4-product-img"
+                         loading="lazy"
                          onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';">
                 {% else %}
                     <div class="text-center opacity-25">

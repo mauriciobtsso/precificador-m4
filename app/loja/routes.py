@@ -37,30 +37,32 @@ def limpar_caminho_r2(caminho):
 # ============================================================
 @loja_bp.app_context_processor
 def inject_loja_data():
-    """Busca categorias PAI e configurações, incluindo o banner dinâmico."""
+    """Busca categorias PAI e configurações de forma otimizada."""
     try:
+        # Carrega apenas categorias principais necessárias para o menu
         categorias_menu = CategoriaProduto.query.filter_by(pai_id=None, exibir_no_menu=True)\
             .order_by(CategoriaProduto.ordem_exibicao.asc()).all()
-    except Exception:
-        categorias_menu = []
-    
-    paginas_rodape = PaginaInstitucional.query.filter_by(visivel_rodape=True).all()
-    
-    # Buscamos as configurações
-    config_objs = Configuracao.query.filter(Configuracao.chave.like('loja_%')).all()
-    loja = {c.chave: c.valor for c in config_objs}
-    
-    # TRATAMENTO DO BANNER: Se existir uma imagem no admin, gera o link R2
-    if loja.get('loja_banner_despachante_url'):
-        loja['banner_despachante_link'] = gerar_link_r2(limpar_caminho_r2(loja['loja_banner_despachante_url']))
-    else:
-        # Imagem padrão caso o admin esteja vazio
-        loja['banner_despachante_link'] = url_for('static', filename='img/bg-despachante.jpg')
+        
+        paginas_rodape = PaginaInstitucional.query.filter_by(visivel_rodape=True).all()
+        
+        # OTIMIZAÇÃO: Busca todas as chaves da loja de uma vez
+        config_objs = Configuracao.query.filter(Configuracao.chave.like('loja_%')).all()
+        loja = {c.chave: c.valor for c in config_objs}
+        
+        # TRATAMENTO DO BANNER: Simplificado
+        banner_url = loja.get('loja_banner_despachante_url')
+        if banner_url:
+            loja['banner_despachante_link'] = gerar_link_r2(limpar_caminho_r2(banner_url))
+        else:
+            loja['banner_despachante_link'] = url_for('static', filename='img/bg-despachante.jpg')
 
-    return dict(categorias_menu=categorias_menu, loja=loja, paginas_rodape=paginas_rodape)
+        return dict(categorias_menu=categorias_menu, loja=loja, paginas_rodape=paginas_rodape)
+    except Exception as e:
+        current_app.logger.error(f"Erro no inject_loja_data: {e}")
+        return dict(categorias_menu=[], loja={}, paginas_rodape=[])
 
 # ============================================================
-# VITRINE PRINCIPAL (ATUALIZADA COM MARCAS E PRATELEIRAS)
+# VITRINE PRINCIPAL
 # ============================================================
 @loja_bp.route('/')
 def index():
@@ -80,20 +82,19 @@ def index():
                                gerar_link=gerador_limpo, 
                                termo_busca=termo_busca)
 
-    # 2. LANÇAMENTOS: Os 4 produtos mais recentes cadastrados
+    # 2. LANÇAMENTOS E DESTAQUES (Consultas rápidas e limitadas)
     lancamentos = Produto.query.filter_by(visivel_loja=True).order_by(Produto.criado_em.desc()).limit(4).all()
-
-    # 3. DESTAQUES DA SEMANA: 4 produtos aleatórios
     destaques = Produto.query.filter_by(visivel_loja=True).order_by(func.random()).limit(4).all()
 
-    # 4. PRATELEIRAS INTELIGENTES (Busca por slug ou nome aproximado)
+    # 3. PRATELEIRAS INTELIGENTES (Otimizadas para evitar N+1 queries)
     def get_smart_cat(termo):
         cat = CategoriaProduto.query.filter(
             or_(CategoriaProduto.slug.ilike(f"%{termo}%"), CategoriaProduto.nome.ilike(f"%{termo}%"))
         ).first()
         if not cat: return []
         ids = [cat.id] + [s.id for s in cat.subcategorias]
-        return Produto.query.filter(Produto.visivel_loja==True, Produto.categoria_id.in_(ids)).order_by(Produto.criado_em.desc()).limit(4).all()
+        return Produto.query.filter(Produto.visivel_loja==True, Produto.categoria_id.in_(ids))\
+                      .order_by(Produto.criado_em.desc()).limit(4).all()
 
     prateleiras = {
         "Pistolas": get_smart_cat("pistola"),
@@ -101,10 +102,8 @@ def index():
         "Munições": get_smart_cat("muni")
     }
 
-    # 5. BANNERS ATIVOS
     banners = Banner.query.filter_by(ativo=True).order_by(Banner.ordem.asc()).all()
 
-    # 6. MARCAS (ESSENCIAL: BUSCA AS MARCAS QUE TÊM LOGO PARA O SLIDER)
     from app.produtos.configs.models import MarcaProduto
     marcas_home = MarcaProduto.query.filter(MarcaProduto.logo_url != None).all()
 
@@ -113,7 +112,7 @@ def index():
                            destaques=destaques, 
                            prateleiras=prateleiras, 
                            banners=banners, 
-                           marcas=marcas_home, # <--- ENVIANDO PARA O HTML
+                           marcas=marcas_home, 
                            gerar_link=gerador_limpo)
 
 # ============================================================
@@ -121,25 +120,21 @@ def index():
 # ============================================================
 @loja_bp.route('/produto/<string:slug>')
 def detalhe_produto(slug):
-    """Página de Detalhes — Foco em Conversão e Dados Técnicos"""
     produto = Produto.query.filter_by(slug=slug, visivel_loja=True).first_or_404()
-    
-    # 1. Executa a lógica financeira do Model
     precos = produto.calcular_precos()
     
-    # 2. GERAÇÃO DE PARCELAMENTO
     valor_base = float(precos.get('preco_a_vista') or 0.0)
     taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
     opcoes_parcelamento = parcelamento_logic.gerar_linhas_parcelas(valor_base, taxas)
     
     parcela_12x = next((item for item in opcoes_parcelamento if item["rotulo"] == "12x"), None)
     
-    # 3. Produtos Relacionados
+    # Busca relacionados da mesma categoria (Otimizado)
     relacionados = Produto.query.filter(
         Produto.categoria_id == produto.categoria_id, 
         Produto.id != produto.id,
         Produto.visivel_loja == True
-    ).order_by(func.random()).limit(4).all()
+    ).limit(4).all()
 
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
@@ -196,53 +191,38 @@ def categoria(slug_categoria):
 
 @loja_bp.route('/p/<string:slug>')
 def exibir_pagina(slug):
-    """Exibe uma página institucional (Ex: política de privacidade)"""
     pagina = PaginaInstitucional.query.filter_by(slug=slug).first_or_404()
     return render_template('loja/pagina_institucional.html', pagina=pagina)
 
 @loja_bp.route('/fale-conosco')
 def fale_conosco():
-    """Página de contato utilizando os dados dinâmicos da loja"""
     return render_template('loja/fale_conosco.html', title="Fale Conosco - M4 Tática")
 
-# ROTA DE VERIFICAÇÃO DO GOOGLE
 @loja_bp.route('/google8fe23db2fb19380f.html')
 def google_verification():
-    # current_app.root_path aponta para a pasta /app/
-    # Como seu arquivo está em /app/static/, o join fica assim:
     static_dir = os.path.join(current_app.root_path, 'static')
-
     return send_from_directory(static_dir, 'google8fe23db2fb19380f.html')
 
-# ROTA SITEMAP CORRIGIDA
 @loja_bp.route('/sitemap.xml')
 def sitemap():
-    """Gera um sitemap XML dinamicamente."""
+    """Gera sitemap otimizado apenas com os slugs."""
     pages = []
-    
-    # 1. Home
     pages.append({'loc': url_for('loja.index', _external=True)})
     
-    # 2. Categorias
-    categorias = CategoriaProduto.query.all()
+    categorias = CategoriaProduto.query.with_entities(CategoriaProduto.slug).all()
     for cat in categorias:
         pages.append({'loc': url_for('loja.categoria', slug_categoria=cat.slug, _external=True)})
         
-    # 3. Produtos (Ajustado para bater com o nome da função e campo de visibilidade)
-    produtos = Produto.query.filter_by(visivel_loja=True).all()
+    produtos = Produto.query.filter_by(visivel_loja=True).with_entities(Produto.slug).all()
     for prod in produtos:
         pages.append({'loc': url_for('loja.detalhe_produto', slug=prod.slug, _external=True)})
 
-    # Renderiza o XML
-    from app.utils.datetime import now_local # Garante que o template tenha acesso à data
+    from app.utils.datetime import now_local
     sitemap_xml = render_template('loja/sitemap.xml', pages=pages, now_local=now_local)
-    
     response = make_response(sitemap_xml)
     response.headers["Content-Type"] = "application/xml"
-    
     return response
 
 @loja_bp.route('/robots.txt')
 def robots_txt():
     return send_from_directory(os.path.join(current_app.root_path, 'static'), 'robots.txt')
-
