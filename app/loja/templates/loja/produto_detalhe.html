@@ -4,6 +4,20 @@
     {{ produto.meta_title if produto.meta_title else (produto.nome_comercial if produto.nome_comercial else produto.nome) }} | M4 Tática
 {% endblock %}
 
+{% block opengraph %}
+    <meta property="og:title" content="{{ produto.nome_comercial if produto.nome_comercial else produto.nome }}">
+    <meta property="og:description" content="Confira na M4 Tática: {{ produto.nome_comercial if produto.nome_comercial else produto.nome }} por apenas {{ precos.preco_a_vista|currency }} à vista.">
+    <meta property="og:url" content="{{ request.url }}">
+    {% set imagem_share = produto.foto_url or produto.imagem_principal %}
+    {% if imagem_share %}
+        <meta property="og:image" content="{{ gerar_link(imagem_share) }}">
+    {% else %}
+        <meta property="og:image" content="{{ url_for('static', filename='img/logo.png', _external=True) }}">
+    {% endif %}
+    <meta property="product:price:amount" content="{{ precos.preco_a_vista }}">
+    <meta property="product:price:currency" content="BRL">
+{% endblock %}
+
 {% block extra_css %}
 <style>
     /* Estilos Premium M4 Tática - Foco em Performance Visual */
@@ -34,17 +48,16 @@
     .badge-controlled-premium {
         background-color: #000;
         color: #fff;
-        display: inline-block;
+        border-left: 4px solid var(--m4-gold);
         padding: 8px 15px;
         font-size: 0.75rem;
         font-weight: 700;
         letter-spacing: 1px;
         text-transform: uppercase;
-        border-left: 4px solid var(--m4-gold);
         margin-bottom: 1.5rem;
+        display: inline-block;
     }
 
-    /* Caixa de Preço e Gatilhos de Conversão */
     .price-box-premium {
         background-color: #fdfdfd;
         padding: 2.5rem;
@@ -54,7 +67,6 @@
         box-shadow: 0 5px 15px rgba(0,0,0,0.02);
     }
 
-    /* Estilização da Ficha Técnica */
     .specs-table { width: 100%; margin-bottom: 2rem; }
     .specs-label {
         font-size: 0.7rem;
@@ -105,7 +117,6 @@
         transform: translateY(-3px);
     }
 
-    /* Formatação para Descrição (HTML Seguro) */
     .description-rich-text { font-size: 1.05rem; line-height: 1.8; color: #444; }
     .description-rich-text h2, .description-rich-text h3 { 
         font-weight: 800; text-transform: uppercase; margin-top: 2rem; margin-bottom: 1rem; color: #000;
@@ -113,12 +124,6 @@
     .description-rich-text ul { padding-left: 1.2rem; margin-bottom: 1.5rem; }
     .description-rich-text table { width: 100% !important; border: 1px solid #eee; margin: 1.5rem 0; }
     .description-rich-text td { padding: 10px; border: 1px solid #eee; }
-
-    /* Modal de Parcelas */
-    .modal-content-m4 { border: none; border-radius: 0; }
-    .modal-header-m4 { background-color: #000; color: white; border-bottom: 2px solid var(--m4-gold); }
-    .table-parcelas thead th { background-color: #f8f9fa; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
-    .row-pix { background-color: #f1fcf1 !important; }
 
     @media (max-width: 991px) {
         .img-main-container { height: 400px; position: static; margin-bottom: 2rem; }
@@ -128,7 +133,6 @@
 
 {% block content %}
 <div class="container detail-container">
-    {# 1. NAVEGAÇÃO #}
     <nav aria-label="breadcrumb" class="mb-5">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a href="{{ url_for('loja.index') }}" class="text-decoration-none text-muted">Início</a></li>
@@ -146,7 +150,6 @@
     </nav>
 
     <div class="row g-5">
-        {# 2. COLUNA DA ESQUERDA: IMAGEM #}
         <div class="col-lg-7">
             <div class="img-main-container rounded shadow-sm">
                 {% set imagem = produto.foto_url or produto.imagem_principal %}
@@ -161,7 +164,6 @@
             </div>
         </div>
 
-        {# 3. COLUNA DA DIREITA: COMPRA #}
         <div class="col-lg-5">
             {% if produto.requer_documentacao %}
             <div class="badge-controlled-premium">
@@ -170,12 +172,10 @@
             {% endif %}
 
             <h1 class="display-6 fw-bold text-dark mb-2" style="font-weight: 900; letter-spacing: -1px;">
-                {# PRIORIDADE: Nome Comercial para o título visível na página #}
                 {{ produto.nome_comercial if produto.nome_comercial else produto.nome }}
             </h1>
             <p class="text-muted small mb-4">REFERÊNCIA: <span class="fw-bold">{{ produto.codigo }}</span></p>
 
-            {# Descrição Comercial Curta #}
             <div class="mb-5 description-rich-text">
                 {% if produto.descricao_comercial %}
                     {{ produto.descricao_comercial | safe }}
@@ -184,7 +184,6 @@
                 {% endif %}
             </div>
 
-            {# BOX DE PREÇO #}
             <div class="price-box-premium rounded">
                 {% if precos.em_oferta %}
                     <span class="text-muted text-decoration-line-through small d-block mb-1">De: R$ {{ "{:,.2f}".format(precos.preco_a_vista * 1.15).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span>
@@ -233,7 +232,6 @@
         </div>
     </div>
 
-    {# 4. SEÇÃO TÉCNICA E DESCRIÇÃO LONGA #}
     <div class="row mt-5 pt-5 border-top">
         <div class="col-lg-5">
             <h4 class="section-title-premium">Ficha Técnica</h4>
@@ -253,15 +251,12 @@
                         <tr><td class="specs-label">Funcionamento</td><td class="specs-value">{{ produto.funcionamento_rel.nome }}</td></tr>
                         {% endif %}
                         
-                        {% if produto.especificacoes_tecnicas %}
-                            {# Blindagem: verifica se é um dicionário/objeto e não uma string #}
-                            {% if produto.especificacoes_tecnicas is mapping %}
-                                {% for chave, valor in produto.especificacoes_tecnicas.items() %}
-                                    {% if valor %}
-                                    <tr><td class="specs-label">{{ chave }}</td><td class="specs-value">{{ valor }}</td></tr>
-                                    {% endif %}
-                                {% endfor %}
-                            {% endif %}
+                        {% if produto.especificacoes_tecnicas is mapping %}
+                            {% for chave, valor in produto.especificacoes_tecnicas.items() %}
+                                {% if valor %}
+                                <tr><td class="specs-label">{{ chave }}</td><td class="specs-value">{{ valor }}</td></tr>
+                                {% endif %}
+                            {% endfor %}
                         {% endif %}
                     </tbody>
                 </table>
@@ -281,7 +276,6 @@
         </div>
     </div>
 
-    {# 5. RELACIONADOS #}
     {% if relacionados %}
     <div class="row mt-5 pt-5">
         <div class="col-12">
@@ -300,7 +294,7 @@
     {% endif %}
 </div>
 
-{# 6. MODAL DE PARCELAMENTO #}
+{# MODAL DE PARCELAMENTO #}
 <div class="modal fade" id="modalParcelas" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-content-m4 shadow-lg">

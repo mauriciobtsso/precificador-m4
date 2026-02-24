@@ -6,20 +6,26 @@
     
     <title>{% block title %}{{ title if title else 'M4 Tática | Armas, Munições e Acessórios' }}{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}{{ meta_desc if meta_desc else 'A maior variedade de armas e munições com a qualidade M4 Tática.' }}{% endblock %}">
+    
+    <meta property="og:site_name" content="M4 Tática">
+    <meta property="og:type" content="website">
+    {% block opengraph %}
+    <meta property="og:title" content="M4 Tática | Armas e Munições">
+    <meta property="og:description" content="A maior variedade de armas e munições com a qualidade M4 Tática.">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:image" content="{{ url_for('static', filename='img/logo.png', _external=True) }}">
+    {% endblock %}
+
     <link rel="canonical" href="{{ request.url }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
     <link rel="icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
 
-    <!-- Local Google Fonts -->
     <link href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" rel="stylesheet">
     
-    <!-- Local Bootstrap -->
     <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
     
-    <!-- Local Bootstrap Icons -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
     
-    <!-- Local Font Awesome -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/all.min.css') }}">
     
     <style>
@@ -86,11 +92,10 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
             min-width: 250px; 
             padding: 10px 0;
-            max-height: 80vh; /* Limita a altura a 80% da tela */
-            overflow-y: auto; /* Adiciona scroll se necessário */
+            max-height: 80vh; 
+            overflow-y: auto; 
         }
         
-        /* Estilização da barra de rolagem do menu */
         .dropdown-menu::-webkit-scrollbar { width: 5px; }
         .dropdown-menu::-webkit-scrollbar-track { background: #f1f1f1; }
         .dropdown-menu::-webkit-scrollbar-thumb { background: var(--m4-gold); }
@@ -104,7 +109,6 @@
         footer a { color: #999; text-decoration: none; transition: 0.3s; font-size: 13px; }
         footer a:hover { color: var(--m4-gold); padding-left: 5px; }
         
-        /* Garante que o texto informativo tenha a mesma cor clara */
         .footer-info-text { color: #999 !important; font-size: 13px; }
 
         @media (max-width: 991px) {
@@ -243,7 +247,6 @@
         </div>
     </footer>
 
-    <!-- Local Bootstrap JS -->
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
