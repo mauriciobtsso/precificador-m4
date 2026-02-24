@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="preload" as="image" href="{{ gerar_link(banners[0].imagem_url) }}" fetchpriority="high">
     
     <title>{% block title %}{{ title if title else 'M4 Tática | Armas, Munições e Acessórios' }}{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}{{ meta_desc if meta_desc else 'A maior variedade de armas e munições com a qualidade M4 Tática.' }}{% endblock %}">

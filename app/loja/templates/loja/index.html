@@ -11,20 +11,24 @@
             {% for banner in banners %}
             <div class="carousel-item {{ 'active' if loop.first }}">
                 {% set banner_link = gerar_link(banner.imagem_url) %}
+                
+                {# Definimos uma proporção padrão para armas/banners (geralmente 3:1 ou 1200x400) #}
+                {% set img_attrs = 'class="d-block w-100" alt="' ~ banner.titulo ~ '" width="1200" height="400" style="object-fit: cover; aspect-ratio: 1200 / 400;" decoding="async"' %}
+                
+                {% if loop.first %}
+                    {# O primeiro banner é o LCP: Prioridade máxima, sem lazy load #}
+                    {% set img_attrs = img_attrs ~ ' fetchpriority="high"' %}
+                {% else %}
+                    {# Os demais banners usam lazy load para economizar banda #}
+                    {% set img_attrs = img_attrs ~ ' loading="lazy"' %}
+                {% endif %}
+
                 {% if banner.link_destino %}
                     <a href="{{ banner.link_destino }}">
-                        <img src="{{ banner_link }}" 
-                             class="d-block w-100" 
-                             alt="{{ banner.titulo }}" 
-                             {% if loop.first %} fetchpriority="high" {% else %} loading="lazy" {% endif %}
-                             decoding="async">
+                        <img src="{{ banner_link }}" {{ img_attrs | safe }}>
                     </a>
                 {% else %}
-                    <img src="{{ banner_link }}" 
-                         class="d-block w-100" 
-                         alt="{{ banner.titulo }}" 
-                         {% if loop.first %} fetchpriority="high" {% else %} loading="lazy" {% endif %}
-                         decoding="async">
+                    <img src="{{ banner_link }}" {{ img_attrs | safe }}>
                 {% endif %}
             </div>
             {% endfor %}
