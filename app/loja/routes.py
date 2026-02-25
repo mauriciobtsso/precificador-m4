@@ -7,7 +7,7 @@ from app.models import Taxa, Configuracao
 from app.utils.r2_helpers import gerar_link_r2
 import app.utils.parcelamento as parcelamento_logic
 from sqlalchemy import or_, func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, subqueryload
 import os
 
 # --- AJUSTE PARA O RENDER ---
@@ -66,32 +66,39 @@ def limpar_caminho_r2(caminho):
 # CONTEXT PROCESSOR: DISPONIBILIZA CATEGORIAS EM TODA A LOJA
 # ============================================================
 @loja_bp.app_context_processor
-@cache.cached(timeout=3600, key_prefix='loja_data_v2') # Cache por 1 hora
 def inject_loja_data():
-    """Busca categorias PAI e configurações de forma otimizada e com cache."""
+    """Busca categorias PAI e configurações de forma otimizada com cache manual."""
+    # Tentativa de recuperar do cache para evitar processamento em toda requisição
+    cache_key = 'loja_data_v3'
+    cached_res = cache.get(cache_key)
+    if cached_res:
+        return cached_res
+
     try:
-        # CORREÇÃO CRÍTICA: joinedload(subcategorias) resolve o DetachedInstanceError
+        # subqueryload é muito mais performático para carregar listas de subcategorias
         categorias_menu = CategoriaProduto.query.filter_by(pai_id=None, exibir_no_menu=True)\
-            .options(joinedload(CategoriaProduto.subcategorias))\
+            .options(subqueryload(CategoriaProduto.subcategorias))\
             .order_by(CategoriaProduto.ordem_exibicao.asc()).all()
         
         paginas_rodape = PaginaInstitucional.query.filter_by(visivel_rodape=True).all()
         
-        # OTIMIZAÇÃO: Busca todas as chaves da loja de uma vez
         config_objs = Configuracao.query.filter(Configuracao.chave.like('loja_%')).all()
         loja = {c.chave: c.valor for c in config_objs}
         
-        # TRATAMENTO DO BANNER: Simplificado
         banner_url = loja.get('loja_banner_despachante_url')
         if banner_url:
             loja['banner_despachante_link'] = gerar_link_r2(limpar_caminho_r2(banner_url))
         else:
             loja['banner_despachante_link'] = url_for('static', filename='img/bg-despachante.jpg')
 
-        return dict(categorias_menu=categorias_menu, loja=loja, paginas_rodape=paginas_rodape)
+        res = dict(categorias_menu=categorias_menu, loja=loja, paginas_rodape=paginas_rodape)
+        
+        # Salva no cache por 1 hora (3600s)
+        cache.set(cache_key, res, timeout=3600)
+        return res
+
     except Exception as e:
-        # Usamos print aqui para log simples caso o current_app.logger falhe no context
-        print(f"Erro no inject_loja_data: {e}")
+        print(f"Erro crítico no inject_loja_data: {e}")
         return dict(categorias_menu=[], loja={}, paginas_rodape=[])
 
 # ============================================================
@@ -233,33 +240,27 @@ def detalhe_produto(slug):
 @loja_bp.route('/categoria/<string:slug_categoria>')
 @cache.cached(timeout=300, make_cache_key=lambda *args, **kwargs: request.full_path)
 def categoria(slug_categoria):
-    # 1. Busca categoria pai e já traz subcategorias para evitar Detached
+    # 1. Busca categoria pai e já traz subcategorias via subqueryload (mais rápido)
     categoria_obj = CategoriaProduto.query.filter_by(slug=slug_categoria)\
-        .options(joinedload(CategoriaProduto.subcategorias)).first_or_404()
+        .options(subqueryload(CategoriaProduto.subcategorias)).first_or_404()
     
-    # 2. Captura de parâmetros
     marca_id = request.args.get('marca', type=int)
     calibre_id = request.args.get('calibre', type=int)
     preco_max = request.args.get('preco_max', type=float)
     sort = request.args.get('sort', 'novidades') 
     page = request.args.get('page', 1, type=int)
     
-    # 3. Construção da query de produtos
     cat_ids = [categoria_obj.id] + [sub.id for sub in categoria_obj.subcategorias]
     
-    # SEMPRE usar joinedload nos relacionamentos que o card_produto.html usa
+    # 2. Query de produtos principal
     query = Produto.query.filter(Produto.categoria_id.in_(cat_ids), Produto.visivel_loja == True)\
-                         .options(
-                             joinedload(Produto.marca_rel), 
-                             joinedload(Produto.categoria)
-                         )
+                         .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))
 
-    # Aplicação de filtros táticos
     if marca_id: query = query.filter(Produto.marca_id == marca_id)
     if calibre_id: query = query.filter(Produto.calibre_id == calibre_id)
     if preco_max: query = query.filter(Produto.preco_a_vista <= preco_max)
 
-    # Ordenação profissional
+    # Ordenação
     if sort == 'menor_preco':
         query = query.order_by(Produto.preco_a_vista.asc())
     elif sort == 'maior_preco':
@@ -267,35 +268,40 @@ def categoria(slug_categoria):
     else:
         query = query.order_by(Produto.criado_em.desc())
 
-    # Paginação (o Flask-SQLAlchemy lida com o offset)
     try:
         pagination = query.paginate(page=page, per_page=12, error_out=False)
     except Exception:
         abort(404)
 
-    # 4. FILTROS LATERAIS (Blindagem contra DetachedInstanceError)
+    # 3. FILTROS LATERAIS (Otimização para evitar Timeout)
     from app.produtos.configs.models import MarcaProduto, CalibreProduto
     
-    # Usamos chaves de cache que levam em conta a categoria para não misturar filtros
-    marcas_vivas = MarcaProduto.query.join(Produto)\
-        .filter(Produto.categoria_id.in_(cat_ids))\
-        .options(joinedload(MarcaProduto.produtos))\
-        .distinct().all()
+    # Cache manual dos filtros por categoria para não reprocessar na paginação
+    marcas_vivas_key = f'marcas_sidebar_{categoria_obj.id}'
+    calibres_vivas_key = f'calibres_sidebar_{categoria_obj.id}'
     
-    calibres_vivos = CalibreProduto.query.join(Produto)\
-        .filter(Produto.categoria_id.in_(cat_ids))\
-        .options(joinedload(CalibreProduto.produtos))\
-        .distinct().all()
+    marcas_vivas = cache.get(marcas_vivas_key)
+    calibres_vivos = cache.get(calibres_vivas_key)
+
+    if not marcas_vivas:
+        # O uso de any() é infinitamente mais rápido que join().distinct() para filtros
+        marcas_vivas = MarcaProduto.query.filter(
+            MarcaProduto.produtos.any(Produto.categoria_id.in_(cat_ids))
+        ).options(subqueryload(MarcaProduto.produtos)).all()
+        cache.set(marcas_vivas_key, marcas_vivas, timeout=600)
+    
+    if not calibres_vivos:
+        calibres_vivos = CalibreProduto.query.filter(
+            CalibreProduto.produtos.any(Produto.categoria_id.in_(cat_ids))
+        ).options(subqueryload(CalibreProduto.produtos)).all()
+        cache.set(calibres_vivas_key, calibres_vivos, timeout=600)
 
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
     return render_template('loja/categoria.html', 
-                           produtos=pagination.items, 
-                           pagination=pagination,
-                           categoria_ativa=categoria_obj, 
-                           marcas=marcas_vivas, 
-                           calibres=calibres_vivos, 
-                           sort_atual=sort,
+                           produtos=pagination.items, pagination=pagination,
+                           categoria_ativa=categoria_obj, marcas=marcas_vivas, 
+                           calibres=calibres_vivos, sort_atual=sort,
                            filtros={'marca': marca_id, 'calibre': calibre_id, 'preco_max': preco_max},
                            gerar_link=gerador_limpo)
 
@@ -306,6 +312,7 @@ def exibir_pagina(slug):
     return render_template('loja/pagina_institucional.html', pagina=pagina)
 
 @loja_bp.route('/fale-conosco')
+@cache.cached(timeout=3600) # Adicione isso!
 def fale_conosco():
     return render_template('loja/fale_conosco.html', title="Fale Conosco - M4 Tática")
 
@@ -337,3 +344,31 @@ def sitemap():
 @loja_bp.route('/robots.txt')
 def robots_txt():
     return send_from_directory(os.path.join(current_app.root_path, 'static'), 'robots.txt')
+
+@loja_bp.route('/sistema/otimizar-banco-m4')
+def otimizar_banco():
+    # Apenas para segurança, você pode verificar uma senha ou IP aqui
+    from flask import current_app
+    from sqlalchemy import text
+    from app import db # Certifique-se de que o 'db' está acessível
+
+    comandos = [
+        # Índices na tabela de PRODUTOS (nome da tabela: produtos)
+        "CREATE INDEX IF NOT EXISTS idx_produto_categoria ON produtos (categoria_id);",
+        "CREATE INDEX IF NOT EXISTS idx_produto_marca ON produtos (marca_id);",
+        "CREATE INDEX IF NOT EXISTS idx_produto_calibre ON produtos (calibre_id);",
+        "CREATE INDEX IF NOT EXISTS idx_produto_slug ON produtos (slug);",
+        "CREATE INDEX IF NOT EXISTS idx_produto_preco ON produtos (preco_a_vista);",
+
+        # Índice na tabela de CATEGORIAS (O nome correto deve ser categoria_produto)
+        "CREATE INDEX IF NOT EXISTS idx_categoria_slug ON categoria_produto (slug);"
+    ]
+
+    try:
+        for sql in comandos:
+            db.session.execute(text(sql))
+        db.session.commit()
+        return "🔥 Operação Tática Concluída: Índices criados com sucesso!"
+    except Exception as e:
+        db.session.rollback()
+        return f"❌ Erro na operação: {str(e)}"
