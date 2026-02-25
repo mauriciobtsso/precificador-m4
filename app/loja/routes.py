@@ -233,21 +233,33 @@ def detalhe_produto(slug):
 @loja_bp.route('/categoria/<string:slug_categoria>')
 @cache.cached(timeout=300, make_cache_key=lambda *args, **kwargs: request.full_path)
 def categoria(slug_categoria):
-    categoria_obj = CategoriaProduto.query.filter_by(slug=slug_categoria).first_or_404()
+    # 1. Busca categoria pai e já traz subcategorias para evitar Detached
+    categoria_obj = CategoriaProduto.query.filter_by(slug=slug_categoria)\
+        .options(joinedload(CategoriaProduto.subcategorias)).first_or_404()
     
+    # 2. Captura de parâmetros
     marca_id = request.args.get('marca', type=int)
     calibre_id = request.args.get('calibre', type=int)
     preco_max = request.args.get('preco_max', type=float)
     sort = request.args.get('sort', 'novidades') 
     page = request.args.get('page', 1, type=int)
     
+    # 3. Construção da query de produtos
     cat_ids = [categoria_obj.id] + [sub.id for sub in categoria_obj.subcategorias]
-    query = Produto.query.filter(Produto.categoria_id.in_(cat_ids), Produto.visivel_loja == True)
+    
+    # SEMPRE usar joinedload nos relacionamentos que o card_produto.html usa
+    query = Produto.query.filter(Produto.categoria_id.in_(cat_ids), Produto.visivel_loja == True)\
+                         .options(
+                             joinedload(Produto.marca_rel), 
+                             joinedload(Produto.categoria)
+                         )
 
+    # Aplicação de filtros táticos
     if marca_id: query = query.filter(Produto.marca_id == marca_id)
     if calibre_id: query = query.filter(Produto.calibre_id == calibre_id)
     if preco_max: query = query.filter(Produto.preco_a_vista <= preco_max)
 
+    # Ordenação profissional
     if sort == 'menor_preco':
         query = query.order_by(Produto.preco_a_vista.asc())
     elif sort == 'maior_preco':
@@ -255,29 +267,35 @@ def categoria(slug_categoria):
     else:
         query = query.order_by(Produto.criado_em.desc())
 
-    pagination = query.paginate(page=page, per_page=12)
+    # Paginação (o Flask-SQLAlchemy lida com o offset)
+    try:
+        pagination = query.paginate(page=page, per_page=12, error_out=False)
+    except Exception:
+        abort(404)
 
+    # 4. FILTROS LATERAIS (Blindagem contra DetachedInstanceError)
     from app.produtos.configs.models import MarcaProduto, CalibreProduto
-    marcas_vivas_key = f'marcas_vivas_{categoria_obj.id}'
-    calibres_vivos_key = f'calibres_vivos_{categoria_obj.id}'
-
-    marcas_vivas = cache.get(marcas_vivas_key)
-    calibres_vivos = cache.get(calibres_vivos_key)
-
-    if marcas_vivas is None:
-        marcas_vivas = MarcaProduto.query.join(Produto).filter(Produto.categoria_id.in_(cat_ids)).distinct().all()
-        cache.set(marcas_vivas_key, marcas_vivas, timeout=300)
     
-    if calibres_vivos is None:
-        calibres_vivos = CalibreProduto.query.join(Produto).filter(Produto.categoria_id.in_(cat_ids)).distinct().all()
-        cache.set(calibres_vivos_key, calibres_vivos, timeout=300)
+    # Usamos chaves de cache que levam em conta a categoria para não misturar filtros
+    marcas_vivas = MarcaProduto.query.join(Produto)\
+        .filter(Produto.categoria_id.in_(cat_ids))\
+        .options(joinedload(MarcaProduto.produtos))\
+        .distinct().all()
+    
+    calibres_vivos = CalibreProduto.query.join(Produto)\
+        .filter(Produto.categoria_id.in_(cat_ids))\
+        .options(joinedload(CalibreProduto.produtos))\
+        .distinct().all()
 
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
     return render_template('loja/categoria.html', 
-                           produtos=pagination.items, pagination=pagination,
-                           categoria_ativa=categoria_obj, marcas=marcas_vivas, 
-                           calibres=calibres_vivos, sort_atual=sort,
+                           produtos=pagination.items, 
+                           pagination=pagination,
+                           categoria_ativa=categoria_obj, 
+                           marcas=marcas_vivas, 
+                           calibres=calibres_vivos, 
+                           sort_atual=sort,
                            filtros={'marca': marca_id, 'calibre': calibre_id, 'preco_max': preco_max},
                            gerar_link=gerador_limpo)
 
