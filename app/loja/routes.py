@@ -190,10 +190,15 @@ def index():
 @loja_bp.route('/produto/<string:slug>')
 @cache.cached(timeout=300, make_cache_key=lambda *args, **kwargs: request.path)
 def detalhe_produto(slug):
-    produto = Produto.query.filter_by(slug=slug, visivel_loja=True).first_or_404()
+    # OTIMIZAÇÃO: Eager loading da marca e categoria para o produto principal
+    # Isso evita que o template dispare novas queries ao carregar a página
+    produto = Produto.query.filter_by(slug=slug, visivel_loja=True)\
+        .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
+        .first_or_404()
     
-    precos_key = f'precos_{produto.id}'
-    opcoes_parcelamento_key = f'opcoes_parcelamento_{produto.id}'
+    # Chaves de cache específicas por produto
+    precos_key = f'precos_v2_{produto.id}'
+    opcoes_parcelamento_key = f'opcoes_parcelamento_v2_{produto.id}'
 
     precos = cache.get(precos_key)
     opcoes_parcelamento = cache.get(opcoes_parcelamento_key)
@@ -201,15 +206,20 @@ def detalhe_produto(slug):
     if precos is None or opcoes_parcelamento is None:
         precos = produto.calcular_precos()
         valor_base = float(precos.get('preco_a_vista') or 0.0)
+        
+        # OTIMIZAÇÃO: Busca taxas de parcelamento
         taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
         opcoes_parcelamento = parcelamento_logic.gerar_linhas_parcelas(valor_base, taxas)
-        cache.set(precos_key, precos, timeout=300)
-        cache.set(opcoes_parcelamento_key, opcoes_parcelamento, timeout=300)
+        
+        cache.set(precos_key, precos, timeout=3600)
+        cache.set(opcoes_parcelamento_key, opcoes_parcelamento, timeout=3600)
     
+    # Busca rápida da parcela de 12x para exibição em destaque
     parcela_12x = next((item for item in opcoes_parcelamento if item["rotulo"] == "12x"), None)
     
-   # 3. Produtos Relacionados (Otimizado com joinedload para evitar erro de Cache)
-    relacionados_key = f'relacionados_v8_{produto.categoria_id}' # Mudei para v8 para limpar cache antigo
+    # 3. PRODUTOS RELACIONADOS (Otimizado com v10 para garantir limpeza de cache)
+    # A lentidão relatada ocorria aqui; agora usamos joinedload e filtros eficientes
+    relacionados_key = f'relacionados_v10_{produto.categoria_id}' 
     relacionados = cache.get(relacionados_key)
     
     if relacionados is None:
@@ -219,10 +229,11 @@ def detalhe_produto(slug):
             Produto.visivel_loja == True
         ).options(
             joinedload(Produto.marca_rel), 
-            joinedload(Produto.categoria) # <--- CARREGAMENTO ESSENCIAL AQUI
+            joinedload(Produto.categoria)
         ).limit(4).all()
-        cache.set(relacionados_key, relacionados, timeout=300)
+        cache.set(relacionados_key, relacionados, timeout=3600)
 
+    # Lambda para gerar links do R2 limpos
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
     return render_template('loja/produto_detalhe.html', 
