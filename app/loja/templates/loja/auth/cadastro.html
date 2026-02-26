@@ -1,0 +1,60 @@
+{% extends 'loja/base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm p-4 p-md-5">
+                <div class="text-center mb-5">
+                    <i class="bi bi-shield-check fs-1 text-gold"></i>
+                    <h2 class="fw-bold mt-2">Crie sua Conta Tática</h2>
+                    <p class="text-muted">Rápido, seguro e pronto para suas operações.</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('loja.cadastro') }}">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold">NOME COMPLETO</label>
+                            <input type="text" name="nome" class="form-control border-0 bg-light py-3" placeholder="Como no seu RG/CR" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">CPF</label>
+                            <input type="text" name="documento" class="form-control border-0 bg-light py-3" placeholder="000.000.000-00" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">E-MAIL PRINCIPAL</label>
+                            <input type="email" name="email" class="form-control border-0 bg-light py-3" placeholder="seu@email.com" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">SENHA DE ACESSO</label>
+                            <input type="password" name="password" class="form-control border-0 bg-light py-3" placeholder="Mínimo 8 caracteres" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">CONFIRMAR SENHA</label>
+                            <input type="password" class="form-control border-0 bg-light py-3" placeholder="Repita a senha" required>
+                        </div>
+                        
+                        <div class="col-12 mt-4">
+                            <div class="form-check p-3 border rounded bg-light">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="terms" required>
+                                <label class="form-check-label small text-dark" for="terms">
+                                    Declaro que sou maior de 25 anos e aceito os <a href="#" class="text-gold">Termos de Uso</a> e <a href="#" class="text-gold">Privacidade</a> da M4 Tática.
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn btn-dark btn-lg w-100 fw-bold py-3 shadow">
+                                FINALIZAR MEU CADASTRO
+                            </button>
+                            <p class="text-center mt-3 small">
+                                Já tem conta? <a href="{{ url_for('loja.login') }}" class="text-gold fw-bold text-decoration-none">Acesse aqui</a>
+                            </p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

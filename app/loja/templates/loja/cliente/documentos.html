@@ -1,0 +1,164 @@
+{% extends 'loja/base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm overflow-hidden">
+                <div class="bg-dark p-4 text-center">
+                    <div class="rounded-circle bg-gold mx-auto d-flex align-items-center justify-content-center shadow" style="width: 70px; height: 70px;">
+                        <i class="bi bi-person-fill fs-2 text-dark"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mt-3 mb-0 text-uppercase">{{ current_user.nome.split(' ')[0] }}</h6>
+                    <p class="text-white-50 small mb-0">{{ current_user.email_login }}</p>
+                </div>
+                <div class="list-group list-group-flush small fw-bold">
+                    <a href="{{ url_for('loja.minha_conta') }}" class="list-group-item list-group-item-action border-0 py-3">
+                        <i class="bi bi-grid-1x2 me-2"></i> RESUMO
+                    </a>
+                    <a href="{{ url_for('loja.meus_documentos') }}" class="list-group-item list-group-item-action active bg-dark border-0 py-3 text-white">
+                        <i class="bi bi-file-earmark-lock2-fill me-2"></i> MEUS DOCUMENTOS
+                    </a>
+                    <a href="{{ url_for('loja.logout') }}" class="list-group-item list-group-item-action border-0 py-3 text-danger">
+                        <i class="bi bi-box-arrow-left me-2"></i> SAIR
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="fw-bold m-0 text-uppercase">Pasta Digital de Documentos</h3>
+                <button class="btn btn-dark fw-bold btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="bi bi-cloud-upload me-2"></i>ENVIAR NOVO
+                </button>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm mb-4" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% if not documentos %}
+            <div class="text-center py-5 bg-light rounded border border-dashed">
+                <i class="bi bi-folder-x fs-1 text-muted"></i>
+                <p class="mt-2 text-muted">Você ainda não enviou nenhum documento.</p>
+                <button class="btn btn-gold fw-bold btn-sm text-dark px-4" data-bs-toggle="modal" data-bs-target="#uploadModal">CLIQUE AQUI PARA ENVIAR</button>
+            </div>
+            {% else %}
+            <div class="table-responsive bg-white shadow-sm rounded">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase fw-bold text-muted">
+                            <th class="ps-4">Tipo de Documento</th>
+                            <th>Nº do Doc</th>
+                            <th>Validade</th>
+                            <th>Status</th>
+                            <th class="text-end pe-4">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documentos %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-file-earmark-pdf-fill text-danger fs-4 me-2"></i>
+                                    <div>
+                                        <span class="fw-bold d-block">{{ doc.tipo }}</span>
+                                        <small class="text-muted">Enviado em: {{ doc.created_at.strftime('%d/%m/%Y') }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="small">{{ doc.numero_documento or '---' }}</td>
+                            <td class="small">
+                                {% if doc.validade_indeterminada %}
+                                    Indeterminada
+                                {% elif doc.data_validade %}
+                                    {{ doc.data_validade.strftime('%d/%m/%Y') }}
+                                {% else %}
+                                    ---
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if doc.esta_vencido %}
+                                    <span class="badge bg-danger">VENCIDO</span>
+                                {% else %}
+                                    <span class="badge bg-success">VÁLIDO</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <a href="{{ url_for('clientes.abrir_documento', doc_id=doc.id) }}" target="_blank" class="btn btn-light btn-sm border" title="Visualizar Documento">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white border-0">
+                <h5 class="modal-title fw-bold">ENVIAR DOCUMENTO</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/clientes/{{ current_user.id }}/documentos/novo" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">TIPO DE DOCUMENTO</label>
+                        <select name="categoria" class="form-select border-0 bg-light" required>
+                            <option value="RG">RG / CNH</option>
+                            <option value="CR">Certificado de Registro (CR)</option>
+                            <option value="Comprovante de Residência">Comprovante de Residência</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">ARQUIVO (PDF ou Foto)</label>
+                        <input type="file" name="arquivo" class="form-control border-0 bg-light" required>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">NÚMERO DO DOC</label>
+                            <input type="text" name="numero_documento" class="form-control border-0 bg-light">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">DATA DE VALIDADE</label>
+                            <input type="date" name="data_validade" class="form-control border-0 bg-light">
+                        </div>
+                    </div>
+                    <div class="form-check small bg-light p-2 rounded">
+                        <input class="form-check-input ms-1 me-2" type="checkbox" name="validade_indeterminada" id="indet">
+                        <label class="form-check-label" for="indet">Validade Indeterminada</label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-secondary fw-bold shadow-sm" data-bs-dismiss="modal">CANCELAR</button>
+                    <button type="submit" class="btn btn-gold text-dark fw-bold shadow-sm px-4">ENVIAR AGORA</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gold { background-color: #c5a059 !important; }
+    .btn-gold { background-color: #c5a059; border: none; }
+    .btn-gold:hover { background-color: #a68546; }
+    .text-gold { color: #c5a059 !important; }
+    .border-dashed { border-style: dashed !important; }
+    .table-hover tbody tr:hover { background-color: #fcfaf5; }
+</style>
+{% endblock %}

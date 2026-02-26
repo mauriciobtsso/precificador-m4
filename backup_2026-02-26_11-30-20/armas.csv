@@ -1,0 +1,6 @@
+id,cliente_id,tipo,funcionamento,marca,modelo,calibre,numero_serie,emissor_craf,numero_sigma,categoria_adquirente,validade_indeterminada,data_validade_craf,caminho_craf,data_aquisicao,created_at,updated_at
+1,2,revolver,repeticao,TAURUS,RT608,357 MAGNUM,AEC229199,sigma,2456617,atirador,False,2028-07-11,clientes/2/armas/20251021_142725_CRAF_RT608_MAURICIO.pdf,,2025-10-21 14:27:41.031242,2025-10-21 14:27:41.031259
+2,289,pistola,semi_automatica,TAURUS,G2C,.38 TPC,AGJ407106,sinarm,906674581,civil,False,2030-02-21,clientes/289/armas/20251111_143905_Relatorio.pdf,,2025-11-11 14:39:44.528701,2025-11-11 14:39:44.528710
+3,2,pistola,semi_automatica,TAURUS,GX4,9X19,ADK828440,sigma,2207509,atirador,False,2032-11-16,clientes/2/armas/20251125_084556_CRAF_GX4_9MM_MAURICIO.pdf,,2025-11-25 08:46:14.833745,2025-11-25 08:46:14.833773
+4,2,espingarda,repeticao,BOITO,,.28 GA,S53559967872,sigma,145159145159,atirador,True,2028-05-04,clientes/2/armas/20251128_160347_CRAF-28-ANCHIETA.pdf,,2025-11-28 16:05:17.039613,2025-11-28 16:05:17.039700
+5,199,revolver,repeticao,TAURUS,,.38 SPL,PH438197,sigma,540357,militar_forcas_armadas,False,2032-12-01,clientes/199/armas/20251201_165220_CCF20062025_0001_2.pdf,,2025-12-01 16:52:05.274106,2025-12-01 16:52:23.279716

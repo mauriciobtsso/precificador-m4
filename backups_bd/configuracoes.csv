@@ -1,0 +1,17 @@
+id,chave,valor
+1,incluir_pix,true
+2,debito_percent,1.09
+3,mensagem_whats_prefixo,
+4,loja_nome_fantasia,M4 Tática
+8,loja_rm,10ª Região Militar
+9,loja_endereco,"Av. Universitária, 750, Edifício Diamond Center, Loja 23, Fátima, Teresina-PI"
+10,loja_cep,64049-494
+11,loja_telefone,(86) 3025-5885
+12,loja_email,falecom@m4tatica.com.br
+13,loja_instagram,@m4tatica
+14,loja_whatsapp,558630255885
+15,cor_primaria,#1a1a1a
+16,cor_destaque,#c5a059
+5,loja_razao_social,M4 TÁTICA COMERCIO E SERVIÇOS LTDA
+6,loja_cnpj,41.654.218/0001-47
+7,loja_cr,635069

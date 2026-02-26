@@ -1,0 +1,29 @@
+id,nome,descricao,pai_id,criado_em,atualizado_em,slug,icone_loja,ordem_exibicao,exibir_no_menu
+24,ARMAS DE FOGO,None,,2026-02-18 16:07:45.450559-03:00,2026-02-18 17:16:41.137601-03:00,armas-de-fogo,,1,True
+6,Carabina,None,24,2025-10-28 14:43:59.206701-03:00,2026-02-18 17:18:20.046878-03:00,carabina,,1,True
+5,Espingarda,None,24,2025-10-24 10:09:08.264305-03:00,2026-02-18 17:18:27.490413-03:00,espingarda,,2,True
+21,Fuzil,"Armas longas de alma raiada, de uso tático/militar, em calibres de fuzil como 5.56x45mm e 7.62x51mm",24,2025-10-17 15:42:00.145985-03:00,2026-02-18 17:18:34.927044-03:00,fuzil,,3,True
+2,Pistola,None,24,2025-10-21 14:10:27.246163-03:00,2026-02-18 17:18:42.608537-03:00,pistola,,4,True
+1,Revólver,None,24,2025-10-21 10:46:53.520736-03:00,2026-02-18 17:18:50.012654-03:00,revolver,,5,True
+4,Rifle,None,24,2025-10-21 16:24:50.724060-03:00,2026-02-18 17:18:57.199502-03:00,rifle,,6,True
+26,Munição Calibre .12GA,None,25,2026-02-18 16:16:38.954719-03:00,2026-02-18 17:19:19.797089-03:00,munição-calibre-12ga,,0,True
+25,MUNIÇÕES,None,,2026-02-18 16:11:27.997870-03:00,2026-02-18 17:19:50.152846-03:00,munições,bi-box-seam-fill,2,True
+27,Munição Calibre .17HMR,None,25,2026-02-18 16:16:59.111618-03:00,2026-02-18 17:19:56.714233-03:00,munição-calibre-17hmr,,0,True
+28,Munição Calibre .22LR,None,25,2026-02-18 16:17:19.256132-03:00,2026-02-18 17:19:59.837723-03:00,munição-calibre-22lr,,0,True
+29,Munição Calibre .22WMR (22 MAG),None,25,2026-02-18 16:17:57.792128-03:00,2026-02-18 17:20:02.994377-03:00,munição-calibre-22wmr-22-mag,,0,True
+30,Munição Calibre .16GA,None,25,2026-02-18 16:18:12.420546-03:00,2026-02-18 17:20:06.131077-03:00,munição-calibre-16ga,,0,True
+31,Munição Calibre .20GA,None,25,2026-02-18 16:18:42.804576-03:00,2026-02-18 17:20:09.611846-03:00,munição-calibre-20ga,,0,True
+32,Munição Calibre .28GA,None,25,2026-02-18 16:18:52.747557-03:00,2026-02-18 17:20:13.286265-03:00,munição-calibre-28ga,,0,True
+33,Munição Calibre .38 SPL,None,25,2026-02-18 16:19:34.535232-03:00,2026-02-18 17:20:17.034733-03:00,munição-calibre-38-spl,,0,True
+34,Munição Calibre .32 SWL,None,25,2026-02-18 16:19:55.640603-03:00,2026-02-18 17:20:47.455812-03:00,munição-calibre-32-swl,,0,True
+35,Munição Calibre .38 TPC,None,25,2026-02-18 16:20:30.871219-03:00,2026-02-18 17:20:50.335465-03:00,munição-calibre-38-tpc,,0,True
+36,Munição Calibre .357 MAG,None,25,2026-02-18 16:20:42.737481-03:00,2026-02-18 17:20:53.314548-03:00,munição-calibre-357-mag,,0,True
+37,Munição Calibre .380 ACP,None,25,2026-02-18 16:21:01.176102-03:00,2026-02-18 17:20:56.472973-03:00,munição-calibre-380-acp,,0,True
+38,Munição Calibre .38 SUPERAUTO,None,25,2026-02-18 16:21:25.888193-03:00,2026-02-18 17:21:00.567414-03:00,munição-calibre-38-superauto,,0,True
+39,Munição Calibre .40 S&W,None,25,2026-02-18 16:21:50.896856-03:00,2026-02-18 17:21:03.598633-03:00,munição-calibre-40-sw,,0,True
+40,Munição Calibre .45 AUTO,None,25,2026-02-18 16:22:08.870655-03:00,2026-02-18 17:21:06.775728-03:00,munição-calibre-45-auto,,0,True
+41,Munição Calibre .9MM,None,25,2026-02-18 16:22:28.500077-03:00,2026-02-18 17:21:10.464557-03:00,munição-calibre-9mm,,0,True
+42,Munição Calibre .44-40 WIN,None,25,2026-02-18 16:38:53.669312-03:00,2026-02-18 17:21:14.112510-03:00,munição-calibre-44-40-win,,0,True
+43,Munição Calibre .556x45,None,25,2026-02-18 16:39:16.091113-03:00,2026-02-18 17:21:26.519119-03:00,munição-calibre-556x45,,0,True
+19,Carregadores,"Dispositivos para armazenamento e alimentação de munição em armas de fogo, como pistolas e carabinas.",,2025-10-16 16:38:37.491048-03:00,2026-02-18 17:23:23.938271-03:00,carregadores,,2,True
+9,Limpeza/Manutenção,None,,2025-10-30 19:43:01.042522-03:00,2026-02-18 17:23:31.844813-03:00,limpezamanutencao,,4,True

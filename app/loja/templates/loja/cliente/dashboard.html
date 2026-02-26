@@ -1,0 +1,124 @@
+{% extends 'loja/base.html' %}
+
+{% block content %}
+<div class="container py-5" style="min-height: 600px;">
+    <div class="row">
+        <div class="col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm overflow-hidden">
+                <div class="bg-dark p-4 text-center">
+                    <div class="rounded-circle bg-gold mx-auto d-flex align-items-center justify-content-center shadow" style="width: 70px; height: 70px;">
+                        <i class="bi bi-person-fill fs-2 text-dark"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mt-3 mb-0 text-uppercase">{{ current_user.nome.split(' ')[0] }}</h6>
+                    <p class="text-white-50 small mb-0">{{ current_user.email_login }}</p>
+                </div>
+                <div class="list-group list-group-flush small fw-bold">
+                    <a href="{{ url_for('loja.minha_conta') }}" class="list-group-item list-group-item-action active border-0 py-3">
+                        <i class="bi bi-grid-1x2-fill me-2"></i> RESUMO
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action border-0 py-3">
+                        <i class="bi bi-box-seam me-2"></i> MEUS PEDIDOS
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action border-0 py-3">
+                        <i class="bi bi-geo-alt me-2"></i> ENDEREÇOS
+                    </a>
+                    <a href="{{ url_for('loja.meus_documentos') }}" class="list-group-item list-group-item-action border-0 py-3">
+                        <i class="bi bi-file-earmark-lock2 me-2"></i> MEUS DOCUMENTOS
+                    </a>
+                    <a href="{{ url_for('loja.logout') }}" class="list-group-item list-group-item-action border-0 py-3 text-danger">
+                        <i class="bi bi-box-arrow-left me-2"></i> SAIR
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                    <h2 class="fw-black mb-0">PAINEL DO CLIENTE</h2>
+                    <p class="text-muted mb-0">Gerencie suas compras e documentação tática.</p>
+                </div>
+                <span class="badge bg-light text-dark border p-2">CLIENTE DESDE: {{ current_user.created_at.strftime('%m/%Y') }}</span>
+            </div>
+
+            {% if not current_user.cr %}
+            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-exclamation-octagon-fill fs-3 me-3"></i>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1">Atenção ao seu CR!</h6>
+                    <p class="mb-0 small">Identificamos que seu Certificado de Registro não está cadastrado. Para adquirir armas e munições, é necessário <a href="{{ url_for('loja.meus_documentos') }}" class="fw-bold text-dark">atualizar seus documentos</a>.</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h6 class="fw-bold text-uppercase small text-muted">Último Pedido</h6>
+                                <i class="bi bi-cart-check fs-4 text-gold"></i>
+                            </div>
+                            {% if current_user.vendas %}
+                                <h4 class="fw-bold mb-1">#{{ current_user.vendas[-1].id }}</h4>
+                                <p class="small text-muted mb-3">Valor: R$ {{ "{:,.2f}".format(current_user.vendas[-1].valor_total).replace(',','v').replace('.',',').replace('v','.') }}</p>
+                                <a href="#" class="btn btn-dark btn-sm w-100 fw-bold">RASTREAR PEDIDO</a>
+                            {% else %}
+                                <p class="text-muted small">Nenhuma compra realizada recentemente.</p>
+                                <a href="{{ url_for('loja.index') }}" class="btn btn-outline-dark btn-sm w-100 fw-bold">VER PRODUTOS</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between mb-3">
+                                <h6 class="fw-bold text-uppercase small text-muted">Endereço de Entrega</h6>
+                                <i class="bi bi-geo-alt fs-4 text-gold"></i>
+                            </div>
+                            {% if current_user.enderecos %}
+                                <p class="mb-0 fw-bold small text-dark">{{ current_user.enderecos[0].logradouro }}, {{ current_user.enderecos[0].numero }}</p>
+                                <p class="mb-3 small text-muted">{{ current_user.enderecos[0].cidade }} / {{ current_user.enderecos[0].estado }}</p>
+                                <a href="#" class="btn btn-light btn-sm w-100 fw-bold border text-uppercase">Gerenciar Endereços</a>
+                            {% else %}
+                                <p class="text-muted small">Nenhum endereço de entrega cadastrado.</p>
+                                <a href="#" class="btn btn-outline-dark btn-sm w-100 fw-bold">ADICIONAR ENDEREÇO</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm bg-light">
+                        <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-white p-3 rounded shadow-sm me-3 text-gold">
+                                    <i class="bi bi-file-earmark-pdf fs-2"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">PASTA DIGITAL DE DOCUMENTOS</h6>
+                                    <p class="small text-muted mb-0">Gerencie seu CR, RG e comprovantes para agilizar suas compras.</p>
+                                </div>
+                            </div>
+                            <a href="{{ url_for('loja.meus_documentos') }}" class="btn btn-gold fw-bold px-4 shadow-sm text-dark">
+                                <i class="bi bi-eye me-2"></i> VER MEUS DOCUMENTOS
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gold { background-color: #c5a059 !important; }
+    .text-gold { color: #c5a059 !important; }
+    .list-group-item.active { background-color: #1a1a1a !important; border-color: #1a1a1a !important; }
+    .fw-black { font-weight: 900; }
+    .btn-gold { background-color: #c5a059; border: none; color: #000; }
+    .btn-gold:hover { background-color: #a68546; color: #000; }
+</style>
+{% endblock %}

@@ -1,0 +1,202 @@
+id,titulo,chave,conteudo,updated_at
+1,Contrato Venda de Arma,contrato_arma,"
+<div style=""text-align: center;"">
+    <img src=""{{ empresa.logo }}"" width=""120""><br>
+    <b>{{ empresa.razao_social }}</b>
+</div>
+<h3 style=""text-align: center;"">CONTRATO DE COMPRA E VENDA</h3>
+<p><b>VENDEDOR:</b> {{ empresa.razao_social }}, CNPJ {{ empresa.cnpj }}.</p>
+<p><b>COMPRADOR:</b> {{ cliente.nome }}, CPF {{ cliente.documento }}.</p>
+<p><b>OBJETO:</b> Aquisição de: <br>{{ itens_lista }}</p>
+<p><b>VALOR:</b> {{ br_money(venda.valor_total) }}</p>
+<br><br><div style=""text-align: center;"">___________________________<br>{{ cliente.nome }}</div>
+",2025-11-26 21:30:10.846433
+2,Contrato Despachante,servico_despachante,"
+<h3 style=""text-align: center;"">CONTRATO DE SERVIÇOS DE DESPACHANTE</h3>
+<p><b>CONTRATANTE:</b> {{ cliente.nome }}, CPF {{ cliente.documento }}.</p>
+<p><b>OBJETO:</b> Assessoria para aquisição de arma de fogo/CR.</p>
+<p><b>VALOR:</b> {{ br_money(venda.valor_total) }}</p>
+<br><br><div style=""text-align: center;"">___________________________<br>{{ cliente.nome }}</div>
+",2025-11-26 21:30:10.968301
+3,Termo de Retirada (Arma),retirada_arma,"
+<style>
+    .doc-box { border: 1px solid #000; padding: 5px; font-size: 11px; font-family: Arial, sans-serif; }
+    .doc-header { display: flex; align-items: center; margin-bottom: 10px; }
+    .doc-logo { width: 100px; margin-right: 15px; }
+    .doc-title { background-color: #ddd; font-weight: bold; text-align: center; padding: 3px; border: 1px solid #000; margin-top: 10px; }
+    .info-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px; }
+    .info-table td, .info-table th { border: 1px solid #000; padding: 4px; vertical-align: middle; }
+    .info-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
+    .legal-text { font-size: 10px; text-align: justify; margin-top: 5px; line-height: 1.2; }
+    .signature-box { margin-top: 40px; text-align: center; font-size: 11px; }
+</style>
+
+<div class=""doc-header"">
+    <div class=""doc-logo""><img src=""{{ empresa.logo }}"" style=""width: 100%;""></div>
+    <div style=""font-size: 12px;"">
+        <b>{{ empresa.razao_social }}</b><br>
+        CNPJ: {{ empresa.cnpj }} | CR: {{ empresa.cr }}<br>
+        {{ empresa.endereco }}
+    </div>
+</div>
+
+<div class=""doc-title"">TERMO DE RETIRADA DE ARMA DE FOGO</div>
+
+<div style=""margin-top: 10px; font-weight: bold; font-size: 11px;"">RETIRADO POR:</div>
+<table class=""info-table"">
+    <tr><td width=""15%""><b>Nome:</b></td><td colspan=""3"">{{ cliente.nome }}</td></tr>
+    <tr><td><b>CPF:</b></td><td>{{ cliente.documento }}</td><td><b>CR:</b></td><td>{{ cliente.cr }}</td></tr>
+    <tr><td><b>Endereço:</b></td><td colspan=""3"">{{ cliente.endereco_completo }}</td></tr>
+</table>
+
+<div style=""margin-top: 5px; font-weight: bold; font-size: 11px;"">ARMAS RETIRADAS:</div>
+<table class=""info-table"">
+    <thead>
+        <tr><th>Tipo/Modelo</th><th>Marca</th><th>Calibre</th><th>Nº Série</th><th>CRAF</th></tr>
+    </thead>
+    <tbody>
+        {% for item in venda.itens %}
+        <tr>
+            <td>{{ item.produto_nome }}</td>
+            <td>{{ item.produto.marca or '-' }}</td>
+            <td style=""text-align: center;"">{{ item.produto.calibre or '-' }}</td>
+            <td style=""text-align: center;""><b>{{ item.item_estoque.numero_serie or 'PENDENTE' }}</b></td>
+            <td style=""text-align: center;"">-</td> </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class=""legal-text"">
+    <b>Declaração:</b> Eu, {{ cliente.nome }}, declaro ter retirado a(s) arma(s) acima descrita(s) no estabelecimento {{ empresa.razao_social }}, na data de {{ data_hoje }}.<br>
+    Declaro estar de posse da documentação legal necessária (CRAF e Guia de Trânsito e/ou Porte) para o transporte até o local de guarda.<br><br>
+    <i>*A entrega da arma está condicionada à apresentação da documentação válida conforme Lei 10.826/2003.</i>
+</div>
+
+<div class=""signature-box"">
+    <br><br>Teresina (PI), {{ data_hoje }}<br><br><br>
+    _________________________________________________<br><b>{{ cliente.nome }}</b>
+</div>
+",2025-11-26 21:30:11.088850
+4,Termo de Retirada (Munição),retirada_municao,"
+<style>
+    .doc-box { border: 1px solid #000; padding: 5px; font-size: 11px; font-family: Arial, sans-serif; }
+    .doc-header { display: flex; align-items: center; margin-bottom: 10px; }
+    .doc-logo { width: 100px; margin-right: 15px; }
+    .doc-title { background-color: #ddd; font-weight: bold; text-align: center; padding: 3px; border: 1px solid #000; margin-top: 10px; }
+    .info-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px; }
+    .info-table td, .info-table th { border: 1px solid #000; padding: 4px; vertical-align: middle; }
+    .info-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
+    .legal-text { font-size: 10px; text-align: justify; margin-top: 5px; line-height: 1.2; }
+    .signature-box { margin-top: 40px; text-align: center; font-size: 11px; }
+</style>
+
+<div class=""doc-header"">
+    <div class=""doc-logo"">
+        <img src=""{{ empresa.logo }}"" style=""width: 100%;"">
+    </div>
+    <div style=""font-size: 12px;"">
+        <b>{{ empresa.razao_social }}</b><br>
+        CNPJ: {{ empresa.cnpj }} | CR: {{ empresa.cr }}<br>
+        {{ empresa.endereco }}<br>
+        {{ empresa.telefone }} | {{ empresa.email }}
+    </div>
+</div>
+
+<div class=""doc-title"">TERMO DE RETIRADA DE MUNIÇÃO / INSUMOS</div>
+
+<div style=""margin-top: 10px; font-weight: bold; font-size: 11px;"">RETIRADO POR:</div>
+<table class=""info-table"">
+    <tr>
+        <td width=""15%""><b>Nome:</b></td>
+        <td colspan=""3"">{{ cliente.nome }}</td>
+    </tr>
+    <tr>
+        <td><b>CPF/CNPJ:</b></td>
+        <td width=""35%"">{{ cliente.documento }}</td>
+        <td width=""15%""><b>CR:</b></td>
+        <td>{{ cliente.cr }} - Val: {{ cliente.cr_validade }}</td>
+    </tr>
+    <tr>
+        <td><b>Endereço:</b></td>
+        <td colspan=""3"">{{ cliente.endereco_completo }}</td>
+    </tr>
+    <tr>
+        <td><b>Contato:</b></td>
+        <td>{{ cliente.telefone }} / {{ cliente.email }}</td>
+        <td><b>Nota Fiscal:</b></td>
+        <td>{{ venda.nf_numero if venda.nf_numero else 'PENDENTE' }}</td>
+    </tr>
+</table>
+
+<div style=""margin-top: 5px; font-weight: bold; font-size: 11px;"">ITENS ADQUIRIDOS:</div>
+<table class=""info-table"">
+    <thead>
+        <tr>
+            <th width=""5%"">Qtd.</th>
+            <th>Produto / Descrição</th>
+            <th width=""20%"">Lote (Estoque)</th>
+            <th width=""30%"">Arma Vinculada (CRAF)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in venda.itens %}
+        <tr>
+            <td style=""text-align: center;""><b>{{ item.quantidade }}</b></td>
+            <td>
+                {{ item.produto_nome }}<br>
+                <span style=""font-size: 9px; color: #555;"">SKU: {{ item.sku or '-' }}</span>
+            </td>
+            <td style=""text-align: center;"">
+                {% if item.item_estoque %}
+                    {{ item.item_estoque.lote or item.item_estoque.numero_serie or '-' }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if item.arma_cliente %}
+                    <b>{{ item.arma_cliente.tipo }} {{ item.arma_cliente.calibre }}</b><br>
+                    Nº Série: {{ item.arma_cliente.numero_serie }}<br>
+                    <span style=""font-size: 9px;"">
+                    {% if item.arma_cliente.numero_sigma %}Sigma: {{ item.arma_cliente.numero_sigma }}{% endif %}
+                    {% if item.arma_cliente.emissor_craf %} / {{ item.arma_cliente.emissor_craf }}{% endif %}
+                    </span>
+                {% else %}
+                    <span style=""color: red;"">Não vinculado</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class=""legal-box"" style=""border: 1px solid #ccc; padding: 8px; background-color: #f9f9f9;"">
+    <div class=""legal-text"">
+        <b>Legislação de Referência:</b> Pelo Decreto 11.615 de 21 de Julho de 2023 e a Portaria nº 166 COLOG, o cidadão e as categorias descritas podem adquirir munições conforme limites estabelecidos.<br><br>
+        
+        <b>Limites para Caçadores/Atiradores (por ano/calibre):</b><br>
+        &bull; CR NÍVEL I: 4.000 munições / 8.000 cartuchos .22 LR / 3kg Pólvora.<br>
+        &bull; CR NÍVEL II: 8.000 munições / 16.000 cartuchos .22 LR / 6kg Pólvora.<br>
+        &bull; CR NÍVEL III: 20.000 munições / 6.000 restritas / 32.000 cartuchos .22 LR / 12kg Pólvora.<br><br>
+        
+        <i>*Em caso de atualização das normas, leis e decretos acima descritos, a que terá validade serão as últimas publicadas pelos órgãos reguladores e fiscalizadores.</i>
+    </div>
+</div>
+
+<div class=""legal-text"" style=""margin-top: 15px; font-size: 11px;"">
+    Eu, <b>{{ cliente.nome }}</b>, portador do documento nº {{ cliente.rg }} e CPF {{ cliente.documento }}, residente em {{ cliente.endereco_completo }}, 
+    <b>DECLARO</b> ter adquirido e retirado os itens detalhados acima nesta data. 
+    Declaro possuir permissão legal para esta aquisição e que as quantidades não ultrapassam meus limites permitidos perante a legislação vigente.
+    <br><br>
+    <b>Privacidade (LGPD):</b> Declaro estar ciente e consinto com a coleta e arquivamento dos meus dados pessoais e documentos (incluindo este termo) em formato físico e eletrônico pela {{ empresa.razao_social }}, para a finalidade exclusiva de cumprimento de obrigação legal e regulatória do setor.
+</div>
+
+<div class=""signature-box"">
+    <br><br>
+    Teresina (PI), {{ data_hoje }}
+    <br><br><br><br>
+    _____________________________________________________________<br>
+    <b>{{ cliente.nome }}</b><br>
+    COMPRADOR
+</div>
+",2025-11-26 21:30:11.208577

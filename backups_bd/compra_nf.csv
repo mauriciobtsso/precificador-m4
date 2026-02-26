@@ -1,0 +1,3 @@
+id,numero,chave,fornecedor,data_emissao,criado_em,valor_total,pedido_id,cnpj_fornecedor,guia_transito_file,numero_selo
+35,2286,35250313832863000258550020000022861417207353,Pavei Brasil Comércio Exterior Ltda. 2,2025-03-14 16:56:00,2025-11-28 10:10:01.266787,3091.20,3,13832863000258,,
+42,13015,35251013832863000258550020000130151781347155,Pavei Brasil Comércio Exterior Ltda. 2,2025-10-31 16:18:00,2025-11-28 15:08:43.272366,4170.42,4,13832863000258,guias_transito/NF_13015_PAVEI.pdf,12181686

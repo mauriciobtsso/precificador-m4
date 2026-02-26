@@ -1,0 +1,5 @@
+id,produto_id,fornecedor_id,tipo_item,numero_serie,lote,numero_embalagem,quantidade,status,data_entrada,observacoes,nota_fiscal,data_nf,compra_item_id,guia_transito_file,numero_selo
+101,24,1354,municao,,,,140,disponivel,2025-12-01,Entrada Atacado via NF 13015,13015,2025-10-31,81,guias_transito/NF_13015_PAVEI.pdf,12181686
+13,12,3,arma,AGB009651,,,1,disponivel,2025-11-28,Entrada via NF 2286,2286,2025-03-14,55,guias_transito/2286_26032025.pdf,11361868
+102,24,1354,municao,,Teste,123456,10,disponivel,2025-12-01,Classificado em Lote,13015,,,guias_transito/NF_13015_PAVEI.pdf,12181686
+97,23,1354,municao,,ABC01,123456,10,reservado,2025-12-01,Reservado Venda Munição #1172 - Lote: ABC01,13015,,,guias_transito/NF_13015_PAVEI.pdf,12181686

@@ -1,0 +1,4 @@
+id,cliente_id,tipo,nivel,mensagem,meio,data_envio,status,erro
+2,3,processo,baixo,Processo 'Aquisição de arma' em andamento (concluido) — M4 TÁTICA COMERCIO E SERVIÇOS LTDA,sistema,2025-10-13 17:43:28.954985,lido,
+1,3,processo,baixo,Processo 'TESTE1' em andamento (Em andamento) — M4 TÁTICA COMERCIO E SERVIÇOS LTDA,sistema,2025-10-13 17:43:28.209002,lido,
+3,,processo,baixo,Processo 'CR' em andamento (Em andamento) — MARCELL BRANDAO WERCKLOSE,sistema,2025-10-13 20:13:50.401331,lido,

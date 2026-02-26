@@ -1,0 +1,72 @@
+{% extends 'loja/base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-lg overflow-hidden">
+                <div class="row g-0">
+                    <div class="col-md-6 bg-white p-5">
+                        <div class="mb-4">
+                            <h2 class="fw-bold text-dark mb-1">Acessar Conta</h2>
+                            <p class="text-muted small">Bem-vindo de volta, Comandante.</p>
+                        </div>
+
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show small" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <form method="POST" action="{{ url_for('loja.login') }}">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">E-MAIL</label>
+                                <input type="email" name="email" class="form-control form-control-lg border-light bg-light" placeholder="exemplo@email.com" required>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <label class="form-label small fw-bold">SENHA</label>
+                                    <a href="#" class="text-gold small text-decoration-none">Esqueceu a senha?</a>
+                                </div>
+                                <input type="password" name="password" class="form-control form-control-lg border-light bg-light" placeholder="********" required>
+                            </div>
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                                    <label class="form-check-label small" for="remember">Lembrar acesso neste dispositivo</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-dark btn-lg w-100 fw-bold shadow-sm">
+                                <i class="bi bi-box-arrow-in-right me-2"></i> ENTRAR NO ARSENAL
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="col-md-6 bg-dark text-white p-5 d-flex align-items-center justify-content-center text-center" 
+                         style="background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('/static/img/bg-auth.jpg') center/cover;">
+                        <div>
+                            <i class="bi bi-person-plus fs-1 text-gold mb-3"></i>
+                            <h3 class="fw-bold">Novo por aqui?</h3>
+                            <p class="opacity-75 mb-4">Crie sua conta para acompanhar pedidos, salvar seus produtos favoritos e agilizar seu processo de aquisição.</p>
+                            <a href="{{ url_for('loja.cadastro') }}" class="btn btn-outline-gold btn-lg px-5 fw-bold">
+                                CRIAR MINHA CONTA
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-outline-gold { border: 2px solid var(--m4-gold); color: var(--m4-gold); transition: 0.3s; }
+    .btn-outline-gold:hover { background: var(--m4-gold); color: #000; }
+    .text-gold { color: var(--m4-gold) !important; }
+</style>
+{% endblock %}

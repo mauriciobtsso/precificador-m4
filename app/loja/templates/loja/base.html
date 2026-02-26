@@ -40,6 +40,8 @@
             --m4-gray-bg: #f8f9fa;
             --m4-text: #333333;
             --m4-border: #e5e5e5;
+            /* Cor de contraste otimizada para acessibilidade sobre fundo escuro */
+            --m4-gray-light: #cecece; 
         }
 
         body {
@@ -60,7 +62,6 @@
 
         .navbar-main { padding: 15px 0; border-bottom: 1px solid #222; }
         
-        /* Ajuste Logo Mobile */
         .navbar-brand { position: relative; z-index: 2001; display: inline-block; }
         .logo-img { height: 55px; width: auto; object-fit: contain; }
         
@@ -108,15 +109,17 @@
 
         footer { background-color: #111; color: #fff; padding: 60px 0 20px; margin-top: 80px; }
         footer h6 { color: #fff; font-weight: 800; text-transform: uppercase; font-size: 14px; margin-bottom: 25px; letter-spacing: 1px; border-left: 3px solid var(--m4-gold); padding-left: 10px; }
-        footer a { color: #999; text-decoration: none; transition: 0.3s; font-size: 13px; }
+        
+        /* Ajuste de contraste: cinza mais claro para passar no Lighthouse */
+        footer a { color: var(--m4-gray-light); text-decoration: none; transition: 0.3s; font-size: 13px; }
         footer a:hover { color: var(--m4-gold); padding-left: 5px; }
         
-        .footer-info-text { color: #999 !important; font-size: 13px; }
+        .footer-info-text { color: var(--m4-gray-light) !important; font-size: 13px; }
 
-        /* Ajuste do Copyright */
         .copyright-text { 
             font-size: 11px; 
-            color: #bbb !important; /* Mais visível que o muted padrão */
+            color: #ffffff !important; 
+            opacity: 0.8;
             letter-spacing: 0.5px;
             line-height: 1.6;
         }
@@ -132,20 +135,20 @@
     <header>
         <div class="navbar-main">
             <div class="container d-flex flex-wrap align-items-center justify-content-between">
-                <a href="{{ url_for('loja.index') }}" class="navbar-brand m-0">
-                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="M4 Tática" class="logo-img">
+                <a href="{{ url_for('loja.index') }}" class="navbar-brand m-0" aria-label="M4 Tática - Página Inicial">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo M4 Tática" class="logo-img">
                 </a>
 
                 <div class="search-container d-flex">
-                    <form action="{{ url_for('loja.index') }}" method="GET" class="d-flex w-100 shadow-sm">
-                        <input type="text" name="q" class="form-control search-box-m4" placeholder="O que você está procurando?" value="{{ termo_busca or '' }}">
-                        <button type="submit" class="search-btn-m4"><i class="bi bi-search"></i></button>
+                    <form action="{{ url_for('loja.index') }}" method="GET" class="d-flex w-100 shadow-sm" role="search">
+                        <input type="text" name="q" class="form-control search-box-m4" placeholder="O que você está procurando?" value="{{ termo_busca or '' }}" aria-label="Buscar produtos">
+                        <button type="submit" class="search-btn-m4" aria-label="Pesquisar"><i class="bi bi-search"></i></button>                    
                     </form>
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <a href="#" class="header-icon"><i class="bi bi-person-circle"></i></a>
-                    <a href="#" class="header-icon">
+                    <a href="#" class="header-icon" aria-label="Minha Conta"><i class="bi bi-person-circle"></i></a>
+                    <a href="#" class="header-icon" aria-label="Meu Carrinho">
                         <i class="bi bi-cart3"></i>
                         <span class="cart-badge">0</span>
                     </a>
@@ -153,7 +156,7 @@
             </div>
         </div>
 
-        <nav class="nav-departments d-none d-lg-block">
+        <nav class="nav-departments d-none d-lg-block" aria-label="Navegação por categorias">
             <div class="container">
                 <ul class="nav justify-content-center">
                     {% for cat in categorias_menu %}
@@ -162,10 +165,10 @@
                             
                             {% if subcategorias_ativas %}
                                 <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">
+                                    <a class="nav-link dropdown-toggle" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}" id="navbarDropdown{{ cat.id }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         {{ cat.nome }}
                                     </a>
-                                    <ul class="dropdown-menu">
+                                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown{{ cat.id }}">
                                         <li><a class="dropdown-item fw-bold text-dark border-bottom mb-1" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">VER TUDO EM {{ cat.nome|upper }}</a></li>
                                         {% for sub in subcategorias_ativas %}
                                             <li><a class="dropdown-item" href="{{ url_for('loja.categoria', slug_categoria=sub.slug) }}">{{ sub.nome }}</a></li>
@@ -180,7 +183,7 @@
                         {% endif %}
                     {% endfor %}
                     <li class="nav-item">
-                        <a class="nav-link text-danger fw-bold" href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank">
+                        <a class="nav-link text-danger fw-bold" href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank" rel="noopener">
                             <i class="bi bi-shield-check me-1"></i> SERVIÇOS / CR
                         </a>
                     </li>
@@ -189,7 +192,9 @@
         </nav>
     </header>
 
-    <main>{% block content %}{% endblock %}</main>
+    <main id="main-content">
+        {% block content %}{% endblock %}
+    </main>
 
     <footer>
         <div class="container">
@@ -221,31 +226,31 @@
                     <p class="mb-1 footer-info-text">CNPJ: {{ loja.loja_cnpj if loja.loja_cnpj else '41.654.218/0001-47' }}</p>
                     
                     <p class="mb-1">
-                        <a href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank" class="text-decoration-none">
-                            <i class="bi bi-whatsapp text-success"></i> <span class="footer-info-text">{{ loja.loja_telefone if loja.loja_telefone else '(86) 3025-5885' }}</span>
+                        <a href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank" class="text-decoration-none" rel="noopener">
+                            <i class="bi bi-whatsapp text-success" aria-hidden="true"></i> <span class="footer-info-text">{{ loja.loja_telefone if loja.loja_telefone else '(86) 3025-5885' }}</span>
                         </a>
                     </p>
                     
                     <div class="footer-social d-flex gap-3 mt-3">
                         {% if loja.loja_instagram %}
-                        <a href="https://instagram.com/{{ loja.loja_instagram|replace('@', '') }}" target="_blank" class="fs-4 text-white">
+                        <a href="https://instagram.com/{{ loja.loja_instagram|replace('@', '') }}" target="_blank" class="fs-4 text-white" aria-label="Siga-nos no Instagram" rel="noopener">
                             <i class="bi bi-instagram"></i>
                         </a>
                         {% endif %}
-                        <a href="mailto:{{ loja.loja_email }}" class="fs-4 text-white"><i class="bi bi-envelope"></i></a>
+                        <a href="mailto:{{ loja.loja_email }}" class="fs-4 text-white" aria-label="Envie-nos um e-mail"><i class="bi bi-envelope"></i></a>
                     </div>
                 </div>
 
                 <div class="col-lg-3 col-md-6">
                     <h6>Pagamento & Segurança</h6>
                     <div class="payment-icons mb-3">
-                        <img src="https://img.icons8.com/color/38/visa.png" alt="Visa" loading="lazy">
-                        <img src="https://img.icons8.com/color/38/mastercard.png" alt="Mastercard" loading="lazy">
-                        <img src="https://img.icons8.com/color/38/pix.png" alt="Pix" loading="lazy">
+                        <img src="https://img.icons8.com/color/38/visa.png" alt="Visa" loading="lazy" width="38" height="38">
+                        <img src="https://img.icons8.com/color/38/mastercard.png" alt="Mastercard" loading="lazy" width="38" height="38">
+                        <img src="https://img.icons8.com/color/38/pix.png" alt="Pix" loading="lazy" width="38" height="38">
                     </div>
                     <div class="d-flex gap-2">
-                        <i class="bi bi-shield-check fs-2 text-success" title="Site Seguro"></i>
-                        <i class="bi bi-lock fs-2 text-white-50" title="SSL Ativo"></i>
+                        <i class="bi bi-shield-check fs-2 text-success" title="Site Seguro" aria-hidden="true"></i>
+                        <i class="bi bi-lock fs-2 text-white-50" title="SSL Ativo" aria-hidden="true"></i>
                     </div>
                 </div>
             </div>

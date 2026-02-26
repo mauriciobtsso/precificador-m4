@@ -1,0 +1,7 @@
+id,numero,data_pedido,cond_pagto,modo_desconto,percentual_armas,percentual_municoes,percentual_unico,fornecedor_id,status
+3,20251127152306,2025-11-27,A vista,por_tipo,-5.0,-3.0,0.0,3,Recebido
+4,20251128114222,2025-11-28,Á vista,unico,-5.0,-3.0,0.0,1354,Recebido
+5,20260120121558,2026-01-20,À VISTA,unico,-5.0,-3.0,0.0,1354,Aguardando
+6,20260122130828,2026-01-22,A VISTA,unico,-5.0,-3.0,-2.68,980,Aguardando
+7,20260206135820,2026-02-06,PARCELADO,unico,-5.0,-3.0,0.0,980,Aguardando
+8,20260223181137,2026-02-23,A PRAZO (28/56/84/112),unico,-5.0,-3.0,0.0,1354,Aguardando

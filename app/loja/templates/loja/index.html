@@ -24,7 +24,7 @@
                 {% endif %}
 
                 {% if banner.link_destino %}
-                    <a href="{{ banner.link_destino }}">
+                    <a href="{{ banner.link_destino }}" aria-label="Ver detalhes da promoção: {{ banner.titulo }}">
                         <img src="{{ banner_link }}" {{ img_attrs | safe }}>
                     </a>
                 {% else %}
@@ -34,8 +34,12 @@
             {% endfor %}
         </div>
         {% if banners|length > 1 %}
-        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
-        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev" aria-label="Banner Anterior">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next" aria-label="Próximo Banner">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        </button>
         {% endif %}
     </div>
     {% else %}
@@ -56,10 +60,10 @@
             <div class="brands-track">
                 {% for marca in marcas_lista %}
                 <div class="brand-slide">
-                    <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none">
+                    <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none" aria-label="Ver produtos da marca {{ marca.nome }}">
                         <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
                             {% if marca.logo_url %}
-                                <img src="{{ gerar_link(marca.logo_url) }}" alt="{{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async">
+                                <img src="{{ gerar_link(marca.logo_url) }}" alt="Logo {{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async" width="120" height="50">
                             {% else %}
                                 <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
                             {% endif %}
@@ -71,15 +75,13 @@
                 {# Duplicamos para o efeito infinito #}
                 {% for marca in marcas_lista %}
                 <div class="brand-slide d-none d-md-block">
-                    <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none">
-                        <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
-                            {% if marca.logo_url %}
-                                <img src="{{ gerar_link(marca.logo_url) }}" alt="{{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async">
-                            {% else %}
-                                <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
-                            {% endif %}
-                        </div>
-                    </a>
+                    <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
+                        {% if marca.logo_url %}
+                            <img src="{{ gerar_link(marca.logo_url) }}" alt="Logo {{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async" width="120" height="50">
+                        {% else %}
+                            <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -105,9 +107,9 @@
         
         {# 3. LANÇAMENTOS (Inteligente) #}
         {% if lancamentos %}
-        <section class="mb-5">
+        <section class="mb-5" aria-labelledby="title-lancamentos">
             <div class="shelf-header">
-                <h4 class="shelf-title">Lançamentos</h4>
+                <h2 id="title-lancamentos" class="shelf-title h4">Lançamentos</h2>
                 <span class="text-muted small ms-2">Novidades na armaria</span>
             </div>
             <div class="row row-cols-2 row-cols-md-4 g-4">
@@ -120,11 +122,11 @@
 
         {# 4. DESTAQUES DA SEMANA (Aleatórios) #}
         {% if destaques %}
-        <section class="mb-5">
+        <section class="mb-5" aria-labelledby="title-destaques">
             <div class="shelf-header">
-                <h4 class="shelf-title">Destaques da Semana</h4>
-                <a href="#" class="shelf-link" onclick="window.location.reload(); return false;">
-                    <i class="bi bi-arrow-clockwise me-1"></i>Ver Outros
+                <h2 id="title-destaques" class="shelf-title h4">Destaques da Semana</h2>
+                <a href="#" class="shelf-link" onclick="window.location.reload(); return false;" aria-label="Atualizar destaques">
+                    <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>Ver Outros
                 </a>
             </div>
             <div class="row row-cols-2 row-cols-md-4 g-4">
@@ -142,15 +144,15 @@
                      style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('{{ loja.banner_despachante_link }}') center/cover; min-height: 350px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
                     
                     <h2 class="text-gold fw-bold mb-2" style="letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
-                        {{ loja.lo_despachante_titulo if loja.loja_despachante_titulo else 'DESPACHANTE M4 TÁTICA' }}
+                        {{ loja.loja_despachante_titulo if loja.loja_despachante_titulo else 'DESPACHANTE M4 TÁTICA' }}
                     </h2>
                     
                     <p class="text-white opacity-75 mb-4 mx-auto" style="max-width: 700px; font-size: 1.1rem;">
                         {{ loja.loja_despachante_texto if loja.loja_despachante_texto else 'Assessoria completa para aquisição legal de armas de fogo e CR.' }}
                     </p>
                     
-                    <a href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank" class="btn btn-gold fw-bold px-5 py-3 shadow">
-                        <i class="bi bi-whatsapp me-2"></i> QUERO MINHA ARMA LEGALIZADA
+                    <a href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank" class="btn btn-gold fw-bold px-5 py-3 shadow" rel="noopener">
+                        <i class="bi bi-whatsapp me-2" aria-hidden="true"></i> QUERO MINHA ARMA LEGALIZADA
                     </a>
                 </div>
             </div>
@@ -162,9 +164,9 @@
                 {% if prods %}
                 <section class="mb-5">
                     <div class="shelf-header">
-                        <h4 class="shelf-title">{{ nome_cat }}</h4>
+                        <h2 class="shelf-title h4">{{ nome_cat }}</h2>
                         {% set slug_temp = prods[0].categoria.slug if prods[0].categoria else nome_cat|lower %}
-                        <a href="{{ url_for('loja.categoria', slug_categoria=slug_temp) }}" class="shelf-link">Ver Tudo</a>
+                        <a href="{{ url_for('loja.categoria', slug_categoria=slug_temp) }}" class="shelf-link" aria-label="Ver todos os produtos em {{ nome_cat }}">Ver Tudo</a>
                     </div>
                     <div class="row row-cols-2 row-cols-md-4 g-4">
                         {% for produto in prods %}
@@ -180,11 +182,11 @@
         {# VIEW DE BUSCA #}
         <div class="row mt-4">
             <div class="col-12">
-                 <h2 class="h5 fw-bold text-uppercase mb-4">
+                 <h1 class="h5 fw-bold text-uppercase mb-4">
                     {% if termo_busca %}Busca: <span class="text-gold">"{{ termo_busca }}"</span>
                     {% elif categoria_ativa %}Categoria: <span class="text-gold">{{ categoria_ativa.nome }}</span>
                     {% endif %}
-                </h2>
+                </h1>
                 <div class="row row-cols-2 row-cols-md-4 g-4">
                     {% for produto in produtos %}
                         {% include 'loja/_card_produto.html' %}
@@ -192,13 +194,15 @@
                 </div>
                 
                 {% if pagination and pagination.pages > 1 %}
-                <nav class="mt-5"><ul class="pagination justify-content-center">
+                <nav class="mt-5" aria-label="Navegação de busca">
+                    <ul class="pagination justify-content-center">
                     {% for num in pagination.iter_pages() %}{% if num %}
                     <li class="page-item {{ 'active' if num == pagination.page }}">
-                        <a class="page-link border-0 text-dark" href="{{ url_for(request.endpoint, page=num, q=termo_busca, slug_categoria=categoria_ativa.slug if categoria_ativa else None) }}">{{ num }}</a>
+                        <a class="page-link border-0 text-dark" href="{{ url_for(request.endpoint, page=num, q=termo_busca, slug_categoria=categoria_ativa.slug if categoria_ativa else None) }}" aria-label="Ir para página {{ num }}">{{ num }}</a>
                     </li>
                     {% endif %}{% endfor %}
-                </ul></nav>
+                    </ul>
+                </nav>
                 {% endif %}
             </div>
         </div>

@@ -1,0 +1,7 @@
+id,cliente_id,tipo,categoria,emissor,numero_documento,data_emissao,data_validade,validade_indeterminada,nome_original,caminho_arquivo,mime_type,data_upload,observacoes,created_at,updated_at
+1,2,CNH,CNH,DETRAN,05381937205,2011-12-19,2031-08-06,False,,clientes/2/documentos/CNH_Digital_-_MAURICIO.jpg,,2025-10-21 14:27:14.454500,A,2025-10-21 14:27:14.462544,2025-10-21 14:27:14.462562
+7,3,CRAF,,,,,,False,craf_teste.pdf,/uploads/craf_teste.pdf,application/pdf,2025-06-19 11:53:57.139646,,2025-10-04 12:54:08.882221,2025-10-04 12:54:08.882221
+2,289,CNH,CNH,DETRAN,05675319647,2018-10-25,2026-10-17,False,,clientes/289/documentos/CNH_Digital.pdf,,2025-11-11 14:41:27.701989,,2025-11-11 14:41:27.703610,2025-11-11 14:41:27.703613
+3,290,CNH,CNH,DETRAN,05863353920,2023-08-28,2030-08-20,False,,clientes/290/documentos/CNH-e_RAIMUNDO_RAI.pdf,,2025-11-14 10:46:35.174217,Não foi possível extrair informações de validade,2025-11-14 10:46:35.183642,2025-11-14 10:46:35.183700
+8,199,RG,RG,OUTRO,101094693,2023-06-30,2033-06-30,False,CCF20062025_0001_2.pdf,clientes/199/documentos/20251201_165332_CCF20062025_0001_2.pdf,,2025-12-01 16:53:34.451763,PM-PI,2025-12-01 16:53:34.467476,2025-12-01 16:53:34.467500
+9,1355,RG,RG,SSP,94544298334,2022-02-23,2035-11-27,False,,clientes/1355/documentos/RG-PAULOCESARNASCIMENTO.pdf,,2025-12-06 10:53:14.118696,Assinado digitalmente por GOV.BR,2025-12-06 10:53:14.129257,2025-12-06 10:53:14.129275
