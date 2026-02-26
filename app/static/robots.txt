@@ -1,4 +1,14 @@
 User-agent: *
+# Bloqueia áreas administrativas e login
+Disallow: /admin/
+Disallow: /login
+Disallow: /sistema/
+# Bloqueia arquivos de configuração e pastas internas
+Disallow: /app/
+Disallow: /config.py
+
+# Permite o restante
 Allow: /
 
+# Indica o caminho do mapa
 Sitemap: https://app.m4tatica.com.br/loja/sitemap.xml

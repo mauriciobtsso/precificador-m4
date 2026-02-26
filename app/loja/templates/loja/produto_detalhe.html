@@ -5,15 +5,14 @@
 {% endblock %}
 
 {% block opengraph %}
-    <meta property="og:title" content="{{ produto.nome_comercial if produto.nome_comercial else produto.nome }}">
-    <meta property="og:description" content="Confira na M4 Tática: {{ produto.nome_comercial if produto.nome_comercial else produto.nome }} por apenas {{ precos.preco_a_vista|currency }} à vista.">
+    <meta property="og:title" content="{{ produto.nome }} - M4 Tática">
+    <meta property="og:description" content="Confira {{ produto.nome }} na M4 Tática. Calibre {{ produto.calibre.nome if produto.calibre else 'N/A' }}. Garanta a sua com segurança.">
     <meta property="og:url" content="{{ request.url }}">
-    {% set imagem_share = produto.foto_url or produto.imagem_principal %}
-    {% if imagem_share %}
-        <meta property="og:image" content="{{ gerar_link(imagem_share) }}">
-    {% else %}
-        <meta property="og:image" content="{{ url_for('static', filename='img/logo.png', _external=True) }}">
+    {% set imagem_principal = produto.foto_url or produto.imagem_principal %}
+    {% if imagem_principal %}
+        <meta property="og:image" content="{{ gerar_link(imagem_principal) }}">
     {% endif %}
+    <meta property="og:type" content="product">
     <meta property="product:price:amount" content="{{ precos.preco_a_vista }}">
     <meta property="product:price:currency" content="BRL">
 {% endblock %}

@@ -14,12 +14,21 @@
     <meta property="og:site_name" content="M4 Tática">
     <meta property="og:type" content="website">
     {% block opengraph %}
-    <meta property="og:title" content="M4 Tática | Armas e Munições">
-    <meta property="og:description" content="A maior variedade de armas e munições com a qualidade M4 Tática.">
+    {# Tags para Facebook, WhatsApp e Instagram #}
+    <meta property="og:title" content="{{ title if title else 'M4 Tática | Armas, Munições e Acessórios' }}">
+    <meta property="og:description" content="{{ meta_desc if meta_desc else 'A maior variedade de armas e munições com a qualidade M4 Tática. Confira nossos lançamentos e ofertas.' }}">
     <meta property="og:url" content="{{ request.url }}">
-    <meta property="og:image" content="{{ url_for('static', filename='img/logo.png', _external=True) }}">
-    {% endblock %}
+    <meta property="og:type" content="website">
+    {# A imagem deve ser absoluta para as redes sociais lerem #}
+    <meta property="og:image" content="{{ url_for('static', filename='img/logo-social.png', _external=True) }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
 
+    {# Tags para o X (antigo Twitter) #}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ title if title else 'M4 Tática' }}">
+    <meta name="twitter:description" content="{{ meta_desc if meta_desc else 'Armas e munições com qualidade superior.' }}">
+    {% endblock %}
     <link rel="canonical" href="{{ request.url }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
     <link rel="icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
