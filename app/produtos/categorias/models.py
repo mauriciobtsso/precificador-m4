@@ -3,6 +3,7 @@ from datetime import datetime
 from app.utils.datetime import now_local
 import re
 from sqlalchemy import event
+import unicodedata
 
 class CategoriaProduto(db.Model):
     __tablename__ = "categoria_produto"
@@ -39,10 +40,21 @@ class CategoriaProduto(db.Model):
         return " > ".join(reversed(nomes))
 
 def gera_slug_categoria(target, value, oldvalue, initiator):
+    # Só gera slug se o nome mudou ou se o slug ainda está vazio
     if value and (not target.slug or value != oldvalue):
-        texto = value.lower().strip()
+        # 1. Normaliza para remover acentos (Ex: Munição -> Municao)
+        texto = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+        
+        # 2. Converte para minúsculo e limpa caracteres
+        texto = texto.lower().strip()
+        
+        # 3. Remove o que não for letra, número ou espaço
         texto = re.sub(r'[^\w\s-]', '', texto)
+        
+        # 4. Substitui espaços e underscores por hífens
         texto = re.sub(r'[\s_-]+', '-', texto)
-        target.slug = texto
+        
+        # 5. Remove hífens duplicados ou nas pontas
+        target.slug = texto.strip('-')
 
 event.listen(CategoriaProduto.nome, 'set', gera_slug_categoria, retval=False)

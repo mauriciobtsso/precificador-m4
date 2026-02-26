@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required
 from app import db
 from app.produtos.categorias.models import CategoriaProduto
+import re
 
 categorias_bp = Blueprint(
     "categorias",
@@ -70,6 +71,7 @@ def gerenciar_categoria(id=None):
     if request.method == "POST":
         data = request.form
         nome = data.get("nome", "").strip()
+        slug_manual = data.get("slug", "").strip().lower()
         descricao = data.get("descricao", "").strip()
         pai_id_raw = data.get("pai_id")
         icone_loja = data.get("icone_loja", "").strip()
@@ -90,6 +92,12 @@ def gerenciar_categoria(id=None):
 
             # Atribuição de valores com tratamento de tipos
             categoria.nome = nome
+
+            # --- AQUI ESTÁ A CORREÇÃO TÁTICA ---
+            if slug_manual:
+                # Remove espaços extras e garante hífens
+                categoria.slug = re.sub(r'[\s_-]+', '-', slug_manual)
+
             categoria.descricao = descricao or None
             categoria.icone_loja = icone_loja or None
             categoria.exibir_no_menu = exibir_check
