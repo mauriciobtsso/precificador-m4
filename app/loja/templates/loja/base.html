@@ -27,24 +27,22 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    {# Correção: Adicionado &display=swap para performance de texto #}
     <link href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}?display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     
     <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
-    
-    {# Correção Erro 404: Link do FontAwesome ajustado para o padrão Flask #}
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
     
     <style>
         :root {
             --m4-dark: #000000;
-            --m4-gold: #c5a059;
+            --m4-gold: #c5a059; /* Cor principal para fundos/bordas */
+            --m4-gold-text: #8b6d31; /* Dourado escurecido para textos sobre fundo branco (Acessibilidade 100%) */
             --m4-gold-hover: #a68546;
             --m4-gray-bg: #f8f9fa;
             --m4-text: #333333;
             --m4-border: #e5e5e5;
-            --m4-gray-light: #d1d1d1; /* Ajustado para melhor contraste no fundo escuro */
+            --m4-gray-light: #d1d1d1;
         }
 
         body {
@@ -88,7 +86,7 @@
         
         @media (min-width: 992px) {
             .dropdown:hover > .dropdown-menu { display: block; margin-top: 0; }
-            .nav-departments .nav-link:hover { color: var(--m4-gold) !important; background: #fdfdfd; }
+            .nav-departments .nav-link:hover { color: var(--m4-gold-text) !important; background: #fdfdfd; }
         }
 
         .dropdown-menu { 
@@ -107,11 +105,10 @@
         .dropdown-menu::-webkit-scrollbar-thumb { background: var(--m4-gold); }
 
         .dropdown-item { font-size: 13px; font-weight: 600; padding: 10px 25px; transition: 0.2s; }
-        .dropdown-item:hover { background-color: var(--m4-gray-bg); color: var(--m4-gold); padding-left: 30px; }
+        .dropdown-item:hover { background-color: var(--m4-gray-bg); color: var(--m4-gold-text); padding-left: 30px; }
 
         footer { background-color: #111; color: #fff; padding: 60px 0 20px; margin-top: 80px; }
         
-        /* Estilização para as H2 que substituíram as H6 para manter o visual mas corrigir acessibilidade */
         footer .footer-title { 
             color: #fff; 
             font-weight: 800; 
@@ -211,7 +208,6 @@
         <div class="container">
             <div class="row g-4">
                 <div class="col-lg-3 col-md-6">
-                    {# Correção Acessibilidade: H2 com classe visual de H6 #}
                     <h2 class="footer-title">Conteúdo</h2>
                     <ul class="list-unstyled">
                         <li><a href="{{ url_for('loja.fale_conosco') }}">Fale Conosco</a></li>

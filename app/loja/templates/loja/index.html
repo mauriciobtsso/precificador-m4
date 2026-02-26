@@ -2,24 +2,22 @@
 
 {% block content %}
 {# =============================================
-   1. BANNER CARROSSEL (DINÂMICO PELO ADMIN)
+   1. BANNER CARROSSEL (RESPONSIVO OTIMIZADO)
    ============================================= #}
 {% if not termo_busca and not categoria_ativa %}
     {% if banners %}
-    <div id="heroCarousel" class="carousel slide carousel-fade mb-5" data-bs-ride="carousel">
+    <div id="heroCarousel" class="carousel slide carousel-fade mb-4 mb-md-5" data-bs-ride="carousel">
         <div class="carousel-inner">
             {% for banner in banners %}
             <div class="carousel-item {{ 'active' if loop.first }}">
                 {% set banner_link = gerar_link(banner.imagem_url) %}
                 
-                {# Definimos uma proporção padrão para armas/banners (geralmente 3:1 ou 1200x400) #}
-                {% set img_attrs = 'class="d-block w-100" alt="' ~ banner.titulo ~ '" width="1200" height="400" style="object-fit: cover; aspect-ratio: 1200 / 400;" decoding="async"' %}
+                {# Removido o height fixo do style para permitir que a proporção comande o tamanho #}
+                {% set img_attrs = 'class="d-block w-100 m4-banner-img" alt="' ~ banner.titulo ~ '" width="1200" height="400" decoding="async"' %}
                 
                 {% if loop.first %}
-                    {# O primeiro banner é o LCP: Prioridade máxima, sem lazy load #}
                     {% set img_attrs = img_attrs ~ ' fetchpriority="high"' %}
                 {% else %}
-                    {# Os demais banners usam lazy load para economizar banda #}
                     {% set img_attrs = img_attrs ~ ' loading="lazy"' %}
                 {% endif %}
 
@@ -42,12 +40,30 @@
         </button>
         {% endif %}
     </div>
-    {% else %}
-        <div class="py-5 bg-dark text-center mb-5">
-            <p class="text-white opacity-50 m-0">Cadastre banners no painel administrativo.</p>
-        </div>
     {% endif %}
 {% endif %}
+
+<style>
+    /* CSS para Banner Fluido */
+    .m4-banner-img {
+        width: 100%;
+        height: auto; /* Fundamental para reduzir no mobile */
+        aspect-ratio: 1200 / 400; /* Mantém a proporção de cinema */
+        object-fit: cover;
+    }
+
+    /* Ajuste para telas muito pequenas (Mobile Portrait) */
+    @media (max-width: 768px) {
+        .m4-banner-img {
+            /* No mobile, podemos mudar a proporção para 3:2 para o banner não ficar uma "tira" muito fina */
+            aspect-ratio: 3 / 2; 
+            min-height: 200px; /* Garante que o banner tenha uma presença mínima */
+        }
+        #heroCarousel {
+            margin-top: 0; /* Remove espaços desnecessários no mobile */
+        }
+    }
+</style>
 
 {# =============================================
    2. VITRINE DE MARCAS (LOGOS DINÂMICAS)
@@ -63,7 +79,6 @@
                     <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none" aria-label="Ver produtos da marca {{ marca.nome }}">
                         <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
                             {% if marca.logo_url %}
-                                {# Correção: Adicionado width e height para evitar CLS e melhorar performance #}
                                 <img src="{{ gerar_link(marca.logo_url) }}" alt="Logo {{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async" width="160" height="80" style="object-fit: contain;">
                             {% else %}
                                 <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
@@ -73,7 +88,6 @@
                 </div>
                 {% endfor %}
                 
-                {# Duplicamos para o efeito infinito #}
                 {% for marca in marcas_lista %}
                 <div class="brand-slide d-none d-md-block">
                     <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
@@ -138,10 +152,9 @@
         </section>
         {% endif %}
 
-        {# 5. BANNER INSTITUCIONAL / DESPACHANTE (CORREÇÃO ERRO 404) #}
+        {# 5. BANNER INSTITUCIONAL / DESPACHANTE #}
         <section class="mb-5">
             <div class="promo-banner shadow-sm rounded overflow-hidden">
-                {# Correção: Removida URL fixa que causava erro 404. Adicionada lógica de fallback. #}
                 <div class="p-5 bg-dark text-center position-relative" 
                      style="background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)){% if loja.banner_despachante_link %}, url('{{ loja.banner_despachante_link }}') center/cover{% endif %}; min-height: 350px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
                     
@@ -214,10 +227,15 @@
 <style>
     .shelf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 12px; }
     .shelf-title { font-weight: 800; text-transform: uppercase; font-size: 1.1rem; border-left: 5px solid var(--m4-gold); padding-left: 15px; margin: 0; letter-spacing: 0.5px; color: #1a1a1a; }
-    .shelf-link { color: var(--m4-gold); font-size: 11px; font-weight: 800; text-transform: uppercase; text-decoration: none; transition: 0.3s; border: 1px solid var(--m4-gold); padding: 4px 12px; border-radius: 20px; }
-    .shelf-link:hover { background: var(--m4-gold); color: #000; }
+    
+    /* Correção Acessibilidade: Usando var(--m4-gold-text) para contraste superior a 4.5:1 */
+    .shelf-link { color: var(--m4-gold-text); font-size: 11px; font-weight: 800; text-transform: uppercase; text-decoration: none; transition: 0.3s; border: 1px solid var(--m4-gold-text); padding: 4px 12px; border-radius: 20px; }
+    .shelf-link:hover { background: var(--m4-gold-text); color: #fff; border-color: var(--m4-gold-text); }
+    
     .promo-banner .btn-gold { background-color: var(--m4-gold); border-color: var(--m4-gold); color: #000; transition: 0.3s; }
     .promo-banner .btn-gold:hover { background-color: #fff; border-color: #fff; transform: scale(1.05); }
-    .text-gold { color: var(--m4-gold) !important; }
+    
+    /* Correção Acessibilidade: Dourado escuro para títulos e destaques em texto */
+    .text-gold { color: var(--m4-gold-text) !important; }
 </style>
 {% endblock %}

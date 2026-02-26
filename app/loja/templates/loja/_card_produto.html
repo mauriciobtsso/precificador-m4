@@ -17,7 +17,6 @@
         </button>
 
         {# 2. Container de Imagem #}
-        {# Acessibilidade: Link com label para o contexto do produto #}
         <a href="{{ url_for('loja.detalhe_produto', slug=produto.slug) }}" class="text-decoration-none" aria-label="Ver detalhes de {{ produto.nome }}">
             <div class="m4-img-container">
                 {% set imagem = produto.foto_url or produto.imagem_principal or produto.imagem_url or produto.foto %}
@@ -54,7 +53,6 @@
                 {% endif %}
             </div>
             
-            {# Acessibilidade: Nome do produto como H3 para manter a hierarquia lógica (H1/H2 > H3) #}
             <h3 class="m4-product-name">
                 <a href="{{ url_for('loja.detalhe_produto', slug=produto.slug) }}">
                     {{ produto.nome_comercial if produto.nome_comercial else produto.nome }}
@@ -63,7 +61,6 @@
             
             <div class="mt-3 price-box">
                 {% if precos.em_oferta %}
-                    {# Acessibilidade: Texto de preço riscado identificado para leitores #}
                     <p class="m4-old-price"><span class="visually-hidden">Preço original: </span>R$ {{ "{:,.2f}".format(precos.preco_a_vista * 1.15).replace(',', 'X').replace('.', ',').replace('X', '.') }}</p>
                 {% endif %}
                 
@@ -93,7 +90,7 @@
         --m4-gold: #c5a059;
         --m4-danger: #d9534f;
         --m4-gray-bg: #f8f9fa;
-        --m4-text-muted: #757575; /* Contraste melhorado para acessibilidade */
+        --m4-text-muted: #757575;
     }
     .product-card-m4 { background: transparent; position: relative; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
     .product-card-m4:hover { transform: translateY(-10px); }
@@ -107,9 +104,10 @@
     .product-card-m4:hover .m4-img-container { background-color: #fff; box-shadow: inset 0 0 0 1px #eee; }
     .m4-product-img { max-height: 100%; max-width: 100%; object-fit: contain; transition: transform 0.8s cubic-bezier(0.165, 0.84, 0.44, 1); }
     .product-card-m4:hover .m4-product-img { transform: scale(1.1); }
-    .m4-brand-label { font-size: 10px; font-weight: 800; color: var(--m4-gold); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
     
-    /* H3 estilizado para manter visual de H6 anterior */
+    /* Correção Acessibilidade: Dourado escuro para o nome da marca sobre fundo branco */
+    .m4-brand-label { font-size: 10px; font-weight: 800; color: var(--m4-gold-text); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
+    
     .m4-product-name { font-size: 14px; font-weight: 700; height: 42px; line-height: 1.4; margin: 0; }
     .m4-product-name a { color: #111; text-decoration: none; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     
