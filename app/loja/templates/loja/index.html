@@ -63,7 +63,8 @@
                     <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none" aria-label="Ver produtos da marca {{ marca.nome }}">
                         <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
                             {% if marca.logo_url %}
-                                <img src="{{ gerar_link(marca.logo_url) }}" alt="Logo {{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async" width="120" height="50">
+                                {# Correção: Adicionado width e height para evitar CLS e melhorar performance #}
+                                <img src="{{ gerar_link(marca.logo_url) }}" alt="Logo {{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async" width="160" height="80" style="object-fit: contain;">
                             {% else %}
                                 <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
                             {% endif %}
@@ -77,7 +78,7 @@
                 <div class="brand-slide d-none d-md-block">
                     <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
                         {% if marca.logo_url %}
-                            <img src="{{ gerar_link(marca.logo_url) }}" alt="Logo {{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async" width="120" height="50">
+                            <img src="{{ gerar_link(marca.logo_url) }}" alt="Logo {{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async" width="160" height="80" style="object-fit: contain;">
                         {% else %}
                             <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
                         {% endif %}
@@ -137,11 +138,12 @@
         </section>
         {% endif %}
 
-        {# 5. BANNER INSTITUCIONAL / DESPACHANTE (DINÂMICO) #}
+        {# 5. BANNER INSTITUCIONAL / DESPACHANTE (CORREÇÃO ERRO 404) #}
         <section class="mb-5">
             <div class="promo-banner shadow-sm rounded overflow-hidden">
+                {# Correção: Removida URL fixa que causava erro 404. Adicionada lógica de fallback. #}
                 <div class="p-5 bg-dark text-center position-relative" 
-                     style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('{{ loja.banner_despachante_link }}') center/cover; min-height: 350px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                     style="background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)){% if loja.banner_despachante_link %}, url('{{ loja.banner_despachante_link }}') center/cover{% endif %}; min-height: 350px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
                     
                     <h2 class="text-gold fw-bold mb-2" style="letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                         {{ loja.loja_despachante_titulo if loja.loja_despachante_titulo else 'DESPACHANTE M4 TÁTICA' }}

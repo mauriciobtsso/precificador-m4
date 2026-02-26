@@ -89,7 +89,7 @@ def inject_loja_data():
         if banner_url:
             loja['banner_despachante_link'] = gerar_link_r2(limpar_caminho_r2(banner_url))
         else:
-            loja['banner_despachante_link'] = url_for('static', filename='img/bg-despachante.jpg')
+            loja['banner_despachante_link'] = None
 
         res = dict(categorias_menu=categorias_menu, loja=loja, paginas_rodape=paginas_rodape)
         

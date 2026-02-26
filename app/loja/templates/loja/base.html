@@ -26,11 +26,15 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" rel="stylesheet" media="print" onload="this.media='all'">
+    
+    {# Correção: Adicionado &display=swap para performance de texto #}
+    <link href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}?display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     
     <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/all.min.css') }}">
+    
+    {# Correção Erro 404: Link do FontAwesome ajustado para o padrão Flask #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
     
     <style>
         :root {
@@ -40,8 +44,7 @@
             --m4-gray-bg: #f8f9fa;
             --m4-text: #333333;
             --m4-border: #e5e5e5;
-            /* Cor de contraste otimizada para acessibilidade sobre fundo escuro */
-            --m4-gray-light: #cecece; 
+            --m4-gray-light: #d1d1d1; /* Ajustado para melhor contraste no fundo escuro */
         }
 
         body {
@@ -61,7 +64,6 @@
         }
 
         .navbar-main { padding: 15px 0; border-bottom: 1px solid #222; }
-        
         .navbar-brand { position: relative; z-index: 2001; display: inline-block; }
         .logo-img { height: 55px; width: auto; object-fit: contain; }
         
@@ -108,18 +110,27 @@
         .dropdown-item:hover { background-color: var(--m4-gray-bg); color: var(--m4-gold); padding-left: 30px; }
 
         footer { background-color: #111; color: #fff; padding: 60px 0 20px; margin-top: 80px; }
-        footer h6 { color: #fff; font-weight: 800; text-transform: uppercase; font-size: 14px; margin-bottom: 25px; letter-spacing: 1px; border-left: 3px solid var(--m4-gold); padding-left: 10px; }
         
-        /* Ajuste de contraste: cinza mais claro para passar no Lighthouse */
+        /* Estilização para as H2 que substituíram as H6 para manter o visual mas corrigir acessibilidade */
+        footer .footer-title { 
+            color: #fff; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            font-size: 14px; 
+            margin-bottom: 25px; 
+            letter-spacing: 1px; 
+            border-left: 3px solid var(--m4-gold); 
+            padding-left: 10px; 
+        }
+        
         footer a { color: var(--m4-gray-light); text-decoration: none; transition: 0.3s; font-size: 13px; }
         footer a:hover { color: var(--m4-gold); padding-left: 5px; }
-        
         .footer-info-text { color: var(--m4-gray-light) !important; font-size: 13px; }
 
         .copyright-text { 
             font-size: 11px; 
             color: #ffffff !important; 
-            opacity: 0.8;
+            opacity: 0.9;
             letter-spacing: 0.5px;
             line-height: 1.6;
         }
@@ -200,7 +211,8 @@
         <div class="container">
             <div class="row g-4">
                 <div class="col-lg-3 col-md-6">
-                    <h6>Conteúdo</h6>
+                    {# Correção Acessibilidade: H2 com classe visual de H6 #}
+                    <h2 class="footer-title">Conteúdo</h2>
                     <ul class="list-unstyled">
                         <li><a href="{{ url_for('loja.fale_conosco') }}">Fale Conosco</a></li>
                         {% for p in paginas_rodape %}
@@ -210,7 +222,7 @@
                 </div>
 
                 <div class="col-lg-3 col-md-6">
-                    <h6>Categorias Principais</h6>
+                    <h2 class="footer-title">Categorias</h2>
                     <ul class="list-unstyled">
                         {% for cat in categorias_menu[:6] %}
                             {% if cat.exibir_no_menu %}
@@ -221,7 +233,7 @@
                 </div>
 
                 <div class="col-lg-3 col-md-6">
-                    <h6>Informações da Loja</h6>
+                    <h2 class="footer-title">Informações</h2>
                     <p class="mb-1 fw-bold text-white">{{ loja.loja_nome_fantasia if loja.loja_nome_fantasia else 'M4 Tática' }}</p>
                     <p class="mb-1 footer-info-text">CNPJ: {{ loja.loja_cnpj if loja.loja_cnpj else '41.654.218/0001-47' }}</p>
                     
@@ -242,7 +254,7 @@
                 </div>
 
                 <div class="col-lg-3 col-md-6">
-                    <h6>Pagamento & Segurança</h6>
+                    <h2 class="footer-title">Segurança</h2>
                     <div class="payment-icons mb-3">
                         <img src="https://img.icons8.com/color/38/visa.png" alt="Visa" loading="lazy" width="38" height="38">
                         <img src="https://img.icons8.com/color/38/mastercard.png" alt="Mastercard" loading="lazy" width="38" height="38">
