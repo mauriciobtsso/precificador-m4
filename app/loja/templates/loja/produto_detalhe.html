@@ -6,15 +6,21 @@
 
 {% block opengraph %}
     <meta property="og:title" content="{{ produto.nome }} - M4 Tática">
-    <meta property="og:description" content="Confira {{ produto.nome }} na M4 Tática. Calibre {{ produto.calibre.nome if produto.calibre else 'N/A' }}. Garanta a sua com segurança.">
+    <meta property="og:description" content="Confira {{ produto.nome }} na M4 Tática.{{ desc_calibre }} Garanta o seu com segurança e qualidade.">
     <meta property="og:url" content="{{ request.url }}">
+    
     {% set imagem_principal = produto.foto_url or produto.imagem_principal %}
     {% if imagem_principal %}
         <meta property="og:image" content="{{ gerar_link(imagem_principal) }}">
     {% endif %}
+    
     <meta property="og:type" content="product">
-    <meta property="product:price:amount" content="{{ precos.preco_a_vista }}">
-    <meta property="product:price:currency" content="BRL">
+    
+    {# Correção tática: Acessando a chave preco_a_vista do dicionário precos #}
+    {% if precos and precos.preco_a_vista %}
+        <meta property="product:price:amount" content="{{ "{:.2f}".format(precos.preco_a_vista) }}">
+        <meta property="product:price:currency" content="BRL">
+    {% endif %}
 {% endblock %}
 
 {% block extra_css %}
