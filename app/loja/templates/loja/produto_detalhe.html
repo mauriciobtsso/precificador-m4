@@ -1,5 +1,8 @@
 {% extends 'loja/base.html' %}
 
+{# 1. MOVER PARA O TOPO: Calculamos os preços antes de tudo para as Meta Tags funcionarem #}
+{% set precos = produto.calcular_precos() %}
+
 {% block title %}
     {{ produto.meta_title if produto.meta_title else (produto.nome_comercial if produto.nome_comercial else produto.nome) }} | M4 Tática
 {% endblock %}
@@ -7,7 +10,6 @@
 {% block opengraph %}
     <meta property="og:title" content="{{ produto.nome_comercial if produto.nome_comercial else produto.nome }} - M4 Tática">
     
-    {# Correção: Usando calibre_rel e evitando exibição se estiver vazio #}
     {% set desc_calibre = " Calibre " ~ produto.calibre_rel.nome ~ "." if produto.calibre_rel else "" %}
     <meta property="og:description" content="Confira {{ produto.nome_comercial if produto.nome_comercial else produto.nome }} na M4 Tática.{{ desc_calibre }} Garanta o seu com segurança e qualidade.">
     
@@ -20,7 +22,7 @@
     
     <meta property="og:type" content="product">
     
-    {# Extração do preço para as redes sociais #}
+    {# Agora sim o 'precos' existe no momento que o Facebook lê a página #}
     {% if precos and precos.preco_a_vista %}
         <meta property="product:price:amount" content="{{ "{:.2f}".format(precos.preco_a_vista) }}">
         <meta property="product:price:currency" content="BRL">

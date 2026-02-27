@@ -1,14 +1,15 @@
 User-agent: *
-# Bloqueia áreas administrativas e login
 Disallow: /admin/
 Disallow: /login
 Disallow: /sistema/
-# Bloqueia arquivos de configuração e pastas internas
 Disallow: /app/
 Disallow: /config.py
 
-# Permite o restante
-Allow: /
+# PERMISSÃO ESPECIAL PARA REDES SOCIAIS
+User-agent: facebookexternalhit
+Allow: /loja/produto/
 
-# Indica o caminho do mapa
+User-agent: WhatsApp
+Allow: /loja/produto/
+
 Sitemap: https://app.m4tatica.com.br/loja/sitemap.xml
