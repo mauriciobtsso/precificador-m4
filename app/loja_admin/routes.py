@@ -2,13 +2,17 @@ import os
 import re
 import unicodedata
 from flask import render_template, redirect, url_for, flash, request, current_app, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
+from sqlalchemy import or_
+from app.produtos.models import Produto
 from app.loja_admin import loja_admin_bp
 from app.loja.models_admin import Banner, PaginaInstitucional
 from app.models import Configuracao
 from app.extensions import db
 from app.utils.r2_helpers import upload_file_to_r2, gerar_link_r2
 from werkzeug.utils import secure_filename
+from . import loja_admin_bp
+
 
 def slugify(text):
     """Converte Títulos em URLs amigáveis (Ex: 'Quem Somos' -> 'quem-somos')"""
@@ -147,3 +151,21 @@ def configuracoes():
     # Busca todas as configs atuais para exibir na lista
     configs = Configuracao.query.filter(Configuracao.chave.like('loja_%')).all()
     return render_template('loja_admin/configuracoes.html', configs=configs)
+
+@loja_admin_bp.route('/auditoria-loja')
+@login_required
+def auditoria_loja():
+    # ... (toda a lógica da query que já fizemos)
+    produtos_incompletos = Produto.query.filter(
+        or_(
+            Produto.nome_comercial == None, Produto.nome_comercial == '',
+            Produto.slug == None, Produto.slug == '',
+            Produto.descricao_comercial == None, Produto.descricao_comercial == '',
+            Produto.descricao_longa == None, Produto.descricao_longa == '',
+            Produto.meta_title == None, Produto.meta_title == '',
+            Produto.meta_description == None, Produto.meta_description == ''
+        )
+    ).order_by(Produto.nome.asc()).all()
+
+    # O erro estava aqui: este 'return' deve ter 4 espaços (ou 1 tab) de recuo
+    return render_template('auditoria_loja.html', produtos=produtos_incompletos, total=len(produtos_incompletos))

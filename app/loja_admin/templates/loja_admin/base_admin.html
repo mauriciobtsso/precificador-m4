@@ -5,61 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Loja - M4 Tática</title>
     
-    <!-- Local Google Fonts -->
     <link href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" rel="stylesheet">
 
-    <!-- Local Bootstrap -->
     <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
     
-    <!-- Local Bootstrap Icons -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
     
-    <!-- Local Font Awesome -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/all.min.css') }}">
 
-    <!-- Local Summernote -->
     <link href="{{ url_for('static', filename='vendor/summernote/summernote-lite.min.css') }}" rel="stylesheet">
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <style>
         :root { --m4-gold: #c5a059; --m4-dark: #000000; }
-        body { background-color: #f4f7f6; font-family: 'Inter', sans-serif; }
-        .sidebar { min-height: 100vh; background: var(--m4-dark); color: white; position: sticky; top: 0; }
+        body { background-color: #f4f7f6; font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        .sidebar { min-height: 100vh; background: var(--m4-dark); color: white; position: sticky; top: 0; z-index: 1000; }
         .nav-link { color: #ccc; transition: 0.3s; border-radius: 5px; margin-bottom: 5px; font-weight: 500; }
         .nav-link:hover, .nav-link.active { background: rgba(197, 160, 89, 0.2); color: var(--m4-gold); }
         .nav-link i { margin-right: 10px; }
         .navbar-brand-admin { font-weight: 800; color: var(--m4-gold); letter-spacing: 1px; }
         
+        /* Ajuste fino para remover espaços fantasmas no topo */
+        main { padding-top: 1.5rem !important; }
+        .alert { margin-top: 0; margin-bottom: 1.5rem; }
+
         .note-editor { border-radius: 8px !important; overflow: hidden; background: white; border: 1px solid #dee2e6 !important; }
         .note-toolbar { background: #f8f9fa !important; border-bottom: 1px solid #eee !important; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse p-3">
+    <div class="container-fluid p-0">
+        <div class="row g-0"> <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse p-3">
                 <div class="navbar-brand-admin mb-4 px-2 fs-4">M4 ADMIN</div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('loja_admin.index') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'loja_admin.index' }}" href="{{ url_for('loja_admin.index') }}">
                             <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('loja_admin.configuracoes') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'loja_admin.configuracoes' }}" href="{{ url_for('loja_admin.configuracoes') }}">
                             <i class="bi bi-shop"></i> Dados da Loja
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('loja_admin.banners') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'loja_admin.banners' }}" href="{{ url_for('loja_admin.banners') }}">
                             <i class="bi bi-image"></i> Banners
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('loja_admin.paginas') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'loja_admin.paginas' }}" href="{{ url_for('loja_admin.paginas') }}">
                             <i class="bi bi-file-earmark-richtext"></i> Páginas
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if 'auditoria_loja' in request.endpoint }}" 
+                           href="{{ url_for('loja_admin.auditoria_loja') }}">
+                            <i class="bi bi-clipboard-check"></i> Auditoria de Dados
                         </a>
                     </li>
 
@@ -76,11 +81,11 @@
                 </ul>
             </nav>
 
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 pt-2 pb-4">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show">
+                            <div class="alert alert-{{ category }} alert-dismissible fade show mt-2">
                                 {{ message }}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>
@@ -88,15 +93,15 @@
                     {% endif %}
                 {% endwith %}
                 
-                {% block content %}{% endblock %}
+                <div class="mt-2">
+                    {% block content %}{% endblock %}
+                </div>
             </main>
         </div>
     </div>
 
-    <!-- Local Bootstrap JS -->
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
     
-    <!-- Local Summernote JS -->
     <script src="{{ url_for('static', filename='vendor/summernote/summernote-lite.min.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/summernote/summernote-pt-BR.min.js') }}"></script>
 
