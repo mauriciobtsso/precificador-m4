@@ -91,25 +91,27 @@
 {% endblock %}
 
 {# ============================================================
-    SCRIPTS
+    SCRIPTS - VERSÃO BLINDADA (SINCRO-M4)
 ============================================================ #}
 {% block scripts %}
+  {# 1. JQUERY PRIMEIRO - Fundamental para evitar erros de "ReferenceError: $ is not defined" #}
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  
   {{ super() }}
 
   <link rel="stylesheet" href="{{ url_for('static', filename='css/produtos_form.css') }}">
 
   {# ============================================================
-      SUMMERNOTE - LOCAL
-      (não depende de base_admin.html)
+      SUMMERNOTE - DEPENDÊNCIAS
   ============================================================ #}
   <link href="{{ url_for('static', filename='vendor/summernote/summernote-lite.min.css') }}" rel="stylesheet">
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="{{ url_for('static', filename='vendor/summernote/summernote-lite.min.js') }}"></script>
   <script src="{{ url_for('static', filename='vendor/summernote/summernote-pt-BR.min.js') }}"></script>
 
-  <!-- Local AutoNumeric -->
+  {# 2. BIBLIOTECAS AUXILIARES #}
   <script src="{{ url_for('static', filename='vendor/autonumeric/autoNumeric.min.js') }}"></script>
   
+  {# 3. MÓDULOS DA APLICAÇÃO - Carregados após as bibliotecas base #}
   <script src="{{ url_for('static', filename='js/produtos_form.js') }}"></script>
   <script src="{{ url_for('static', filename='js/produtos_autosave.js') }}"></script>
   <script src="{{ url_for('static', filename='js/produtos_historico.js') }}"></script>
@@ -118,36 +120,58 @@
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       console.log("[M4] produto_form HTML carregado ✅");
+      
+      // Garante que botões auxiliares (como modais) não submetam o form acidentalmente
       document.querySelectorAll("button:not([type])").forEach(btn => btn.setAttribute("type", "button"));
+      
+      // Inicializa Tooltips do Bootstrap
       const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
       tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
     });
 
     window.addEventListener("load", () => {
-      if (window.ProdutosForm?.init) window.ProdutosForm.init();
-      if (window.ConfigsModals?.init) window.ConfigsModals.init();
+      // Inicializa os módulos principais de forma segura
+      if (window.ProdutosForm && typeof window.ProdutosForm.init === 'function') {
+          window.ProdutosForm.init();
+      }
+      if (window.ConfigsModals && typeof window.ConfigsModals.init === 'function') {
+          window.ConfigsModals.init();
+      }
     });
 
-    // Evento unificado para abas (APENAS 1)
-      document.addEventListener('shown.bs.tab', evt => {
+    // Gerenciador de Abas: Re-inicializa componentes quando a aba fica visível
+    document.addEventListener('shown.bs.tab', evt => {
       const targetId = evt.target.getAttribute('data-bs-target');
       console.log("[M4] Aba ativada:", targetId);
 
+      // Re-sincroniza máscaras e cálculos ao trocar de aba
       if (window.ProdutosForm?.reinitMasks) window.ProdutosForm.reinitMasks();
       if (window.ProdutosForm?.refreshResumo) window.ProdutosForm.refreshResumo();
 
-      // Técnicos: Garante que a serialização esteja em dia
+      // Aba Técnicos: Sincroniza JSON de atributos dinâmicos
       if (targetId === '#abaTecnicos') {
           if (window.ProdutosForm?.serializarEspecificacoes) {
               window.ProdutosForm.serializarEspecificacoes();
           }
       }
 
+      // Aba E-commerce: Inicializa ou refresca o editor Summernote
       if (targetId === '#abaEcommerce') {
         if (window.ProdutosForm?.initSummernoteEcommerce) {
           window.ProdutosForm.initSummernoteEcommerce();
         }
       }
     });
+
+    // BLINDAGEM FINAL: Sincroniza o Summernote no momento do envio manual (Botão Salvar)
+    const pForm = document.getElementById("produtoForm");
+    if (pForm) {
+        pForm.addEventListener("submit", function(e) {
+          if (window.ProdutosForm && typeof window.ProdutosForm.syncSummernote === 'function') {
+              window.ProdutosForm.syncSummernote();
+              console.log("[M4] Ficha Técnica sincronizada para o envio manual ✅");
+          }
+        });
+    }
   </script>
 {% endblock %}

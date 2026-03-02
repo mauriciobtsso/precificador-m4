@@ -112,38 +112,42 @@
   };
 
 const coletarDados = () => {
-    const data = {};
-
-    // 1. SINCRONIZAÇÃO FORÇADA (O PULO DO GATO)
-    // Antes de ler os campos, forçamos o Summernote a despejar o HTML no textarea
-    if (typeof $ !== 'undefined' && $.fn.summernote) {
-        // Alvos: classe genérica ou o ID específico que definimos
-        $('textarea.richeditor, #editor_loja_m4, #summernote_loja').each(function() {
-            try {
-                // Pega o código HTML do editor e joga no valor do textarea
-                const htmlContent = $(this).summernote('code');
-                $(this).val(htmlContent);
-                console.log("[M4] Sincronizando editor antes de coletar dados.");
-            } catch (e) {
-                console.warn("[M4] Erro na sincronização do editor:", e);
-            }
-        });
+    // 1. SINCRONIZAÇÃO INTELIGENTE (SEM CONFLITO)
+    // Em vez de usar $, usamos a função que já criamos no ProdutosForm
+    // Isso evita o erro "ReferenceError: $ is not defined"
+    if (window.ProdutosForm && typeof window.ProdutosForm.syncSummernote === 'function') {
+        try {
+            // Só sincroniza se estivermos na aba de E-commerce ou se o editor já foi iniciado
+            window.ProdutosForm.syncSummernote();
+            console.log("[M4] Autosave: Summernote sincronizado com sucesso.");
+        } catch (e) {
+            console.warn("[M4] Autosave: Falha ao sincronizar editor rico (talvez não inicializado).", e);
+        }
     }
 
-    // 2. COLETA DOS DEMAIS CAMPOS
-    form.querySelectorAll("input, select, textarea").forEach(el => {
-      if (el.name) {
+    const data = {};
+
+    // 2. COLETA DOS DEMAIS CAMPOS (SEM USAR JQUERY)
+    // Usamos Javascript puro (Vanilla) para garantir performance e estabilidade
+    const inputs = form.querySelectorAll("input, select, textarea");
+    inputs.forEach(el => {
+        // Ignoramos campos sem nome ou botões
+        if (!el.name || el.type === "button" || el.type === "submit") return;
+
         if (el.type === "checkbox") {
-          // Mantendo a correção de booleano que o Python exige
-          data[el.name] = el.checked ? "1" : "0";
+            // Python/Flask prefere 1/0 ou True/False string para campos booleanos
+            data[el.name] = el.checked ? "1" : "0";
+        } else if (el.tagName === "SELECT" && el.multiple) {
+            // Caso especial para select múltiplo
+            const values = Array.from(el.selectedOptions).map(opt => opt.value);
+            data[el.name] = JSON.stringify(values);
         } else {
-          data[el.name] = el.value;
+            data[el.name] = el.value;
         }
-      }
     });
     
     return data;
-  };
+};
 
   const atualizarUltimaModificacao = (texto) => {
     const alvo = document.querySelector(".text-muted.small.mt-1");

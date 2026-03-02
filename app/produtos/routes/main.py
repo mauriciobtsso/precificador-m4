@@ -251,7 +251,7 @@ def gerenciar_produto(produto_id=None):
                 produto.slug = data.get("slug").strip().lower()
 
             produto.descricao = (data.get("descricao") or "").strip() or None
-            produto.descricao_longa = data.get("descricao_longa")
+            produto.descricao_longa = request.form.get("descricao_longa", "")
             produto.descricao_comercial = (data.get("descricao_comercial") or "").strip() or None
             
             desc_google = (data.get("meta_description") or "").strip()

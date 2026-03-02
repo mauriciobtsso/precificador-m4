@@ -90,9 +90,19 @@
     serializarEspecificacoes(); // Primeira carga
   }
 
-  // ============================================================
+// ============================================================
   // SUMMERNOTE: Inicialização segura para aba Ecommerce (FIX DEFINITIVO)
   // ============================================================
+  function syncSummernote() {
+    const editorId = "editor_loja_m4";
+    const $editor = $("#" + editorId);
+    if ($editor.length && $editor.data("summernote")) {
+        const contents = $editor.summernote("code");
+        $editor.val(contents);
+        console.log("[M4] Summernote: Sincronização manual realizada antes do envio.");
+    }
+  }
+
   function initSummernoteEcommerce() {
     const editorId = "editor_loja_m4";
     const textarea = document.getElementById(editorId);
@@ -114,13 +124,13 @@
       return;
     }
 
-    const $editor = $("#editor_loja_m4");
+    const $editor = $("#" + editorId);
 
     // Se já existe instância mas o DOM ficou bugado, reinicia
     const hasEditorUI = $editor.next().hasClass("note-editor");
     const isSummernoteActive = !!$editor.data("summernote");
 
-    // Caso exista UI mas data sumiu (bug clássico)
+    // Caso exista UI mas data sumiu (bug clássico de renderização em abas)
     if (hasEditorUI && !isSummernoteActive) {
       console.warn("[M4] Summernote: UI existe mas instância não. Resetando...");
       try { $editor.summernote("destroy"); } catch (_) {}
@@ -128,7 +138,7 @@
 
     // Caso já esteja inicializado corretamente
     if ($editor.data("summernote")) {
-      // Força refresh visual ao mostrar aba
+      // Força refresh visual ao mostrar aba para evitar que suma o texto
       setTimeout(() => {
         try {
           const current = $editor.summernote("code");
@@ -138,7 +148,7 @@
       return;
     }
 
-    // Se tinha UI antiga, destrói
+    // Se tinha UI antiga órfã, destrói para não duplicar na tela
     if ($editor.next().hasClass("note-editor")) {
       try {
         $editor.summernote("destroy");
@@ -164,15 +174,21 @@
       ],
       callbacks: {
         onChange: function(contents) {
-          // Mantém o textarea sincronizado para o autosave
+          // Sincronização imediata: mantém o textarea real com o valor do editor visual
           $editor.val(contents);
+          
+          // Dispara eventos para que o Autosave e outros scripts percebam a mudança
           textarea.dispatchEvent(new Event("change", { bubbles: true }));
           textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        },
+        onBlurCodeview: function() {
+          // Garante que se o usuário editar no modo código (HTML puro) e sair, o valor seja salvo
+          $editor.val($editor.summernote("code"));
         },
         onInit: function() {
           console.log("[M4] Summernote: renderizado com sucesso ✅");
 
-          // Corrige altura se o Bootstrap tab ainda estiver ajeitando layout
+          // Hack de correção de altura para containers que iniciam ocultos (como abas do Bootstrap)
           setTimeout(() => {
             try {
               const current = $editor.summernote("code");
