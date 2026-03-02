@@ -25,7 +25,6 @@ def adicionar_config_geral(tabela):
     if not Model:
         return jsonify(success=False, error="Tabela inválida"), 400
 
-    # Captura dados (FormData para marcas, JSON para o resto)
     nome = request.form.get("nome") or (request.json.get("nome") if request.is_json else None)
     descricao = request.form.get("descricao") or (request.json.get("descricao") if request.is_json else None)
     
@@ -33,15 +32,15 @@ def adicionar_config_geral(tabela):
         return jsonify(success=False, error="Nome é obrigatório"), 400
 
     try:
+        # 1. Criamos a instância
         novo_item = Model(nome=nome, descricao=descricao)
 
-        # Lógica de Logo exclusiva para Marcas
+        # 2. Lógica de Logo exclusiva para Marcas
         if tabela == "marca":
             arquivo = request.files.get("logo")
             if arquivo:
                 content_type = arquivo.mimetype or "image/png"
                 ext = _guess_ext(content_type)
-                # Definimos a KEY (o caminho dentro do balde R2)
                 key = f"produtos/marcas/logos/{uuid.uuid4().hex}{ext}"
                 
                 bucket = _r2_bucket()
@@ -54,9 +53,8 @@ def adicionar_config_geral(tabela):
                     ExtraArgs={"ContentType": content_type}
                 )
                 
-                # CORREÇÃO AQUI: Salvamos apenas a key. 
-                # Não colocamos o base_public aqui para evitar URLs duplicadas.
-                item.logo_url = key
+                # CORREÇÃO AQUI: Usar 'novo_item' em vez de 'item'
+                novo_item.logo_url = key 
 
         db.session.add(novo_item)
         db.session.commit()
@@ -64,6 +62,7 @@ def adicionar_config_geral(tabela):
 
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f"Erro ao adicionar config: {str(e)}") # Log para ajudar no futuro
         return jsonify(success=False, error=str(e)), 500
 
 @produtos_bp.route("/configs/editar/<string:tabela>/<int:id>", methods=["POST", "PUT"])
