@@ -22,7 +22,6 @@
     
     <meta property="og:type" content="product">
     
-    {# Agora sim o 'precos' existe no momento que o Facebook lê a página #}
     {% if precos and precos.preco_a_vista %}
         <meta property="product:price:amount" content="{{ "{:.2f}".format(precos.preco_a_vista) }}">
         <meta property="product:price:currency" content="BRL">
@@ -115,6 +114,18 @@
         letter-spacing: 1.5px;
         border-radius: 4px;
         transition: all 0.3s ease;
+    }
+
+    /* Estilo do Botão de Carrinho (Lógica AJAX) */
+    .btn-cart-m4 {
+        background-color: var(--m4-dark);
+        color: var(--m4-gold);
+        border: 2px solid var(--m4-gold);
+    }
+    .btn-cart-m4:hover {
+        background-color: var(--m4-gold);
+        color: #000;
+        transform: translateY(-3px);
     }
 
     .btn-whatsapp-buy {
@@ -265,9 +276,15 @@
             </div>
 
             <div class="d-grid gap-3">
+                {# BOTÃO DE COMPRA AJAX (ADICIONADO) #}
+                <button type="button" class="btn btn-cart-m4 btn-buy-now shadow-sm" onclick="adicionarAoCarrinho({{ produto.id }})">
+                    <i class="bi bi-cart-plus-fill me-2"></i> ADICIONAR AO CARRINHO
+                </button>
+
+                {# BOTÃO DE WHATSAPP (SUPORTE) #}
                 <a href="https://wa.me/558630255885?text=Olá M4 Tática! Tenho interesse no produto: {{ produto.nome_comercial if produto.nome_comercial else produto.nome }} (Ref: {{ produto.codigo }})" 
                    target="_blank" class="btn btn-whatsapp-buy btn-buy-now shadow-sm">
-                    <i class="bi bi-whatsapp me-2"></i> COMPRAR PELO WHATSAPP
+                    <i class="bi bi-whatsapp me-2"></i> TIRAR DÚVIDAS VIA WHATSAPP
                 </a>
                 
                 {% if produto.requer_documentacao %}
@@ -280,7 +297,7 @@
         </div>
     </div>
 
-    {# 4. SEÇÃO TÉCNICA E DESCRIÇÃO LONGA (RESTAURADA) #}
+    {# 4. SEÇÃO TÉCNICA E DESCRIÇÃO LONGA #}
     <div class="row mt-5 pt-5 border-top">
         <div class="col-lg-5">
             <h4 class="section-title-premium">Ficha Técnica</h4>
@@ -325,7 +342,7 @@
         </div>
     </div>
 
-    {# 5. RELACIONADOS (RESTAURADA) #}
+    {# 5. RELACIONADOS #}
     {% if relacionados %}
     <div class="row mt-5 pt-5">
         <div class="col-12">
@@ -344,7 +361,7 @@
     {% endif %}
 </div>
 
-{# 6. MODAL DE PARCELAMENTO - CORRIGIDO COM SCROLLABLE #}
+{# 6. MODAL DE PARCELAMENTO #}
 <div class="modal fade" id="modalParcelas" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content modal-content-m4 shadow-lg">

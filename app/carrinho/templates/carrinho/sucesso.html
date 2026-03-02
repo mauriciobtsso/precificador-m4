@@ -1,0 +1,76 @@
+{% extends "loja/base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="mb-4">
+                <i class="fas fa-check-circle text-success fa-5x animate__animated animate__bounceIn"></i>
+            </div>
+
+            <h2 class="fw-bold mb-2">Pedido Recebido com Sucesso!</h2>
+            <p class="text-muted mb-4">O número do seu pedido é <strong>#{{ pedido.id }}</strong></p>
+
+            <div class="card shadow-sm border-0 mb-4 bg-light">
+                <div class="card-body p-4 text-start">
+                    <h6 class="fw-bold border-bottom pb-2 mb-3">Resumo da Operação</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Status:</span>
+                        <span class="badge bg-warning text-dark">{{ pedido.status | upper }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total do Pedido:</span>
+                        <span class="fw-bold">R$ {{ "{:,.2f}".format(pedido.total_pedido).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Forma de Pagamento:</span>
+                        <span>{{ 'PIX' if pedido.forma_pagamento == 'pix' else 'Cartão de Crédito' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if pedido.forma_pagamento == 'pix' %}
+            <div class="card shadow border-primary mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="fas fa-qrcode me-2 text-primary"></i>Pague com PIX</h5>
+                    <p class="small text-muted mb-3">Escaneie o QR Code abaixo ou utilize a chave copia e cola.</p>
+                    
+                    <div class="bg-white p-3 d-inline-block border mb-3">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=CHAVE_PIX_AQUI" 
+                             alt="QR Code PIX" class="img-fluid" style="max-width: 200px;">
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control form-control-sm" id="pix_copy" value="00020126580014br.gov.bcb.pix0136..." readonly>
+                        <button class="btn btn-primary btn-sm" onclick="copyPix()">Copiar Chave</button>
+                    </div>
+                    <p class="small text-danger"><i class="far fa-clock me-1"></i> Este QR Code expira em 60 minutos.</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info border-0 shadow-sm">
+                <i class="fas fa-info-circle me-2"></i>
+                Seu pagamento está em análise pela operadora. Você receberá um e-mail assim que for aprovado.
+            </div>
+            {% endif %}
+
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('produtos.index') }}" class="btn btn-orange btn-lg fw-bold">Voltar para a Loja</a>
+                <button class="btn btn-outline-dark" onclick="window.print()"><i class="fas fa-print me-2"></i>Imprimir Comprovante</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copyPix() {
+        var copyText = document.getElementById("pix_copy");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value);
+        alert("Chave PIX copiada para a área de transferência!");
+    }
+</script>
+{% endblock %}

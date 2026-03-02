@@ -316,6 +316,12 @@ def gerenciar_produto(produto_id=None):
 
             produto.foto_url = data.get("foto_url") or foto_atual
 
+            # No trecho onde você coleta os dados do request:
+            produto.peso = request.form.get('peso')
+            produto.comprimento = request.form.get('comprimento')
+            produto.largura = request.form.get('largura')
+            produto.altura = request.form.get('altura')
+
             # --- TRATAMENTO ESPECIFICAÇÕES TÉCNICAS (BLINDAGEM) ---
             specs_json = data.get("especificacoes_tecnicas")
             if specs_json:

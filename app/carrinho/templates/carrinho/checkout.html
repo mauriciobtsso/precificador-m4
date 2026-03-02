@@ -1,0 +1,243 @@
+{% extends "loja/base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <form id="formCheckout" class="needs-validation" novalidate>
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-user me-2"></i>1. Identificação</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Nome Completo</label>
+                                <input type="text" class="form-control" name="nome" required placeholder="Como no documento">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">E-mail</label>
+                                <input type="email" class="form-control" name="email" required placeholder="Para envio da nota fiscal">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">CPF / CNPJ</label>
+                                <input type="text" class="form-control val-mask-doc" name="documento" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Telefone / WhatsApp</label>
+                                <input type="text" class="form-control val-mask-phone" name="telefone" required placeholder="(86) 9....">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-truck me-2"></i>2. Entrega</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">CEP</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control val-mask-cep" id="cep_checkout" name="cep" required>
+                                    <button class="btn btn-dark" type="button" id="btnBuscarCEP">Buscar</button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Rua/Logradouro</label>
+                                <input type="text" class="form-control" id="rua" name="logradouro" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-semibold">Nº</label>
+                                <input type="text" class="form-control" name="numero" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-semibold">Bairro</label>
+                                <input type="text" class="form-control" id="bairro" name="bairro" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-semibold">Cidade</label>
+                                <input type="text" class="form-control" id="cidade" name="cidade" required readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-semibold">UF</label>
+                                <input type="text" class="form-control" id="uf" name="uf" required readonly>
+                            </div>
+                        </div>
+                        
+                        <div id="area_frete" class="mt-4 d-none">
+                            <label class="form-label fw-bold"><i class="fas fa-box-open me-2"></i>Escolha o Frete:</label>
+                            <div class="list-group" id="lista_fretes">
+                                </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-credit-card me-2"></i>3. Pagamento</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-pills mb-3 p-1 bg-light rounded" id="pills-tab" role="tablist">
+                            <li class="nav-item w-50" role="presentation">
+                                <button class="nav-link active w-100" data-bs-toggle="pill" data-bs-target="#pay-pix">
+                                    <i class="fas fa-qrcode me-2"></i>PIX
+                                </button>
+                            </li>
+                            <li class="nav-item w-50" role="presentation">
+                                <button class="nav-link w-100" data-bs-toggle="pill" data-bs-target="#pay-card">
+                                    <i class="fas fa-credit-card me-2"></i>Cartão
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content mt-4" id="pills-tabContent">
+                            <div class="tab-pane fade show active text-center py-3" id="pay-pix">
+                                <div class="mb-3"><i class="fas fa-bolt text-success fa-2x"></i></div>
+                                <h6>Pagamento via PIX com 5% de Desconto</h6>
+                                <p class="text-muted small">O QR Code será gerado após confirmar o pedido.</p>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="pay-card">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold">Número do Cartão</label>
+                                        <input type="text" class="form-control" id="card_number" placeholder="0000 0000 0000 0000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold">Nome Impresso</label>
+                                        <input type="text" class="form-control" id="card_holder" placeholder="COMO NO CARTÃO">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-bold">Validade</label>
+                                        <input type="text" class="form-control" id="card_expiry" placeholder="MM/AA">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-bold">CVV</label>
+                                        <input type="text" class="form-control" id="card_cvv" placeholder="123">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold">Parcelas</label>
+                                        <select class="form-select" id="installments" name="parcelas">
+                                            <option value="1">1x de R$ {{ "{:,.2f}".format(carrinho.total_avista) }} sem juros</option>
+                                            </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0 bg-dark text-white sticky-top" style="top: 20px;">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-4">Resumo Arsenal</h5>
+                        {% for item in carrinho.items %}
+                        <div class="d-flex justify-content-between mb-2 small opacity-75">
+                            <span>{{ item.quantidade }}x {{ item.produto.nome }}</span>
+                            <span>R$ {{ "{:,.2f}".format(item.subtotal_avista) }}</span>
+                        </div>
+                        {% endfor %}
+                        <hr class="opacity-25">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span>R$ {{ "{:,.2f}".format(carrinho.total_avista) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Frete:</span>
+                            <span id="valor_frete_display" class="text-success">R$ 0,00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-4 fs-4 fw-bold text-orange">
+                            <span>Total:</span>
+                            <span id="total_final_display">R$ {{ "{:,.2f}".format(carrinho.total_avista) }}</span>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-orange btn-lg w-100 fw-bold py-3 shadow-sm" id="btnFinalizar">
+                            FINALIZAR COMPRA
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/imask"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. MÁSCARAS
+        IMask(document.querySelector('.val-mask-doc'), { mask: [{mask: '000.000.000-00'}, {mask: '00.000.000/0000-00'}] });
+        IMask(document.querySelector('.val-mask-phone'), { mask: '(00) 00000-0000' });
+        IMask(document.querySelector('.val-mask-cep'), { mask: '00000-000' });
+        IMask(document.getElementById('card_expiry'), { mask: '00/00' });
+        IMask(document.getElementById('card_number'), { mask: '0000 0000 0000 0000' });
+
+        // 2. BUSCA CEP (ViaCEP)
+        document.getElementById('btnBuscarCEP').addEventListener('click', async () => {
+            const cep = document.getElementById('cep_checkout').value.replace(/\D/g, '');
+            if (cep.length !== 8) return;
+
+            const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await resp.json();
+            
+            if(!data.erro) {
+                document.getElementById('rua').value = data.logradouro;
+                document.getElementById('bairro').value = data.bairro;
+                document.getElementById('cidade').value = data.localidade;
+                document.getElementById('uf').value = data.uf;
+                
+                // Dispara cálculo de frete (Kangu/Melhor Envio)
+                calcularFrete(cep);
+            }
+        });
+    });
+
+async function calcularFrete(cep) {
+    const areaFrete = document.getElementById('area_frete');
+    const listaFretes = document.getElementById('lista_fretes');
+    
+    listaFretes.innerHTML = '<div class="text-center p-3"><i class="fas fa-spinner fa-spin me-2"></i>Cotando melhores preços...</div>';
+    areaFrete.classList.remove('d-none');
+
+    try {
+        const response = await fetch('/carrinho/api/frete/calcular', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ cep: cep })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            listaFretes.innerHTML = '';
+            data.opcoes.forEach(op => {
+                listaFretes.innerHTML += `
+                    <label class="list-group-item d-flex justify-content-between align-items-center list-group-item-action">
+                        <div>
+                            <input class="form-check-input me-2" type="radio" name="frete_valor" 
+                                   value="${op.price}" data-nome="${op.name}" onchange="atualizarTotal(this.value)">
+                            <strong>${op.company.name}</strong> <span class="small">(${op.name})</span>
+                            <div class="small text-muted">Prazo: ${op.delivery_range.max} dias úteis</div>
+                        </div>
+                        <span class="badge bg-success rounded-pill">R$ ${op.price}</span>
+                    </label>
+                `;
+            });
+        }
+    } catch (error) {
+        listaFretes.innerHTML = '<div class="alert alert-danger">Erro ao calcular frete. Tente novamente.</div>';
+    }
+}
+
+function atualizarTotal(valorFrete) {
+    const subtotal = parseFloat("{{ carrinho.total_final }}");
+    const total = subtotal + parseFloat(valorFrete);
+    document.getElementById('valor_frete_display').innerText = `R$ ${parseFloat(valorFrete).toFixed(2)}`;
+    document.getElementById('total_final_display').innerText = `R$ ${total.toFixed(2)}`;
+}
+</script>
+{% endblock %}

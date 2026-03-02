@@ -65,6 +65,12 @@ class Produto(db.Model):
     meta_description = db.Column(db.String(250), nullable=True) # Aumentado para 250 conforme solicitado
     tags_palavras_chave = db.Column(db.String(255), nullable=True)
 
+    # Logística (Padrão em kg e cm para APIs de frete)
+    peso = db.Column(db.Numeric(10, 3), default=0.000) # Ex: 0.500 para 500g
+    comprimento = db.Column(db.Numeric(10, 2), default=0.00)
+    largura = db.Column(db.Numeric(10, 2), default=0.00)
+    altura = db.Column(db.Numeric(10, 2), default=0.00)
+
     # --- CONTEÚDO PÚBLICO (SITE) ---
     descricao_comercial = db.Column(db.Text, nullable=True) # Resumo breve
     descricao_longa = db.Column(db.Text, nullable=True) # HTML do Summernote
