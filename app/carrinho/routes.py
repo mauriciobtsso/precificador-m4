@@ -68,36 +68,74 @@ def adicionar(produto_id):
 
 @carrinho_bp.route('/update/<int:item_id>', methods=['POST'])
 def atualizar_quantidade(item_id):
-    """Atualiza quantidades ou remove itens do carrinho via AJAX."""
-    data = request.get_json()
-    delta = data.get('delta', 0)
+    """
+    Atualiza quantidades ou remove itens do carrinho via AJAX.
     
-    item = CarrinhoItem.query.get_or_404(item_id)
-    
-    # Lógica de Exclusão (Se delta for 0 ou a quantidade cair abaixo de 1)
-    if delta == 0 or (item.quantidade + delta) <= 0:
-        db.session.delete(item)
+    CORREÇÃO: Melhorado tratamento de erros e validações para garantir
+    que os botões de adicionar/diminuir e excluir funcionem corretamente.
+    """
+    try:
+        # Validar que o item existe
+        item = CarrinhoItem.query.get_or_404(item_id)
+        
+        # Obter dados da requisição
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "Dados inválidos"}), 400
+        
+        delta = data.get('delta', 0)
+        
+        # Validar que delta é um inteiro
+        try:
+            delta = int(delta)
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "error": "Delta inválido"}), 400
+        
+        # LÓGICA DE EXCLUSÃO: Se delta for 0 ou a quantidade cair abaixo de 1
+        if delta == 0 or (item.quantidade + delta) <= 0:
+            db.session.delete(item)
+            db.session.commit()
+            carrinho = get_or_create_carrinho()
+            
+            return jsonify({
+                "success": True, 
+                "reload": True,  # Sinaliza que deve recarregar a página
+                "cart_count": len(carrinho.items),
+                "cart_total": f"R$ {carrinho.total_avista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            })
+        
+        # ATUALIZAR QUANTIDADE: Incrementar ou decrementar
+        item.quantidade += delta
+        
+        # Validar que a quantidade nunca fica negativa (proteção extra)
+        if item.quantidade < 1:
+            item.quantidade = 1
+            return jsonify({
+                "success": False,
+                "error": "Quantidade mínima é 1"
+            }), 400
+        
         db.session.commit()
-        carrinho = get_or_create_carrinho()
+        
+        # Recarregar o carrinho para obter dados atualizados
+        carrinho = item.carrinho
+        
         return jsonify({
-            "success": True, 
-            "reload": True, 
+            "success": True,
+            "item_subtotal": f"R$ {item.subtotal_avista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            "cart_total": f"R$ {carrinho.total_avista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
             "cart_count": len(carrinho.items),
-            "cart_total": f"R$ {carrinho.total_avista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            "reload": False  # Não precisa recarregar a página
         })
     
-    item.quantidade += delta
-    db.session.commit()
-    
-    carrinho = item.carrinho
-    
-    return jsonify({
-        "success": True,
-        "item_subtotal": f"R$ {item.subtotal_avista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-        "cart_total": f"R$ {carrinho.total_avista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-        "cart_count": len(carrinho.items),
-        "reload": False
-    })
+    except Exception as e:
+        # Log do erro para debugging
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": f"Erro ao atualizar carrinho: {str(e)}"
+        }), 500
 
 # --- LOGÍSTICA E FRETE REAL ---
 

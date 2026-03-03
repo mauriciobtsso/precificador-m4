@@ -23,8 +23,15 @@
                                     <tr data-item-id="{{ item.id }}">
                                         <td class="ps-4 py-3">
                                             <div class="d-flex align-items-center">
-                                                <img src="{{ gerar_link(item.produto.foto_url or item.produto.imagem_principal) }}" 
-                                                     class="rounded border me-3" width="60" height="60" style="object-fit: contain;" alt="{{ item.produto.nome }}">
+                                                {# CORREÇÃO 1: Foto do Produto - Usar apenas foto_url com fallback para placeholder #}
+                                                {% if item.produto.foto_url %}
+                                                    <img src="{{ gerar_link(item.produto.foto_url) }}" 
+                                                         class="rounded border me-3" width="60" height="60" style="object-fit: contain;" alt="{{ item.produto.nome }}" loading="lazy">
+                                                {% else %}
+                                                    <div class="rounded border me-3 bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                                        <i class="fas fa-image text-muted"></i>
+                                                    </div>
+                                                {% endif %}
                                                 <div>
                                                     <h6 class="mb-0 fw-bold">{{ item.produto.nome }}</h6>
                                                     <small class="text-muted d-block">Cod: {{ item.produto.codigo }}</small>
@@ -108,43 +115,88 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{# CORREÇÃO CRÍTICA: Usar {% block extra_js %} em vez de {% block scripts %} #}
+{# porque o base template da loja (loja/base.html) usa extra_js #}
+{% block extra_js %}
 <script>
+    {# CORREÇÃO 2 e 3: Melhorar função updateQty com tratamento de erros robusto #}
     async function updateQty(itemId, delta) {
         const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
-        if (!row) return;
+        if (!row) {
+            console.error(`Linha do item ${itemId} não encontrada no DOM`);
+            return;
+        }
 
         try {
+            // Desabilitar botões durante a requisição para evitar cliques duplos
+            const buttons = row.querySelectorAll('button[onclick*="updateQty"]');
+            buttons.forEach(btn => btn.disabled = true);
+
             const response = await fetch(`/carrinho/update/${itemId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ delta: delta })
             });
 
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
             const result = await response.json();
 
-            if (result.success) {
-                if (result.reload) {
-                    window.location.reload();
+            if (!result.success) {
+                console.error("Erro na resposta do servidor:", result);
+                alert("Erro ao atualizar o carrinho. Tente novamente.");
+                buttons.forEach(btn => btn.disabled = false);
+                return;
+            }
+
+            // Se o servidor indicar que deve recarregar (ex: após exclusão), recarrega a página
+            if (result.reload) {
+                window.location.reload();
+                return;
+            }
+
+            // Atualizar quantidade no input (apenas se não for exclusão)
+            const input = row.querySelector('.qty-input');
+            if (input && result.item_subtotal !== undefined) {
+                const novaQtd = parseInt(input.value) + delta;
+                input.value = novaQtd;
+            }
+            
+            // Atualizar subtotal do item
+            const itemSubtotal = row.querySelector('.item-subtotal');
+            if (itemSubtotal && result.item_subtotal !== undefined) {
+                itemSubtotal.textContent = result.item_subtotal;
+            }
+            
+            // Atualizar total do carrinho
+            const cartTotal = document.getElementById('cart-total-display');
+            if (cartTotal && result.cart_total !== undefined) {
+                cartTotal.textContent = result.cart_total;
+            }
+            
+            // Atualizar badge do carrinho (se existir)
+            const badge = document.getElementById('cart-badge');
+            if (badge && result.cart_count !== undefined) {
+                badge.textContent = result.cart_count;
+                if (result.cart_count > 0) {
+                    badge.classList.remove('d-none');
                 } else {
-                    const input = row.querySelector('.qty-input');
-                    if (input) input.value = parseInt(input.value) + delta;
-                    
-                    const itemSubtotal = row.querySelector('.item-subtotal');
-                    if (itemSubtotal) itemSubtotal.textContent = result.item_subtotal;
-                    
-                    const cartTotal = document.getElementById('cart-total-display');
-                    if (cartTotal) cartTotal.textContent = result.cart_total;
-                    
-                    const badge = document.getElementById('cart-badge');
-                    if (badge) {
-                        badge.textContent = result.cart_count;
-                        if(result.cart_count > 0) badge.classList.remove('d-none');
-                    }
+                    badge.classList.add('d-none');
                 }
             }
+
+            // Reabilitar botões após sucesso
+            buttons.forEach(btn => btn.disabled = false);
+
         } catch (error) {
             console.error("Erro ao atualizar carrinho:", error);
+            alert("Erro de conexão ao atualizar o carrinho. Verifique sua conexão e tente novamente.");
+            
+            // Reabilitar botões em caso de erro
+            const buttons = row.querySelectorAll('button[onclick*="updateQty"]');
+            buttons.forEach(btn => btn.disabled = false);
         }
     }
 </script>

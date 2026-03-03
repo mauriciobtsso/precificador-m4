@@ -1,9 +1,11 @@
 # ========================================
-# app/utils/r2_helpers.py (Completo)
+# app/utils/r2_helpers.py (Corrigido)
 # ========================================
 """
 Funções auxiliares específicas para Cloudflare R2.
 Wrapper para app/utils/storage.py com lógica de pastas e nomes de arquivos.
+
+CORREÇÃO: Melhorado tratamento de URLs para evitar duplicação de caminhos.
 """
 
 from app.utils.storage import get_s3, get_bucket, upload_file
@@ -12,15 +14,31 @@ import logging
 import uuid
 import os
 from flask import current_app
+from urllib.parse import urlparse
 
 def gerar_link_r2(caminho_arquivo: str, expiracao: int = 3600) -> str:
     """
     Gera um link pré-assinado válido por `expiracao` segundos.
+    
+    CORREÇÃO: Agora trata corretamente URLs completas e caminhos relativos.
+    Se receber uma URL completa, extrai apenas o caminho relativo.
     """
     if not caminho_arquivo:
         return ""
 
     try:
+        # Se for uma URL completa, extrair apenas o caminho relativo
+        if caminho_arquivo.startswith('http'):
+            # Exemplo: https://pub-xxx.r2.dev/produtos/fotos/temp/xxx.webp
+            # Resultado: produtos/fotos/temp/xxx.webp
+            parsed_url = urlparse(caminho_arquivo)
+            caminho_arquivo = parsed_url.path.lstrip('/')
+            
+            # Remover o nome do bucket se estiver no início do caminho
+            bucket_nome = "m4-clientes-docs"
+            if caminho_arquivo.startswith(bucket_nome + '/'):
+                caminho_arquivo = caminho_arquivo[len(bucket_nome) + 1:]
+        
         s3 = get_s3()
         bucket = get_bucket()
 

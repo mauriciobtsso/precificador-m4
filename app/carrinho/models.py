@@ -14,10 +14,19 @@ class Carrinho(db.Model):
 
     @property
     def total_avista(self):
-        return sum(item.subtotal_avista for item in self.items)
+        """
+        Calcula o total do carrinho somando os subtotais de todos os itens.
+        Retorna um valor numérico arredondado a 2 casas decimais.
+        """
+        total = sum(float(item.subtotal_avista or 0) for item in self.items)
+        return round(total, 2)
 
     @property
     def requer_documentacao(self):
+        """
+        Verifica se algum item do carrinho requer documentação especial.
+        Retorna True se pelo menos um produto requer documentação.
+        """
         return any(item.produto.requer_documentacao for item in self.items)
 
 class CarrinhoItem(db.Model):
@@ -32,7 +41,12 @@ class CarrinhoItem(db.Model):
 
     @property
     def subtotal_avista(self):
-        return (self.preco_unitario_no_momento or 0) * self.quantidade
+        """
+        Calcula o subtotal do item multiplicando a quantidade pelo preço unitário.
+        Garante que valores nulos sejam tratados como 0.
+        """
+        preco = float(self.preco_unitario_no_momento or 0)
+        return round(preco * self.quantidade, 2)
 
 class Pedido(db.Model):
     __tablename__ = 'pedidos'
@@ -66,6 +80,7 @@ class Pedido(db.Model):
     
     # Logística e Datas
     criado_em = db.Column(db.DateTime, default=now_local)
+    pago_em = db.Column(db.DateTime, nullable=True)  # Campo adicionado para rastreamento de pagamento
     items = db.relationship('PedidoItem', backref='pedido', cascade="all, delete-orphan")
 
 class PedidoItem(db.Model):
@@ -78,4 +93,3 @@ class PedidoItem(db.Model):
     preco_unitario_historico = db.Column(db.Numeric(12, 2), nullable=False) # Valor no dia da compra
     
     produto = db.relationship('Produto')
-

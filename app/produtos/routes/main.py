@@ -245,7 +245,8 @@ def gerenciar_produto(produto_id=None):
             produto.nome = nome
 
             produto.nome_comercial = (data.get("nome_comercial") or "").strip() or None
-            produto.meta_title = (data.get("meta_title") or "").strip() or None
+            meta_title_raw = (data.get("meta_title") or "").strip()
+            produto.meta_title = meta_title_raw[:120] if meta_title_raw else None
 
             if data.get("slug"):
                 produto.slug = data.get("slug").strip().lower()
@@ -255,7 +256,8 @@ def gerenciar_produto(produto_id=None):
             produto.descricao_comercial = (data.get("descricao_comercial") or "").strip() or None
             
             desc_google = (data.get("meta_description") or "").strip()
-            produto.meta_description = desc_google[:250] if desc_google else None
+            meta_desc_raw = (data.get("meta_description") or "").strip()
+            produto.meta_description = meta_desc_raw[:250] if meta_desc_raw else None
 
             # Validação: Categoria é obrigatória
             categoria_id = to_int(data.get("categoria_id"))
@@ -317,10 +319,10 @@ def gerenciar_produto(produto_id=None):
             produto.foto_url = data.get("foto_url") or foto_atual
 
             # No trecho onde você coleta os dados do request:
-            produto.peso = request.form.get('peso')
-            produto.comprimento = request.form.get('comprimento')
-            produto.largura = request.form.get('largura')
-            produto.altura = request.form.get('altura')
+            produto.peso = to_decimal(data.get('peso'))
+            produto.comprimento = to_decimal(data.get('comprimento'))
+            produto.largura = to_decimal(data.get('largura'))
+            produto.altura = to_decimal(data.get('altura'))
 
             # --- TRATAMENTO ESPECIFICAÇÕES TÉCNICAS (BLINDAGEM) ---
             specs_json = data.get("especificacoes_tecnicas")
