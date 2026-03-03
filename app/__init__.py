@@ -214,6 +214,26 @@ def create_app():
         """Disponibiliza now_local() nos templates Jinja."""
         return {"now_local": now_local}
 
+    @app.context_processor
+    def inject_global_utils():
+        """Disponibiliza funções utilitárias em todos os templates."""
+        from app.utils.r2_helpers import gerar_link_r2
+        
+        def limpar_caminho_r2(caminho):
+            if not caminho: return ""
+            bucket_nome = "m4-clientes-docs"
+            caminho_limpo = caminho.replace(f"/{bucket_nome}", "").replace(bucket_nome, "")
+            caminho_limpo = caminho_limpo.replace("//", "/").lstrip("/")
+            return caminho_limpo.split("#")[0].split("%23")[0]
+
+        def gerar_link_global(path):
+            return gerar_link_r2(limpar_caminho_r2(path))
+
+        return {
+            "now_local": now_local,
+            "gerar_link": gerar_link_global
+        }
+
     # =========================================================
     # SEED INICIAL
     # =========================================================

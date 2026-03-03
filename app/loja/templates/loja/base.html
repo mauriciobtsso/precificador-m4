@@ -291,6 +291,18 @@
                 Venda de armas e munições de acordo com a legislação vigente.</p>
             </div>
         </div>
+// Adicione este HTML ao final do body no seu base.html para o Toast funcionar
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="cartToast" class="toast align-items-center text-white bg-dark border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="fas fa-check-circle text-success me-2"></i> <span id="toastMessage"></span>
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
     </footer>
 
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}" defer></script>
@@ -318,6 +330,34 @@
                 console.error("Erro ao adicionar ao arsenal:", error);
             }
         }
+
+async function adicionarAoCarrinho(produtoId) {
+    try {
+        const response = await fetch(`/carrinho/add/${produtoId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const badge = document.getElementById('cart-badge');
+            if (badge) {
+                badge.textContent = data.cart_count;
+                badge.classList.remove('d-none');
+            }
+            
+            // Exibir Toast em vez de Alert
+            const toastEl = document.getElementById('cartToast');
+            document.getElementById('toastMessage').textContent = data.message;
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+    } catch (error) {
+        console.error("Erro:", error);
+    }
+}
+
     </script>
 
     {% block extra_js %}{% endblock %}

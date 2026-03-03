@@ -1,3 +1,5 @@
+#app/loja/routes.py
+
 from flask import render_template, abort, request, url_for, send_from_directory, current_app, redirect, Response, make_response
 from app.loja import loja_bp
 from app.loja.models_admin import Banner, PaginaInstitucional
