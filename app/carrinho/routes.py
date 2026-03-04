@@ -6,6 +6,7 @@ from .frete import MelhorEnvioService
 from .models import Carrinho, CarrinhoItem, Pedido, PedidoItem
 from app.produtos.models import Produto
 from app.utils.datetime import now_local
+from app.utils.r2_helpers import gerar_link_r2
 import requests
 import json
 import uuid
@@ -33,11 +34,28 @@ def get_or_create_carrinho():
 
 # --- ROTAS PRINCIPAIS DO CARRINHO ---
 
+def limpar_foto_url(caminho):
+    """Remove o fragmento #hash e lixo do final das URLs de foto."""
+    if not caminho:
+        return ""
+    if "#" in caminho:
+        caminho = caminho.split("#")[0]
+    if "%23" in caminho:
+        caminho = caminho.split("%23")[0]
+    return caminho
+
 @carrinho_bp.route('/')
 def index():
     """Exibe a página do carrinho com os itens e resumo."""
     carrinho = get_or_create_carrinho()
-    return render_template('carrinho/index.html', carrinho=carrinho)
+    gerar_link = lambda path: gerar_link_r2(limpar_foto_url(path)) if path else ""
+    frete_sessao = {
+        'valor': session.get('frete_valor', 0),
+        'nome': session.get('frete_nome', ''),
+        'prazo': session.get('frete_prazo', ''),
+        'cep': session.get('frete_cep', ''),
+    }
+    return render_template('carrinho/index.html', carrinho=carrinho, gerar_link=gerar_link, frete_sessao=frete_sessao)
 
 @carrinho_bp.route('/add/<int:produto_id>', methods=['POST'])
 def adicionar(produto_id):
@@ -59,39 +77,35 @@ def adicionar(produto_id):
         db.session.add(item)
     
     db.session.commit()
+
+    # CORREÇÃO: usar nome amigável (nome_comercial) se disponível
+    nome_exibicao = produto.nome_comercial or produto.nome
     
     return jsonify({
         "success": True, 
         "cart_count": len(carrinho.items),
-        "message": f"{produto.nome} adicionado ao arsenal!"
+        "message": f"{nome_exibicao} adicionado ao arsenal!"
     })
 
 @carrinho_bp.route('/update/<int:item_id>', methods=['POST'])
 def atualizar_quantidade(item_id):
     """
     Atualiza quantidades ou remove itens do carrinho via AJAX.
-    
-    CORREÇÃO: Melhorado tratamento de erros e validações para garantir
-    que os botões de adicionar/diminuir e excluir funcionem corretamente.
     """
     try:
-        # Validar que o item existe
         item = CarrinhoItem.query.get_or_404(item_id)
         
-        # Obter dados da requisição
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "Dados inválidos"}), 400
         
         delta = data.get('delta', 0)
         
-        # Validar que delta é um inteiro
         try:
             delta = int(delta)
         except (ValueError, TypeError):
             return jsonify({"success": False, "error": "Delta inválido"}), 400
         
-        # LÓGICA DE EXCLUSÃO: Se delta for 0 ou a quantidade cair abaixo de 1
         if delta == 0 or (item.quantidade + delta) <= 0:
             db.session.delete(item)
             db.session.commit()
@@ -99,15 +113,13 @@ def atualizar_quantidade(item_id):
             
             return jsonify({
                 "success": True, 
-                "reload": True,  # Sinaliza que deve recarregar a página
+                "reload": True,
                 "cart_count": len(carrinho.items),
                 "cart_total": f"R$ {carrinho.total_avista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
             })
         
-        # ATUALIZAR QUANTIDADE: Incrementar ou decrementar
         item.quantidade += delta
         
-        # Validar que a quantidade nunca fica negativa (proteção extra)
         if item.quantidade < 1:
             item.quantidade = 1
             return jsonify({
@@ -117,7 +129,6 @@ def atualizar_quantidade(item_id):
         
         db.session.commit()
         
-        # Recarregar o carrinho para obter dados atualizados
         carrinho = item.carrinho
         
         return jsonify({
@@ -125,11 +136,10 @@ def atualizar_quantidade(item_id):
             "item_subtotal": f"R$ {item.subtotal_avista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
             "cart_total": f"R$ {carrinho.total_avista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
             "cart_count": len(carrinho.items),
-            "reload": False  # Não precisa recarregar a página
+            "reload": False
         })
     
     except Exception as e:
-        # Log do erro para debugging
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -150,18 +160,39 @@ def api_calcular_frete():
         
     carrinho = get_or_create_carrinho()
     
-    # Credenciais de Logística
-    TOKEN_MELHOR_ENVIO = "SEU_TOKEN_REAL_AQUI"
-    CEP_ORIGEM = "64000000" # Teresina-PI
-    
-    service = MelhorEnvioService(TOKEN_MELHOR_ENVIO)
+    # Credenciais lidas do banco (configuradas em /admin-loja/integracoes)
+    from app.models import Configuracao
+    cfg_token   = Configuracao.query.filter_by(chave='integ_melhorenvio_token').first()
+    cfg_cep     = Configuracao.query.filter_by(chave='integ_melhorenvio_cep_origem').first()
+    cfg_sandbox = Configuracao.query.filter_by(chave='integ_melhorenvio_sandbox').first()
+
+    TOKEN_MELHOR_ENVIO = cfg_token.valor if cfg_token and cfg_token.valor else ''
+    CEP_ORIGEM         = cfg_cep.valor   if cfg_cep   and cfg_cep.valor   else '64000000'
+    USE_SANDBOX        = cfg_sandbox and cfg_sandbox.valor == '1'
+
+    if not TOKEN_MELHOR_ENVIO:
+        return jsonify({"success": False, "message": "Token do Melhor Envio não configurado. Acesse /admin-loja/integracoes."}), 503
+
+    service = MelhorEnvioService(TOKEN_MELHOR_ENVIO, sandbox=USE_SANDBOX)
     resultado = service.calcular_frete(CEP_ORIGEM, cep_destino, carrinho.items)
     
     if resultado:
         return jsonify({"success": True, "opcoes": resultado})
     return jsonify({"success": False, "message": "Não foi possível calcular o frete."}), 400
 
-# --- CHECKOUT E PAGAMENTO (PAGAR.ME) ---
+
+@carrinho_bp.route('/api/frete/salvar', methods=['POST'])
+def salvar_frete_sessao():
+    """Salva o frete escolhido na sessão para usar no checkout."""
+    data = request.get_json()
+    session['frete_valor'] = float(data.get('valor', 0))
+    session['frete_nome'] = data.get('nome', '')
+    session['frete_prazo'] = data.get('prazo', '')
+    session['frete_cep'] = data.get('cep', '')
+    session.modified = True
+    return jsonify({"success": True})
+
+# --- CHECKOUT E PAGAMENTO ---
 
 @carrinho_bp.route('/checkout')
 def checkout_view():
@@ -169,7 +200,13 @@ def checkout_view():
     carrinho = get_or_create_carrinho()
     if not carrinho.items:
         return redirect(url_for('carrinho.index'))
-    return render_template('carrinho/checkout.html', carrinho=carrinho)
+    frete_sessao = {
+        'valor': session.get('frete_valor', 0),
+        'nome': session.get('frete_nome', ''),
+        'prazo': session.get('frete_prazo', ''),
+        'cep': session.get('frete_cep', ''),
+    }
+    return render_template('carrinho/checkout.html', carrinho=carrinho, frete_sessao=frete_sessao)
 
 @carrinho_bp.route('/checkout/processar', methods=['POST'])
 def processar_pedido():
@@ -181,7 +218,6 @@ def processar_pedido():
         if not carrinho or not carrinho.items:
             return jsonify({"success": False, "message": "Carrinho vazio"}), 400
 
-        # 1. Snapshot do Pedido (Dados que nunca mudam após a compra)
         novo_pedido = Pedido(
             usuario_id=current_user.id if current_user.is_authenticated else None,
             nome_cliente=data.get('nome'),
@@ -197,12 +233,11 @@ def processar_pedido():
             total_produtos=carrinho.total_avista,
             total_frete=float(data.get('valor_frete', 0)),
             total_pedido=float(carrinho.total_avista) + float(data.get('valor_frete', 0)),
-            forma_pagamento=data.get('metodo_pagamento'), # 'pix' ou 'credit_card'
+            forma_pagamento=data.get('metodo_pagamento'),
             status='pendente'
         )
         db.session.add(novo_pedido)
         
-        # 2. Registra os itens vendidos (Snapshot de preço)
         for item in carrinho.items:
             pi = PedidoItem(
                 pedido=novo_pedido,
@@ -212,12 +247,9 @@ def processar_pedido():
             )
             db.session.add(pi)
 
-        # 3. Integração Pagar.me (Simulação para Homologação)
-        # Em produção, aqui entraria o requests.post para a API v5 do Pagar.me
         novo_pedido.pagarme_id = "or_" + str(uuid.uuid4())[:12]
         db.session.commit()
 
-        # 4. Limpeza de Arsenal (Esvazia o carrinho após gerar o pedido)
         for item in carrinho.items:
             db.session.delete(item)
         db.session.commit()

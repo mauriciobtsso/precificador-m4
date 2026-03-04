@@ -169,3 +169,101 @@ def auditoria_loja():
 
     # O erro estava aqui: este 'return' deve ter 4 espaços (ou 1 tab) de recuo
     return render_template('auditoria_loja.html', produtos=produtos_incompletos, total=len(produtos_incompletos))
+
+# =========================================================
+# INTEGRAÇÕES (Melhor Envio, Pagar.me, SMTP)
+# =========================================================
+
+CHAVES_INTEGRACAO = [
+    'integ_melhorenvio_token',
+    'integ_melhorenvio_cep_origem',
+    'integ_melhorenvio_sandbox',
+    'integ_pagarme_secret_key',
+    'integ_pagarme_public_key',
+    'integ_pagarme_sandbox',
+    'integ_smtp_host',
+    'integ_smtp_port',
+    'integ_smtp_from',
+    'integ_smtp_user',
+    'integ_smtp_password',
+]
+
+@loja_admin_bp.route('/integracoes', methods=['GET'])
+@login_required
+def integracoes():
+    """Página de configuração de integrações externas."""
+    config_objs = Configuracao.query.filter(
+        Configuracao.chave.in_(CHAVES_INTEGRACAO)
+    ).all()
+    configs = {c.chave: c.valor for c in config_objs}
+    return render_template('loja_admin/integracoes.html', configs=configs)
+
+
+@loja_admin_bp.route('/integracoes/salvar', methods=['POST'])
+@login_required
+def salvar_integracoes():
+    """Salva as credenciais de integração no banco (tabela Configuracao)."""
+    checkboxes = {
+        'integ_melhorenvio_sandbox',
+        'integ_pagarme_sandbox',
+    }
+
+    for chave in CHAVES_INTEGRACAO:
+        if chave in checkboxes:
+            valor = '1' if chave in request.form else '0'
+        else:
+            valor = request.form.get(chave, '').strip()
+
+        config = Configuracao.query.filter_by(chave=chave).first()
+        if config:
+            config.valor = valor
+        else:
+            db.session.add(Configuracao(chave=chave, valor=valor))
+
+    try:
+        db.session.commit()
+        flash('✅ Integrações salvas com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Erro ao salvar: {str(e)}', 'danger')
+
+    return redirect(url_for('loja_admin.integracoes'))
+
+
+@loja_admin_bp.route('/integracoes/testar', methods=['POST'])
+@login_required
+def testar_integracao():
+    """Testa a conexão com um serviço externo (usado pelo botão Testar no front)."""
+    import requests as req_lib
+
+    data = request.get_json()
+    servico = data.get('servico')
+
+    if servico == 'melhorenvio':
+        token = Configuracao.query.filter_by(chave='integ_melhorenvio_token').first()
+        sandbox = Configuracao.query.filter_by(chave='integ_melhorenvio_sandbox').first()
+
+        if not token or not token.valor:
+            return jsonify({"success": False, "message": "Token não configurado."})
+
+        base = "https://sandbox.melhorenvio.com.br" if (sandbox and sandbox.valor == '1') else "https://www.melhorenvio.com.br"
+        url = f"{base}/api/v2/me"
+
+        try:
+            resp = req_lib.get(url, headers={
+                "Authorization": f"Bearer {token.valor}",
+                "Accept": "application/json",
+                "User-Agent": "M4 Tatica (contato@m4tatica.com.br)"
+            }, timeout=8)
+
+            if resp.status_code == 200:
+                user = resp.json()
+                nome = user.get('firstname', '') + ' ' + user.get('lastname', '')
+                return jsonify({"success": True, "message": f"Autenticado como: {nome.strip()}"})
+            else:
+                return jsonify({"success": False, "message": f"HTTP {resp.status_code} — verifique o token."})
+
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)})
+
+    return jsonify({"success": False, "message": "Serviço não reconhecido."})

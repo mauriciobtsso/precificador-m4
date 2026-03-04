@@ -1,0 +1,439 @@
+{% extends 'loja_admin/base_admin.html' %}
+
+{% block extra_css %}
+<style>
+    .integ-card {
+        border: 1px solid #e8e8e8;
+        border-radius: 10px;
+        background: #fff;
+        transition: box-shadow 0.2s;
+        overflow: hidden;
+    }
+    .integ-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+
+    .integ-header {
+        padding: 1.2rem 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .integ-logo {
+        font-size: 1.1rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .integ-logo .icon-wrap {
+        width: 38px; height: 38px;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .status-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 20px;
+    }
+    .status-ok       { background: #d1fae5; color: #065f46; }
+    .status-pendente { background: #fef3c7; color: #92400e; }
+    .status-erro     { background: #fee2e2; color: #991b1b; }
+
+    .integ-body { padding: 1.5rem; }
+
+    .form-control-integ {
+        font-family: 'Courier New', monospace;
+        font-size: 0.8rem;
+        background: #f8f9fa;
+        border: 1px solid #e5e5e5;
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+    }
+    .form-control-integ:focus {
+        background: #fff;
+        border-color: var(--m4-gold);
+        box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.15);
+    }
+
+    .toggle-secret {
+        cursor: pointer;
+        background: transparent;
+        border: none;
+        color: #999;
+        padding: 0 8px;
+        transition: color 0.2s;
+    }
+    .toggle-secret:hover { color: #333; }
+
+    .env-hint {
+        font-family: 'Courier New', monospace;
+        font-size: 0.72rem;
+        color: #888;
+        background: #f4f4f4;
+        border-radius: 4px;
+        padding: 2px 6px;
+    }
+
+    .section-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 2rem 0 1.5rem;
+        color: #999;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+    .section-divider::before,
+    .section-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #eee;
+    }
+
+    .test-btn {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 20px;
+        border: 1px solid #ddd;
+        background: #fff;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .test-btn:hover { border-color: var(--m4-gold); color: var(--m4-gold); }
+
+    .doc-link {
+        font-size: 0.75rem;
+        color: #888;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .doc-link:hover { color: var(--m4-gold); }
+
+    .save-bar {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        border-top: 1px solid #eee;
+        padding: 1rem 1.5rem;
+        z-index: 100;
+        margin: 0 -1.5rem -1.5rem;
+    }
+
+    .sandbox-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .integ-description {
+        font-size: 0.82rem;
+        color: #777;
+        margin-bottom: 1.2rem;
+        line-height: 1.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1">Integrações</h2>
+        <p class="text-muted small mb-0">Configure as credenciais de frete, pagamento e serviços externos.</p>
+    </div>
+    <a href="{{ url_for('loja_admin.index') }}" class="btn btn-light btn-sm border">
+        <i class="bi bi-arrow-left me-1"></i> Dashboard
+    </a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show small">
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}{% endif %}
+{% endwith %}
+
+<form method="POST" action="{{ url_for('loja_admin.salvar_integracoes') }}" id="formIntegracoes">
+
+    {# ── FRETE ────────────────────────────────────────────────────────── #}
+    <div class="section-divider"><i class="bi bi-truck me-1"></i>Frete e Logística</div>
+
+    <div class="integ-card mb-4">
+        <div class="integ-header">
+            <div class="integ-logo">
+                <div class="icon-wrap" style="background: #e8f5e9;">🚚</div>
+                <div>
+                    <div>Melhor Envio</div>
+                    <div class="fw-normal text-muted" style="font-size:0.75rem;">Cotação automática de fretes</div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="test-btn" onclick="testarConexao('melhorenvio')">
+                    <i class="bi bi-plug me-1"></i>Testar
+                </button>
+                <span id="status_melhorenvio" class="status-badge status-pendente">
+                    {% if configs.get('integ_melhorenvio_token') %}Configurado{% else %}Pendente{% endif %}
+                </span>
+            </div>
+        </div>
+        <div class="integ-body">
+            <p class="integ-description">
+                Calcula fretes em tempo real via API do Melhor Envio (Correios, Jadlog, Total Express e outros).
+                <a href="https://melhorenvio.com.br/painel/gerenciar/tokens" target="_blank" class="doc-link ms-1">
+                    <i class="bi bi-box-arrow-up-right"></i> Gerar token
+                </a>
+            </p>
+
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label small fw-bold">Token de Acesso <span class="env-hint">MELHOR_ENVIO_TOKEN</span></label>
+                    <div class="input-group">
+                        <input type="password" name="integ_melhorenvio_token" id="integ_melhorenvio_token"
+                               class="form-control form-control-integ"
+                               placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1Ni..."
+                               value="{{ configs.get('integ_melhorenvio_token', '') }}">
+                        <button type="button" class="toggle-secret border border-start-0 rounded-end" onclick="toggleSecret('integ_melhorenvio_token', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">CEP de Origem</label>
+                    <input type="text" name="integ_melhorenvio_cep_origem" id="integ_melhorenvio_cep_origem"
+                           class="form-control form-control-integ"
+                           placeholder="64000000"
+                           value="{{ configs.get('integ_melhorenvio_cep_origem', '64000000') }}">
+                </div>
+                <div class="col-12">
+                    <div class="sandbox-toggle">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" name="integ_melhorenvio_sandbox"
+                                   id="integ_melhorenvio_sandbox" role="switch"
+                                   {{ 'checked' if configs.get('integ_melhorenvio_sandbox') == '1' }}>
+                            <label class="form-check-label" for="integ_melhorenvio_sandbox">
+                                Usar ambiente <strong>Sandbox</strong> (testes)
+                            </label>
+                        </div>
+                        <span class="text-muted" style="font-size:0.72rem;">
+                            — Em produção, desative esta opção
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="resultado_teste_melhorenvio" class="mt-3 d-none"></div>
+        </div>
+    </div>
+
+    {# ── PAGAMENTO ─────────────────────────────────────────────────────── #}
+    <div class="section-divider"><i class="bi bi-credit-card me-1"></i>Pagamento</div>
+
+    <div class="integ-card mb-4">
+        <div class="integ-header">
+            <div class="integ-logo">
+                <div class="icon-wrap" style="background: #fce4ec;">💳</div>
+                <div>
+                    <div>Pagar.me</div>
+                    <div class="fw-normal text-muted" style="font-size:0.75rem;">Checkout transparente (PIX + Cartão)</div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="https://dashboard.pagar.me" target="_blank" class="doc-link">
+                    <i class="bi bi-box-arrow-up-right"></i> Painel
+                </a>
+                <span class="status-badge {% if configs.get('integ_pagarme_secret_key') %}status-ok{% else %}status-pendente{% endif %}">
+                    {% if configs.get('integ_pagarme_secret_key') %}Configurado{% else %}Pendente{% endif %}
+                </span>
+            </div>
+        </div>
+        <div class="integ-body">
+            <p class="integ-description">
+                Processa pagamentos via PIX e cartão de crédito com checkout transparente.
+                As chaves ficam em <span class="env-hint">Configurações → Developers</span> no painel do Pagar.me.
+            </p>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Chave Secreta <span class="env-hint">sk_...</span></label>
+                    <div class="input-group">
+                        <input type="password" name="integ_pagarme_secret_key" id="integ_pagarme_secret_key"
+                               class="form-control form-control-integ"
+                               placeholder="sk_live_..."
+                               value="{{ configs.get('integ_pagarme_secret_key', '') }}">
+                        <button type="button" class="toggle-secret border border-start-0 rounded-end" onclick="toggleSecret('integ_pagarme_secret_key', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Chave Pública <span class="env-hint">pk_...</span></label>
+                    <input type="text" name="integ_pagarme_public_key" id="integ_pagarme_public_key"
+                           class="form-control form-control-integ"
+                           placeholder="pk_live_..."
+                           value="{{ configs.get('integ_pagarme_public_key', '') }}">
+                </div>
+                <div class="col-12">
+                    <div class="sandbox-toggle">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" name="integ_pagarme_sandbox"
+                                   id="integ_pagarme_sandbox" role="switch"
+                                   {{ 'checked' if configs.get('integ_pagarme_sandbox') == '1' }}>
+                            <label class="form-check-label" for="integ_pagarme_sandbox">
+                                Usar ambiente <strong>Sandbox</strong> (testes)
+                            </label>
+                        </div>
+                        <span class="text-muted" style="font-size:0.72rem;">
+                            — Chaves sandbox começam com <span class="env-hint">sk_test_</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── NOTIFICAÇÕES ──────────────────────────────────────────────────── #}
+    <div class="section-divider"><i class="bi bi-bell me-1"></i>Notificações (Opcional)</div>
+
+    <div class="integ-card mb-4">
+        <div class="integ-header">
+            <div class="integ-logo">
+                <div class="icon-wrap" style="background: #e8f5e9;">📧</div>
+                <div>
+                    <div>E-mail Transacional</div>
+                    <div class="fw-normal text-muted" style="font-size:0.75rem;">Confirmações de pedido e notificações</div>
+                </div>
+            </div>
+            <span class="status-badge {% if configs.get('integ_smtp_host') %}status-ok{% else %}status-pendente{% endif %}">
+                {% if configs.get('integ_smtp_host') %}Configurado{% else %}Pendente{% endif %}
+            </span>
+        </div>
+        <div class="integ-body">
+            <p class="integ-description">
+                Configure um servidor SMTP para enviar e-mails de confirmação de pedido, rastreamento e notificações ao cliente.
+            </p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Servidor SMTP</label>
+                    <input type="text" name="integ_smtp_host" class="form-control form-control-integ"
+                           placeholder="smtp.gmail.com ou smtp.sendgrid.net"
+                           value="{{ configs.get('integ_smtp_host', '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Porta</label>
+                    <input type="text" name="integ_smtp_port" class="form-control form-control-integ"
+                           placeholder="587"
+                           value="{{ configs.get('integ_smtp_port', '587') }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">E-mail Remetente</label>
+                    <input type="email" name="integ_smtp_from" class="form-control form-control-integ"
+                           placeholder="noreply@m4tatica.com.br"
+                           value="{{ configs.get('integ_smtp_from', '') }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Usuário SMTP</label>
+                    <input type="text" name="integ_smtp_user" class="form-control form-control-integ"
+                           placeholder="seu@email.com"
+                           value="{{ configs.get('integ_smtp_user', '') }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Senha / App Password</label>
+                    <div class="input-group">
+                        <input type="password" name="integ_smtp_password" id="integ_smtp_password"
+                               class="form-control form-control-integ"
+                               placeholder="••••••••"
+                               value="{{ configs.get('integ_smtp_password', '') }}">
+                        <button type="button" class="toggle-secret border border-start-0 rounded-end" onclick="toggleSecret('integ_smtp_password', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── BARRA DE SALVAR ───────────────────────────────────────────────── #}
+    <div class="save-bar d-flex justify-content-between align-items-center">
+        <p class="text-muted small mb-0">
+            <i class="bi bi-shield-lock me-1"></i>
+            As credenciais são salvas criptografadas no banco de dados.
+        </p>
+        <button type="submit" class="btn btn-dark fw-bold px-5">
+            <i class="bi bi-check-circle me-2"></i>SALVAR INTEGRAÇÕES
+        </button>
+    </div>
+
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mostrar/ocultar campos de senha
+function toggleSecret(fieldId, btn) {
+    const field = document.getElementById(fieldId);
+    const icon  = btn.querySelector('i');
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        field.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+// Testar conexão com Melhor Envio
+async function testarConexao(servico) {
+    const resultDiv = document.getElementById(`resultado_teste_${servico}`);
+    const statusBadge = document.getElementById(`status_${servico}`);
+
+    resultDiv.innerHTML = '<div class="text-muted small"><i class="bi bi-hourglass-split me-1"></i>Testando conexão...</div>';
+    resultDiv.classList.remove('d-none');
+
+    try {
+        const resp = await fetch('/admin-loja/integracoes/testar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ servico })
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success py-2 small mb-0">
+                    <i class="bi bi-check-circle-fill me-1"></i>
+                    <strong>Conexão OK!</strong> ${data.message || ''}
+                </div>`;
+            if (statusBadge) {
+                statusBadge.className = 'status-badge status-ok';
+                statusBadge.textContent = 'Ativo';
+            }
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger py-2 small mb-0">
+                    <i class="bi bi-x-circle-fill me-1"></i>
+                    <strong>Falha:</strong> ${data.message || 'Verifique o token e tente novamente.'}
+                </div>`;
+            if (statusBadge) {
+                statusBadge.className = 'status-badge status-erro';
+                statusBadge.textContent = 'Erro';
+            }
+        }
+    } catch (e) {
+        resultDiv.innerHTML = '<div class="alert alert-danger py-2 small mb-0">Erro de conexão com o servidor.</div>';
+    }
+}
+</script>
+{% endblock %}

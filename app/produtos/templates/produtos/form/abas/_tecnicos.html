@@ -56,12 +56,25 @@
       <input type="number" step="0.1" name="comprimento_cano" id="in_comprimento_cano" class="form-control" value="{{ produto.comprimento_cano or '' }}">
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
-      <label class="form-label small fw-semibold">Total (mm)</label>
+      <label class="form-label small fw-semibold">Comprimento total (mm)</label>
       <input type="number" step="0.1" name="comprimento_total" id="in_comprimento_total" class="form-control" value="{{ produto.comprimento_total or '' }}">
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
-      <label class="form-label small fw-semibold">Peso (g)</label>
-      <input type="number" step="0.1" name="peso" id="in_peso" class="form-control" value="{{ produto.peso or '' }}">
+      {# 
+        ATENÇÃO: Este campo exibe o peso balístico (informativo, em gramas).
+        O campo de peso para frete (em kg) fica na aba E-commerce.
+        NÃO usar name="peso" aqui para não conflitar com o campo de frete.
+      #}
+      <label class="form-label small fw-semibold">
+        Peso balístico (g)
+        <span class="text-muted" style="font-size:0.7rem; font-weight:400;">— informativo</span>
+      </label>
+      <input type="number" step="0.1" name="peso_balistico" id="in_peso_balistico" class="form-control"
+             value="{{ produto.peso_balistico or '' }}"
+             placeholder="Ex.: 650">
+      <div class="form-text" style="font-size:0.7rem;">
+        Peso da arma em gramas (ficha técnica). O peso para cálculo de frete (kg) fica na aba <strong>E-commerce</strong>.
+      </div>
     </div>
     <div class="col-12 col-sm-6 col-lg-3">
       <label class="form-label small fw-semibold">Acabamento</label>
@@ -81,7 +94,6 @@
   <p class="text-muted small mb-4">Adicione campos extras que aparecerão na tabela de especificações do site.</p>
 
   <div id="container-especificacoes">
-    {# FIX CRÍTICO: Verifica se é mapping (dicionário) antes de tentar o .items() #}
     {% if produto.especificacoes_tecnicas and produto.especificacoes_tecnicas is mapping %}
       {% for chave, valor in produto.especificacoes_tecnicas.items() %}
         <div class="row g-2 mb-2 especificacao-row">
@@ -99,7 +111,6 @@
         </div>
       {% endfor %}
     {% elif produto.especificacoes_tecnicas and produto.especificacoes_tecnicas is string %}
-      {# Caso o dado esteja como string no banco, o Admin carrega vazio mas evita o erro 500 #}
       <div class="alert alert-warning py-2 small">
         <i class="fas fa-exclamation-triangle me-2"></i> Atenção: Dados técnicos antigos detectados. Por favor, adicione-os novamente para converter ao novo formato.
       </div>

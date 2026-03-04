@@ -6,13 +6,9 @@
     <title>Admin Loja - M4 Tática</title>
     
     <link href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" rel="stylesheet">
-
     <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/all.min.css') }}">
-
     <link href="{{ url_for('static', filename='vendor/summernote/summernote-lite.min.css') }}" rel="stylesheet">
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -25,19 +21,18 @@
         .nav-link:hover, .nav-link.active { background: rgba(197, 160, 89, 0.2); color: var(--m4-gold); }
         .nav-link i { margin-right: 10px; }
         .navbar-brand-admin { font-weight: 800; color: var(--m4-gold); letter-spacing: 1px; }
-        
-        /* Ajuste fino para remover espaços fantasmas no topo */
         main { padding-top: 1.5rem !important; }
         .alert { margin-top: 0; margin-bottom: 1.5rem; }
-
         .note-editor { border-radius: 8px !important; overflow: hidden; background: white; border: 1px solid #dee2e6 !important; }
         .note-toolbar { background: #f8f9fa !important; border-bottom: 1px solid #eee !important; }
+        .nav-section-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; color: #555; padding: 0.5rem 0.75rem 0.25rem; font-weight: 700; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <div class="container-fluid p-0">
-        <div class="row g-0"> <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse p-3">
+        <div class="row g-0">
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse p-3">
                 <div class="navbar-brand-admin mb-4 px-2 fs-4">M4 ADMIN</div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
@@ -45,6 +40,8 @@
                             <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
                     </li>
+
+                    <li class="nav-section-label mt-2">Conteúdo</li>
                     <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'loja_admin.configuracoes' }}" href="{{ url_for('loja_admin.configuracoes') }}">
                             <i class="bi bi-shop"></i> Dados da Loja
@@ -60,20 +57,26 @@
                             <i class="bi bi-file-earmark-richtext"></i> Páginas
                         </a>
                     </li>
-
                     <li class="nav-item">
-                        <a class="nav-link {{ 'active' if 'auditoria_loja' in request.endpoint }}" 
-                           href="{{ url_for('loja_admin.auditoria_loja') }}">
+                        <a class="nav-link {{ 'active' if 'auditoria_loja' in request.endpoint }}" href="{{ url_for('loja_admin.auditoria_loja') }}">
                             <i class="bi bi-clipboard-check"></i> Auditoria de Dados
                         </a>
                     </li>
 
-                    <li class="nav-item mt-5 border-top pt-4">
+                    <li class="nav-section-label mt-3">Configurações</li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'loja_admin.integracoes' }}"
+                           href="{{ url_for('loja_admin.integracoes') }}">
+                            <i class="bi bi-plug"></i> Integrações
+                        </a>
+                    </li>
+
+                    <li class="nav-item mt-4 border-top pt-3">
                         <a class="nav-link text-white" href="{{ url_for('produtos.index') }}">
                             <i class="bi bi-box-seam"></i> Produtos Internos
                         </a>
                     </li>
-                    <li class="nav-item mt-2">
+                    <li class="nav-item mt-1">
                         <a class="nav-link text-danger" href="{{ url_for('loja.index') }}" target="_blank">
                             <i class="bi bi-box-arrow-up-right"></i> Ver Loja Online
                         </a>
@@ -92,7 +95,6 @@
                         {% endfor %}
                     {% endif %}
                 {% endwith %}
-                
                 <div class="mt-2">
                     {% block content %}{% endblock %}
                 </div>
@@ -101,7 +103,6 @@
     </div>
 
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
-    
     <script src="{{ url_for('static', filename='vendor/summernote/summernote-lite.min.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/summernote/summernote-pt-BR.min.js') }}"></script>
 

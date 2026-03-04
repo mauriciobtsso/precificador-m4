@@ -16,11 +16,9 @@ import os
 try:
     from flask_caching import Cache
     cache_enabled = True
-    # Criamos o objeto cache aqui para que ele possa ser importado no __init__.py
     cache = Cache() 
     
     def init_cache(app):
-        # A configuração de fato ocorre aqui
         app.config.update({
             'CACHE_TYPE': 'simple',
             'CACHE_DEFAULT_TIMEOUT': 300
@@ -42,26 +40,18 @@ except ImportError:
     print("Flask-Caching não instalado. Performance reduzida.")
 
 def limpar_caminho_r2(caminho):
-    """
-    Remove duplicidade do nome do bucket e barras extras no caminho.
-    Lida com URLs completas ou caminhos internos do banco.
-    """
     if not caminho:
         return ""
-    
     if caminho.startswith("http"):
         from urllib.parse import urlparse
         caminho = urlparse(caminho).path
-
     bucket_nome = "m4-clientes-docs"
     caminho_limpo = caminho.replace(f"/{bucket_nome}", "").replace(bucket_nome, "")
     caminho_limpo = caminho_limpo.replace("//", "/").lstrip("/")
-    
     if "%23" in caminho_limpo:
         caminho_limpo = caminho_limpo.split("%23")[0]
     if "#" in caminho_limpo:
         caminho_limpo = caminho_limpo.split("#")[0]
-        
     return caminho_limpo
 
 # ============================================================
@@ -69,15 +59,12 @@ def limpar_caminho_r2(caminho):
 # ============================================================
 @loja_bp.app_context_processor
 def inject_loja_data():
-    """Busca categorias PAI e configurações de forma otimizada com cache manual."""
-    # Tentativa de recuperar do cache para evitar processamento em toda requisição
     cache_key = 'loja_data_v3'
     cached_res = cache.get(cache_key)
     if cached_res:
         return cached_res
 
     try:
-        # subqueryload é muito mais performático para carregar listas de subcategorias
         categorias_menu = CategoriaProduto.query.filter_by(pai_id=None, exibir_no_menu=True)\
             .options(subqueryload(CategoriaProduto.subcategorias))\
             .order_by(CategoriaProduto.ordem_exibicao.asc()).all()
@@ -94,8 +81,6 @@ def inject_loja_data():
             loja['banner_despachante_link'] = None
 
         res = dict(categorias_menu=categorias_menu, loja=loja, paginas_rodape=paginas_rodape)
-        
-        # Salva no cache por 1 hora (3600s)
         cache.set(cache_key, res, timeout=3600)
         return res
 
@@ -107,7 +92,7 @@ def inject_loja_data():
 # VITRINE PRINCIPAL
 # ============================================================
 @loja_bp.route('/')
-@cache.cached(timeout=60, query_string=True, key_prefix='index_v6') # query_string=True resolve o travamento
+@cache.cached(timeout=60, query_string=True, key_prefix='index_v6')
 def index():
     termo_busca = request.args.get('q', '').strip()
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
@@ -117,7 +102,7 @@ def index():
         busca_like = f"%{termo_busca}%"
         query = Produto.query.filter_by(visivel_loja=True).filter(
             or_(Produto.nome.ilike(busca_like), Produto.codigo.ilike(busca_like))
-        ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria)) # Proteção na busca
+        ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))
         pagination = query.order_by(Produto.criado_em.desc()).paginate(page=request.args.get('page', 1, type=int), per_page=12)
         return render_template('loja/index.html', 
                                produtos=pagination.items, 
@@ -125,7 +110,7 @@ def index():
                                gerar_link=gerador_limpo, 
                                termo_busca=termo_busca)
 
-    # 2. LANÇAMENTOS E DESTAQUES (Joinedload para Marca E Categoria)
+    # 2. LANÇAMENTOS E DESTAQUES
     lancamentos = cache.get('lancamentos_home_v4')
     if lancamentos is None:
         lancamentos = Produto.query.filter_by(visivel_loja=True)\
@@ -140,33 +125,56 @@ def index():
             .order_by(func.random()).limit(4).all()
         cache.set('destaques_home_v4', destaques, timeout=300)
 
-# 3. PRATELEIRAS INTELIGENTES (v5 - Correção da abrangência de Munições)
-    prateleiras = cache.get('prateleiras_home_v5')
+    # 3. PRATELEIRAS INTELIGENTES (v8 - por subcategoria + fallback aleatório)
+    prateleiras = cache.get('prateleiras_home_v8')
     if prateleiras is None:
-        def get_smart_cat(termo):
-            # Busca a categoria pai pelo nome ou slug
-            cat = CategoriaProduto.query.filter(
+        def get_smart_cat(termo, limite=4):
+            cats = CategoriaProduto.query.filter(
                 or_(CategoriaProduto.slug.ilike(f"%{termo}%"), CategoriaProduto.nome.ilike(f"%{termo}%"))
-            ).first()
-            if not cat: return []
-            
-            # Pega o ID da categoria pai + IDs de TODAS as subcategorias filhas
-            ids_alvo = [cat.id]
-            if cat.subcategorias:
-                ids_alvo.extend([s.id for s in cat.subcategorias])
-            
-            # Busca produtos que estejam em qualquer um desses IDs
-            return Produto.query.filter(Produto.visivel_loja == True, Produto.categoria_id.in_(ids_alvo))\
-                          .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
-                          .order_by(Produto.criado_em.desc()).limit(4).all()
-        
+            ).all()
+            if not cats:
+                return []
+            ids_alvo = list(set(
+                [cat.id for cat in cats] + [s.id for cat in cats for s in cat.subcategorias]
+            ))
+            resultado = []
+            ids_ja_incluidos = set()
+            # PASSO 1: 1 produto aleatório por subcategoria (garante variedade)
+            for cat_id in ids_alvo:
+                prod = Produto.query.filter(
+                    Produto.visivel_loja == True,
+                    Produto.categoria_id == cat_id
+                ).options(
+                    joinedload(Produto.marca_rel),
+                    joinedload(Produto.categoria)
+                ).order_by(func.random()).first()
+                if prod and prod.id not in ids_ja_incluidos:
+                    resultado.append(prod)
+                    ids_ja_incluidos.add(prod.id)
+                if len(resultado) >= limite:
+                    break
+            # PASSO 2: se não atingiu o limite, completa com aleatórios do pool total
+            if len(resultado) < limite:
+                extras = Produto.query.filter(
+                    Produto.visivel_loja == True,
+                    Produto.categoria_id.in_(ids_alvo),
+                    Produto.id.notin_(ids_ja_incluidos)
+                ).options(
+                    joinedload(Produto.marca_rel),
+                    joinedload(Produto.categoria)
+                ).order_by(func.random()).limit(limite - len(resultado)).all()
+                resultado.extend(extras)
+            return resultado
+
         prateleiras = {
-            "Pistolas": get_smart_cat("pistola"),
-            "Rifles": get_smart_cat("rifle"),
-            "Munições": get_smart_cat("muni") # Agora pegará Cal. 12, 9mm, .380, etc.
+            "Pistolas":   get_smart_cat("pistola"),
+            "Revólveres": get_smart_cat("revolver"),
+            "Rifles":     get_smart_cat("rifle"),
+            "Munições":   get_smart_cat("muni"),
         }
-        cache.set('prateleiras_home_v5', prateleiras, timeout=300)
-    
+        cache.set('prateleiras_home_v8', prateleiras, timeout=300)
+
+    # 4. BANNERS E MARCAS ← também estavam desalinhados no seu arquivo
     banners = cache.get('banners_home')
     if banners is None:
         banners = Banner.query.filter_by(ativo=True).order_by(Banner.ordem.asc()).all()
@@ -192,13 +200,10 @@ def index():
 @loja_bp.route('/produto/<string:slug>')
 @cache.cached(timeout=300, make_cache_key=lambda *args, **kwargs: request.path)
 def detalhe_produto(slug):
-    # OTIMIZAÇÃO: Eager loading da marca e categoria para o produto principal
-    # Isso evita que o template dispare novas queries ao carregar a página
     produto = Produto.query.filter_by(slug=slug, visivel_loja=True)\
         .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
         .first_or_404()
     
-    # Chaves de cache específicas por produto
     precos_key = f'precos_v2_{produto.id}'
     opcoes_parcelamento_key = f'opcoes_parcelamento_v2_{produto.id}'
 
@@ -208,19 +213,13 @@ def detalhe_produto(slug):
     if precos is None or opcoes_parcelamento is None:
         precos = produto.calcular_precos()
         valor_base = float(precos.get('preco_a_vista') or 0.0)
-        
-        # OTIMIZAÇÃO: Busca taxas de parcelamento
         taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
         opcoes_parcelamento = parcelamento_logic.gerar_linhas_parcelas(valor_base, taxas)
-        
         cache.set(precos_key, precos, timeout=3600)
         cache.set(opcoes_parcelamento_key, opcoes_parcelamento, timeout=3600)
     
-    # Busca rápida da parcela de 12x para exibição em destaque
     parcela_12x = next((item for item in opcoes_parcelamento if item["rotulo"] == "12x"), None)
     
-    # 3. PRODUTOS RELACIONADOS (Otimizado com v10 para garantir limpeza de cache)
-    # A lentidão relatada ocorria aqui; agora usamos joinedload e filtros eficientes
     relacionados_key = f'relacionados_v10_{produto.categoria_id}' 
     relacionados = cache.get(relacionados_key)
     
@@ -235,7 +234,6 @@ def detalhe_produto(slug):
         ).limit(4).all()
         cache.set(relacionados_key, relacionados, timeout=3600)
 
-    # Lambda para gerar links do R2 limpos
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
     return render_template('loja/produto_detalhe.html', 
@@ -253,7 +251,6 @@ def detalhe_produto(slug):
 @loja_bp.route('/categoria/<string:slug_categoria>')
 @cache.cached(timeout=300, make_cache_key=lambda *args, **kwargs: request.full_path)
 def categoria(slug_categoria):
-    # 1. Busca categoria pai e já traz subcategorias via subqueryload (mais rápido)
     categoria_obj = CategoriaProduto.query.filter_by(slug=slug_categoria)\
         .options(subqueryload(CategoriaProduto.subcategorias)).first_or_404()
     
@@ -265,7 +262,6 @@ def categoria(slug_categoria):
     
     cat_ids = [categoria_obj.id] + [sub.id for sub in categoria_obj.subcategorias]
     
-    # 2. Query de produtos principal
     query = Produto.query.filter(Produto.categoria_id.in_(cat_ids), Produto.visivel_loja == True)\
                          .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))
 
@@ -273,7 +269,6 @@ def categoria(slug_categoria):
     if calibre_id: query = query.filter(Produto.calibre_id == calibre_id)
     if preco_max: query = query.filter(Produto.preco_a_vista <= preco_max)
 
-    # Ordenação
     if sort == 'menor_preco':
         query = query.order_by(Produto.preco_a_vista.asc())
     elif sort == 'maior_preco':
@@ -286,10 +281,8 @@ def categoria(slug_categoria):
     except Exception:
         abort(404)
 
-    # 3. FILTROS LATERAIS (Otimização para evitar Timeout)
     from app.produtos.configs.models import MarcaProduto, CalibreProduto
     
-    # Cache manual dos filtros por categoria para não reprocessar na paginação
     marcas_vivas_key = f'marcas_sidebar_{categoria_obj.id}'
     calibres_vivas_key = f'calibres_sidebar_{categoria_obj.id}'
     
@@ -297,7 +290,6 @@ def categoria(slug_categoria):
     calibres_vivos = cache.get(calibres_vivas_key)
 
     if not marcas_vivas:
-        # O uso de any() é infinitamente mais rápido que join().distinct() para filtros
         marcas_vivas = MarcaProduto.query.filter(
             MarcaProduto.produtos.any(Produto.categoria_id.in_(cat_ids))
         ).options(subqueryload(MarcaProduto.produtos)).all()
@@ -325,7 +317,7 @@ def exibir_pagina(slug):
     return render_template('loja/pagina_institucional.html', pagina=pagina)
 
 @loja_bp.route('/fale-conosco')
-@cache.cached(timeout=3600) # Adicione isso!
+@cache.cached(timeout=3600)
 def fale_conosco():
     return render_template('loja/fale_conosco.html', title="Fale Conosco - M4 Tática")
 
@@ -360,20 +352,16 @@ def robots_txt():
 
 @loja_bp.route('/sistema/otimizar-banco-m4')
 def otimizar_banco():
-    # Apenas para segurança, você pode verificar uma senha ou IP aqui
     from flask import current_app
     from sqlalchemy import text
-    from app import db # Certifique-se de que o 'db' está acessível
+    from app import db
 
     comandos = [
-        # Índices na tabela de PRODUTOS (nome da tabela: produtos)
         "CREATE INDEX IF NOT EXISTS idx_produto_categoria ON produtos (categoria_id);",
         "CREATE INDEX IF NOT EXISTS idx_produto_marca ON produtos (marca_id);",
         "CREATE INDEX IF NOT EXISTS idx_produto_calibre ON produtos (calibre_id);",
         "CREATE INDEX IF NOT EXISTS idx_produto_slug ON produtos (slug);",
         "CREATE INDEX IF NOT EXISTS idx_produto_preco ON produtos (preco_a_vista);",
-
-        # Índice na tabela de CATEGORIAS (O nome correto deve ser categoria_produto)
         "CREATE INDEX IF NOT EXISTS idx_categoria_slug ON categoria_produto (slug);"
     ]
 
@@ -385,3 +373,19 @@ def otimizar_banco():
     except Exception as e:
         db.session.rollback()
         return f"❌ Erro na operação: {str(e)}"
+
+@loja_bp.route('/sistema/limpar-cache')
+def limpar_cache():
+    """Rota utilitária para forçar limpeza do cache das prateleiras."""
+    try:
+        cache.delete('prateleiras_home_v6')
+        cache.delete('prateleiras_home_v7')
+        cache.delete('prateleiras_home_v8')
+        cache.delete('lancamentos_home_v4')
+        cache.delete('destaques_home_v4')
+        cache.delete('banners_home')
+        cache.delete('marcas_home')
+        cache.delete('loja_data_v3')
+        return "✅ Cache limpo com sucesso! As prateleiras serão reconstruídas no próximo acesso."
+    except Exception as e:
+        return f"❌ Erro ao limpar cache: {str(e)}"

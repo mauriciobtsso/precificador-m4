@@ -1,6 +1,5 @@
 {% extends 'loja/base.html' %}
 
-{# 1. MOVER PARA O TOPO: Calculamos os preços antes de tudo para as Meta Tags funcionarem #}
 {% set precos = produto.calcular_precos() %}
 
 {% block title %}
@@ -9,19 +8,14 @@
 
 {% block opengraph %}
     <meta property="og:title" content="{{ produto.nome_comercial if produto.nome_comercial else produto.nome }} - M4 Tática">
-    
     {% set desc_calibre = " Calibre " ~ produto.calibre_rel.nome ~ "." if produto.calibre_rel else "" %}
     <meta property="og:description" content="Confira {{ produto.nome_comercial if produto.nome_comercial else produto.nome }} na M4 Tática.{{ desc_calibre }} Garanta o seu com segurança e qualidade.">
-    
     <meta property="og:url" content="{{ request.url }}">
-    
     {% set imagem_principal = produto.foto_url %}
     {% if imagem_principal %}
         <meta property="og:image" content="{{ gerar_link(imagem_principal) }}">
     {% endif %}
-    
     <meta property="og:type" content="product">
-    
     {% if precos and precos.preco_a_vista %}
         <meta property="product:price:amount" content="{{ "{:.2f}".format(precos.preco_a_vista) }}">
         <meta property="product:price:currency" content="BRL">
@@ -30,10 +24,7 @@
 
 {% block extra_css %}
 <style>
-    /* Estilos Premium M4 Tática - Foco em Performance Visual */
     .detail-container { padding-top: 2rem; padding-bottom: 4rem; }
-    
-    /* Container de Imagem com Zoom Suave */
     .img-main-container {
         background-color: #fff;
         border: 1px solid #eee;
@@ -46,141 +37,47 @@
         top: 100px;
         overflow: hidden;
     }
-    .img-main-container img { 
-        max-width: 100%; 
-        max-height: 100%; 
-        object-fit: contain; 
-        transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
-    }
+    .img-main-container img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); }
     .img-main-container:hover img { transform: scale(1.1); }
-
-    /* Badges e Identidade Black & Gold */
     .badge-controlled-premium {
-        background-color: #000;
-        color: #fff;
-        border-left: 4px solid var(--m4-gold);
-        padding: 8px 15px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        margin-bottom: 1.5rem;
-        display: inline-block;
+        background-color: #000; color: #fff; border-left: 4px solid var(--m4-gold);
+        padding: 8px 15px; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
+        text-transform: uppercase; margin-bottom: 1.5rem; display: inline-block;
     }
-
     .price-box-premium {
-        background-color: #fdfdfd;
-        padding: 2.5rem;
-        border: 1px solid #f0f0f0;
-        margin-bottom: 2rem;
-        border-radius: 4px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.02);
+        background-color: #fdfdfd; padding: 2.5rem; border: 1px solid #f0f0f0;
+        margin-bottom: 2rem; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.02);
     }
-
-    /* Estilização da Ficha Técnica */
     .specs-table { width: 100%; margin-bottom: 2rem; }
-    .specs-label {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        color: #999;
-        font-weight: 700;
-        letter-spacing: 0.8px;
-        width: 40%;
-        padding: 12px 0;
-        border-bottom: 1px solid #eee;
-    }
-    .specs-value { 
-        font-weight: 600; 
-        color: #111; 
-        font-size: 0.9rem; 
-        padding: 12px 0;
-        border-bottom: 1px solid #eee;
-    }
-
-    .section-title-premium {
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        border-bottom: 4px solid var(--m4-gold);
-        display: inline-block;
-        padding-bottom: 5px;
-        margin-bottom: 2.5rem;
-    }
-
-    .btn-buy-now {
-        padding: 1.2rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        border-radius: 4px;
-        transition: all 0.3s ease;
-    }
-
-    /* Estilo do Botão de Carrinho (Lógica AJAX) */
-    .btn-cart-m4 {
-        background-color: var(--m4-dark);
-        color: var(--m4-gold);
-        border: 2px solid var(--m4-gold);
-    }
-    .btn-cart-m4:hover {
-        background-color: var(--m4-gold);
-        color: #000;
-        transform: translateY(-3px);
-    }
-
-    .btn-whatsapp-buy {
-        background-color: #25d366;
-        border-color: #25d366;
-        color: #fff;
-    }
-    .btn-whatsapp-buy:hover {
-        background-color: #1ebe57;
-        border-color: #1ebe57;
-        color: #fff;
-        transform: translateY(-3px);
-    }
-
-    /* Formatação para Descrição */
+    .specs-label { font-size: 0.7rem; text-transform: uppercase; color: #999; font-weight: 700; letter-spacing: 0.8px; width: 40%; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .specs-value { font-weight: 600; color: #111; font-size: 0.9rem; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .section-title-premium { font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 4px solid var(--m4-gold); display: inline-block; padding-bottom: 5px; margin-bottom: 2.5rem; }
+    .btn-buy-now { padding: 1.2rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; border-radius: 4px; transition: all 0.3s ease; }
+    .btn-cart-m4 { background-color: var(--m4-dark); color: var(--m4-gold); border: 2px solid var(--m4-gold); }
+    .btn-cart-m4:hover { background-color: var(--m4-gold); color: #000; transform: translateY(-3px); }
+    .btn-whatsapp-buy { background-color: #25d366; border-color: #25d366; color: #fff; }
+    .btn-whatsapp-buy:hover { background-color: #1ebe57; border-color: #1ebe57; color: #fff; transform: translateY(-3px); }
     .description-rich-text { font-size: 1.05rem; line-height: 1.8; color: #444; }
-    .description-rich-text h2, .description-rich-text h3 { 
-        font-weight: 800; text-transform: uppercase; margin-top: 2rem; margin-bottom: 1rem; color: #000;
-    }
+    .description-rich-text h2, .description-rich-text h3 { font-weight: 800; text-transform: uppercase; margin-top: 2rem; margin-bottom: 1rem; color: #000; }
     .description-rich-text ul { padding-left: 1.2rem; margin-bottom: 1.5rem; }
     .description-rich-text table { width: 100% !important; border: 1px solid #eee; margin: 1.5rem 0; }
     .description-rich-text td { padding: 10px; border: 1px solid #eee; }
-
-    /* Estilos Gerais do Modal */
     .modal-content-m4 { border: none; border-radius: 0; display: flex; flex-direction: column; }
     .modal-header-m4 { background-color: #000; color: white; border-bottom: 2px solid var(--m4-gold); flex-shrink: 0; }
     .table-parcelas thead th { background-color: #f8f9fa; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
     .row-pix { background-color: #f1fcf1 !important; }
 
-    /* AJUSTES MOBILE EXCLUSIVOS */
+    /* Bloco de frete */
+    .frete-box { border: 1px solid #e5e5e5; border-radius: 6px; padding: 1rem 1.2rem; background: #fafafa; margin-top: 1.5rem; }
+    .frete-box h6 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; color: #333; }
+    .frete-resultado-item { padding: 8px 0; border-bottom: 1px solid #eee; }
+    .frete-resultado-item:last-child { border-bottom: none; }
+
     @media (max-width: 991px) {
         .img-main-container { height: 400px; position: static; margin-bottom: 2rem; }
-        
-        /* Força o modal a não ocupar a tela toda */
-        .modal-dialog.modal-dialog-centered {
-            margin: 1.5rem !important;
-            align-items: center !important;
-            min-height: auto !important;
-            max-height: 80vh !important;
-        }
-
-        .modal-content-m4 {
-            max-height: 80vh !important;
-            border-radius: 8px !important;
-            overflow: hidden !important;
-        }
-
-        /* Garante o scroll apenas no corpo do modal */
-        .modal-body {
-            overflow-y: auto !important;
-            padding: 0 !important;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        /* Tabela compacta para mobile */
+        .modal-dialog.modal-dialog-centered { margin: 1.5rem !important; align-items: center !important; min-height: auto !important; max-height: 80vh !important; }
+        .modal-content-m4 { max-height: 80vh !important; border-radius: 8px !important; overflow: hidden !important; }
+        .modal-body { overflow-y: auto !important; padding: 0 !important; -webkit-overflow-scrolling: touch; }
         .table-parcelas { font-size: 12px; }
         .table-parcelas td, .table-parcelas th { padding: 8px !important; }
     }
@@ -189,25 +86,19 @@
 
 {% block content %}
 <div class="container detail-container">
-    {# 1. NAVEGAÇÃO #}
     <nav aria-label="breadcrumb" class="mb-5">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a href="{{ url_for('loja.index') }}" class="text-decoration-none text-muted">Início</a></li>
             {% if produto.categoria %}
             <li class="breadcrumb-item">
-                <a href="{{ url_for('loja.categoria', slug_categoria=produto.categoria.slug) }}" class="text-decoration-none text-muted">
-                    {{ produto.categoria.nome }}
-                </a>
+                <a href="{{ url_for('loja.categoria', slug_categoria=produto.categoria.slug) }}" class="text-decoration-none text-muted">{{ produto.categoria.nome }}</a>
             </li>
             {% endif %}
-            <li class="breadcrumb-item active text-dark fw-bold">
-                {{ produto.nome_comercial if produto.nome_comercial else produto.nome }}
-            </li>
+            <li class="breadcrumb-item active text-dark fw-bold">{{ produto.nome_comercial if produto.nome_comercial else produto.nome }}</li>
         </ol>
     </nav>
 
     <div class="row g-5">
-        {# 2. COLUNA DA ESQUERDA: IMAGEM #}
         <div class="col-lg-7">
             <div class="img-main-container rounded shadow-sm">
                 {% set imagem = produto.foto_url or produto.imagem_principal %}
@@ -222,7 +113,6 @@
             </div>
         </div>
 
-        {# 3. COLUNA DA DIREITA: COMPRA #}
         <div class="col-lg-5">
             {% if produto.requer_documentacao %}
             <div class="badge-controlled-premium">
@@ -253,11 +143,9 @@
                 {% else %}
                     <h2 class="fw-bold text-dark mb-2" style="font-size: 2.8rem; font-weight: 900;">R$ {{ "{:,.2f}".format(precos.preco_a_vista).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h2>
                 {% endif %}
-                
                 <div class="text-success fw-bold d-flex align-items-center mb-4">
                     <i class="bi bi-lightning-fill me-2"></i> À VISTA NO PIX OU DINHEIRO
                 </div>
-
                 {% if parcela_12x %}
                 <div class="mt-4 pt-3 border-top">
                     <div class="d-flex align-items-center text-dark">
@@ -267,8 +155,7 @@
                             <span class="fw-bold h5 mb-0">Até {{ parcela_12x.rotulo }} de R$ {{ "{:,.2f}".format(parcela_12x.parcela).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span>
                         </div>
                     </div>
-                    <button class="btn btn-link btn-sm p-0 mt-3 text-decoration-none text-gold fw-bold" 
-                             data-bs-toggle="modal" data-bs-target="#modalParcelas">
+                    <button class="btn btn-link btn-sm p-0 mt-3 text-decoration-none text-gold fw-bold" data-bs-toggle="modal" data-bs-target="#modalParcelas">
                         <i class="bi bi-plus-circle me-1"></i> Ver todas as formas de parcelamento
                     </button>
                 </div>
@@ -276,17 +163,25 @@
             </div>
 
             <div class="d-grid gap-3">
-                {# BOTÃO DE COMPRA AJAX (ADICIONADO) #}
                 <button type="button" class="btn btn-cart-m4 btn-buy-now shadow-sm" onclick="adicionarAoCarrinho({{ produto.id }})">
                     <i class="bi bi-cart-plus-fill me-2"></i> ADICIONAR AO CARRINHO
                 </button>
-
-                {# BOTÃO DE WHATSAPP (SUPORTE) #}
-                <a href="https://wa.me/558630255885?text=Olá M4 Tática! Tenho interesse no produto: {{ produto.nome_comercial if produto.nome_comercial else produto.nome }} (Ref: {{ produto.codigo }})" 
+                <a href="https://wa.me/558630255885?text=Olá M4 Tática! Tenho interesse no produto: {{ produto.nome_comercial if produto.nome_comercial else produto.nome }} (Ref: {{ produto.codigo }})"
                    target="_blank" class="btn btn-whatsapp-buy btn-buy-now shadow-sm">
                     <i class="bi bi-whatsapp me-2"></i> TIRAR DÚVIDAS VIA WHATSAPP
                 </a>
-                
+
+                {# ===== SIMULAÇÃO DE FRETE ===== #}
+                <div class="frete-box">
+                    <h6><i class="bi bi-truck me-2"></i>Simular Frete</h6>
+                    <div class="input-group input-group-sm mt-2">
+                        <input type="text" id="cep_detalhe" class="form-control" placeholder="00000-000" maxlength="9" inputmode="numeric">
+                        <button class="btn btn-dark fw-bold px-3" type="button" id="btnSimularFrete">Calcular</button>
+                    </div>
+                    <div id="resultado_frete_detalhe" class="mt-2"></div>
+                </div>
+                {# ============================= #}
+
                 {% if produto.requer_documentacao %}
                 <div class="alert alert-light border small text-muted mt-2" role="alert">
                     <i class="bi bi-info-circle-fill text-dark me-2"></i>
@@ -297,7 +192,6 @@
         </div>
     </div>
 
-    {# 4. SEÇÃO TÉCNICA E DESCRIÇÃO LONGA #}
     <div class="row mt-5 pt-5 border-top">
         <div class="col-lg-5">
             <h4 class="section-title-premium">Ficha Técnica</h4>
@@ -316,7 +210,6 @@
                         {% if produto.funcionamento_rel %}
                         <tr><td class="specs-label">Funcionamento</td><td class="specs-value">{{ produto.funcionamento_rel.nome }}</td></tr>
                         {% endif %}
-                        
                         {% if produto.especificacoes_tecnicas is mapping %}
                             {% for chave, valor in produto.especificacoes_tecnicas.items() %}
                                 {% if valor %}
@@ -342,7 +235,6 @@
         </div>
     </div>
 
-    {# 5. RELACIONADOS #}
     {% if relacionados %}
     <div class="row mt-5 pt-5">
         <div class="col-12">
@@ -361,7 +253,6 @@
     {% endif %}
 </div>
 
-{# 6. MODAL DE PARCELAMENTO #}
 <div class="modal fade" id="modalParcelas" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content modal-content-m4 shadow-lg">
@@ -403,4 +294,62 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    // Máscara CEP
+    const cepInput = document.getElementById('cep_detalhe');
+    if (cepInput) {
+        cepInput.addEventListener('input', function () {
+            let v = this.value.replace(/\D/g, '').slice(0, 8);
+            if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
+            this.value = v;
+        });
+        // Permitir Enter
+        cepInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') document.getElementById('btnSimularFrete')?.click();
+        });
+    }
+
+    document.getElementById('btnSimularFrete')?.addEventListener('click', async function () {
+        const cep = (cepInput?.value || '').replace(/\D/g, '');
+        const div = document.getElementById('resultado_frete_detalhe');
+
+        if (cep.length !== 8) {
+            div.innerHTML = '<p class="text-warning small mb-0 mt-1"><i class="bi bi-exclamation-circle me-1"></i>CEP inválido.</p>';
+            return;
+        }
+
+        div.innerHTML = '<p class="text-muted small mb-0 mt-1"><i class="bi bi-hourglass-split me-1"></i>Calculando...</p>';
+
+        try {
+            const resp = await fetch('/carrinho/api/frete/calcular', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cep: cep })
+            });
+            const data = await resp.json();
+
+            if (data.success && data.opcoes.length > 0) {
+                div.innerHTML = data.opcoes.slice(0, 4).map(op => `
+                    <div class="frete-resultado-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold small">${op.company.name}</span>
+                            <span class="text-muted small ms-1">(${op.name})</span>
+                            <span class="d-block text-muted" style="font-size:11px">Prazo: até ${op.delivery_range.max} dias úteis</span>
+                        </div>
+                        <span class="fw-bold text-success small">R$ ${parseFloat(op.price).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                `).join('') + '<p class="text-muted mt-2 mb-0" style="font-size:10px">* Valor final calculado no carrinho com todos os itens.</p>';
+            } else {
+                div.innerHTML = '<p class="text-muted small mb-0 mt-1">Frete não disponível para este CEP.</p>';
+            }
+        } catch (e) {
+            div.innerHTML = '<p class="text-danger small mb-0 mt-1">Erro ao calcular. Tente novamente.</p>';
+        }
+    });
+})();
+</script>
 {% endblock %}

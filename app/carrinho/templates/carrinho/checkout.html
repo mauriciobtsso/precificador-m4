@@ -5,6 +5,8 @@
     <form id="formCheckout" class="needs-validation" novalidate>
         <div class="row">
             <div class="col-lg-8">
+
+                {# ── 1. IDENTIFICAÇÃO ── #}
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-header bg-white py-3">
                         <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-user me-2"></i>1. Identificação</h5>
@@ -31,6 +33,7 @@
                     </div>
                 </div>
 
+                {# ── 2. ENTREGA ── #}
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-header bg-white py-3">
                         <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-truck me-2"></i>2. Entrega</h5>
@@ -40,7 +43,8 @@
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">CEP</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control val-mask-cep" id="cep_checkout" name="cep" required>
+                                    <input type="text" class="form-control val-mask-cep" id="cep_checkout" name="cep" required
+                                           value="{{ frete_sessao.cep if frete_sessao.cep else '' }}">
                                     <button class="btn btn-dark" type="button" id="btnBuscarCEP">Buscar</button>
                                 </div>
                             </div>
@@ -65,15 +69,40 @@
                                 <input type="text" class="form-control" id="uf" name="uf" required readonly>
                             </div>
                         </div>
-                        
-                        <div id="area_frete" class="mt-4 d-none">
+
+                        {# Frete já escolhido no carrinho (pré-selecionado) #}
+                        {% if frete_sessao.nome %}
+                        <div class="mt-4 p-3 border rounded bg-light d-flex justify-content-between align-items-center" id="frete_pre_selecionado">
+                            <div>
+                                <span class="fw-bold small"><i class="fas fa-truck me-2 text-success"></i>{{ frete_sessao.nome }}</span>
+                                {% if frete_sessao.prazo %}
+                                <span class="d-block text-muted small">{{ frete_sessao.prazo }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold text-success">R$ {{ "{:.2f}".format(frete_sessao.valor).replace('.', ',') }}</span>
+                                <button type="button" class="btn btn-link btn-sm text-muted p-0 ms-2" onclick="mostrarOutraOpcaoFrete()">
+                                    Trocar
+                                </button>
+                            </div>
+                        </div>
+                        {# Input hidden para enviar o frete escolhido no form #}
+                        <input type="hidden" name="valor_frete" id="input_valor_frete" value="{{ frete_sessao.valor if frete_sessao.valor else 0 }}">
+                        <input type="hidden" name="nome_frete" id="input_nome_frete" value="{{ frete_sessao.nome if frete_sessao.nome else '' }}">
+                        {% else %}
+                        <input type="hidden" name="valor_frete" id="input_valor_frete" value="0">
+                        <input type="hidden" name="nome_frete" id="input_nome_frete" value="">
+                        {% endif %}
+
+                        {# Lista de opções (aparece ao buscar CEP ou ao clicar "Trocar") #}
+                        <div id="area_frete" class="mt-4 {% if frete_sessao.nome %}d-none{% else %}d-none{% endif %}">
                             <label class="form-label fw-bold"><i class="fas fa-box-open me-2"></i>Escolha o Frete:</label>
-                            <div class="list-group" id="lista_fretes">
-                                </div>
+                            <div class="list-group" id="lista_fretes"></div>
                         </div>
                     </div>
                 </div>
 
+                {# ── 3. PAGAMENTO ── #}
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-header bg-white py-3">
                         <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-credit-card me-2"></i>3. Pagamento</h5>
@@ -91,14 +120,13 @@
                                 </button>
                             </li>
                         </ul>
-                        
+
                         <div class="tab-content mt-4" id="pills-tabContent">
                             <div class="tab-pane fade show active text-center py-3" id="pay-pix">
                                 <div class="mb-3"><i class="fas fa-bolt text-success fa-2x"></i></div>
                                 <h6>Pagamento via PIX com 5% de Desconto</h6>
                                 <p class="text-muted small">O QR Code será gerado após confirmar o pedido.</p>
                             </div>
-                            
                             <div class="tab-pane fade" id="pay-card">
                                 <div class="row g-3">
                                     <div class="col-12">
@@ -120,8 +148,8 @@
                                     <div class="col-12">
                                         <label class="form-label small fw-bold">Parcelas</label>
                                         <select class="form-select" id="installments" name="parcelas">
-                                            <option value="1">1x de R$ {{ "{:,.2f}".format(carrinho.total_avista) }} sem juros</option>
-                                            </select>
+                                            <option value="1">1x de R$ {{ "{:,.2f}".format(carrinho.total_avista).replace(',', 'X').replace('.', ',').replace('X', '.') }} sem juros</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -130,30 +158,43 @@
                 </div>
             </div>
 
+            {# ── RESUMO LATERAL ── #}
             <div class="col-lg-4">
                 <div class="card shadow-sm border-0 bg-dark text-white sticky-top" style="top: 20px;">
                     <div class="card-body p-4">
                         <h5 class="fw-bold mb-4">Resumo Arsenal</h5>
+
                         {% for item in carrinho.items %}
                         <div class="d-flex justify-content-between mb-2 small opacity-75">
-                            <span>{{ item.quantidade }}x {{ item.produto.nome }}</span>
-                            <span>R$ {{ "{:,.2f}".format(item.subtotal_avista) }}</span>
+                            <span>{{ item.quantidade }}x {{ item.produto.nome_comercial or item.produto.nome }}</span>
+                            <span>R$ {{ "{:,.2f}".format(item.subtotal_avista).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span>
                         </div>
                         {% endfor %}
+
                         <hr class="opacity-25">
+
                         <div class="d-flex justify-content-between mb-2">
                             <span>Subtotal:</span>
-                            <span>R$ {{ "{:,.2f}".format(carrinho.total_avista) }}</span>
+                            <span>R$ {{ "{:,.2f}".format(carrinho.total_avista).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Frete:</span>
-                            <span id="valor_frete_display" class="text-success">R$ 0,00</span>
+                            <span id="valor_frete_display" class="text-success">
+                                {% if frete_sessao.valor %}
+                                    R$ {{ "{:.2f}".format(frete_sessao.valor).replace('.', ',') }}
+                                {% else %}
+                                    R$ 0,00
+                                {% endif %}
+                            </span>
                         </div>
-                        <div class="d-flex justify-content-between mb-4 fs-4 fw-bold text-orange">
+                        <div class="d-flex justify-content-between mb-4 fs-4 fw-bold text-warning">
                             <span>Total:</span>
-                            <span id="total_final_display">R$ {{ "{:,.2f}".format(carrinho.total_avista) }}</span>
+                            <span id="total_final_display">
+                                {% set total_c_frete = carrinho.total_avista + (frete_sessao.valor if frete_sessao.valor else 0) %}
+                                R$ {{ "{:,.2f}".format(total_c_frete).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                            </span>
                         </div>
-                        
+
                         <button type="submit" class="btn btn-orange btn-lg w-100 fw-bold py-3 shadow-sm" id="btnFinalizar">
                             FINALIZAR COMPRA
                         </button>
@@ -165,79 +206,116 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
 <script src="https://unpkg.com/imask"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // 1. MÁSCARAS
-        IMask(document.querySelector('.val-mask-doc'), { mask: [{mask: '000.000.000-00'}, {mask: '00.000.000/0000-00'}] });
-        IMask(document.querySelector('.val-mask-phone'), { mask: '(00) 00000-0000' });
-        IMask(document.querySelector('.val-mask-cep'), { mask: '00000-000' });
-        IMask(document.getElementById('card_expiry'), { mask: '00/00' });
-        IMask(document.getElementById('card_number'), { mask: '0000 0000 0000 0000' });
+const SUBTOTAL = {{ carrinho.total_avista }};
+let freteAtual = {{ frete_sessao.valor if frete_sessao.valor else 0 }};
 
-        // 2. BUSCA CEP (ViaCEP)
-        document.getElementById('btnBuscarCEP').addEventListener('click', async () => {
-            const cep = document.getElementById('cep_checkout').value.replace(/\D/g, '');
-            if (cep.length !== 8) return;
+document.addEventListener('DOMContentLoaded', () => {
+    // Máscaras
+    const docEl = document.querySelector('.val-mask-doc');
+    const phoneEl = document.querySelector('.val-mask-phone');
+    const cepEl = document.querySelector('.val-mask-cep');
 
+    if (docEl)   IMask(docEl,   { mask: [{ mask: '000.000.000-00' }, { mask: '00.000.000/0000-00' }] });
+    if (phoneEl) IMask(phoneEl, { mask: '(00) 00000-0000' });
+    if (cepEl)   IMask(cepEl,   { mask: '00000-000' });
+
+    const cardExpiry = document.getElementById('card_expiry');
+    const cardNumber = document.getElementById('card_number');
+    if (cardExpiry) IMask(cardExpiry, { mask: '00/00' });
+    if (cardNumber) IMask(cardNumber, { mask: '0000 0000 0000 0000' });
+
+    // Busca CEP
+    document.getElementById('btnBuscarCEP')?.addEventListener('click', async () => {
+        const cep = document.getElementById('cep_checkout').value.replace(/\D/g, '');
+        if (cep.length !== 8) return;
+
+        try {
             const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
             const data = await resp.json();
-            
-            if(!data.erro) {
-                document.getElementById('rua').value = data.logradouro;
-                document.getElementById('bairro').value = data.bairro;
-                document.getElementById('cidade').value = data.localidade;
-                document.getElementById('uf').value = data.uf;
-                
-                // Dispara cálculo de frete (Kangu/Melhor Envio)
+            if (!data.erro) {
+                document.getElementById('rua').value    = data.logradouro || '';
+                document.getElementById('bairro').value = data.bairro || '';
+                document.getElementById('cidade').value = data.localidade || '';
+                document.getElementById('uf').value     = data.uf || '';
                 calcularFrete(cep);
             }
-        });
+        } catch (e) { console.error('Erro ViaCEP:', e); }
     });
+});
+
+// Mostrar opções ao clicar "Trocar"
+function mostrarOutraOpcaoFrete() {
+    const cep = document.getElementById('cep_checkout').value.replace(/\D/g, '');
+    document.getElementById('frete_pre_selecionado')?.classList.add('d-none');
+    if (cep.length === 8) {
+        calcularFrete(cep);
+    } else {
+        document.getElementById('area_frete').classList.remove('d-none');
+        document.getElementById('lista_fretes').innerHTML =
+            '<div class="text-muted small p-2">Digite o CEP acima e clique em Buscar para ver as opções.</div>';
+    }
+}
 
 async function calcularFrete(cep) {
-    const areaFrete = document.getElementById('area_frete');
+    const areaFrete   = document.getElementById('area_frete');
     const listaFretes = document.getElementById('lista_fretes');
-    
-    listaFretes.innerHTML = '<div class="text-center p-3"><i class="fas fa-spinner fa-spin me-2"></i>Cotando melhores preços...</div>';
+
+    listaFretes.innerHTML = '<div class="text-center p-3 text-muted small"><i class="fas fa-spinner fa-spin me-2"></i>Cotando melhores preços...</div>';
     areaFrete.classList.remove('d-none');
 
     try {
         const response = await fetch('/carrinho/api/frete/calcular', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ cep: cep })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cep })
         });
-        
         const data = await response.json();
-        
-        if (data.success) {
-            listaFretes.innerHTML = '';
-            data.opcoes.forEach(op => {
-                listaFretes.innerHTML += `
-                    <label class="list-group-item d-flex justify-content-between align-items-center list-group-item-action">
-                        <div>
-                            <input class="form-check-input me-2" type="radio" name="frete_valor" 
-                                   value="${op.price}" data-nome="${op.name}" onchange="atualizarTotal(this.value)">
-                            <strong>${op.company.name}</strong> <span class="small">(${op.name})</span>
-                            <div class="small text-muted">Prazo: ${op.delivery_range.max} dias úteis</div>
-                        </div>
-                        <span class="badge bg-success rounded-pill">R$ ${op.price}</span>
-                    </label>
-                `;
-            });
+
+        if (data.success && data.opcoes.length > 0) {
+            listaFretes.innerHTML = data.opcoes.map(op => `
+                <label class="list-group-item d-flex justify-content-between align-items-center list-group-item-action">
+                    <div>
+                        <input class="form-check-input me-2" type="radio" name="frete_radio"
+                               value="${op.price}"
+                               data-nome="${op.company.name} – ${op.name}"
+                               onchange="atualizarFrete(this)">
+                        <strong>${op.company.name}</strong>
+                        <span class="small text-muted">(${op.name})</span>
+                        <div class="small text-muted">Prazo: ${op.delivery_range.max} dias úteis</div>
+                    </div>
+                    <span class="badge bg-success rounded-pill">R$ ${parseFloat(op.price).toFixed(2).replace('.', ',')}</span>
+                </label>
+            `).join('');
+        } else {
+            listaFretes.innerHTML = '<div class="alert alert-secondary small p-2">Frete indisponível para este CEP.</div>';
         }
-    } catch (error) {
-        listaFretes.innerHTML = '<div class="alert alert-danger">Erro ao calcular frete. Tente novamente.</div>';
+    } catch {
+        listaFretes.innerHTML = '<div class="alert alert-danger small p-2">Erro ao calcular frete.</div>';
     }
 }
 
-function atualizarTotal(valorFrete) {
-    const subtotal = parseFloat("{{ carrinho.total_final }}");
-    const total = subtotal + parseFloat(valorFrete);
-    document.getElementById('valor_frete_display').innerText = `R$ ${parseFloat(valorFrete).toFixed(2)}`;
-    document.getElementById('total_final_display').innerText = `R$ ${total.toFixed(2)}`;
+function atualizarFrete(radio) {
+    const valor = parseFloat(radio.value);
+    const nome  = radio.dataset.nome;
+    freteAtual  = valor;
+
+    document.getElementById('input_valor_frete').value = valor;
+    document.getElementById('input_nome_frete').value  = nome;
+
+    const total = SUBTOTAL + valor;
+    document.getElementById('valor_frete_display').textContent = 'R$ ' + valor.toFixed(2).replace('.', ',');
+    document.getElementById('total_final_display').textContent =
+        'R$ ' + total.toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+
+    // Salva na sessão também
+    fetch('/carrinho/api/frete/salvar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ valor, nome, prazo: '', cep: document.getElementById('cep_checkout').value })
+    });
 }
 </script>
 {% endblock %}
