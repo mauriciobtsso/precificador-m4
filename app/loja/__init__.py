@@ -4,3 +4,4 @@ from flask import Blueprint
 loja_bp = Blueprint('loja', __name__, template_folder='templates', url_prefix='/loja')
 
 from app.loja import routes
+from app.loja import routes_auth

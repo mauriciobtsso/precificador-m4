@@ -1,3 +1,4 @@
+{# app/loja/templates/loja/auth/cadastro.html #}
 {% extends 'loja/base.html' %}
 
 {% block content %}
@@ -11,50 +12,128 @@
                     <p class="text-muted">Rápido, seguro e pronto para suas operações.</p>
                 </div>
 
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
                 <form method="POST" action="{{ url_for('loja.cadastro') }}">
                     <div class="row g-3">
-                        <div class="col-md-12">
-                            <label class="form-label small fw-bold">NOME COMPLETO</label>
-                            <input type="text" name="nome" class="form-control border-0 bg-light py-3" placeholder="Como no seu RG/CR" required>
+
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">
+                                NOME COMPLETO <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="nome" class="form-control border-0 bg-light py-3"
+                                   placeholder="Como no seu RG/CR" required autocomplete="name">
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">CPF</label>
-                            <input type="text" name="documento" class="form-control border-0 bg-light py-3" placeholder="000.000.000-00" required>
+                            <label class="form-label small fw-bold">
+                                CPF <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="documento" id="cpf"
+                                   class="form-control border-0 bg-light py-3"
+                                   placeholder="000.000.000-00" maxlength="14"
+                                   required autocomplete="off">
+                            <div class="form-text small text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Se você já é nosso cliente, seu histórico será vinculado automaticamente.
+                            </div>
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">E-MAIL PRINCIPAL</label>
-                            <input type="email" name="email" class="form-control border-0 bg-light py-3" placeholder="seu@email.com" required>
+                            <label class="form-label small fw-bold">
+                                E-MAIL <span class="text-danger">*</span>
+                            </label>
+                            <input type="email" name="email" class="form-control border-0 bg-light py-3"
+                                   placeholder="seu@email.com" required autocomplete="email">
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">SENHA DE ACESSO</label>
-                            <input type="password" name="password" class="form-control border-0 bg-light py-3" placeholder="Mínimo 8 caracteres" required>
+                            <label class="form-label small fw-bold">
+                                SENHA <span class="text-danger">*</span>
+                            </label>
+                            <input type="password" name="password" id="senha"
+                                   class="form-control border-0 bg-light py-3"
+                                   placeholder="Mínimo 8 caracteres" required minlength="8"
+                                   autocomplete="new-password">
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">CONFIRMAR SENHA</label>
-                            <input type="password" class="form-control border-0 bg-light py-3" placeholder="Repita a senha" required>
+                            <label class="form-label small fw-bold">
+                                CONFIRMAR SENHA <span class="text-danger">*</span>
+                            </label>
+                            <input type="password" name="password_confirm" id="senha_confirm"
+                                   class="form-control border-0 bg-light py-3"
+                                   placeholder="Repita a senha" required
+                                   autocomplete="new-password">
+                            <div class="invalid-feedback">As senhas não coincidem.</div>
                         </div>
-                        
-                        <div class="col-12 mt-4">
+
+                        <div class="col-12 mt-2">
                             <div class="form-check p-3 border rounded bg-light">
-                                <input class="form-check-input ms-0 me-2" type="checkbox" id="terms" required>
+                                <input class="form-check-input ms-0 me-2" type="checkbox"
+                                       id="terms" required>
                                 <label class="form-check-label small text-dark" for="terms">
-                                    Declaro que sou maior de 25 anos e aceito os <a href="#" class="text-gold">Termos de Uso</a> e <a href="#" class="text-gold">Privacidade</a> da M4 Tática.
+                                    Declaro que sou maior de 25 anos e aceito os
+                                    <a href="#" class="text-gold">Termos de Uso</a> e
+                                    <a href="#" class="text-gold">Privacidade</a> da M4 Tática.
                                 </label>
                             </div>
                         </div>
 
-                        <div class="col-12 mt-4">
+                        <div class="col-12 mt-2">
                             <button type="submit" class="btn btn-dark btn-lg w-100 fw-bold py-3 shadow">
                                 FINALIZAR MEU CADASTRO
                             </button>
                             <p class="text-center mt-3 small">
-                                Já tem conta? <a href="{{ url_for('loja.login') }}" class="text-gold fw-bold text-decoration-none">Acesse aqui</a>
+                                Já tem conta?
+                                <a href="{{ url_for('loja.login') }}"
+                                   class="text-gold fw-bold text-decoration-none">Acesse aqui</a>
                             </p>
                         </div>
+
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .text-gold { color: var(--m4-gold) !important; }
+</style>
+
+<script>
+// Máscara de CPF
+document.getElementById('cpf')?.addEventListener('input', function(e) {
+    let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/^(\d{3})(\d)/, '$1.$2')
+         .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+         .replace(/\.(\d{3})(\d)/, '.$1-$2');
+    e.target.value = v;
+});
+
+// Validação de senhas iguais antes de enviar
+document.querySelector('form')?.addEventListener('submit', function(e) {
+    const s1 = document.getElementById('senha').value;
+    const s2 = document.getElementById('senha_confirm').value;
+    if (s1 !== s2) {
+        e.preventDefault();
+        document.getElementById('senha_confirm').classList.add('is-invalid');
+        document.getElementById('senha_confirm').focus();
+    }
+});
+
+document.getElementById('senha_confirm')?.addEventListener('input', function() {
+    this.classList.remove('is-invalid');
+});
+</script>
 {% endblock %}

@@ -1,10 +1,12 @@
-# app/clientes/models.py
-
-# =======================================================
-# MÓDULO: app/clientes/models.py
-# =======================================================
+# app/clientes/models.py  (VERSÃO ATUALIZADA — substitui o arquivo existente)
+#
+# MUDANÇAS vs versão anterior:
+#   - ClienteAuthMixin adicionado: campos email_login, senha_hash, ativo_loja, email_verificado
+#   - Nenhum import do Flask-Login — o cliente da loja NÃO é um "current_user" do Flask-Login
+#   - Tudo mais permanece idêntico
 
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.extensions import db
 from app.utils.datetime import now_local
@@ -48,6 +50,17 @@ class Cliente(db.Model):
     inscricao_estadual = db.Column(db.String(50))
     inscricao_municipal = db.Column(db.String(50))
 
+    # -------------------------------------------------------
+    # NOVO: Autenticação exclusiva do e-commerce
+    # Estes campos NÃO interferem no login administrativo.
+    # -------------------------------------------------------
+    email_login = db.Column(db.String(150), unique=True, nullable=True, index=True)
+    senha_hash = db.Column(db.String(256), nullable=True)
+    ativo_loja = db.Column(db.Boolean, default=True, nullable=False)
+    email_verificado = db.Column(db.Boolean, default=False, nullable=False)
+    loja_criado_em = db.Column(db.DateTime, nullable=True)
+    # -------------------------------------------------------
+
     # Flags
     cac = db.Column(db.Boolean, default=False)
     filiado = db.Column(db.Boolean, default=False)
@@ -64,80 +77,47 @@ class Cliente(db.Model):
     created_at = db.Column(db.DateTime, default=now_local)
     updated_at = db.Column(db.DateTime, default=now_local, onupdate=now_local)
 
-    # Relacionamentos
-    documentos = db.relationship(
-        "Documento",
-        back_populates="cliente",
-        cascade="all, delete-orphan",
-    )
-    armas = db.relationship(
-        "Arma",
-        back_populates="cliente",
-        cascade="all, delete-orphan",
-    )
-    comunicacoes = db.relationship(
-        "Comunicacao",
-        back_populates="cliente",
-        cascade="all, delete-orphan",
-    )
-    processos = db.relationship(
-        "Processo",
-        back_populates="cliente",
-        cascade="all, delete-orphan",
-    )
+    # Relacionamentos (idênticos à versão anterior)
+    documentos = db.relationship("Documento", back_populates="cliente", cascade="all, delete-orphan")
+    armas = db.relationship("Arma", back_populates="cliente", cascade="all, delete-orphan")
+    comunicacoes = db.relationship("Comunicacao", back_populates="cliente", cascade="all, delete-orphan")
+    processos = db.relationship("Processo", back_populates="cliente", cascade="all, delete-orphan")
+    vendas = db.relationship("Venda", back_populates="cliente", cascade="all, delete-orphan")
+    enderecos = db.relationship("EnderecoCliente", back_populates="cliente", cascade="all, delete-orphan", lazy="select")
+    contatos = db.relationship("ContatoCliente", back_populates="cliente", cascade="all, delete-orphan", lazy="select")
+    certidoes = db.relationship("Certidao", back_populates="cliente", cascade="all, delete-orphan", lazy="select")
+    itens_fornecidos = db.relationship("ItemEstoque", back_populates="fornecedor", lazy="dynamic")
 
-    # Vendas conecta aqui
-    vendas = db.relationship(
-        "Venda",
-        back_populates="cliente",
-        cascade="all, delete-orphan",
-    )
+    # ----------------------------------------------------------
+    # Métodos de autenticação da loja (sem Flask-Login)
+    # ----------------------------------------------------------
+    def set_senha(self, senha: str):
+        """Define a senha para acesso ao e-commerce."""
+        self.senha_hash = generate_password_hash(senha)
 
-    enderecos = db.relationship(
-        "EnderecoCliente",
-        back_populates="cliente",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
-    contatos = db.relationship(
-        "ContatoCliente",
-        back_populates="cliente",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
+    def check_senha(self, senha: str) -> bool:
+        """Verifica a senha do e-commerce."""
+        if not self.senha_hash:
+            return False
+        return check_password_hash(self.senha_hash, senha)
 
-    # Relacionamento com Certidões (sem importar o modelo para evitar circular import)
-    certidoes = db.relationship(
-        "Certidao",
-        back_populates="cliente",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
-
-    # CORREÇÃO DO ERRO KEYERROR:
-    # O Estoque precisa deste relacionamento reverso para funcionar o back_populates="itens_fornecidos"
-    itens_fornecidos = db.relationship(
-        "ItemEstoque",
-        back_populates="fornecedor",
-        lazy="dynamic",
-    )
+    @property
+    def pode_logar_loja(self) -> bool:
+        """Verdadeiro se o cliente tem acesso habilitado ao e-commerce."""
+        return bool(self.email_login and self.senha_hash and self.ativo_loja)
 
     def __repr__(self):
         return f"<Cliente {self.id} - {self.nome}>"
 
 
 # =========================
-# Endereço
+# Endereço (sem alterações)
 # =========================
 class EnderecoCliente(db.Model):
     __tablename__ = "clientes_enderecos"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(
-        db.Integer,
-        db.ForeignKey("clientes.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
 
     cep = db.Column(db.String(20))
     logradouro = db.Column(db.String(255))
@@ -154,24 +134,17 @@ class EnderecoCliente(db.Model):
     cliente = db.relationship("Cliente", back_populates="enderecos")
 
     def __repr__(self):
-        return (
-            f"<EnderecoCliente {self.tipo} - {self.logradouro}, "
-            f"{self.numero} - {self.cidade}/{self.estado}>"
-        )
+        return f"<EnderecoCliente {self.tipo} - {self.logradouro}, {self.numero}>"
 
 
 # =========================
-# Contato
+# Contato (sem alterações)
 # =========================
 class ContatoCliente(db.Model):
     __tablename__ = "clientes_contatos"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(
-        db.Integer,
-        db.ForeignKey("clientes.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
 
     tipo = db.Column(db.String(50))
     valor = db.Column(db.String(150))
@@ -186,22 +159,15 @@ class ContatoCliente(db.Model):
 
 
 # =========================
-# Documento
+# Documento (sem alterações)
 # =========================
 class Documento(db.Model):
     __tablename__ = "documentos"
 
     id = db.Column(db.Integer, primary_key=True)
-
-    cliente_id = db.Column(
-        db.Integer,
-        db.ForeignKey("clientes.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False, index=True)
 
     tipo = db.Column(db.String(50), nullable=False)
-
     categoria = db.Column(db.String(50), nullable=True, index=True)
     emissor = db.Column(db.String(50), nullable=True)
     numero_documento = db.Column(db.String(100), nullable=True, index=True)
@@ -213,22 +179,12 @@ class Documento(db.Model):
     caminho_arquivo = db.Column(db.Text, nullable=False)
     mime_type = db.Column(db.String(100))
     data_upload = db.Column(db.DateTime, default=now_local)
-
     observacoes = db.Column(db.Text, nullable=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=now_local)
-    updated_at = db.Column(
-        db.DateTime,
-        nullable=False,
-        default=now_local,
-        onupdate=now_local,
-    )
+    updated_at = db.Column(db.DateTime, nullable=False, default=now_local, onupdate=now_local)
 
-    cliente = db.relationship(
-        "Cliente",
-        back_populates="documentos",
-        lazy="joined",
-    )
+    cliente = db.relationship("Cliente", back_populates="documentos", lazy="joined")
 
     def __repr__(self):
         return f"<Documento id={self.id} tipo={self.tipo} cliente={self.cliente_id}>"
@@ -246,23 +202,18 @@ class Documento(db.Model):
     @property
     def dias_para_vencer(self):
         if self.data_validade and not self.validade_indeterminada:
-            delta = (self.data_validade - now_local().date()).days
-            return delta
+            return (self.data_validade - now_local().date()).days
         return None
 
 
 # =========================
-# Arma
+# Arma (sem alterações)
 # =========================
 class Arma(db.Model):
     __tablename__ = "armas"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(
-        db.Integer,
-        db.ForeignKey("clientes.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
 
     tipo = db.Column(db.String(50))
     funcionamento = db.Column(db.String(50))
@@ -288,17 +239,13 @@ class Arma(db.Model):
 
 
 # =========================
-# Comunicação
+# Comunicação (sem alterações)
 # =========================
 class Comunicacao(db.Model):
     __tablename__ = "comunicacoes"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(
-        db.Integer,
-        db.ForeignKey("clientes.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
     tipo = db.Column(db.String(50), nullable=False)
     assunto = db.Column(db.String(150))
     mensagem = db.Column(db.Text, nullable=False)
@@ -311,17 +258,13 @@ class Comunicacao(db.Model):
 
 
 # =========================
-# Processo
+# Processo (sem alterações)
 # =========================
 class Processo(db.Model):
     __tablename__ = "processos"
 
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(
-        db.Integer,
-        db.ForeignKey("clientes.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
     tipo = db.Column(db.String(100), nullable=False)
     status = db.Column(db.String(50), default="em_andamento")
     descricao = db.Column(db.Text)

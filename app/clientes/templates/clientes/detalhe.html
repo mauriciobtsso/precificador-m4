@@ -172,6 +172,176 @@
       </div>
     </div>
 
+    {# ═══════════════════════════════════════════════════════
+       BLOCO: Acesso à Loja Online
+    ════════════════════════════════════════════════════════ #}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-dark text-white d-flex align-items-center gap-2">
+            <i class="fas fa-shop"></i>
+            <strong>Acesso à Loja Online</strong>
+        </div>
+        <div class="card-body">
+
+            {% if cliente.email_login %}
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    {% if cliente.ativo_loja %}
+                        <span class="badge bg-success fs-6 px-3 py-2">
+                            <i class="fas fa-check-circle me-1"></i> Acesso Ativo
+                        </span>
+                    {% else %}
+                        <span class="badge bg-secondary fs-6 px-3 py-2">
+                            <i class="fas fa-times-circle me-1"></i> Acesso Revogado
+                        </span>
+                    {% endif %}
+                </div>
+
+                <p class="mb-1">
+                    <i class="fas fa-envelope me-2 text-muted"></i>
+                    <strong>Login:</strong> {{ cliente.email_login }}
+                </p>
+                {% if cliente.loja_criado_em %}
+                    <p class="mb-3 text-muted small">
+                        <i class="fas fa-calendar me-2"></i>
+                        Conta criada em {{ cliente.loja_criado_em.strftime('%d/%m/%Y') }}
+                    </p>
+                {% endif %}
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-outline-dark btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#modalTrocarSenha">
+                        <i class="fas fa-key me-1"></i> Trocar Senha
+                    </button>
+
+                    {% if cliente.ativo_loja %}
+                        <form method="POST"
+                              action="{{ url_for('clientes.revogar_acesso_loja', cliente_id=cliente.id) }}"
+                              onsubmit="return confirm('Revogar acesso à loja deste cliente?')">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-slash me-1"></i> Revogar Acesso
+                            </button>
+                        </form>
+                    {% else %}
+                        <form method="POST"
+                              action="{{ url_for('clientes.reativar_acesso_loja', cliente_id=cliente.id) }}">
+                            <button type="submit" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-check-circle me-1"></i> Reativar Acesso
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+
+            {% else %}
+                <p class="text-muted mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Este cliente ainda não tem acesso à loja online.
+                    Libere o acesso definindo um e-mail e senha temporária.
+                </p>
+                <button class="btn btn-dark btn-sm"
+                        data-bs-toggle="modal" data-bs-target="#modalLiberarAcesso">
+                    <i class="fas fa-unlock me-1"></i> Liberar Acesso à Loja
+                </button>
+            {% endif %}
+
+        </div>
+    </div>
+
+    {# MODAL: Liberar Acesso (primeiro acesso) #}
+    <div class="modal fade" id="modalLiberarAcesso" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-unlock me-2"></i>Liberar Acesso à Loja
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST"
+                      action="{{ url_for('clientes.liberar_acesso_loja', cliente_id=cliente.id) }}">
+                    <div class="modal-body">
+                        <p class="text-muted small mb-3">
+                            O cliente receberá estes dados para acessar a loja.
+                            Todo o histórico (documentos, endereços, compras) estará disponível automaticamente.
+                        </p>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">E-mail de Login</label>
+                            <input type="email" name="email_login" class="form-control"
+                                   placeholder="email@cliente.com"
+                                   value="{{ cliente.email or '' }}"
+                                   required>
+                            <div class="form-text">Sugerimos o e-mail já cadastrado para o cliente.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Senha Temporária</label>
+                            <div class="input-group">
+                                <input type="text" name="senha_temp" id="senhaTemp"
+                                       class="form-control" placeholder="Mín. 6 caracteres"
+                                       required minlength="6">
+                                <button type="button" class="btn btn-outline-secondary"
+                                        onclick="gerarSenha()">
+                                    <i class="fas fa-random"></i> Gerar
+                                </button>
+                            </div>
+                            <div class="form-text text-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Anote ou copie antes de salvar — você não verá esta senha novamente.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-dark">
+                            <i class="fas fa-check me-1"></i> Liberar Acesso
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {# MODAL: Trocar Senha #}
+    <div class="modal fade" id="modalTrocarSenha" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-key me-2"></i>Trocar Senha da Loja
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST"
+                      action="{{ url_for('clientes.liberar_acesso_loja', cliente_id=cliente.id) }}">
+                    <div class="modal-body">
+                        <input type="hidden" name="email_login" value="{{ cliente.email_login }}">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nova Senha Temporária</label>
+                            <div class="input-group">
+                                <input type="text" name="senha_temp" id="senhaTempTroca"
+                                       class="form-control" placeholder="Mín. 6 caracteres"
+                                       required minlength="6">
+                                <button type="button" class="btn btn-outline-secondary"
+                                        onclick="gerarSenhaTroca()">
+                                    <i class="fas fa-random"></i> Gerar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-dark">
+                            <i class="fas fa-check me-1"></i> Salvar Nova Senha
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {# ═══════════════════════════════════════════════════════
+       FIM BLOCO: Acesso à Loja Online
+    ════════════════════════════════════════════════════════ #}
+
     <ul class="nav nav-tabs" id="clienteTabs" role="tablist">
         <li class="nav-item">
             <a class="nav-link active" data-bs-toggle="tab" href="#visao">Visão Geral</a>
@@ -355,7 +525,7 @@
         <div class="tab-pane fade" id="certidoes">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0 text-secondary">
-                    <i class="fas fa-file-signature me-2"></i> Certidões
+                    <i class="fas fa-file-signature me-1"></i> Certidões
                 </h5>
                 <form method="post"
                       action="{{ url_for('certidoes.criar_pacote_certidoes', cliente_id=cliente.id) }}"
@@ -539,4 +709,24 @@
         </div>
     </div>
 </div>
+
+<script>
+function gerarSenha() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
+    let senha = '';
+    for (let i = 0; i < 10; i++) {
+        senha += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById('senhaTemp').value = senha;
+}
+
+function gerarSenhaTroca() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
+    let senha = '';
+    for (let i = 0; i < 10; i++) {
+        senha += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById('senhaTempTroca').value = senha;
+}
+</script>
 {% endblock %}

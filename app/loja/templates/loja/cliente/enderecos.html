@@ -1,0 +1,263 @@
+{# app/loja/templates/loja/cliente/enderecos.html #}
+{% extends 'loja/base.html' %}
+
+{% block content %}
+<div class="container py-5" style="min-height:600px;">
+    <div class="row">
+
+        {# SIDEBAR #}
+        <div class="col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm overflow-hidden">
+                <div class="bg-dark p-4 text-center">
+                    <div class="rounded-circle bg-gold mx-auto d-flex align-items-center justify-content-center shadow"
+                         style="width:70px;height:70px;">
+                        <i class="bi bi-person-fill fs-2 text-dark"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mt-3 mb-0 text-uppercase">{{ cliente_loja.nome.split(' ')[0] }}</h6>
+                    <p class="text-white-50 small mb-0">{{ cliente_loja.email_login }}</p>
+                </div>
+                <div class="list-group list-group-flush small fw-bold">
+                    <a href="{{ url_for('loja.minha_conta') }}" class="list-group-item list-group-item-action border-0 py-3">
+                        <i class="bi bi-grid-1x2-fill me-2"></i> RESUMO
+                    </a>
+                    <a href="{{ url_for('loja.meus_pedidos') }}" class="list-group-item list-group-item-action border-0 py-3">
+                        <i class="bi bi-box-seam me-2"></i> MEUS PEDIDOS
+                    </a>
+                    <a href="{{ url_for('loja.meus_enderecos') }}" class="list-group-item list-group-item-action active border-0 py-3">
+                        <i class="bi bi-geo-alt me-2"></i> ENDEREÇOS
+                    </a>
+                    <a href="{{ url_for('loja.meus_documentos') }}" class="list-group-item list-group-item-action border-0 py-3">
+                        <i class="bi bi-file-earmark-lock2 me-2"></i> MEUS DOCUMENTOS
+                    </a>
+                    <a href="{{ url_for('loja.logout') }}" class="list-group-item list-group-item-action border-0 py-3 text-danger">
+                        <i class="bi bi-box-arrow-left me-2"></i> SAIR
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {# CONTEÚDO #}
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-black mb-0">MEUS ENDEREÇOS</h2>
+                    <p class="text-muted mb-0">Gerencie seus endereços de entrega.</p>
+                </div>
+                <button class="btn btn-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalNovoEndereco">
+                    <i class="bi bi-plus-lg me-1"></i> NOVO ENDEREÇO
+                </button>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endwith %}
+
+            {% if enderecos %}
+                <div class="row g-3">
+                    {% for end in enderecos %}
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="badge bg-dark">{{ (end.tipo or 'residencial')|upper }}</span>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary btn-sm"
+                                                data-bs-toggle="modal" data-bs-target="#modalEditar{{ end.id }}">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <form method="POST" action="{{ url_for('loja.excluir_endereco', endereco_id=end.id) }}"
+                                              onsubmit="return confirm('Remover este endereço?')">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <p class="fw-bold mb-1">{{ end.logradouro }}, {{ end.numero }}{% if end.complemento %} — {{ end.complemento }}{% endif %}</p>
+                                <p class="text-muted small mb-1">{{ end.bairro }}</p>
+                                <p class="text-muted small mb-0">{{ end.cidade }} / {{ end.estado }} — CEP {{ end.cep }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Modal editar #}
+                    <div class="modal fade" id="modalEditar{{ end.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-dark text-white">
+                                    <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Editar Endereço</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="{{ url_for('loja.editar_endereco', endereco_id=end.id) }}">
+                                    <div class="modal-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-5">
+                                                <label class="form-label fw-bold small">TIPO</label>
+                                                <select name="tipo" class="form-select">
+                                                    <option value="residencial" {% if end.tipo == 'residencial' %}selected{% endif %}>Residencial</option>
+                                                    <option value="comercial" {% if end.tipo == 'comercial' %}selected{% endif %}>Comercial</option>
+                                                    <option value="outro" {% if end.tipo == 'outro' %}selected{% endif %}>Outro</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold small">CEP *</label>
+                                                <input type="text" name="cep" class="form-control cep-auto"
+                                                       value="{{ end.cep }}" maxlength="9" required
+                                                       data-endid="{{ end.id }}">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-bold small">LOGRADOURO *</label>
+                                                <input type="text" name="logradouro" id="log-{{ end.id }}"
+                                                       class="form-control" value="{{ end.logradouro }}" required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold small">NÚMERO *</label>
+                                                <input type="text" name="numero" class="form-control" value="{{ end.numero }}" required>
+                                            </div>
+                                            <div class="col-md-9">
+                                                <label class="form-label fw-bold small">COMPLEMENTO</label>
+                                                <input type="text" name="complemento" class="form-control" value="{{ end.complemento or '' }}">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <label class="form-label fw-bold small">BAIRRO *</label>
+                                                <input type="text" name="bairro" id="bai-{{ end.id }}"
+                                                       class="form-control" value="{{ end.bairro }}" required>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <label class="form-label fw-bold small">CIDADE *</label>
+                                                <input type="text" name="cidade" id="cid-{{ end.id }}"
+                                                       class="form-control" value="{{ end.cidade }}" required>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label fw-bold small">UF *</label>
+                                                <input type="text" name="estado" id="est-{{ end.id }}"
+                                                       class="form-control" value="{{ end.estado }}" maxlength="2" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-dark fw-bold">Salvar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-geo-alt fs-1 mb-3 d-block"></i>
+                    <p>Nenhum endereço cadastrado ainda.</p>
+                    <button class="btn btn-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalNovoEndereco">
+                        <i class="bi bi-plus-lg me-1"></i> Adicionar Endereço
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# Modal novo endereço #}
+<div class="modal fade" id="modalNovoEndereco" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="bi bi-plus-lg me-2"></i>Novo Endereço</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('loja.novo_endereco') }}">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small">TIPO</label>
+                            <select name="tipo" class="form-select">
+                                <option value="residencial">Residencial</option>
+                                <option value="comercial">Comercial</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">CEP *</label>
+                            <input type="text" name="cep" id="cepNovo" class="form-control" placeholder="00000-000" maxlength="9" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small">LOGRADOURO *</label>
+                            <input type="text" name="logradouro" id="logNovo" class="form-control" placeholder="Rua, Av..." required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">NÚMERO *</label>
+                            <input type="text" name="numero" class="form-control" required>
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label fw-bold small">COMPLEMENTO</label>
+                            <input type="text" name="complemento" class="form-control" placeholder="Apto, Bloco...">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small">BAIRRO *</label>
+                            <input type="text" name="bairro" id="baiNovo" class="form-control" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small">CIDADE *</label>
+                            <input type="text" name="cidade" id="cidNovo" class="form-control" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small">UF *</label>
+                            <input type="text" name="estado" id="estNovo" class="form-control" maxlength="2" placeholder="SP" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-dark fw-bold">Salvar Endereço</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gold  { background-color: #c5a059 !important; }
+    .fw-black { font-weight: 900; }
+    .list-group-item.active { background-color: #1a1a1a !important; border-color: #1a1a1a !important; }
+</style>
+<script>
+function buscarCep(cep, logId, baiId, cidId, estId) {
+    cep = cep.replace(/\D/g,'');
+    if (cep.length !== 8) return;
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        .then(r => r.json())
+        .then(d => {
+            if (d.erro) return;
+            document.getElementById(logId).value = d.logradouro || '';
+            document.getElementById(baiId).value = d.bairro || '';
+            document.getElementById(cidId).value = d.localidade || '';
+            document.getElementById(estId).value = d.uf || '';
+        });
+}
+
+// Novo
+const cepNovo = document.getElementById('cepNovo');
+cepNovo?.addEventListener('input', e => {
+    let v = e.target.value.replace(/\D/g,'').slice(0,8);
+    if (v.length > 5) v = v.slice(0,5)+'-'+v.slice(5);
+    e.target.value = v;
+});
+cepNovo?.addEventListener('blur', e => buscarCep(e.target.value, 'logNovo','baiNovo','cidNovo','estNovo'));
+
+// Editar
+document.querySelectorAll('.cep-auto').forEach(input => {
+    const id = input.dataset.endid;
+    input.addEventListener('input', e => {
+        let v = e.target.value.replace(/\D/g,'').slice(0,8);
+        if (v.length > 5) v = v.slice(0,5)+'-'+v.slice(5);
+        e.target.value = v;
+    });
+    input.addEventListener('blur', e => buscarCep(e.target.value, `log-${id}`,`bai-${id}`,`cid-${id}`,`est-${id}`));
+});
+</script>
+{% endblock %}

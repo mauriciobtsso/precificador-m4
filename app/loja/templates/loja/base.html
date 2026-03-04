@@ -175,15 +175,24 @@
                     </form>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
-                    <a href="#" class="header-icon" aria-label="Minha Conta"><i class="bi bi-person-circle"></i></a>
-                    <a href="{{ url_for('carrinho.index') }}" class="header-icon" aria-label="Meu Carrinho">
-                        <i class="bi bi-cart3"></i>
-                        <span id="cart-badge" class="cart-badge {% if not session.cart_count or session.cart_count == 0 %}d-none{% endif %}">
-                            {{ session.cart_count or 0 }}
-                        </span>
-                    </a>
-                </div>
+<div class="d-flex align-items-center gap-2">
+    {% if cliente_loja %}
+        <a href="{{ url_for('loja.minha_conta') }}" class="header-icon" 
+           title="{{ cliente_loja.nome.split()[0] }}" aria-label="Minha Conta">
+            <i class="bi bi-person-check-fill" style="color: var(--m4-gold);"></i>
+        </a>
+    {% else %}
+        <a href="{{ url_for('loja.login') }}" class="header-icon" aria-label="Entrar / Criar conta">
+            <i class="bi bi-person-circle"></i>
+        </a>
+    {% endif %}
+    <a href="{{ url_for('carrinho.index') }}" class="header-icon" aria-label="Meu Carrinho">
+        <i class="bi bi-cart3"></i>
+        <span id="cart-badge" class="cart-badge {% if not session.cart_count or session.cart_count == 0 %}d-none{% endif %}">
+            {{ session.cart_count or 0 }}
+        </span>
+    </a>
+</div>
             </div>
         </div>
 
