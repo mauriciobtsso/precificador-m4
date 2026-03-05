@@ -92,25 +92,40 @@ def inject_loja_data():
 # VITRINE PRINCIPAL
 # ============================================================
 @loja_bp.route('/')
-@cache.cached(timeout=60, query_string=True, key_prefix='index_v6')
+@cache.cached(timeout=60, query_string=True, key_prefix='index_v7')
 def index():
     termo_busca = request.args.get('q', '').strip()
+    # Importação local para evitar importação circular
+    from app.produtos.configs.models import MarcaProduto
+    
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
-    # 1. CASO DE BUSCA
+    # 1. CASO DE BUSCA (AGORA COM FILTRO DE MARCA CORRIGIDO)
     if termo_busca:
         busca_like = f"%{termo_busca}%"
-        query = Produto.query.filter_by(visivel_loja=True).filter(
-            or_(Produto.nome.ilike(busca_like), Produto.codigo.ilike(busca_like))
+        # Adicionamos o JOIN com marca_rel para o filtro 'q' enxergar a Fabricante
+        query = Produto.query.join(Produto.marca_rel).filter(
+            Produto.visivel_loja == True
+        ).filter(
+            or_(
+                Produto.nome.ilike(busca_like),
+                Produto.codigo.ilike(busca_like),
+                MarcaProduto.nome.ilike(busca_like) # <--- ESSENCIAL PARA O CARROSSEL DE MARCAS
+            )
         ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))
-        pagination = query.order_by(Produto.criado_em.desc()).paginate(page=request.args.get('page', 1, type=int), per_page=12)
+        
+        pagination = query.order_by(Produto.criado_em.desc()).paginate(
+            page=request.args.get('page', 1, type=int), 
+            per_page=12
+        )
+        
         return render_template('loja/index.html', 
                                produtos=pagination.items, 
                                pagination=pagination, 
                                gerar_link=gerador_limpo, 
                                termo_busca=termo_busca)
 
-    # 2. LANÇAMENTOS E DESTAQUES
+    # 2. LANÇAMENTOS E DESTAQUES (Mantido conforme v4)
     lancamentos = cache.get('lancamentos_home_v4')
     if lancamentos is None:
         lancamentos = Produto.query.filter_by(visivel_loja=True)\
@@ -125,44 +140,43 @@ def index():
             .order_by(func.random()).limit(4).all()
         cache.set('destaques_home_v4', destaques, timeout=300)
 
-    # 3. PRATELEIRAS INTELIGENTES (v8 - por subcategoria + fallback aleatório)
+    # 3. PRATELEIRAS INTELIGENTES (v8 - Variedade por subcategoria)
     prateleiras = cache.get('prateleiras_home_v8')
     if prateleiras is None:
         def get_smart_cat(termo, limite=4):
             cats = CategoriaProduto.query.filter(
                 or_(CategoriaProduto.slug.ilike(f"%{termo}%"), CategoriaProduto.nome.ilike(f"%{termo}%"))
             ).all()
-            if not cats:
-                return []
+            if not cats: return []
+            
             ids_alvo = list(set(
                 [cat.id for cat in cats] + [s.id for cat in cats for s in cat.subcategorias]
             ))
+            
             resultado = []
             ids_ja_incluidos = set()
-            # PASSO 1: 1 produto aleatório por subcategoria (garante variedade)
+            
+            # PASSO 1: 1 produto aleatório por subcategoria
             for cat_id in ids_alvo:
                 prod = Produto.query.filter(
                     Produto.visivel_loja == True,
                     Produto.categoria_id == cat_id
-                ).options(
-                    joinedload(Produto.marca_rel),
-                    joinedload(Produto.categoria)
-                ).order_by(func.random()).first()
+                ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
+                 .order_by(func.random()).first()
+                
                 if prod and prod.id not in ids_ja_incluidos:
                     resultado.append(prod)
                     ids_ja_incluidos.add(prod.id)
-                if len(resultado) >= limite:
-                    break
-            # PASSO 2: se não atingiu o limite, completa com aleatórios do pool total
+                if len(resultado) >= limite: break
+            
+            # PASSO 2: Completa se necessário
             if len(resultado) < limite:
                 extras = Produto.query.filter(
                     Produto.visivel_loja == True,
                     Produto.categoria_id.in_(ids_alvo),
                     Produto.id.notin_(ids_ja_incluidos)
-                ).options(
-                    joinedload(Produto.marca_rel),
-                    joinedload(Produto.categoria)
-                ).order_by(func.random()).limit(limite - len(resultado)).all()
+                ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
+                 .order_by(func.random()).limit(limite - len(resultado)).all()
                 resultado.extend(extras)
             return resultado
 
@@ -174,13 +188,12 @@ def index():
         }
         cache.set('prateleiras_home_v8', prateleiras, timeout=300)
 
-    # 4. BANNERS E MARCAS ← também estavam desalinhados no seu arquivo
+    # 4. BANNERS E MARCAS
     banners = cache.get('banners_home')
     if banners is None:
         banners = Banner.query.filter_by(ativo=True).order_by(Banner.ordem.asc()).all()
         cache.set('banners_home', banners, timeout=300)
 
-    from app.produtos.configs.models import MarcaProduto
     marcas_home = cache.get('marcas_home')
     if marcas_home is None:
         marcas_home = MarcaProduto.query.filter(MarcaProduto.logo_url != None).all()

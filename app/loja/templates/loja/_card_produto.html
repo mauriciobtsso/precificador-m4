@@ -49,8 +49,8 @@
                     #}
                     <img src="{{ link_img }}"
                          srcset="{{ link_img }} 1x"
-                         sizes="(max-width: 575px) 45vw,
-                                (max-width: 767px) 45vw,
+                         sizes="(max-width: 575px) 48vw,
+                                (max-width: 991px) 30vw,
                                 280px"
                          alt="{{ nome_seo }} - M4 Tática"
                          title="{{ nome_seo }} na M4 Tática"
@@ -59,7 +59,7 @@
                          decoding="async"
                          width="280"
                          height="280"
-                         style="object-fit: contain; aspect-ratio: 1/1;"
+                         style="object-fit: contain; aspect-ratio: 1/1; width: 100%; height: auto;"
                          onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';">
                 {% else %}
                     <div class="text-center opacity-25" aria-hidden="true"

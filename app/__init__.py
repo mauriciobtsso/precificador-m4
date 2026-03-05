@@ -1,5 +1,3 @@
-# app/__init__.py
-
 from flask import Flask
 from jinja2.runtime import Undefined
 from sqlalchemy import inspect
@@ -9,8 +7,11 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from flask_ckeditor import CKEditor
+from flask_compress import Compress
 
+# Instancia extensões centralizadas
 ckeditor = CKEditor()
+compress = Compress()
 
 # Importa extensões centralizadas
 from app.extensions import db, login_manager, migrate
@@ -20,9 +21,8 @@ from app.utils.datetime import now_local
 
 load_dotenv()
 
-
 # =========================================================
-# LOGGING
+# LOGGING (Configuração de Campo)
 # =========================================================
 def configure_logging(app):
     """Configura logs em arquivo (rotativo) e no console."""
@@ -60,48 +60,41 @@ def configure_logging(app):
 
 
 # =========================================================
-# APP FACTORY
+# APP FACTORY (Arsenal Central)
 # =========================================================
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # 🚀 ATIVAÇÃO DA COMPRESSÃO (Crítico para PageSpeed)
+    compress.init_app(app)
+
     # 🔧 Pasta de uploads
-    upload_folder = app.config.get("UPLOAD_FOLDER")
-    if not upload_folder:
-        from app.config import UPLOAD_FOLDER
-
-        upload_folder = UPLOAD_FOLDER
-        app.config["UPLOAD_FOLDER"] = upload_folder
-
+    upload_folder = app.config.get("UPLOAD_FOLDER") or "uploads"
     os.makedirs(upload_folder, exist_ok=True)
-    app.logger.info(f"[UPLOAD] Pasta configurada em: {upload_folder}")
 
     # 🚨 Proteção: evita testes em banco de produção
-    if app.config.get("TESTING") and "neon.tech" in app.config.get(
-        "SQLALCHEMY_DATABASE_URI", ""
-    ):
+    if app.config.get("TESTING") and "neon.tech" in app.config.get("SQLALCHEMY_DATABASE_URI", ""):
         raise RuntimeError("⚠️ Testes NÃO podem rodar em banco de produção (Neon)!")
 
     # Logging
     configure_logging(app)
 
-    # Extensões
+    # Inicializa Extensões
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "main.login"
     migrate.init_app(app, db)
     ckeditor.init_app(app)
 
-# =========================================================
-    # INICIALIZAÇÃO DO CACHE (CORREÇÃO PARA RENDER)
+    # =========================================================
+    # INICIALIZAÇÃO DO CACHE (Ajuste para Render)
     # =========================================================
     try:
-        # Configuração do cache antes de inicializar
         app.config['CACHE_TYPE'] = 'SimpleCache'
         app.config['CACHE_DEFAULT_TIMEOUT'] = 300
-        cache.init_app(app) # <--- Agora o app reconhece a extensão 'cache'
-        app.logger.info("[CACHE] Sistema de cache inicializado com sucesso.")
+        cache.init_app(app)
+        app.logger.info("[CACHE] Sistema de cache inicializado.")
     except Exception as e:
         app.logger.warning(f"[CACHE] Erro ao inicializar cache: {e}")
 
@@ -126,7 +119,6 @@ def create_app():
     from app.importacoes import importacoes_bp
     from app.certidoes import certidoes_bp
     from app.loja import loja_bp
-    # NOVO BLUEPRINT: Admin da Loja
     from app.loja_admin import loja_admin_bp
     from app.carrinho import carrinho_bp
     
@@ -138,15 +130,9 @@ def create_app():
     app.register_blueprint(configs_bp)
     app.register_blueprint(loja_bp)
     app.register_blueprint(carrinho_bp, url_prefix='/carrinho')
-    
-    # Registro do Admin da Loja com prefixo exclusivo
     app.register_blueprint(loja_admin_bp, url_prefix="/admin-loja")
-
-    # Blueprint original de vendas
     app.register_blueprint(vendas_bp, url_prefix="/vendas")
-    # Core de vendas (PDV e novas APIs)
     app.register_blueprint(sales_core, url_prefix="/vendas")
-
     app.register_blueprint(categorias_bp)
     app.register_blueprint(taxas_bp)
     app.register_blueprint(pedidos_bp, url_prefix="/pedidos")
@@ -158,65 +144,43 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
     # =========================================================
-    # AGENDADOR DE ALERTAS
+    # AGENDADOR DE TAREFAS
     # =========================================================
     from app.alertas.tasks import iniciar_scheduler
-
     iniciar_scheduler(app)
 
     # =========================================================
-    # FILTRO CUSTOMIZADO JINJA — currency
+    # FILTROS E CONTEXTO JINJA (Fotos, Moedas e Datas)
     # =========================================================
+    
+    @app.template_filter('currency')
+    @app.template_filter('formato_moeda')
     def format_currency(value):
         if value is None or isinstance(value, Undefined):
             return "R$ 0,00"
         try:
             v = float(value)
-            formatted = (
-                f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            )
-            return f"R$ {formatted}"
+            return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         except Exception:
             return "R$ 0,00"
 
-    app.jinja_env.filters["currency"] = format_currency
-
-    # -------------------------
-    # Filtro customizado: dt_local
-    # -------------------------
     from datetime import timezone
     import pytz
 
+    @app.template_filter('dt_local')
     def format_datetime_local(dt, fmt="%d/%m/%Y %H:%M", tzname="America/Fortaleza"):
-        """Converte datetime (UTC ou naive) para o fuso informado e formata."""
-        if not dt:
-            return ""
+        if not dt: return ""
         try:
             tz = pytz.timezone(tzname)
-            # Se vier sem tzinfo, consideramos UTC para manter consistência
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=timezone.utc)
             return dt.astimezone(tz).strftime(fmt)
         except Exception:
-            # fallback: formata como vier
-            try:
-                return dt.strftime(fmt)
-            except Exception:
-                return str(dt)
-
-    app.jinja_env.filters["dt_local"] = format_datetime_local
-
-    # =========================================================
-    # CONTEXTO GLOBAL DE DATA/HORA LOCAL
-    # =========================================================
-    @app.context_processor
-    def inject_now():
-        """Disponibiliza now_local() nos templates Jinja."""
-        return {"now_local": now_local}
+            return str(dt)
 
     @app.context_processor
-    def inject_global_utils():
-        """Disponibiliza funções utilitárias em todos os templates."""
+    def inject_global_utilities():
+        """Centraliza utilitários globais em todos os templates."""
         from app.utils.r2_helpers import gerar_link_r2
         
         def limpar_caminho_r2(caminho):
@@ -227,6 +191,7 @@ def create_app():
             return caminho_limpo.split("#")[0].split("%23")[0]
 
         def gerar_link_global(path):
+            if not path: return "/static/img/placeholder.jpg"
             return gerar_link_r2(limpar_caminho_r2(path))
 
         return {
@@ -235,7 +200,7 @@ def create_app():
         }
 
     # =========================================================
-    # SEED INICIAL
+    # SEED INICIAL (MODO PROTEGIDO)
     # =========================================================
     if not app.config.get("TESTING"):
         from app.models import User, Taxa, Configuracao
@@ -252,44 +217,10 @@ def create_app():
                     db.session.add(admin)
 
                 if not Taxa.query.first():
-                    taxas = [
-                        Taxa(numero_parcelas=0, juros=1.09),
-                        Taxa(numero_parcelas=1, juros=3.48),
-                        Taxa(numero_parcelas=2, juros=5.1),
-                        Taxa(numero_parcelas=3, juros=5.92),
-                        Taxa(numero_parcelas=4, juros=6.79),
-                        Taxa(numero_parcelas=5, juros=7.61),
-                        Taxa(numero_parcelas=6, juros=8.43),
-                        Taxa(numero_parcelas=7, juros=9.25),
-                        Taxa(numero_parcelas=8, juros=10.07),
-                        Taxa(numero_parcelas=9, juros=10.89),
-                        Taxa(numero_parcelas=10, juros=11.71),
-                        Taxa(numero_parcelas=11, juros=12.53),
-                        Taxa(numero_parcelas=12, juros=13.35),
-                    ]
-                    db.session.add_all(taxas)
+                    taxas_padrao = [Taxa(numero_parcelas=i, juros=1.0) for i in range(13)]
+                    db.session.add_all(taxas_padrao)
 
                 Configuracao.seed_defaults()
                 db.session.commit()
-
-    # =========================================================
-    # FILTROS CUSTOMIZADOS JINJA
-    # =========================================================
-    def format_currency_v2(value):
-        if value is None or isinstance(value, Undefined):
-            return "R$ 0,00"
-        try:
-            v = float(value)
-            formatted = (
-                f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            )
-            return f"R$ {formatted}"
-        except Exception:
-            return "R$ 0,00"
-
-    # Registramos com o nome 'currency' (que você já usa) 
-    # e também com 'formato_moeda' para evitar erros nos templates novos
-    app.jinja_env.filters["currency"] = format_currency_v2
-    app.jinja_env.filters["formato_moeda"] = format_currency_v2
 
     return app
