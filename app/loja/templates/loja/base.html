@@ -1,198 +1,283 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-W786W67Z');</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    {# ── PRECONNECTS ── só para recursos externos reais #}
+    <link rel="preconnect" href="https://www.googletagmanager.com">
+    <link rel="dns-prefetch" href="https://img.icons8.com">
+
+    {# ── PRELOAD do banner hero (LCP) ── #}
     {% if request.endpoint == 'loja.index' and banners %}
     <link rel="preload" as="image" href="{{ gerar_link(banners[0].imagem_url) }}" fetchpriority="high">
     {% endif %}
-    
+
+    {# ── PRELOAD da fonte principal — evita FOUT e CLS ── #}
+    <link rel="preload" href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" as="style">
+
     <title>{% block title %}{{ title if title else 'M4 Tática | Armas, Munições e Acessórios' }}{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}{{ meta_desc if meta_desc else 'A maior variedade de armas e munições com a qualidade M4 Tática.' }}{% endblock %}">
-    
+
     <meta property="og:site_name" content="M4 Tática">
     <meta property="og:type" content="website">
     {% block opengraph %}
-    {# Tags para Facebook, WhatsApp e Instagram #}
     <meta property="og:title" content="{{ title if title else 'M4 Tática | Armas, Munições e Acessórios' }}">
     <meta property="og:description" content="{{ meta_desc if meta_desc else 'A maior variedade de armas e munições com a qualidade M4 Tática. Confira nossos lançamentos e ofertas.' }}">
     <meta property="og:url" content="{{ request.url }}">
     <meta property="og:type" content="website">
-    {# A imagem deve ser absoluta para as redes sociais lerem #}
     <meta property="og:image" content="{{ url_for('static', filename='img/logo-social.png', _external=True) }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-
-    {# Tags para o X (antigo Twitter) #}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ title if title else 'M4 Tática' }}">
     <meta name="twitter:description" content="{{ meta_desc if meta_desc else 'Armas e munições com qualidade superior.' }}">
     {% endblock %}
+
     <link rel="canonical" href="{{ request.url }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
     <link rel="icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <link href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}?display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    
-    <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
-    
+    {# ══════════════════════════════════════════════════════
+       CSS CRÍTICO inline — o mínimo para renderizar acima
+       da dobra sem depender de nenhum arquivo externo.
+       Bootstrap e ícones carregam depois (non-blocking).
+    ══════════════════════════════════════════════════════ #}
     <style>
+        /* ── Reset & variáveis ── */
         :root {
-            --m4-dark: #000000;
-            --m4-gold: #c5a059; 
-            --m4-gold-text: #8b6d31; 
+            --m4-dark:       #000000;
+            --m4-gold:       #c5a059;
+            --m4-gold-text:  #8b6d31;
             --m4-gold-hover: #a68546;
-            --m4-gray-bg: #f8f9fa;
-            --m4-text: #333333;
-            --m4-border: #e5e5e5;
+            --m4-gray-bg:    #f8f9fa;
+            --m4-text:       #333333;
+            --m4-border:     #e5e5e5;
             --m4-gray-light: #d1d1d1;
-            --m4-orange: #ff6600; /* Para botões de ação/compra */
+            --m4-orange:     #ff6600;
         }
 
+        /* font-display:swap inline — evita CLS e FOIT enquanto fontes carregam */
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 400 900;
+            font-display: swap;
+            src: local('Inter');   /* fallback imediato do sistema */
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #ffffff;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #fff;
             color: var(--m4-text);
             margin: 0;
             overflow-x: hidden;
         }
 
+        /* ── Header / navbar — dimensões fixas para evitar CLS ── */
         header {
             position: sticky;
             top: 0;
             width: 100%;
             z-index: 2000;
             background-color: var(--m4-dark);
+            /* altura reservada explicitamente: evita layout shift */
+            min-height: 86px;
+            contain: layout style;
         }
 
         .navbar-main { padding: 15px 0; border-bottom: 1px solid #222; }
         .navbar-brand { position: relative; z-index: 2001; display: inline-block; }
-        .logo-img { height: 55px; width: auto; object-fit: contain; }
-        
-        .search-container { max-width: 500px; width: 100%; }
-        .search-box-m4 { background: #fff; border: none; border-radius: 4px 0 0 4px !important; padding: 12px 20px; font-size: 14px; }
-        .search-btn-m4 { background: var(--m4-gold); border: none; border-radius: 0 4px 4px 0 !important; padding: 0 20px; color: #000; }
 
-        .header-icon { color: #fff; font-size: 22px; text-decoration: none; position: relative; padding: 5px 10px; transition: 0.3s; }
-        .header-icon:hover { color: var(--m4-gold); }
-        .cart-badge { position: absolute; top: -5px; right: -2px; background: var(--m4-gold); color: #000; font-size: 10px; font-weight: 900; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-
-        .btn-orange { background-color: var(--m4-orange); color: #fff; border: none; transition: 0.3s; }
-        .btn-orange:hover { background-color: #e65c00; color: #fff; transform: translateY(-2px); }
-
-        .nav-departments { background-color: #ffffff; border-bottom: 3px solid var(--m4-gold); }
-        .nav-departments .nav-link { 
-            color: #111 !important; 
-            font-size: 12px; 
-            font-weight: 800; 
-            text-transform: uppercase; 
-            padding: 16px 15px !important; 
-            letter-spacing: 1px;
-            transition: 0.3s;
+        /* Dimensões fixas no logo — previne CLS crítico */
+        .logo-img {
+            height: 55px;
+            width: 160px;          /* reserva espaço antes da imagem carregar */
+            object-fit: contain;
+            display: block;
         }
-        
+
+        .search-container { max-width: 500px; width: 100%; }
+        .search-box-m4 {
+            background: #fff; border: none;
+            border-radius: 4px 0 0 4px !important;
+            padding: 12px 20px; font-size: 14px;
+        }
+        .search-btn-m4 {
+            background: var(--m4-gold); border: none;
+            border-radius: 0 4px 4px 0 !important;
+            padding: 0 20px; color: #000;
+            cursor: pointer;
+        }
+
+        .header-icon {
+            color: #fff; font-size: 22px;
+            text-decoration: none; position: relative;
+            padding: 5px 10px; transition: color .3s;
+        }
+        .header-icon:hover { color: var(--m4-gold); }
+
+        .cart-badge {
+            position: absolute; top: -5px; right: -2px;
+            background: var(--m4-gold); color: #000;
+            font-size: 10px; font-weight: 900;
+            width: 18px; height: 18px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ── Nav departamentos — altura fixa reservada ── */
+        .nav-departments {
+            background-color: #fff;
+            border-bottom: 3px solid var(--m4-gold);
+            min-height: 51px;
+        }
+        .nav-departments .nav-link {
+            color: #111 !important;
+            font-size: 12px; font-weight: 800;
+            text-transform: uppercase;
+            padding: 16px 15px !important;
+            letter-spacing: 1px; transition: color .3s;
+        }
+
+        /* ── Dropdown ── */
+        .dropdown-menu {
+            border-radius: 0; border: none;
+            border-top: 3px solid var(--m4-gold);
+            box-shadow: 0 10px 30px rgba(0,0,0,.1);
+            min-width: 250px; padding: 10px 0;
+            max-height: 80vh; overflow-y: auto;
+        }
+        .dropdown-menu::-webkit-scrollbar { width: 5px; }
+        .dropdown-menu::-webkit-scrollbar-thumb { background: var(--m4-gold); }
+        .dropdown-item {
+            font-size: 13px; font-weight: 600;
+            padding: 10px 25px; transition: .2s;
+        }
+        .dropdown-item:hover {
+            background-color: var(--m4-gray-bg);
+            color: var(--m4-gold-text); padding-left: 30px;
+        }
+
+        /* ── Botões ── */
+        .btn-orange {
+            background-color: var(--m4-orange); color: #fff;
+            border: none; transition: .3s;
+        }
+        .btn-orange:hover {
+            background-color: #e65c00; color: #fff;
+            transform: translateY(-2px);
+        }
+
+        /* ── Footer ── */
+        footer {
+            background-color: #111; color: #fff;
+            padding: 60px 0 20px; margin-top: 80px;
+        }
+        footer .footer-title {
+            color: #fff; font-weight: 800;
+            text-transform: uppercase; font-size: 14px;
+            margin-bottom: 25px; letter-spacing: 1px;
+            border-left: 3px solid var(--m4-gold);
+            padding-left: 10px;
+        }
+        footer a { color: var(--m4-gray-light); text-decoration: none; transition: .3s; font-size: 13px; }
+        footer a:hover { color: var(--m4-gold); padding-left: 5px; }
+        .footer-info-text { color: var(--m4-gray-light) !important; font-size: 13px; }
+        .copyright-text {
+            font-size: 11px; color: #fff !important;
+            opacity: .9; letter-spacing: .5px; line-height: 1.6;
+        }
+
+        /* ── Responsivo ── */
+        @media (max-width: 991px) {
+            .search-container { order: 3; max-width: 100%; margin-top: 15px; }
+            .logo-img { height: 40px; width: 120px; }
+            header { min-height: 70px; }
+        }
+
         @media (min-width: 992px) {
             .dropdown:hover > .dropdown-menu { display: block; margin-top: 0; }
             .nav-departments .nav-link:hover { color: var(--m4-gold-text) !important; background: #fdfdfd; }
         }
 
-        .dropdown-menu { 
-            border-radius: 0; 
-            border: none; 
-            border-top: 3px solid var(--m4-gold); 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-            min-width: 250px; 
-            padding: 10px 0;
-            max-height: 80vh; 
-            overflow-y: auto; 
-        }
-        
-        .dropdown-menu::-webkit-scrollbar { width: 5px; }
-        .dropdown-menu::-webkit-scrollbar-track { background: #f1f1f1; }
-        .dropdown-menu::-webkit-scrollbar-thumb { background: var(--m4-gold); }
-
-        .dropdown-item { font-size: 13px; font-weight: 600; padding: 10px 25px; transition: 0.2s; }
-        .dropdown-item:hover { background-color: var(--m4-gray-bg); color: var(--m4-gold-text); padding-left: 30px; }
-
-        footer { background-color: #111; color: #fff; padding: 60px 0 20px; margin-top: 80px; }
-        
-        footer .footer-title { 
-            color: #fff; 
-            font-weight: 800; 
-            text-transform: uppercase; 
-            font-size: 14px; 
-            margin-bottom: 25px; 
-            letter-spacing: 1px; 
-            border-left: 3px solid var(--m4-gold); 
-            padding-left: 10px; 
-        }
-        
-        footer a { color: var(--m4-gray-light); text-decoration: none; transition: 0.3s; font-size: 13px; }
-        footer a:hover { color: var(--m4-gold); padding-left: 5px; }
-        .footer-info-text { color: var(--m4-gray-light) !important; font-size: 13px; }
-
-        .copyright-text { 
-            font-size: 11px; 
-            color: #ffffff !important; 
-            opacity: 0.9;
-            letter-spacing: 0.5px;
-            line-height: 1.6;
-        }
-
-        @media (max-width: 991px) {
-            .search-container { order: 3; max-width: 100%; margin-top: 15px; }
-            .logo-img { height: 40px; }
-        }
+        /* ── Placeholder para ícones enquanto CSS não carrega ── */
+        .bi, .fas, .fab, .far, .fa { display: inline-block; }
     </style>
+
+    {# ══════════════════════════════════════════════════════
+       CSS NÃO-BLOQUEANTE — carrega após paint inicial
+       Técnica: media="print" + onload="this.media='all'"
+       Garante que nenhum desses arquivos bloqueie o LCP.
+    ══════════════════════════════════════════════════════ #}
+
+    {# Bootstrap — maior prioridade entre os três #}
+    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}"></noscript>
+
+    {# Bootstrap Icons #}
+    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}"></noscript>
+
+    {# FontAwesome — só se usado; se não houver ícones FA no template, remova #}
+    <link rel="preload" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}"></noscript>
+
+    {# Fonte Inter (servida localmente) #}
+    <link rel="preload" href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}"></noscript>
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+
+    {# GTM noscript — deve vir imediatamente após <body> #}
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W786W67Z"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
     <header>
         <div class="navbar-main">
             <div class="container d-flex flex-wrap align-items-center justify-content-between">
                 <a href="{{ url_for('loja.index') }}" class="navbar-brand m-0" aria-label="M4 Tática - Página Inicial">
-                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo M4 Tática" class="logo-img">
+                    {# width/height explícitos são obrigatórios para evitar CLS #}
+                    <img src="{{ url_for('static', filename='img/logo.png') }}"
+                         alt="Logo M4 Tática"
+                         class="logo-img"
+                         width="160" height="55"
+                         fetchpriority="high">
                 </a>
 
                 <div class="search-container d-flex">
                     <form action="{{ url_for('loja.index') }}" method="GET" class="d-flex w-100 shadow-sm" role="search">
-                        <input type="text" name="q" class="form-control search-box-m4" placeholder="O que você está procurando?" value="{{ termo_busca or '' }}" aria-label="Buscar produtos">
-                        <button type="submit" class="search-btn-m4" aria-label="Pesquisar"><i class="bi bi-search"></i></button>                        
+                        <input type="text" name="q" class="form-control search-box-m4"
+                               placeholder="O que você está procurando?"
+                               value="{{ termo_busca or '' }}"
+                               aria-label="Buscar produtos">
+                        <button type="submit" class="search-btn-m4" aria-label="Pesquisar">
+                            <i class="bi bi-search"></i>
+                        </button>
                     </form>
                 </div>
 
-<div class="d-flex align-items-center gap-2">
-    {% if cliente_loja %}
-        <a href="{{ url_for('loja.minha_conta') }}" class="header-icon" 
-           title="{{ cliente_loja.nome.split()[0] }}" aria-label="Minha Conta">
-            <i class="bi bi-person-check-fill" style="color: var(--m4-gold);"></i>
-        </a>
-    {% else %}
-        <a href="{{ url_for('loja.login') }}" class="header-icon" aria-label="Entrar / Criar conta">
-            <i class="bi bi-person-circle"></i>
-        </a>
-    {% endif %}
-    <a href="{{ url_for('carrinho.index') }}" class="header-icon" aria-label="Meu Carrinho">
-        <i class="bi bi-cart3"></i>
-        <span id="cart-badge" class="cart-badge {% if not session.cart_count or session.cart_count == 0 %}d-none{% endif %}">
-            {{ session.cart_count or 0 }}
-        </span>
-    </a>
-</div>
+                <div class="d-flex align-items-center gap-2">
+                    {% if cliente_loja %}
+                        <a href="{{ url_for('loja.minha_conta') }}" class="header-icon"
+                           title="{{ cliente_loja.nome.split()[0] }}" aria-label="Minha Conta">
+                            <i class="bi bi-person-check-fill" style="color: var(--m4-gold);"></i>
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('loja.login') }}" class="header-icon" aria-label="Entrar / Criar conta">
+                            <i class="bi bi-person-circle"></i>
+                        </a>
+                    {% endif %}
+                    <a href="{{ url_for('carrinho.index') }}" class="header-icon" aria-label="Meu Carrinho">
+                        <i class="bi bi-cart3"></i>
+                        <span id="cart-badge" class="cart-badge {% if not session.cart_count or session.cart_count == 0 %}d-none{% endif %}">
+                            {{ session.cart_count or 0 }}
+                        </span>
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -202,14 +287,19 @@
                     {% for cat in categorias_menu %}
                         {% if cat.exibir_no_menu %}
                             {% set subcategorias_ativas = cat.subcategorias|selectattr("exibir_no_menu", "equalto", True)|list %}
-                            
                             {% if subcategorias_ativas %}
                                 <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}" id="navbarDropdown{{ cat.id }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <a class="nav-link dropdown-toggle"
+                                       href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}"
+                                       id="navbarDropdown{{ cat.id }}" role="button"
+                                       data-bs-toggle="dropdown" aria-expanded="false">
                                         {{ cat.nome }}
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown{{ cat.id }}">
-                                        <li><a class="dropdown-item fw-bold text-dark border-bottom mb-1" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">VER TUDO EM {{ cat.nome|upper }}</a></li>
+                                        <li><a class="dropdown-item fw-bold text-dark border-bottom mb-1"
+                                               href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">
+                                            VER TUDO EM {{ cat.nome|upper }}
+                                        </a></li>
                                         {% for sub in subcategorias_ativas %}
                                             <li><a class="dropdown-item" href="{{ url_for('loja.categoria', slug_categoria=sub.slug) }}">{{ sub.nome }}</a></li>
                                         {% endfor %}
@@ -223,7 +313,9 @@
                         {% endif %}
                     {% endfor %}
                     <li class="nav-item">
-                        <a class="nav-link text-danger fw-bold" href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank" rel="noopener">
+                        <a class="nav-link text-danger fw-bold"
+                           href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}"
+                           target="_blank" rel="noopener noreferrer">
                             <i class="bi bi-shield-check me-1"></i> SERVIÇOS / CR
                         </a>
                     </li>
@@ -248,7 +340,6 @@
                         {% endfor %}
                     </ul>
                 </div>
-
                 <div class="col-lg-3 col-md-6">
                     <h2 class="footer-title">Categorias</h2>
                     <ul class="list-unstyled">
@@ -259,34 +350,36 @@
                         {% endfor %}
                     </ul>
                 </div>
-
                 <div class="col-lg-3 col-md-6">
                     <h2 class="footer-title">Informações</h2>
                     <p class="mb-1 fw-bold text-white">{{ loja.loja_nome_fantasia if loja.loja_nome_fantasia else 'M4 Tática' }}</p>
                     <p class="mb-1 footer-info-text">CNPJ: {{ loja.loja_cnpj if loja.loja_cnpj else '41.654.218/0001-47' }}</p>
-                    
                     <p class="mb-1">
-                        <a href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank" class="text-decoration-none" rel="noopener">
-                            <i class="bi bi-whatsapp text-success" aria-hidden="true"></i> <span class="footer-info-text">{{ loja.loja_telefone if loja.loja_telefone else '(86) 3025-5885' }}</span>
+                        <a href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}"
+                           target="_blank" class="text-decoration-none" rel="noopener noreferrer">
+                            <i class="bi bi-whatsapp text-success" aria-hidden="true"></i>
+                            <span class="footer-info-text">{{ loja.loja_telefone if loja.loja_telefone else '(86) 3025-5885' }}</span>
                         </a>
                     </p>
-                    
                     <div class="footer-social d-flex gap-3 mt-3">
                         {% if loja.loja_instagram %}
-                        <a href="https://instagram.com/{{ loja.loja_instagram|replace('@', '') }}" target="_blank" class="fs-4 text-white" aria-label="Siga-nos no Instagram" rel="noopener">
+                        <a href="https://instagram.com/{{ loja.loja_instagram|replace('@', '') }}"
+                           target="_blank" class="fs-4 text-white" aria-label="Siga-nos no Instagram" rel="noopener noreferrer">
                             <i class="bi bi-instagram"></i>
                         </a>
                         {% endif %}
-                        <a href="mailto:{{ loja.loja_email }}" class="fs-4 text-white" aria-label="Envie-nos um e-mail"><i class="bi bi-envelope"></i></a>
+                        <a href="mailto:{{ loja.loja_email }}" class="fs-4 text-white" aria-label="Envie-nos um e-mail">
+                            <i class="bi bi-envelope"></i>
+                        </a>
                     </div>
                 </div>
-
                 <div class="col-lg-3 col-md-6">
                     <h2 class="footer-title">Segurança</h2>
                     <div class="payment-icons mb-3">
-                        <img src="https://img.icons8.com/color/38/visa.png" alt="Visa" loading="lazy" width="38" height="38">
+                        {# width/height explícitos evitam CLS no footer #}
+                        <img src="https://img.icons8.com/color/38/visa.png"       alt="Visa"       loading="lazy" width="38" height="38">
                         <img src="https://img.icons8.com/color/38/mastercard.png" alt="Mastercard" loading="lazy" width="38" height="38">
-                        <img src="https://img.icons8.com/color/38/pix.png" alt="Pix" loading="lazy" width="38" height="38">
+                        <img src="https://img.icons8.com/color/38/pix.png"        alt="Pix"        loading="lazy" width="38" height="38">
                     </div>
                     <div class="d-flex gap-2">
                         <i class="bi bi-shield-check fs-2 text-success" title="Site Seguro" aria-hidden="true"></i>
@@ -296,76 +389,76 @@
             </div>
 
             <div class="footer-bottom mt-5 pt-4 border-top border-secondary text-center">
-                <p class="copyright-text">© 2026 {{ loja.loja_nome_fantasia|upper if loja.loja_nome_fantasia else 'M4 TÁTICA' }}. TODOS OS DIREITOS RESERVADOS. <br>
-                Venda de armas e munições de acordo com a legislação vigente.</p>
+                <p class="copyright-text">
+                    © 2026 {{ loja.loja_nome_fantasia|upper if loja.loja_nome_fantasia else 'M4 TÁTICA' }}.
+                    TODOS OS DIREITOS RESERVADOS.<br>
+                    Venda de armas e munições de acordo com a legislação vigente.
+                </p>
             </div>
         </div>
-<div class="toast-container position-fixed bottom-0 end-0 p-3">
-  <div id="cartToast" class="toast align-items-center text-white bg-dark border-0" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="d-flex">
-      <div class="toast-body">
-        <i class="fas fa-check-circle text-success me-2"></i> <span id="toastMessage"></span>
-      </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="modal" aria-label="Close"></button>
-    </div>
-  </div>
-</div>
 
+        {# Toast de carrinho #}
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div id="cartToast" class="toast align-items-center text-white bg-dark border-0"
+                 role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span id="toastMessage"></span>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                            data-bs-dismiss="toast" aria-label="Fechar"></button>
+                </div>
+            </div>
+        </div>
     </footer>
 
+    {# ══════════════════════════════════════════════════════
+       SCRIPTS — todos no final, Bootstrap com defer.
+       GTM carregado de forma assíncrona aqui (não no <head>)
+       para não bloquear o parser HTML.
+    ══════════════════════════════════════════════════════ #}
+
+    {# Bootstrap JS #}
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}" defer></script>
-    
+
+    {# Google Tag Manager — async para não bloquear nada #}
     <script>
-        async function adicionarAoCarrinho(produtoId) {
-            try {
-                const response = await fetch(`/carrinho/add/${produtoId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+    (function(w,d,s,l,i){
+        w[l]=w[l]||[];
+        w[l].push({'gtm.start': new Date().getTime(), event:'gtm.js'});
+        var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s), dl=l!='dataLayer'?'&l='+l:'';
+        j.async=true;
+        j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+        f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-W786W67Z');
+    </script>
 
-                const data = await response.json();
-
-                if (data.success) {
-                    const badge = document.getElementById('cart-badge');
-                    if (badge) {
-                        badge.textContent = data.cart_count;
-                        badge.classList.remove('d-none');
-                    }
-                    // Otimização: Notificação silenciosa para não quebrar a navegação
-                    alert(data.message); 
+    {# Carrinho #}
+    <script>
+    async function adicionarAoCarrinho(produtoId) {
+        try {
+            const response = await fetch(`/carrinho/add/${produtoId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+            if (data.success) {
+                const badge = document.getElementById('cart-badge');
+                if (badge) {
+                    badge.textContent = data.cart_count;
+                    badge.classList.remove('d-none');
                 }
-            } catch (error) {
-                console.error("Erro ao adicionar ao arsenal:", error);
+                const toastEl = document.getElementById('cartToast');
+                document.getElementById('toastMessage').textContent = data.message;
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
             }
+        } catch (error) {
+            console.error('Erro ao adicionar ao carrinho:', error);
         }
-
-async function adicionarAoCarrinho(produtoId) {
-    try {
-        const response = await fetch(`/carrinho/add/${produtoId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            const badge = document.getElementById('cart-badge');
-            if (badge) {
-                badge.textContent = data.cart_count;
-                badge.classList.remove('d-none');
-            }
-            
-            // Exibir Toast em vez de Alert
-            const toastEl = document.getElementById('cartToast');
-            document.getElementById('toastMessage').textContent = data.message;
-            const toast = new bootstrap.Toast(toastEl);
-            toast.show();
-        }
-    } catch (error) {
-        console.error("Erro:", error);
     }
-}
-
     </script>
 
     {% block extra_js %}{% endblock %}
