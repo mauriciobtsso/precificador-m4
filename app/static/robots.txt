@@ -1,15 +1,26 @@
 User-agent: *
 Disallow: /admin/
+Disallow: /admin-loja/
 Disallow: /login
 Disallow: /sistema/
+Disallow: /carrinho/checkout/
+Disallow: /minha-conta/
+# Bloqueia arquivos sensíveis de sistema
 Disallow: /app/
 Disallow: /config.py
+Disallow: /.env
+Disallow: /instance/
 
-# PERMISSÃO ESPECIAL PARA REDES SOCIAIS
+# PERMISSÃO ESPECIAL PARA REDES SOCIAIS (Melhora a prévia do link)
 User-agent: facebookexternalhit
 Allow: /loja/produto/
 
 User-agent: WhatsApp
 Allow: /loja/produto/
 
+# SINALIZAÇÃO OFICIAL CONTRA TREINAMENTO DE IA (Substitui o Content-Signal inválido)
+User-agent: Google-Extended
+Disallow: /
+
+# SITEMAP OFICIAL
 Sitemap: https://app.m4tatica.com.br/loja/sitemap.xml

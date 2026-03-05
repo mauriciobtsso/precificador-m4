@@ -1,51 +1,48 @@
-# ========================================
-# app/utils/r2_helpers.py (Corrigido)
-# ========================================
-"""
-Funções auxiliares específicas para Cloudflare R2.
-Wrapper para app/utils/storage.py com lógica de pastas e nomes de arquivos.
-
-CORREÇÃO: Melhorado tratamento de URLs para evitar duplicação de caminhos.
-"""
-
 from app.utils.storage import get_s3, get_bucket, upload_file
 from werkzeug.utils import secure_filename
 import logging
 import uuid
 import os
+import boto3
 from flask import current_app
 from urllib.parse import urlparse
 
+# Configurações Táticas de Arsenal
+BUCKET_PRIVADO = "m4-clientes-docs"
+BUCKET_PUBLICO = "m4-loja-publico"
+CDN_URL = "https://cdn.m4tatica.com.br"
+
 def gerar_link_r2(caminho_arquivo: str, expiracao: int = 3600) -> str:
     """
-    Gera um link pré-assinado válido por `expiracao` segundos.
-    
-    CORREÇÃO: Agora trata corretamente URLs completas e caminhos relativos.
-    Se receber uma URL completa, extrai apenas o caminho relativo.
+    Gera o link para o arquivo. 
+    SE FOR PÚBLICO (loja/ ou produtos/): Retorna link direto via CDN (Cloudflare Cache).
+    SE FOR PRIVADO (documentos): Gera link assinado pelo R2.
     """
     if not caminho_arquivo:
         return ""
 
     try:
-        # Se for uma URL completa, extrair apenas o caminho relativo
+        # Limpeza de URL caso venha o link completo do banco
         if caminho_arquivo.startswith('http'):
-            # Exemplo: https://pub-xxx.r2.dev/produtos/fotos/temp/xxx.webp
-            # Resultado: produtos/fotos/temp/xxx.webp
             parsed_url = urlparse(caminho_arquivo)
             caminho_arquivo = parsed_url.path.lstrip('/')
             
-            # Remover o nome do bucket se estiver no início do caminho
-            bucket_nome = "m4-clientes-docs"
-            if caminho_arquivo.startswith(bucket_nome + '/'):
-                caminho_arquivo = caminho_arquivo[len(bucket_nome) + 1:]
-        
-        s3 = get_s3()
-        bucket = get_bucket()
+            # Remove prefixo do bucket antigo se existir no path
+            if caminho_arquivo.startswith(BUCKET_PRIVADO + '/'):
+                caminho_arquivo = caminho_arquivo[len(BUCKET_PRIVADO) + 1:]
 
+        # 🎯 REGRA DE OURO: Roteamento para o CDN (Performance Máxima)
+        # Identifica se o arquivo já foi migrado para o bucket público
+        pastas_publicas = ('loja/', 'produtos/')
+        if caminho_arquivo.startswith(pastas_publicas):
+            return f"{CDN_URL}/{caminho_arquivo}"
+
+        # 🔒 SEGURANÇA: Links assinados para o que restou no bucket privado
+        s3 = get_s3()
         url = s3.generate_presigned_url(
             "get_object",
-            Params={"Bucket": bucket, "Key": caminho_arquivo},
-            ExpiresIn=604800,
+            Params={"Bucket": BUCKET_PRIVADO, "Key": caminho_arquivo},
+            ExpiresIn=expiracao,
         )
         return url
 
@@ -55,28 +52,33 @@ def gerar_link_r2(caminho_arquivo: str, expiracao: int = 3600) -> str:
 
 def upload_file_to_r2(file_storage, folder="uploads") -> str:
     """
-    Recebe um objeto FileStorage (Flask), salva no R2 dentro da pasta especificada
-    e retorna o caminho (Key) do arquivo salvo.
+    Faz upload selecionando o bucket correto: 
+    loja ou produtos -> m4-loja-publico
+    outros -> m4-clientes-docs
     """
     if not file_storage:
         return None
 
     try:
-        # Limpa o nome do arquivo
         filename = secure_filename(file_storage.filename)
-        
-        # Se o nome ficou vazio após limpar, gera um aleatório
         if not filename:
             filename = f"file_{uuid.uuid4().hex[:8]}"
 
-        # Monta o caminho final (Key)
         if folder.endswith("/"):
             folder = folder[:-1]
             
         caminho_destino = f"{folder}/{filename}"
 
-        # Usa a função base do storage.py para fazer o upload real
-        upload_file(file_storage, caminho_destino)
+        # Seleção automática de Bucket
+        bucket_destino = BUCKET_PUBLICO if folder.startswith(('loja', 'produtos')) else BUCKET_PRIVADO
+
+        s3 = get_s3()
+        s3.upload_fileobj(
+            file_storage,
+            bucket_destino,
+            caminho_destino,
+            ExtraArgs={'ContentType': file_storage.content_type}
+        )
         
         return caminho_destino
 
@@ -85,20 +87,5 @@ def upload_file_to_r2(file_storage, folder="uploads") -> str:
         return None
 
 def upload_fileobj_r2(file_obj, folder="uploads"):
-    """
-    Faz upload de um objeto arquivo (FileStorage ou bytes) para o Cloudflare R2.
-    Retorna a URL pública ou caminho relativo (Key) do arquivo.
-    (Versão simplificada usada pelo módulo de Compras)
-    """
-    try:
-        # Reutiliza a lógica robusta acima
-        key = upload_file_to_r2(file_obj, folder)
-        if key:
-            # Retorna URL pública se configurada, senão retorna a Key
-            if current_app.config.get("R2_PUBLIC_URL"):
-                return f"{current_app.config['R2_PUBLIC_URL']}/{key}"
-            return key
-        return None
-    except Exception as e:
-        print(f"[R2 Upload Error] {e}")
-        return None
+    """Wrapper para manter compatibilidade com o módulo de Compras"""
+    return upload_file_to_r2(file_obj, folder)
