@@ -45,7 +45,7 @@ def gerar_link_r2(caminho_arquivo: str, expiracao: int = 3600) -> str:
         url = s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": bucket, "Key": caminho_arquivo},
-            ExpiresIn=expiracao,
+            ExpiresIn=604800,
         )
         return url
 
