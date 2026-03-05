@@ -11,12 +11,11 @@
             {% for banner in banners %}
             <div class="carousel-item {{ 'active' if loop.first }}">
                 {% set banner_link = gerar_link(banner.imagem_url) %}
-                
-                {# Removido o height fixo do style para permitir que a proporção comande o tamanho #}
+
                 {% set img_attrs = 'class="d-block w-100 m4-banner-img" alt="' ~ banner.titulo ~ '" width="1200" height="400" decoding="async"' %}
-                
+
                 {% if loop.first %}
-                    {% set img_attrs = img_attrs ~ ' fetchpriority="high"' %}
+                    {% set img_attrs = img_attrs ~ ' fetchpriority="high" loading="eager"' %}
                 {% else %}
                     {% set img_attrs = img_attrs ~ ' loading="lazy"' %}
                 {% endif %}
@@ -44,23 +43,20 @@
 {% endif %}
 
 <style>
-    /* CSS para Banner Fluido */
     .m4-banner-img {
         width: 100%;
-        height: auto; /* Fundamental para reduzir no mobile */
-        aspect-ratio: 1200 / 400; /* Mantém a proporção de cinema */
+        height: auto;
+        aspect-ratio: 1200 / 400;
         object-fit: cover;
     }
 
-    /* Ajuste para telas muito pequenas (Mobile Portrait) */
     @media (max-width: 768px) {
         .m4-banner-img {
-            /* No mobile, podemos mudar a proporção para 3:2 para o banner não ficar uma "tira" muito fina */
-            aspect-ratio: 3 / 2; 
-            min-height: 200px; /* Garante que o banner tenha uma presença mínima */
+            aspect-ratio: 3 / 2;
+            min-height: 200px;
         }
         #heroCarousel {
-            margin-top: 0; /* Remove espaços desnecessários no mobile */
+            margin-top: 0;
         }
     }
 </style>
@@ -77,24 +73,44 @@
                 {% for marca in marcas_lista %}
                 <div class="brand-slide">
                     <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none" aria-label="Ver produtos da marca {{ marca.nome }}">
-                        <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
+                        {# ── height e min-width inline são críticos para evitar CLS ──
+                           O CSS (.brand-card height:80px) carrega de forma não-bloqueante,
+                           então sem o style inline o browser não reserva espaço,
+                           causando layout shift quando o CSS finalmente aplica.
+                        ── #}
+                        <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center"
+                             style="height: 80px; min-width: 100px;">
                             {% if marca.logo_url %}
-                                <img src="{{ gerar_link(marca.logo_url) }}" alt="Logo {{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async" width="160" height="80" style="object-fit: contain;">
+                                <img src="{{ gerar_link(marca.logo_url) }}"
+                                     alt="Logo {{ marca.nome }}"
+                                     class="img-fluid brand-img"
+                                     loading="lazy"
+                                     decoding="async"
+                                     width="160" height="80"
+                                     style="object-fit: contain; max-height: 60px;">
                             {% else %}
-                                <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
+                                <span class="fw-bold text-dark opacity-50" style="font-size: 11px;">{{ marca.nome|upper }}</span>
                             {% endif %}
                         </div>
                     </a>
                 </div>
                 {% endfor %}
-                
+
+                {# Duplicata para animação de scroll contínuo #}
                 {% for marca in marcas_lista %}
                 <div class="brand-slide d-none d-md-block">
-                    <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center" style="height: 80px;">
+                    <div class="bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center"
+                         style="height: 80px; min-width: 100px;">
                         {% if marca.logo_url %}
-                            <img src="{{ gerar_link(marca.logo_url) }}" alt="Logo {{ marca.nome }}" class="img-fluid brand-img" loading="lazy" decoding="async" width="160" height="80" style="object-fit: contain;">
+                            <img src="{{ gerar_link(marca.logo_url) }}"
+                                 alt="Logo {{ marca.nome }}"
+                                 class="img-fluid brand-img"
+                                 loading="lazy"
+                                 decoding="async"
+                                 width="160" height="80"
+                                 style="object-fit: contain; max-height: 60px;">
                         {% else %}
-                            <span class="fw-bold text-dark opacity-50">{{ marca.nome|upper }}</span>
+                            <span class="fw-bold text-dark opacity-50" style="font-size: 11px;">{{ marca.nome|upper }}</span>
                         {% endif %}
                     </div>
                 </div>
@@ -119,7 +135,7 @@
 
 <div class="container mt-5">
     {% if not termo_busca and not categoria_ativa %}
-        
+
         {# 3. LANÇAMENTOS (Inteligente) #}
         {% if lancamentos %}
         <section class="mb-5" aria-labelledby="title-lancamentos">
@@ -155,17 +171,17 @@
         {# 5. BANNER INSTITUCIONAL / DESPACHANTE #}
         <section class="mb-5">
             <div class="promo-banner shadow-sm rounded overflow-hidden">
-                <div class="p-5 bg-dark text-center position-relative" 
+                <div class="p-5 bg-dark text-center position-relative"
                      style="background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)){% if loja.banner_despachante_link %}, url('{{ loja.banner_despachante_link }}') center/cover{% endif %}; min-height: 350px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    
+
                     <h2 class="text-gold fw-bold mb-2" style="letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                         {{ loja.loja_despachante_titulo if loja.loja_despachante_titulo else 'DESPACHANTE M4 TÁTICA' }}
                     </h2>
-                    
+
                     <p class="text-white opacity-75 mb-4 mx-auto" style="max-width: 700px; font-size: 1.1rem;">
                         {{ loja.loja_despachante_texto if loja.loja_despachante_texto else 'Assessoria completa para aquisição legal de armas de fogo e CR.' }}
                     </p>
-                    
+
                     <a href="https://wa.me/{{ loja.loja_whatsapp if loja.loja_whatsapp else '558630255885' }}" target="_blank" class="btn btn-gold fw-bold px-5 py-3 shadow" rel="noopener">
                         <i class="bi bi-whatsapp me-2" aria-hidden="true"></i> QUERO MINHA ARMA LEGALIZADA
                     </a>
@@ -207,7 +223,7 @@
                         {% include 'loja/_card_produto.html' %}
                     {% endfor %}
                 </div>
-                
+
                 {% if pagination and pagination.pages > 1 %}
                 <nav class="mt-5" aria-label="Navegação de busca">
                     <ul class="pagination justify-content-center">
@@ -227,15 +243,13 @@
 <style>
     .shelf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 12px; }
     .shelf-title { font-weight: 800; text-transform: uppercase; font-size: 1.1rem; border-left: 5px solid var(--m4-gold); padding-left: 15px; margin: 0; letter-spacing: 0.5px; color: #1a1a1a; }
-    
-    /* Correção Acessibilidade: Usando var(--m4-gold-text) para contraste superior a 4.5:1 */
+
     .shelf-link { color: var(--m4-gold-text); font-size: 11px; font-weight: 800; text-transform: uppercase; text-decoration: none; transition: 0.3s; border: 1px solid var(--m4-gold-text); padding: 4px 12px; border-radius: 20px; }
     .shelf-link:hover { background: var(--m4-gold-text); color: #fff; border-color: var(--m4-gold-text); }
-    
+
     .promo-banner .btn-gold { background-color: var(--m4-gold); border-color: var(--m4-gold); color: #000; transition: 0.3s; }
     .promo-banner .btn-gold:hover { background-color: #fff; border-color: #fff; transform: scale(1.05); }
-    
-    /* Correção Acessibilidade: Dourado escuro para títulos e destaques em texto */
+
     .text-gold { color: var(--m4-gold-text) !important; }
 </style>
 {% endblock %}

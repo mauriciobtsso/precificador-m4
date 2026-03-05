@@ -6,12 +6,12 @@
 
     {# ── PRECONNECTS ── só para recursos externos reais #}
     <link rel="preconnect" href="https://www.googletagmanager.com">
+    <link rel="preconnect" href="https://1202e2896f1ad48f3caa5d520ab29ff0.r2.cloudflarestorage.com" crossorigin>
+    <link rel="dns-prefetch" href="https://1202e2896f1ad48f3caa5d520ab29ff0.r2.cloudflarestorage.com">
     <link rel="dns-prefetch" href="https://img.icons8.com">
 
-    {# ── PRELOAD do banner hero (LCP) ── #}
-    {% if request.endpoint == 'loja.index' and banners %}
-    <link rel="preload" as="image" href="{{ gerar_link(banners[0].imagem_url) }}" fetchpriority="high">
-    {% endif %}
+    {# ── PRELOAD do logo (LCP em mobile) ── #}
+    <link rel="preload" as="image" href="{{ url_for('static', filename='img/logo.webp') }}" fetchpriority="high">
 
     {# ── PRELOAD da fonte principal — evita FOUT e CLS ── #}
     <link rel="preload" href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" as="style">
@@ -64,6 +64,17 @@
             font-weight: 400 900;
             font-display: swap;
             src: local('Inter');   /* fallback imediato do sistema */
+        }
+
+        /* ── Sobrescreve font-display do Bootstrap Icons ──
+           Necessário porque o arquivo vendor não tem font-display definido,
+           causando FOIT e CLS no carregamento inicial da página.
+        ── */
+        @font-face {
+            font-family: 'bootstrap-icons';
+            font-display: swap;
+            src: url('/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2?1fa40e8700') format('woff2'),
+                 url('/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff?1fa40e8700') format('woff');
         }
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -236,12 +247,18 @@
         <div class="navbar-main">
             <div class="container d-flex flex-wrap align-items-center justify-content-between">
                 <a href="{{ url_for('loja.index') }}" class="navbar-brand m-0" aria-label="M4 Tática - Página Inicial">
-                    {# width/height explícitos são obrigatórios para evitar CLS #}
-                    <img src="{{ url_for('static', filename='img/logo.png') }}"
-                         alt="Logo M4 Tática"
-                         class="logo-img"
-                         width="160" height="55"
-                         fetchpriority="high">
+                    {# ── Logo em WebP com fallback PNG ──
+                       <picture> permite WebP em navegadores modernos e PNG como fallback.
+                       width/height explícitos são obrigatórios para evitar CLS.
+                    ── #}
+                    <picture>
+                        <source srcset="{{ url_for('static', filename='img/logo.webp') }}" type="image/webp">
+                        <img src="{{ url_for('static', filename='img/logo.png') }}"
+                             alt="Logo M4 Tática"
+                             class="logo-img"
+                             width="160" height="55"
+                             fetchpriority="high">
+                    </picture>
                 </a>
 
                 <div class="search-container d-flex">
