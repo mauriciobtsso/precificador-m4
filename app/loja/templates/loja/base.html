@@ -220,10 +220,6 @@
     <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}"></noscript>
 
-    {# FontAwesome — só se usado; se não houver ícones FA no template, remova #}
-    <link rel="preload" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}"></noscript>
-
     {# Fonte Inter (servida localmente) #}
     <link rel="preload" href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}"></noscript>
@@ -403,7 +399,7 @@
                  role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body">
-                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
                         <span id="toastMessage"></span>
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto"
