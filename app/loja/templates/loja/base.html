@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
+
     {# ── PRECONNECTS ── #}
     <link rel="preconnect" href="https://www.googletagmanager.com">
     <link rel="preconnect" href="https://1202e2896f1ad48f3caa5d520ab29ff0.r2.cloudflarestorage.com" crossorigin>
@@ -178,9 +180,22 @@
                     <p class="mb-1 footer-info-text">CNPJ: {{ loja.loja_cnpj or '41.654.218/0001-47' }}</p>
                     <p class="mb-1"><a href="https://wa.me/{{ loja.loja_whatsapp or '558630255885' }}" target="_blank" class="text-decoration-none" rel="noopener"><i class="bi bi-whatsapp text-success"></i> <span class="footer-info-text">{{ loja.loja_telefone or '(86) 3025-5885' }}</span></a></p>
                     <div class="footer-social d-flex gap-3 mt-3">
-                        {% if loja.loja_instagram %}<a href="https://instagram.com/{{ loja.loja_instagram|replace('@', '') }}" target="_blank" class="fs-4 text-white" rel="noopener"><i class="bi bi-instagram"></i></a>{% endif %}
-                        <a href="mailto:{{ loja.loja_email }}" class="fs-4 text-white"><i class="bi bi-envelope"></i></a>
-                    </div>
+    {% if loja.loja_instagram %}
+    <a href="https://instagram.com/{{ loja.loja_instagram|replace('@', '') }}" 
+       target="_blank" 
+       class="fs-4 text-white" 
+       rel="noopener"
+       aria-label="Siga a M4 Tática no Instagram">  {# <--- Nome compreensível adicionado #}
+        <i class="bi bi-instagram"></i>
+    </a>
+    {% endif %}
+
+    <a href="mailto:{{ loja.loja_email }}" 
+       class="fs-4 text-white"
+       aria-label="Envie um e-mail para o suporte da M4 Tática"> {# <--- Nome compreensível adicionado #}
+        <i class="bi bi-envelope"></i>
+    </a>
+</div>
                 </div>
                 <div class="col-lg-3 col-md-6">
                     <h2 class="footer-title">Segurança</h2>

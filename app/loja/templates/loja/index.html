@@ -6,40 +6,47 @@
    ============================================= #}
 {% if not termo_busca and not categoria_ativa %}
     {% if banners %}
-    <div id="heroCarousel" class="carousel slide carousel-fade mb-4 mb-md-5" data-bs-ride="carousel" style="min-height: 200px; background: #eee;">
+    <div id="heroCarousel" class="carousel slide carousel-fade mb-4 mb-md-5" data-bs-ride="carousel" style="min-height: 200px; background: #000;">
+        
+        {# Indicadores (Bolinhas) - Apenas se houver mais de 1 #}
+        {% if banners|length > 1 %}
+        <div class="carousel-indicators">
+            {% for banner in banners %}
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{ loop.index0 }}" class="{{ 'active' if loop.first }}" aria-current="{{ 'true' if loop.first }}" aria-label="Slide {{ loop.index }}"></button>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <div class="carousel-inner">
             {% for banner in banners %}
-            <div class="carousel-item {{ 'active' if loop.first }}">
+            <div class="carousel-item {{ 'active' if loop.first }}" data-bs-interval="5000">
                 {% set banner_link = gerar_link(banner.imagem_url) %}
                 
-                {# Atributos base para todas as imagens de banner #}
-                {% set img_class = "d-block w-100 m4-banner-img" %}
-                
-                {% if loop.first %}
-                    {# O primeiro banner é o LCP: Carregamento imediato e prioridade alta #}
-                    <img src="{{ banner_link }}" 
-                         class="{{ img_class }}" 
-                         alt="{{ banner.titulo }}" 
-                         width="1200" height="400" 
-                         fetchpriority="high" 
-                         loading="eager"
-                         decoding="async">
-                {% else %}
-                    {# Banners subsequentes: Lazy load para economizar banda #}
-                    <img src="{{ banner_link }}" 
-                         class="{{ img_class }}" 
-                         alt="{{ banner.titulo }}" 
-                         width="1200" height="400" 
-                         loading="lazy" 
-                         decoding="async">
-                {% endif %}
-
                 {% if banner.link_destino %}
                     <a href="{{ banner.link_destino }}" class="stretched-link" aria-label="{{ banner.titulo }}"></a>
                 {% endif %}
+
+                <img src="{{ banner_link }}" 
+                     class="d-block w-100 m4-banner-img" 
+                     alt="{{ banner.titulo }}" 
+                     width="1200" height="400" 
+                     {% if loop.first %}fetchpriority="high" loading="eager"{% else %}loading="lazy"{% endif %}
+                     decoding="async">
             </div>
             {% endfor %}
         </div>
+
+        {# Setas de Navegação - Apenas se houver mais de 1 #}
+        {% if banners|length > 1 %}
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon shadow-sm" aria-hidden="true" style="..."></span>
+            <span class="visually-hidden">Ver banner anterior</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon shadow-sm" aria-hidden="true" style="..."></span>
+            <span class="visually-hidden">Ver próximo banner</span>
+        </button>
+        {% endif %}
     </div>
     {% endif %}
 {% endif %}
@@ -52,6 +59,12 @@
         aspect-ratio: 1200 / 400;
         object-fit: cover;
     }
+    
+    /* Melhora o contraste das setas em banners muito claros */
+    .carousel-control-prev-icon, .carousel-control-next-icon {
+        filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5));
+    }
+
     @media (max-width: 768px) {
         .m4-banner-img { aspect-ratio: 3 / 2; }
     }

@@ -32,8 +32,9 @@ def index():
     return render_template('loja_admin/index.html', total_banners=total_banners, total_paginas=total_paginas)
 
 # =========================================================
-# GERENCIAR BANNERS
+# GERENCIAR BANNERS (LISTAGEM, CRIAÇÃO E EDIÇÃO)
 # =========================================================
+
 @loja_admin_bp.route('/banners')
 @login_required
 def banners():
@@ -41,31 +42,66 @@ def banners():
     return render_template('loja_admin/banners/lista.html', banners=lista_banners)
 
 @loja_admin_bp.route('/banners/novo', methods=['GET', 'POST'])
+@loja_admin_bp.route('/banners/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
-def novo_banner():
+def gerenciar_banner(id=None):
+    # Se houver ID, estamos editando; caso contrário, criando um novo
+    banner = Banner.query.get(id) if id else Banner()
+    
     if request.method == 'POST':
-        titulo = request.form.get('titulo')
-        link_destino = request.form.get('link_destino')
-        ordem = request.form.get('ordem', 0)
+        banner.titulo = request.form.get('titulo')
+        banner.link_destino = request.form.get('link_destino')
+        banner.ordem = request.form.get('ordem', 0, type=int)
+        banner.ativo = 'ativo' in request.form # Captura o switch do HTML
+        
         arquivo = request.files.get('imagem')
 
+        # Lógica de Upload
         if arquivo and arquivo.filename != '':
+            # Se já existia uma imagem, o upload_file_to_r2 cuidará da nova
+            # mas você pode implementar a exclusão da antiga se desejar.
             imagem_key = upload_file_to_r2(arquivo, folder="loja/banners")
             if imagem_key:
-                novo = Banner(titulo=titulo, imagem_url=imagem_key, link_destino=link_destino, ordem=ordem, ativo=True)
-                db.session.add(novo)
-                db.session.commit()
-                flash("Banner publicado!", "success")
-                return redirect(url_for('loja_admin.banners'))
-    return render_template('loja_admin/banners/form.html')
+                banner.imagem_url = imagem_key
+        
+        # Validação para novos banners (imagem obrigatória no primeiro upload)
+        if not banner.imagem_url:
+            flash("❌ Erro: Um banner precisa de uma imagem.", "danger")
+            return render_template('loja_admin/banners/form.html', banner=banner)
+
+        if not id:
+            db.session.add(banner)
+        
+        db.session.commit()
+        
+        # 🚀 LIMPEZA DE CACHE TÁTICA
+        # Limpa o cache da home para o novo banner aparecer imediatamente
+        from app.loja.routes import cache
+        cache.delete('banners_home')
+        cache.delete('index_v7') # Versão que configuramos no routes.py
+        
+        flash(f"Banner {'atualizado' if id else 'publicado'} com sucesso!", "success")
+        return redirect(url_for('loja_admin.banners'))
+
+    return render_template('loja_admin/banners/form.html', banner=banner)
+
 
 @loja_admin_bp.route('/banners/excluir/<int:id>')
 @login_required
 def excluir_banner(id):
     banner = Banner.query.get_or_404(id)
+    
+    # Opcional: deletar o arquivo físico no R2 antes de apagar o registro
+    # delete_file_from_r2(banner.imagem_url) 
+
     db.session.delete(banner)
     db.session.commit()
-    flash("Banner removido!", "success")
+    
+    # Limpa cache após exclusão
+    from app.loja.routes import cache
+    cache.delete('banners_home')
+    
+    flash("Banner removido do arsenal!", "success")
     return redirect(url_for('loja_admin.banners'))
 
 # =========================================================

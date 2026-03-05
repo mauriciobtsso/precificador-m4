@@ -3,7 +3,8 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3">Banners da Home</h1>
-    <a href="{{ url_for('loja_admin.novo_banner') }}" class="btn btn-dark fw-bold">
+    {# CORREÇÃO: url_for aponta para 'gerenciar_banner' sem ID para criar novo #}
+    <a href="{{ url_for('loja_admin.gerenciar_banner') }}" class="btn btn-dark fw-bold">
         <i class="bi bi-plus-lg me-2"></i>NOVO BANNER
     </a>
 </div>
@@ -25,7 +26,6 @@
                 <tr>
                     <td class="fw-bold">#{{ banner.ordem }}</td>
                     <td>
-                        {# Aqui está a correção: usamos gerar_link para converter a Key em URL acessível #}
                         {% if banner.imagem_url %}
                             <img src="{{ gerar_link(banner.imagem_url) }}" class="rounded shadow-sm" style="height: 50px; width: 120px; object-fit: cover; background-color: #eee;">
                         {% else %}
@@ -36,8 +36,13 @@
                     </td>
                     <td>{{ banner.titulo }}</td>
                     <td><small class="text-muted">{{ banner.link_destino or 'Sem link' }}</small></td>
+                    
                     <td class="text-end">
-                        <a href="{{ url_for('loja_admin.excluir_banner', id=banner.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir este banner permanentemente?')">
+                        {# CORREÇÃO: url_for aponta para 'gerenciar_banner' passando o ID para editar #}
+                        <a href="{{ url_for('loja_admin.gerenciar_banner', id=banner.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar Banner">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{{ url_for('loja_admin.excluir_banner', id=banner.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir este banner permanentemente?')" title="Excluir Banner">
                             <i class="bi bi-trash"></i>
                         </a>
                     </td>

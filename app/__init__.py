@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from jinja2.runtime import Undefined
 from sqlalchemy import inspect
 from config import Config
@@ -87,6 +87,13 @@ def create_app():
     migrate.init_app(app, db)
     ckeditor.init_app(app)
 
+    @app.after_request
+    def add_header(response):
+        # Cache de 1 ano para imagens e fontes
+        if request.path.startswith('/static/'):
+            response.cache_control.max_age = 31536000
+            response.cache_control.public = True
+        return response
     # =========================================================
     # INICIALIZAÇÃO DO CACHE (Ajuste para Render)
     # =========================================================
