@@ -2,6 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <link rel="preload" href="/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2" as="font" type="font/woff2" crossorigin>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
@@ -36,6 +37,14 @@
             --m4-dark: #000; --m4-gold: #c5a059; --m4-gold-text: #8b6d31;
             --m4-gold-hover: #a68546; --m4-gray-bg: #f8f9fa; --m4-text: #333;
             --m4-border: #e5e5e5; --m4-gray-light: #d1d1d1; --m4-orange: #ff6600;
+        }
+
+        /* Sobrescreve o bloqueio de renderização dos ícones */
+        @font-face {
+            font-family: 'bootstrap-icons';
+            font-display: swap; /* O segredo para o PageSpeed parar de reclamar */
+            src: url('/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2') format('woff2'),
+                 url('/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2') format('woff');
         }
 
         @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 900; font-display: swap; src: local('Inter'); }
