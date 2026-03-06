@@ -87,13 +87,16 @@ def create_app():
     migrate.init_app(app, db)
     ckeditor.init_app(app)
 
+    # 🚀 CONFIGURAÇÃO DE CACHE DE ATIVOS (SEO & PERFORMANCE)
     @app.after_request
     def add_header(response):
-        # Cache de 1 ano para imagens e fontes
+        # Cache de 1 ano para ativos estáticos (Imagens, Fontes, CSS, JS)
+        # Resolve o problema de "Ciclos de cache ineficientes" do PageSpeed
         if request.path.startswith('/static/'):
-            response.cache_control.max_age = 31536000
+            response.cache_control.max_age = 31536000  # 1 ano em segundos
             response.cache_control.public = True
         return response
+
     # =========================================================
     # INICIALIZAÇÃO DO CACHE (Ajuste para Render)
     # =========================================================
