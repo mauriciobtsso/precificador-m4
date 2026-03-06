@@ -257,13 +257,14 @@ def detalhe_produto(slug):
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
     return render_template('loja/produto_detalhe.html', 
-                           produto=produto, 
-                           precos=precos,
-                           opcoes_parcelamento=opcoes_parcelamento,
-                           parcela_12x=parcela_12x,
-                           relacionados=relacionados,
-                           gerar_link=gerador_limpo,
-                           title=f"{produto.nome} - M4 Tática")
+                       produto=produto, 
+                       precos=precos,
+                       opcoes_parcelamento=opcoes_parcelamento,
+                       parcela_12x=parcela_12x,
+                       relacionados=relacionados,
+                       gerar_link=gerador_limpo,
+                       get_thumb_url=get_thumb_url,   # ← adiciona isso
+                       title=f"{produto.nome} - M4 Tática")
 
 # ============================================================
 # PÁGINA DE CATEGORIA
