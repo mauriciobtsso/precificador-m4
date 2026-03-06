@@ -2,19 +2,19 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <link rel="preload" href="/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2" as="font" type="font/woff2" crossorigin>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
-
-    {# ── PRECONNECTS ── #}
+    {# ── PRECONNECTS CRÍTICOS ── #}
+    <link rel="preconnect" href="https://cdn.m4tatica.com.br" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.m4tatica.com.br">
     <link rel="preconnect" href="https://www.googletagmanager.com">
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com">
     <link rel="preconnect" href="https://1202e2896f1ad48f3caa5d520ab29ff0.r2.cloudflarestorage.com" crossorigin>
     <link rel="dns-prefetch" href="https://1202e2896f1ad48f3caa5d520ab29ff0.r2.cloudflarestorage.com">
 
     {# ── PRELOADS CRÍTICOS (LCP) ── #}
     <link rel="preload" as="image" href="{{ url_for('static', filename='img/logo.webp') }}" fetchpriority="high">
-    <link rel="preload" href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" as="style">
+    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
 
     <title>{% block title %}{{ title if title else 'M4 Tática | Armas, Munições e Acessórios' }}{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}{{ meta_desc if meta_desc else 'A maior variedade de armas e munições com a qualidade M4 Tática.' }}{% endblock %}">
@@ -32,6 +32,7 @@
     <link rel="canonical" href="{{ request.url }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
 
+    {# ── CSS CRÍTICO INLINE (evita render-blocking) ── #}
     <style>
         :root {
             --m4-dark: #000; --m4-gold: #c5a059; --m4-gold-text: #8b6d31;
@@ -39,21 +40,24 @@
             --m4-border: #e5e5e5; --m4-gray-light: #d1d1d1; --m4-orange: #ff6600;
         }
 
-        /* Sobrescreve o bloqueio de renderização dos ícones */
+        /* Font-display swap para evitar FOIT nos ícones */
         @font-face {
             font-family: 'bootstrap-icons';
-            font-display: swap; /* O segredo para o PageSpeed parar de reclamar */
+            font-display: swap;
             src: url('/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2') format('woff2'),
                  url('/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2') format('woff');
         }
 
         @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 900; font-display: swap; src: local('Inter'); }
-        
+
+        /* Reset mínimo para evitar CLS antes do Bootstrap carregar */
+        *, *::before, *::after { box-sizing: border-box; }
         body { font-family: 'Inter', system-ui, sans-serif; background-color: #fff; color: var(--m4-text); margin: 0; overflow-x: hidden; }
 
-        header { 
-            position: sticky; top: 0; width: 100%; z-index: 2000; 
-            background-color: var(--m4-dark); min-height: 86px; contain: layout style; 
+        /* Header estático para não haver CLS com sticky */
+        header {
+            position: sticky; top: 0; width: 100%; z-index: 2000;
+            background-color: var(--m4-dark); min-height: 86px; contain: layout style;
         }
 
         .navbar-main { padding: 15px 0; border-bottom: 1px solid #222; }
@@ -66,10 +70,10 @@
         .header-icon { color: #fff; font-size: 22px; text-decoration: none; position: relative; padding: 5px 10px; transition: color .3s; }
         .header-icon:hover { color: var(--m4-gold); }
 
-        .cart-badge { 
-            position: absolute; top: -5px; right: -2px; background: var(--m4-gold); color: #000; 
-            font-size: 10px; font-weight: 900; width: 18px; height: 18px; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
+        .cart-badge {
+            position: absolute; top: -5px; right: -2px; background: var(--m4-gold); color: #000;
+            font-size: 10px; font-weight: 900; width: 18px; height: 18px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
         }
 
         .nav-departments { background-color: #fff; border-bottom: 3px solid var(--m4-gold); min-height: 51px; }
@@ -99,14 +103,17 @@
         }
     </style>
 
-    {# ── CSS NÃO-BLOQUEANTE ── #}
+    {# ── CSS NÃO-BLOQUEANTE: Bootstrap + ícones carregam após render ── #}
     <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}"></noscript>
+
     <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="{{ url_for('static', filename='vendor/googlefonts/fonts.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}"></noscript>
 
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    {# GTM noscript — mantido por compliance, mas sem JS bloqueante #}
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W786W67Z" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     <header>
@@ -186,29 +193,25 @@
                 <div class="col-lg-3 col-md-6">
                     <h2 class="footer-title">Informações</h2>
                     <p class="mb-1 fw-bold text-white">{{ loja.loja_nome_fantasia or 'M4 Tática' }}</p>
-                    <p class="mb-1 footer-info-text">CNPJ: {{ loja.loja_cnpj or '41.654.218/0001-47' }}</p>
-                    <p class="mb-1"><a href="https://wa.me/{{ loja.loja_whatsapp or '558630255885' }}" target="_blank" class="text-decoration-none" rel="noopener"><i class="bi bi-whatsapp text-success"></i> <span class="footer-info-text">{{ loja.loja_telefone or '(86) 3025-5885' }}</span></a></p>
-                    <div class="footer-social d-flex gap-3 mt-3">
-    {% if loja.loja_instagram %}
-    <a href="https://instagram.com/{{ loja.loja_instagram|replace('@', '') }}" 
-       target="_blank" 
-       class="fs-4 text-white" 
-       rel="noopener"
-       aria-label="Siga a M4 Tática no Instagram">  {# <--- Nome compreensível adicionado #}
-        <i class="bi bi-instagram"></i>
-    </a>
-    {% endif %}
-
-    <a href="mailto:{{ loja.loja_email }}" 
-       class="fs-4 text-white"
-       aria-label="Envie um e-mail para o suporte da M4 Tática"> {# <--- Nome compreensível adicionado #}
-        <i class="bi bi-envelope"></i>
-    </a>
-</div>
+                    <p class="mb-1" style="font-size:13px;color:#d1d1d1;">CNPJ: {{ loja.loja_cnpj or '41.654.218/0001-47' }}</p>
+                    <p class="mb-1"><a href="https://wa.me/{{ loja.loja_whatsapp or '558630255885' }}" target="_blank" rel="noopener"><i class="bi bi-whatsapp text-success"></i> <span style="font-size:13px;color:#d1d1d1;">{{ loja.loja_telefone or '(86) 3025-5885' }}</span></a></p>
+                    <div class="d-flex gap-3 mt-3">
+                        {% if loja.loja_instagram %}
+                        <a href="https://instagram.com/{{ loja.loja_instagram|replace('@', '') }}"
+                           target="_blank" class="fs-4 text-white" rel="noopener"
+                           aria-label="Siga a M4 Tática no Instagram">
+                            <i class="bi bi-instagram"></i>
+                        </a>
+                        {% endif %}
+                        <a href="mailto:{{ loja.loja_email }}" class="fs-4 text-white"
+                           aria-label="Envie um e-mail para o suporte da M4 Tática">
+                            <i class="bi bi-envelope"></i>
+                        </a>
+                    </div>
                 </div>
                 <div class="col-lg-3 col-md-6">
                     <h2 class="footer-title">Segurança</h2>
-                    <div class="payment-icons mb-3">
+                    <div class="mb-3">
                         <img src="https://img.icons8.com/color/38/visa.png" alt="Visa" loading="lazy" width="38" height="38">
                         <img src="https://img.icons8.com/color/38/mastercard.png" alt="Mastercard" loading="lazy" width="38" height="38">
                         <img src="https://img.icons8.com/color/38/pix.png" alt="Pix" loading="lazy" width="38" height="38">
@@ -219,8 +222,8 @@
                     </div>
                 </div>
             </div>
-            <div class="footer-bottom mt-5 pt-4 border-top border-secondary text-center">
-                <p class="copyright-text">© 2026 {{ loja.loja_nome_fantasia|upper or 'M4 TÁTICA' }}. TODOS OS DIREITOS RESERVADOS.<br>Venda de armas e munições de acordo com a legislação vigente.</p>
+            <div class="mt-5 pt-4 border-top border-secondary text-center">
+                <p style="font-size:12px;color:#999;">© 2026 {{ loja.loja_nome_fantasia|upper or 'M4 TÁTICA' }}. TODOS OS DIREITOS RESERVADOS.<br>Venda de armas e munições de acordo com a legislação vigente.</p>
             </div>
         </div>
 
@@ -235,21 +238,11 @@
         </div>
     </footer>
 
-    {# ── SCRIPTS NO FINAL ── #}
+    {# ── SCRIPTS: Bootstrap primeiro, depois GTM diferido ── #}
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}" defer></script>
+
     <script>
-    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-W786W67Z');
-
-window.addEventListener('load', function() {
-    setTimeout(function() {
-        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-        })(window,document,'script','dataLayer','GTM-W786W67Z');
-    }, 3000); // 3 segundos de atraso
-});
-
+    // Carrinho
     async function adicionarAoCarrinho(produtoId) {
         try {
             const response = await fetch(`/carrinho/add/${produtoId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
@@ -259,11 +252,43 @@ window.addEventListener('load', function() {
                 if (badge) { badge.textContent = data.cart_count; badge.classList.remove('d-none'); }
                 const toastEl = document.getElementById('cartToast');
                 document.getElementById('toastMessage').textContent = data.message;
-                new bootstrap.Toast(toastEl).show();
+                if (window.bootstrap) new bootstrap.Toast(toastEl).show();
             }
         } catch (error) { console.error('Erro:', error); }
     }
     </script>
+
+    {#
+        GTM carregado UMA ÚNICA VEZ, após interação do usuário.
+        Estratégia "partytown-like": aguarda o primeiro scroll/click/mousemove
+        para disparar — isso elimina o impacto no TBT/LCP sem perder dados.
+    #}
+    <script>
+    (function() {
+        var gtmLoaded = false;
+        function loadGTM() {
+            if (gtmLoaded) return;
+            gtmLoaded = true;
+            (function(w,d,s,l,i){
+                w[l]=w[l]||[];
+                w[l].push({'gtm.start': new Date().getTime(), event:'gtm.js'});
+                var f=d.getElementsByTagName(s)[0],
+                    j=d.createElement(s),
+                    dl=l!='dataLayer'?'&l='+l:'';
+                j.async=true;
+                j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+                f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','GTM-W786W67Z');
+        }
+        // Dispara no primeiro sinal de interação real do usuário
+        ['scroll','mousemove','touchstart','keydown','click'].forEach(function(evt) {
+            window.addEventListener(evt, loadGTM, {once: true, passive: true});
+        });
+        // Fallback: carrega após 5s se não houve interação
+        setTimeout(loadGTM, 5000);
+    })();
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

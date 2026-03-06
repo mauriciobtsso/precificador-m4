@@ -1,8 +1,7 @@
 <div class="col">
     <div class="card h-100 product-card-m4 border-0">
-        {# 1. Lógica de Preços e Badges #}
         {% set precos = produto.calcular_precos() %}
-        
+
         <div class="m4-badge-container">
             {% if precos.em_oferta %}
                 <span class="m4-badge badge-sale">-15% OFF</span>
@@ -11,72 +10,71 @@
             {% endif %}
         </div>
 
-        {# Botão de Wishlist #}
-        <button class="m4-wishlist-btn" title="Adicionar aos favoritos" aria-label="Adicionar {{ produto.nome }} aos favoritos">
+        <button class="m4-wishlist-btn" title="Adicionar aos favoritos"
+                aria-label="Adicionar {{ produto.nome }} aos favoritos">
             <i class="bi bi-heart" aria-hidden="true"></i>
         </button>
 
-        {# 2. SEO e Imagem Otimizada #}
-        {% set nome_seo = (produto.categoria.nome ~ " " if produto.categoria else "") ~ 
-                         (produto.marca_rel.nome ~ " " if produto.marca_rel else "") ~ 
+        {% set nome_seo = (produto.categoria.nome ~ " " if produto.categoria else "") ~
+                         (produto.marca_rel.nome ~ " " if produto.marca_rel else "") ~
                          (produto.nome_comercial if produto.nome_comercial else produto.nome) %}
 
-        <a href="{{ url_for('loja.detalhe_produto', slug=produto.slug) }}" class="text-decoration-none" aria-label="Ver detalhes de {{ nome_seo }}">
+        <a href="{{ url_for('loja.detalhe_produto', slug=produto.slug) }}"
+           class="text-decoration-none"
+           aria-label="Ver detalhes de {{ nome_seo }}">
             <div class="m4-img-container">
                 {% set imagem = produto.foto_url or produto.imagem_principal or produto.imagem_url or produto.foto %}
-                {% set link_img = gerar_link(imagem) %}
 
                 {% if imagem %}
                     {#
-                        SRCSET RESPONSIVO REAL
-                        ─────────────────────
-                        O problema apontado pelo PageSpeed: imagens 1024×1024 ou 1200×1200
-                        sendo exibidas em 280×280 (desktop) e 160×160 (mobile).
-
-                        Como não temos geração de thumbnails no servidor, usamos o mesmo
-                        arquivo mas indicamos ao browser os tamanhos reais via sizes+srcset.
-                        O browser escolhe o menor suficiente para o slot visual.
-
-                        Para eliminar de vez o problema, a solução definitiva é configurar
-                        um Cloudflare Worker de redimensionamento (ver cloudflare-worker.js).
-                        Enquanto isso, este srcset + sizes já reduz o impacto porque o browser
-                        evita baixar a versão 2x quando o slot é pequeno.
-
-                        sizes:
-                          - Mobile (<576px): cada card ocupa ~45vw → ~160–200px
-                          - Tablet (576–768px): ~45vw
-                          - Desktop (≥768px): grid 4 colunas, container ~960px → ~220px
+                        THUMBNAILS GERADOS NO SERVIDOR (plano gratuito)
+                        ─────────────────────────────────────────────────
+                        get_thumb_url() retorna a URL do thumb gerado pelo
+                        scripts/gerar_thumbnails.py e app/utils/thumb_hooks.py
+                        
+                        Fallback: se o thumb não existir ainda, usa a original.
+                        
+                        srcset oferece t160 para mobile e t280 para desktop,
+                        evitando download desnecessário em telas pequenas.
                     #}
-                    <img src="{{ link_img }}"
-                         srcset="{{ link_img }} 1x"
-                         sizes="(max-width: 575px) 48vw,
-                                (max-width: 991px) 30vw,
-                                280px"
-                         alt="{{ nome_seo }} - M4 Tática"
-                         title="{{ nome_seo }} na M4 Tática"
-                         class="m4-product-img"
-                         loading="lazy"
-                         decoding="async"
-                         width="280"
-                         height="280"
-                         style="object-fit: contain; aspect-ratio: 1/1; width: 100%; height: auto;"
-                         onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';">
+                    {% set url_t280 = get_thumb_url(imagem, 't280') %}
+                    {% set url_t160 = get_thumb_url(imagem, 't160') %}
+                    {% set url_orig = gerar_link(imagem) %}
+
+                    <img
+                        src="{{ url_t280 }}"
+                        srcset="{{ url_t160 }} 160w,
+                                {{ url_t280 }} 280w"
+                        sizes="(max-width: 575px) 48vw,
+                               (max-width: 991px) 30vw,
+                               280px"
+                        alt="{{ nome_seo }} - M4 Tática"
+                        title="{{ nome_seo }} na M4 Tática"
+                        class="m4-product-img"
+                        {% if priority is defined and priority == "high" %}
+                            loading="eager" fetchpriority="high"
+                        {% else %}
+                            loading="lazy"
+                        {% endif %}
+                        decoding="async"
+                        width="280"
+                        height="280"
+                        onerror="this.onerror=null;this.src='{{ url_orig }}';">
                 {% else %}
                     <div class="text-center opacity-25" aria-hidden="true"
-                         style="width: 260px; height: 260px; display: flex; flex-direction: column; justify-content: center;">
-                        <i class="bi bi-image" style="font-size: 48px;"></i>
-                        <p class="small fw-bold m-0" style="font-size: 9px; letter-spacing: 1px;">M4 TÁTICA</p>
+                         style="width:260px;height:260px;display:flex;flex-direction:column;justify-content:center;">
+                        <i class="bi bi-image" style="font-size:48px;"></i>
+                        <p class="small fw-bold m-0" style="font-size:9px;letter-spacing:1px;">M4 TÁTICA</p>
                     </div>
                 {% endif %}
             </div>
         </a>
 
-        {# 3. Informações do Produto #}
         <div class="card-body p-0 pt-3 text-start">
             <div class="m4-brand-label">
                 {% if produto.marca_rel and produto.categoria %}
                     <a href="{{ url_for('loja.categoria', slug_categoria=produto.categoria.slug, marca=produto.marca_rel.id) }}"
-                       class="text-decoration-none" style="color: inherit;"
+                       class="text-decoration-none" style="color:inherit;"
                        aria-label="Ver mais produtos da marca {{ produto.marca_rel.nome }}">
                         {{ produto.marca_rel.nome }}
                     </a>
@@ -97,26 +95,22 @@
                 {% if precos.em_oferta %}
                     <p class="m4-old-price">
                         <span class="visually-hidden">Preço original: </span>
-                        R$ {{ "{:,.2f}".format(precos.preco_a_vista * 1.15).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                        R$ {{ "{:,.2f}".format(precos.preco_a_vista * 1.15).replace(',','X').replace('.',',').replace('X','.') }}
                     </p>
                 {% endif %}
-
                 <p class="m4-main-price">
                     <span class="visually-hidden">Preço atual: </span>
-                    R$ {{ "{:,.2f}".format(precos.preco_a_vista).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                    R$ {{ "{:,.2f}".format(precos.preco_a_vista).replace(',','X').replace('.',',').replace('X','.') }}
                 </p>
-
                 <p class="m4-installments">
-                    Ou 12x de <span class="fw-bold">R$ {{ "{:,.2f}".format(precos.preco_a_vista / 12).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span>
+                    Ou 12x de <span class="fw-bold">R$ {{ "{:,.2f}".format(precos.preco_a_vista / 12).replace(',','X').replace('.',',').replace('X','.') }}</span>
                 </p>
-
-                <div class="text-success small fw-bold mt-2 d-flex align-items-center" style="font-size: 10px;">
+                <div class="text-success small fw-bold mt-2 d-flex align-items-center" style="font-size:10px;">
                     <i class="bi bi-lightning-charge-fill me-1" aria-hidden="true"></i> À VISTA NO PIX
                 </div>
             </div>
         </div>
 
-        {# 4. CHAMADAS PARA AÇÃO #}
         <div class="mt-3 d-grid gap-2">
             <button type="button" class="m4-btn-buy"
                     onclick="adicionarAoCarrinho({{ produto.id }})"
@@ -134,64 +128,30 @@
 
 <style>
     :root {
-        --m4-gold:       #c5a059;
-        --m4-danger:     #d9534f;
-        --m4-gray-bg:    #f8f9fa;
-        --m4-text-muted: #757575;
-        --m4-orange:     #ff6600;
+        --m4-gold:#c5a059; --m4-danger:#d9534f;
+        --m4-gray-bg:#f8f9fa; --m4-text-muted:#757575;
     }
-
-    .product-card-m4 { background: transparent; position: relative; transition: all 0.4s cubic-bezier(0.165,0.84,0.44,1); }
-    .product-card-m4:hover { transform: translateY(-10px); }
-
-    .m4-badge-container { position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; flex-direction: column; gap: 4px; }
-    .m4-badge { color: #fff; font-size: 9px; font-weight: 900; padding: 4px 10px; letter-spacing: .5px; text-transform: uppercase; box-shadow: 0 2px 4px rgba(0,0,0,.1); }
-    .badge-sale { background: var(--m4-danger); }
-    .badge-new  { background: var(--m4-gold); color: #000 !important; }
-
-    .m4-wishlist-btn { position: absolute; top: 10px; left: 10px; z-index: 10; background: #fff; border: 1px solid #eee; color: #888; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: .3s; cursor: pointer; }
-    .m4-wishlist-btn:hover { background: var(--m4-danger); color: #fff; border-color: var(--m4-danger); }
-
-    /* ── Container da imagem com aspect-ratio fixo — evita CLS ── */
-    .m4-img-container {
-        background-color: var(--m4-gray-bg);
-        /* aspect-ratio garante reserva de espaço antes da imagem carregar → CLS = 0 */
-        aspect-ratio: 1 / 1;
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px;
-        overflow: hidden;
-        border-radius: 6px;
-        transition: .3s;
-        /* height removido — deixa o aspect-ratio controlar */
-    }
-    .m4-product-img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        transition: transform 0.8s cubic-bezier(0.165,0.84,0.44,1);
-    }
-    .product-card-m4:hover .m4-product-img { transform: scale(1.1); }
-
-    .m4-brand-label { font-size: 10px; font-weight: 800; color: #8b6d31; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
-    .m4-product-name { font-size: 14px; font-weight: 700; height: 42px; line-height: 1.4; margin: 0; }
-    .m4-product-name a { color: #111; text-decoration: none; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-    .price-box { min-height: 90px; }
-    .m4-old-price    { font-size: 11px; text-decoration: line-through; color: var(--m4-text-muted); margin: 0; }
-    .m4-main-price   { font-size: 22px; font-weight: 900; color: #000; margin: 0; letter-spacing: -.5px; }
-    .m4-installments { font-size: 12px; color: #555; margin: 0; }
-
-    .m4-btn-buy { display: block; width: 100%; padding: 10px; background: #C04F00; border: none; color: #fff; font-size: 11px; font-weight: 900; text-align: center; letter-spacing: 1px; border-radius: 4px; transition: .3s; }
-    .m4-btn-buy:hover { background-color: #a34300; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,.1); }
-
-    .m4-btn-details { display: block; width: 100%; padding: 10px; background: #fff; border: 1px solid #ddd; color: #555; font-size: 10px; font-weight: 700; text-align: center; text-decoration: none; letter-spacing: 1px; border-radius: 4px; transition: .3s; }
-    .m4-btn-details:hover { background-color: #f8f9fa; color: #000; }
-
-    @media (max-width: 768px) {
-        .m4-product-img  { max-height: 160px; }
-        .m4-main-price   { font-size: 18px; }
-    }
+    .product-card-m4 { background:transparent; position:relative; transition:transform 0.4s cubic-bezier(0.165,0.84,0.44,1); }
+    .product-card-m4:hover { transform:translateY(-10px); }
+    .m4-badge-container { position:absolute; top:10px; right:10px; z-index:10; display:flex; flex-direction:column; gap:4px; }
+    .m4-badge { color:#fff; font-size:9px; font-weight:900; padding:4px 10px; letter-spacing:.5px; text-transform:uppercase; }
+    .badge-sale { background:var(--m4-danger); }
+    .badge-new  { background:var(--m4-gold); color:#000 !important; }
+    .m4-wishlist-btn { position:absolute; top:10px; left:10px; z-index:10; background:#fff; border:1px solid #eee; color:#888; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:.3s; cursor:pointer; }
+    .m4-wishlist-btn:hover { background:var(--m4-danger); color:#fff; border-color:var(--m4-danger); }
+    .m4-img-container { background-color:var(--m4-gray-bg); aspect-ratio:1/1; width:100%; display:flex; align-items:center; justify-content:center; padding:10px; overflow:hidden; border-radius:6px; transition:.3s; }
+    .m4-product-img { width:100%; height:100%; object-fit:contain; transition:transform 0.8s cubic-bezier(0.165,0.84,0.44,1); }
+    .product-card-m4:hover .m4-product-img { transform:scale(1.1); }
+    .m4-brand-label { font-size:10px; font-weight:800; color:#8b6d31; letter-spacing:1px; text-transform:uppercase; margin-bottom:5px; }
+    .m4-product-name { font-size:14px; font-weight:700; height:42px; line-height:1.4; margin:0; }
+    .m4-product-name a { color:#111; text-decoration:none; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .price-box { min-height:90px; }
+    .m4-old-price    { font-size:11px; text-decoration:line-through; color:var(--m4-text-muted); margin:0; }
+    .m4-main-price   { font-size:22px; font-weight:900; color:#000; margin:0; letter-spacing:-.5px; }
+    .m4-installments { font-size:12px; color:#555; margin:0; }
+    .m4-btn-buy { display:block; width:100%; padding:10px; background:#C04F00; border:none; color:#fff; font-size:11px; font-weight:900; text-align:center; letter-spacing:1px; border-radius:4px; transition:.3s; }
+    .m4-btn-buy:hover { background:#a34300; transform:translateY(-2px); }
+    .m4-btn-details { display:block; width:100%; padding:10px; background:#fff; border:1px solid #ddd; color:#555; font-size:10px; font-weight:700; text-align:center; text-decoration:none; letter-spacing:1px; border-radius:4px; transition:.3s; }
+    .m4-btn-details:hover { background:#f8f9fa; color:#000; }
+    @media (max-width:768px) { .m4-main-price { font-size:18px; } }
 </style>

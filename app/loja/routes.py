@@ -7,6 +7,7 @@ from app.produtos.models import Produto
 from app.produtos.categorias.models import CategoriaProduto
 from app.models import Taxa, Configuracao
 from app.utils.r2_helpers import gerar_link_r2
+from app.utils.thumbnail_utils import get_thumb_url
 import app.utils.parcelamento as parcelamento_logic
 from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload, subqueryload
@@ -87,6 +88,12 @@ def inject_loja_data():
     except Exception as e:
         print(f"Erro crítico no inject_loja_data: {e}")
         return dict(categorias_menu=[], loja={}, paginas_rodape=[])
+
+@loja_bp.app_context_processor
+def inject_thumb_helper():
+    """Disponibiliza get_thumb_url em todos os templates da loja."""
+    from app.utils.thumbnail_utils import get_thumb_url
+    return dict(get_thumb_url=get_thumb_url)
 
 # ============================================================
 # VITRINE PRINCIPAL

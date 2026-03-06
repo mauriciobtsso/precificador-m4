@@ -82,17 +82,24 @@
                 {% for marca in marcas_lista %}
                 <div class="brand-slide">
                     <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none">
-                        <div class="brand-card bg-white p-2 rounded shadow-sm border brand-card d-flex align-items-center justify-content-center"
-                             style="height: 80px; width: 140px; overflow: hidden; background-color: #fff;">
+                        <div class="brand-card bg-white p-2 rounded shadow-sm border d-flex align-items-center justify-content-center"
+                             style="height:80px;width:140px;overflow:hidden;">
                             {% if marca.logo_url %}
-                                <img src="{{ gerar_link(marca.logo_url) }}"
+                                {#
+                                    Usa thumbnail t80 (80×80px, ~3-5 KiB WebP)
+                                    em vez da original (até 3840px, 115 KiB).
+                                    Fallback para original caso thumb não exista.
+                                #}
+                                <img src="{{ get_thumb_url(marca.logo_url, 't80') }}"
                                      alt="{{ marca.nome }}"
                                      class="brand-img"
                                      loading="lazy"
-                                     width="120" height="60"
-                                     style="max-width: 90%; max-height: 70%; width: auto; height: auto; object-fit: contain;">
+                                     width="120"
+                                     height="60"
+                                     style="max-width:90%;max-height:70%;width:auto;height:auto;object-fit:contain;"
+                                     onerror="this.onerror=null;this.src='{{ gerar_link(marca.logo_url) }}';">
                             {% else %}
-                                <span class="fw-bold text-dark opacity-50" style="font-size: 10px;">{{ marca.nome|upper }}</span>
+                                <span class="fw-bold text-dark opacity-50" style="font-size:10px;">{{ marca.nome|upper }}</span>
                             {% endif %}
                         </div>
                     </a>

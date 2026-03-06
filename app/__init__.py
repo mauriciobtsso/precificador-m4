@@ -87,6 +87,10 @@ def create_app():
     migrate.init_app(app, db)
     ckeditor.init_app(app)
 
+    # with app.app_context():
+    from app.utils.thumb_hooks import registrar_hooks
+    registrar_hooks()
+
     # 🚀 CONFIGURAÇÃO DE CACHE DE ATIVOS (SEO & PERFORMANCE)
     @app.after_request
     def add_header(response):
