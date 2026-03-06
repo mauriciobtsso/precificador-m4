@@ -189,7 +189,7 @@
             <div class="img-main-container rounded shadow-sm">
                 {% set imagem = produto.foto_url or produto.imagem_principal %}
                 {% if imagem %}
-                    <img src="{{ gerar_link(imagem) }}" alt="{{ produto.nome_comercial or produto.nome }}" loading="eager" decoding="async">
+                    <img src="{{ url_t280 }}" alt="{{ produto.nome_comercial or produto.nome }}" loading="eager" decoding="async" onerror="this.onerror=null;this.src='{{ url_orig }}';">
                 {% else %}
                     <div class="text-center text-muted opacity-50">
                         <i class="bi bi-image fs-1 d-block mb-2"></i>

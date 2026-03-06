@@ -14,6 +14,11 @@
 
     {# ── PRELOADS CRÍTICOS (LCP) ── #}
     <link rel="preload" as="image" href="{{ url_for('static', filename='img/logo.webp') }}" fetchpriority="high">
+
+    {% if request.endpoint == 'loja.index' and banners %}
+        <link rel="preload" as="image" href="{{ gerar_link(banners[0].imagem_url) }}" fetchpriority="high">
+    {% endif %}
+
     <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
 
     <title>{% block title %}{{ title if title else 'M4 Tática | Armas, Munições e Acessórios' }}{% endblock %}</title>
@@ -38,14 +43,6 @@
             --m4-dark: #000; --m4-gold: #c5a059; --m4-gold-text: #8b6d31;
             --m4-gold-hover: #a68546; --m4-gray-bg: #f8f9fa; --m4-text: #333;
             --m4-border: #e5e5e5; --m4-gray-light: #d1d1d1; --m4-orange: #ff6600;
-        }
-
-        /* Font-display swap para evitar FOIT nos ícones */
-        @font-face {
-            font-family: 'bootstrap-icons';
-            font-display: swap;
-            src: url('/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2') format('woff2'),
-                 url('/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2') format('woff');
         }
 
         @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 900; font-display: swap; src: local('Inter'); }
@@ -264,7 +261,7 @@
         para disparar — isso elimina o impacto no TBT/LCP sem perder dados.
     #}
     <script>
-    (function() {
+(function() {
         var gtmLoaded = false;
         function loadGTM() {
             if (gtmLoaded) return;
@@ -280,13 +277,12 @@
                 f.parentNode.insertBefore(j,f);
             })(window,document,'script','dataLayer','GTM-W786W67Z');
         }
-        // Dispara no primeiro sinal de interação real do usuário
-        ['scroll','mousemove','touchstart','keydown','click'].forEach(function(evt) {
+        // Só carrega o GTM quando o usuário realmente "mexer" no site
+        ['scroll','touchstart','keydown','mouseover'].forEach(function(evt) {
             window.addEventListener(evt, loadGTM, {once: true, passive: true});
         });
-        // Fallback: carrega após 5s se não houve interação
-        setTimeout(loadGTM, 5000);
     })();
+
     </script>
 
     {% block extra_js %}{% endblock %}

@@ -6,7 +6,7 @@
    ============================================= #}
 {% if not termo_busca and not categoria_ativa %}
     {% if banners %}
-    <div id="heroCarousel" class="carousel slide" style="min-height: 400px; background: #000;">
+    <div id="heroCarousel" class="carousel slide" style="min-height: 400px; background: #000; contain-intrinsic-size: 1200px 400px; content-visibility: auto;">
         
         {# Indicadores (Bolinhas) - Apenas se houver mais de 1 #}
         {% if banners|length > 1 %}
