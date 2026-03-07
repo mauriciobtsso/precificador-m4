@@ -238,22 +238,8 @@
     {# ── SCRIPTS: Bootstrap primeiro, depois GTM diferido ── #}
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}" defer></script>
 
-    <script>
-    // Carrinho
-    async function adicionarAoCarrinho(produtoId) {
-        try {
-            const response = await fetch(`/carrinho/add/${produtoId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-            const data = await response.json();
-            if (data.success) {
-                const badge = document.getElementById('cart-badge');
-                if (badge) { badge.textContent = data.cart_count; badge.classList.remove('d-none'); }
-                const toastEl = document.getElementById('cartToast');
-                document.getElementById('toastMessage').textContent = data.message;
-                if (window.bootstrap) new bootstrap.Toast(toastEl).show();
-            }
-        } catch (error) { console.error('Erro:', error); }
-    }
-    </script>
+    {# No final do body, antes do bloco extra_js #}
+    <script src="{{ url_for('static', filename='js/cart-handler.js') }}" defer></script>
 
     {#
         GTM carregado UMA ÚNICA VEZ, após interação do usuário.
@@ -262,26 +248,29 @@
     #}
     <script>
 (function() {
-        var gtmLoaded = false;
-        function loadGTM() {
-            if (gtmLoaded) return;
-            gtmLoaded = true;
-            (function(w,d,s,l,i){
-                w[l]=w[l]||[];
-                w[l].push({'gtm.start': new Date().getTime(), event:'gtm.js'});
-                var f=d.getElementsByTagName(s)[0],
-                    j=d.createElement(s),
-                    dl=l!='dataLayer'?'&l='+l:'';
-                j.async=true;
-                j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-                f.parentNode.insertBefore(j,f);
-            })(window,document,'script','dataLayer','GTM-W786W67Z');
+    var gtmLoaded = false;
+    function injectGTM() {
+        if (gtmLoaded) return;
+        gtmLoaded = true;
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
+        var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
+        j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+        f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','GTM-W786W67Z');
+    }
+
+    function scheduleGTM() {
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(function() { injectGTM(); }, { timeout: 3000 });
+        } else {
+            setTimeout(injectGTM, 3000);
         }
-        // Só carrega o GTM quando o usuário realmente "mexer" no site
-        ['scroll','touchstart','keydown','mouseover'].forEach(function(evt) {
-            window.addEventListener(evt, loadGTM, {once: true, passive: true});
-        });
-    })();
+    }
+
+    ['scroll','touchstart','keydown','mouseover'].forEach(function(evt) {
+        window.addEventListener(evt, scheduleGTM, {once: true, passive: true});
+    });
+})();
 
     </script>
 

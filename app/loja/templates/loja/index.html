@@ -6,7 +6,9 @@
    ============================================= #}
 {% if not termo_busca and not categoria_ativa %}
     {% if banners %}
-    <div id="heroCarousel" class="carousel slide" style="min-height: 400px; background: #000; contain-intrinsic-size: 1200px 400px; content-visibility: auto;">
+    <div id="heroCarousel" class="carousel slide" 
+         data-bs-ride="carousel" 
+         style="min-height: 400px; background: #000; contain-intrinsic-size: 1200px 400px; content-visibility: auto;">
         
         {# Indicadores (Bolinhas) - Apenas se houver mais de 1 #}
         {% if banners|length > 1 %}
@@ -39,39 +41,20 @@
         {# Setas de Navegação - Apenas se houver mais de 1 #}
         {% if banners|length > 1 %}
         <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon shadow-sm" aria-hidden="true" style="..."></span>
-            <span class="visually-hidden">Ver banner anterior</span>
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Anterior</span>
         </button>
         <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon shadow-sm" aria-hidden="true" style="..."></span>
-            <span class="visually-hidden">Ver próximo banner</span>
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Próximo</span>
         </button>
         {% endif %}
     </div>
     {% endif %}
 {% endif %}
 
-<style>
-    /* Aspect Ratio evita o Cumulative Layout Shift (CLS) */
-    .m4-banner-img {
-        width: 100%;
-        height: auto;
-        aspect-ratio: 1200 / 400;
-        object-fit: cover;
-    }
-    
-    /* Melhora o contraste das setas em banners muito claros */
-    .carousel-control-prev-icon, .carousel-control-next-icon {
-        filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5));
-    }
-
-    @media (max-width: 768px) {
-        .m4-banner-img { aspect-ratio: 3 / 2; }
-    }
-</style>
-
 {# =============================================
-   2. VITRINE DE MARCAS (CONTROLE DE ESTABILIDADE)
+   2. VITRINE DE MARCAS (SLIDER INFINITO)
    ============================================= #}
 {% if not termo_busca and not categoria_ativa %}
     {% set marcas_lista = marcas_home if marcas_home else marcas %}
@@ -79,23 +62,18 @@
     <div class="container py-4 overflow-hidden">
         <div class="brands-slider">
             <div class="brands-track">
-                {% for marca in marcas_lista %}
+                {# Duplicamos a lista para criar o efeito infinito sem gaps #}
+                {% for marca in marcas_lista + marcas_lista %}
                 <div class="brand-slide">
                     <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none">
                         <div class="brand-card bg-white p-2 rounded shadow-sm border d-flex align-items-center justify-content-center"
                              style="height:80px;width:140px;overflow:hidden;">
                             {% if marca.logo_url %}
-                                {#
-                                    Usa thumbnail t80 (80×80px, ~3-5 KiB WebP)
-                                    em vez da original (até 3840px, 115 KiB).
-                                    Fallback para original caso thumb não exista.
-                                #}
                                 <img src="{{ get_thumb_url(marca.logo_url, 't80') }}"
                                      alt="{{ marca.nome }}"
                                      class="brand-img"
                                      loading="lazy"
-                                     width="120"
-                                     height="60"
+                                     width="120" height="60"
                                      style="max-width:90%;max-height:70%;width:auto;height:auto;object-fit:contain;"
                                      onerror="this.onerror=null;this.src='{{ gerar_link(marca.logo_url) }}';">
                             {% else %}
@@ -114,7 +92,7 @@
 <div class="container mt-4">
     {% if not termo_busca and not categoria_ativa %}
 
-        {# 3. LANÇAMENTOS (Otimizados para First Paint) #}
+        {# 3. LANÇAMENTOS #}
         {% if lancamentos %}
         <section class="mb-5">
             <div class="shelf-header">
@@ -122,7 +100,6 @@
             </div>
             <div class="row row-cols-2 row-cols-md-4 g-4">
                 {% for produto in lancamentos %}
-                    {# Para os primeiros produtos, passamos a prioridade para o include do card #}
                     {% with priority = "high" if loop.index <= 2 else "lazy" %}
                         {% include 'loja/_card_produto.html' %}
                     {% endwith %}
@@ -131,9 +108,9 @@
         </section>
         {% endif %}
 
-        {# 4. BANNER INSTITUCIONAL (Lazy Background) #}
+        {# 4. BANNER INSTITUCIONAL #}
         <section class="mb-5">
-            <div class="promo-banner shadow-sm rounded overflow-hidden bg-dark text-center" 
+            <div class="promo-banner shadow-sm rounded overflow-hidden bg-dark text-center position-relative" 
                  style="min-height: 300px; display: flex; align-items: center;">
                 <div class="container p-5 position-relative z-1">
                     <h2 class="text-gold fw-bold mb-2 h1">{{ loja.loja_despachante_titulo or 'DESPACHANTE M4 TÁTICA' }}</h2>
@@ -148,9 +125,10 @@
                      class="position-absolute start-0 top-0 w-100 h-100" 
                      style="object-fit: cover; opacity: 0.3; z-index: 0;" loading="lazy">
                 {% endif %}
-            </section>
+            </div>
+        </section>
 
-        {# 5. PRATELEIRAS ADICIONAIS (Lazy total) #}
+        {# 5. PRATELEIRAS INTELIGENTES #}
         {% if prateleiras %}
             {% for nome_cat, prods in prateleiras.items() %}
                 {% if prods %}
@@ -203,20 +181,41 @@
 </div>
 
 <style>
-    /* Estilos de Interface */
+    /* Interface e Prateleiras */
     .shelf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
     .shelf-title { font-weight: 900; text-transform: uppercase; font-size: 1.1rem; border-left: 5px solid var(--m4-gold); padding-left: 15px; margin: 0; color: #000; }
     .shelf-link { color: var(--m4-gold-text); font-size: 11px; font-weight: 800; text-transform: uppercase; text-decoration: none; border: 1px solid var(--m4-gold-text); padding: 4px 12px; border-radius: 20px; transition: 0.3s; }
     .shelf-link:hover { background: var(--m4-gold-text); color: #fff; }
     
-    /* Slider de Marcas */
-    .brands-track { display: flex; gap: 20px; animation: scrollBrands 60s linear infinite; width: fit-content; }
+    /* Banners Aspect Ratio */
+    .m4-banner-img { width: 100%; height: auto; aspect-ratio: 1200 / 400; object-fit: cover; }
+    @media (max-width: 768px) { .m4-banner-img { aspect-ratio: 3 / 2; } }
+
+    /* Slider de Marcas Infinito */
+    .brands-track { display: flex; gap: 20px; animation: scrollBrands 60s linear infinite; width: fit-content; align-items: center; }
     .brand-slide { width: 150px; flex-shrink: 0; }
     .brand-img { filter: grayscale(100%); opacity: 0.5; transition: 0.3s; }
     .brand-card:hover .brand-img { filter: grayscale(0%); opacity: 1; }
-    @keyframes scrollBrands { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    @keyframes scrollBrands { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-150px * {{ marcas_lista|length }} - 20px * {{ marcas_lista|length }})); } }
     
     .btn-gold { background-color: var(--m4-gold); color: #000; border: none; }
     .btn-gold:hover { background-color: #fff; transform: translateY(-3px); }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Reforço para garantir o Autoplay do Carrossel com JS Deferred
+    document.addEventListener('DOMContentLoaded', function() {
+        var myCarousel = document.querySelector('#heroCarousel');
+        if (myCarousel) {
+            var carousel = new bootstrap.Carousel(myCarousel, {
+                interval: 5000,
+                ride: 'carousel',
+                pause: 'hover'
+            });
+            carousel.cycle();
+        }
+    });
+</script>
 {% endblock %}
