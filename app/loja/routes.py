@@ -369,7 +369,9 @@ def sitemap():
 
 @loja_bp.route('/robots.txt')
 def robots_txt():
-    return send_from_directory(os.path.join(current_app.root_path, 'static'), 'robots.txt')
+    # Isso garante que ele busque na pasta static correta do projeto
+    static_dir = os.path.join(current_app.root_path, 'static')
+    return send_from_directory(static_dir, 'robots.txt')
 
 @loja_bp.route('/sistema/otimizar-banco-m4')
 def otimizar_banco():

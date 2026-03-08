@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, send_from_directory, redirect, url_for
 from jinja2.runtime import Undefined
 from sqlalchemy import inspect
 from config import Config
@@ -90,6 +90,16 @@ def create_app():
     # with app.app_context():
     from app.utils.thumb_hooks import registrar_hooks
     registrar_hooks()
+
+    @app.route('/robots.txt')
+    def robots_at_root():
+        return send_from_directory(os.path.join(app.root_path, 'static'), 'robots.txt')
+
+    @app.route('/sitemap.xml')
+    def sitemap_at_root():
+        # Redireciona para a rota que você já criou no blueprint da loja
+        from flask import url_for
+        return redirect(url_for('loja.sitemap'))
 
     # 🚀 CONFIGURAÇÃO DE CACHE DE ATIVOS (SEO & PERFORMANCE)
     @app.after_request
