@@ -1,8 +1,14 @@
 {% extends 'loja/base.html' %}
 
+{% block title %}Armas de Fogo, Pistolas e Munições | M4 Tática - Loja Oficial{% endblock %}
+
+{% block meta_description %}
+Confira a maior variedade de armas de fogo, pistolas, revólveres e munições na M4 Tática. Oferecemos assessoria completa para CR e posse com segurança e qualidade.
+{% endblock %}
+
 {% block content %}
 {# =============================================
-   1. BANNER CARROSSEL (RESPONSIVO E PRIORITÁRIO)
+   1. BANNER CARROSSEL (AUTOPLAY REATIVADO)
    ============================================= #}
 {% if not termo_busca and not categoria_ativa %}
     {% if banners %}
@@ -10,7 +16,6 @@
          data-bs-ride="carousel" 
          style="min-height: 400px; background: #000; contain-intrinsic-size: 1200px 400px; content-visibility: auto;">
         
-        {# Indicadores (Bolinhas) - Apenas se houver mais de 1 #}
         {% if banners|length > 1 %}
         <div class="carousel-indicators">
             {% for banner in banners %}
@@ -38,14 +43,13 @@
             {% endfor %}
         </div>
 
-        {# Setas de Navegação - Apenas se houver mais de 1 #}
         {% if banners|length > 1 %}
         <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="carousel-control-prev-icon shadow-sm" aria-hidden="true"></span>
             <span class="visually-hidden">Anterior</span>
         </button>
         <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="carousel-control-next-icon shadow-sm" aria-hidden="true"></span>
             <span class="visually-hidden">Próximo</span>
         </button>
         {% endif %}
@@ -53,8 +57,14 @@
     {% endif %}
 {% endif %}
 
+<style>
+    .m4-banner-img { width: 100%; height: auto; aspect-ratio: 1200 / 400; object-fit: cover; }
+    @media (max-width: 768px) { .m4-banner-img { aspect-ratio: 3 / 2; } }
+    .carousel-control-prev-icon, .carousel-control-next-icon { filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5)); }
+</style>
+
 {# =============================================
-   2. VITRINE DE MARCAS (SLIDER INFINITO)
+   2. VITRINE DE MARCAS (STABLE)
    ============================================= #}
 {% if not termo_busca and not categoria_ativa %}
     {% set marcas_lista = marcas_home if marcas_home else marcas %}
@@ -62,8 +72,7 @@
     <div class="container py-4 overflow-hidden">
         <div class="brands-slider">
             <div class="brands-track">
-                {# Duplicamos a lista para criar o efeito infinito sem gaps #}
-                {% for marca in marcas_lista + marcas_lista %}
+                {% for marca in marcas_lista %}
                 <div class="brand-slide">
                     <a href="{{ url_for('loja.index', q=marca.nome) }}" class="brand-item text-decoration-none">
                         <div class="brand-card bg-white p-2 rounded shadow-sm border d-flex align-items-center justify-content-center"
@@ -110,8 +119,7 @@
 
         {# 4. BANNER INSTITUCIONAL #}
         <section class="mb-5">
-            <div class="promo-banner shadow-sm rounded overflow-hidden bg-dark text-center position-relative" 
-                 style="min-height: 300px; display: flex; align-items: center;">
+            <div class="promo-banner shadow-sm rounded overflow-hidden bg-dark text-center position-relative" style="min-height: 300px; display: flex; align-items: center;">
                 <div class="container p-5 position-relative z-1">
                     <h2 class="text-gold fw-bold mb-2 h1">{{ loja.loja_despachante_titulo or 'DESPACHANTE M4 TÁTICA' }}</h2>
                     <p class="text-white opacity-75 mb-4 mx-auto" style="max-width: 600px;">{{ loja.loja_despachante_texto or 'Assessoria completa para CR e Posse.' }}</p>
@@ -120,15 +128,11 @@
                     </a>
                 </div>
                 {% if loja.banner_despachante_link %}
-                <img src="{{ loja.banner_despachante_link }}" 
-                     alt="Background Despachante" 
-                     class="position-absolute start-0 top-0 w-100 h-100" 
-                     style="object-fit: cover; opacity: 0.3; z-index: 0;" loading="lazy">
+                <img src="{{ loja.banner_despachante_link }}" alt="Background Despachante" class="position-absolute start-0 top-0 w-100 h-100" style="object-fit: cover; opacity: 0.3; z-index: 0;" loading="lazy">
                 {% endif %}
-            </div>
-        </section>
+            </section>
 
-        {# 5. PRATELEIRAS INTELIGENTES #}
+        {# 5. PRATELEIRAS ADICIONAIS #}
         {% if prateleiras %}
             {% for nome_cat, prods in prateleiras.items() %}
                 {% if prods %}
@@ -149,6 +153,19 @@
             {% endfor %}
         {% endif %}
 
+        {# 6. SEÇÃO DE AUTORIDADE SEO - ATAQUE À CONCORRÊNCIA #}
+        <section class="my-5 py-4 border-top">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="fw-bold mb-3 h4 text-uppercase" style="letter-spacing: 1px;">M4 Tática: Especialista em Armas de Fogo e Munições</h2>
+                    <div class="text-muted" style="line-height: 1.8; font-size: 0.95rem;">
+                        <p>A <strong>M4 Tática</strong> é referência para quem deseja adquirir <strong>armas de fogo</strong> com total legalidade. Nosso catálogo conta com as melhores <strong>pistolas 9mm</strong>, <strong>pistolas .380</strong> e <strong>revólveres</strong> para defesa e esporte.</p>
+                        <p>Garanta o suprimento do seu arsenal com <strong>munições</strong> originais e acessórios de alta performance. Oferecemos suporte completo de <strong>despachante de armas</strong> para CR, posse e renovações. Qualidade técnica e segurança você encontra aqui.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     {% else %}
         {# VIEW DE BUSCA / FILTRADO #}
         <div class="row mt-2">
@@ -163,58 +180,35 @@
                         {% include 'loja/_card_produto.html' %}
                     {% endfor %}
                 </div>
-
-                {% if pagination and pagination.pages > 1 %}
-                <nav class="mt-5">
-                    <ul class="pagination justify-content-center">
-                    {% for num in pagination.iter_pages() if num %}
-                        <li class="page-item {{ 'active' if num == pagination.page }}">
-                            <a class="page-link border-0 text-dark fw-bold" href="{{ url_for(request.endpoint, page=num, q=termo_busca, slug_categoria=categoria_ativa.slug if categoria_ativa else None) }}">{{ num }}</a>
-                        </li>
-                    {% endfor %}
-                    </ul>
-                </nav>
-                {% endif %}
             </div>
         </div>
     {% endif %}
 </div>
 
 <style>
-    /* Interface e Prateleiras */
     .shelf-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
     .shelf-title { font-weight: 900; text-transform: uppercase; font-size: 1.1rem; border-left: 5px solid var(--m4-gold); padding-left: 15px; margin: 0; color: #000; }
     .shelf-link { color: var(--m4-gold-text); font-size: 11px; font-weight: 800; text-transform: uppercase; text-decoration: none; border: 1px solid var(--m4-gold-text); padding: 4px 12px; border-radius: 20px; transition: 0.3s; }
     .shelf-link:hover { background: var(--m4-gold-text); color: #fff; }
-    
-    /* Banners Aspect Ratio */
-    .m4-banner-img { width: 100%; height: auto; aspect-ratio: 1200 / 400; object-fit: cover; }
-    @media (max-width: 768px) { .m4-banner-img { aspect-ratio: 3 / 2; } }
-
-    /* Slider de Marcas Infinito */
-    .brands-track { display: flex; gap: 20px; animation: scrollBrands 60s linear infinite; width: fit-content; align-items: center; }
+    .brands-track { display: flex; gap: 20px; animation: scrollBrands 60s linear infinite; width: fit-content; }
     .brand-slide { width: 150px; flex-shrink: 0; }
     .brand-img { filter: grayscale(100%); opacity: 0.5; transition: 0.3s; }
     .brand-card:hover .brand-img { filter: grayscale(0%); opacity: 1; }
-    @keyframes scrollBrands { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-150px * {{ marcas_lista|length }} - 20px * {{ marcas_lista|length }})); } }
-    
+    @keyframes scrollBrands { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
     .btn-gold { background-color: var(--m4-gold); color: #000; border: none; }
-    .btn-gold:hover { background-color: #fff; transform: translateY(-3px); }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Reforço para garantir o Autoplay do Carrossel com JS Deferred
     document.addEventListener('DOMContentLoaded', function() {
         var myCarousel = document.querySelector('#heroCarousel');
         if (myCarousel) {
-            var carousel = new bootstrap.Carousel(myCarousel, {
+            new bootstrap.Carousel(myCarousel, {
                 interval: 5000,
                 ride: 'carousel',
                 pause: 'hover'
             });
-            carousel.cycle();
         }
     });
 </script>
