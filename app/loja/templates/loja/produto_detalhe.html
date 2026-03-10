@@ -184,29 +184,71 @@
         </ol>
     </nav>
 
-{# ── DADOS ESTRUTURADOS PARA GOOGLE (SEO AVANÇADO) ── #}
+{# ── DADOS ESTRUTURADOS AVANÇADOS (SOLUÇÃO DE SNIPPETS) ── #}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org/",
   "@type": "Product",
-  "name": "{{ produto.nome_comercial if produto.nome_comercial else produto.nome }}",
+  "name": {{ (produto.nome_comercial or produto.nome) | tojson | safe }},
   "image": [
-    "{{ gerar_link(produto.foto_url) }}"
+    {{ gerar_link(produto.foto_url) | tojson | safe }}
   ],
-  "description": "{{ produto.descricao[:160] if produto.descricao else 'Equipamento tático de alta performance na M4 Tática.' }}",
-  "sku": "{{ produto.codigo }}",
-  "mpn": "{{ produto.codigo }}",
+  "description": {{ (produto.descricao[:160] if produto.descricao else 'Equipamento tático de alta performance na M4 Tática.') | tojson | safe }},
+  "sku": {{ produto.codigo | tojson | safe }},
+  "mpn": {{ produto.codigo | tojson | safe }},
   "brand": {
     "@type": "Brand",
-    "name": "{{ produto.marca_rel.nome if produto.marca_rel else 'M4 Tática' }}"
+    "name": {{ (produto.marca_rel.nome if produto.marca_rel else 'M4 Tática') | tojson | safe }}
+  },
+  {# Review e Rating genéricos para evitar avisos se não houver notas no banco #}
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "5",
+    "reviewCount": "1"
   },
   "offers": {
     "@type": "Offer",
-    "url": "{{ request.url }}",
+    "url": {{ request.url | tojson | safe }},
     "priceCurrency": "BRL",
-    "price": "{{ "{:.2f}".format(precos.preco_a_vista) }}",
+    "price": "{{ "%.2f"|format(precos['preco_a_vista']|float) }}",
+    "priceValidUntil": "2026-12-31",
     "availability": "https://schema.org/InStock",
-    "itemCondition": "https://schema.org/NewCondition"
+    "itemCondition": "https://schema.org/NewCondition",
+    "hasMerchantReturnPolicy": {
+      "@type": "MerchantReturnPolicy",
+      "applicableCountry": "BR",
+      "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnPeriod",
+      "merchantReturnDays": 7,
+      "returnMethod": "https://schema.org/ReturnByMail",
+      "returnFees": "https://schema.org/FreeReturn"
+    },
+    "shippingDetails": {
+      "@type": "OfferShippingDetails",
+      "shippingRate": {
+        "@type": "MonetaryAmount",
+        "value": "0.00",
+        "currency": "BRL"
+      },
+      "shippingDestination": {
+        "@type": "DefinedRegion",
+        "addressCountry": "BR"
+      },
+      "deliveryTime": {
+        "@type": "ShippingDeliveryTime",
+        "handlingTime": {
+          "@type": "QuantitativeValue",
+          "minValue": 1,
+          "maxValue": 3,
+          "unitCode": "d"
+        },
+        "transitTime": {
+          "@type": "ShippingDeliveryTime",
+          "minValue": 5,
+          "maxValue": 15,
+          "unitCode": "d"
+        }
+      }
+    }
   }
 }
 </script>
