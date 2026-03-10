@@ -184,6 +184,33 @@
         </ol>
     </nav>
 
+{# ── DADOS ESTRUTURADOS PARA GOOGLE (SEO AVANÇADO) ── #}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "{{ produto.nome_comercial if produto.nome_comercial else produto.nome }}",
+  "image": [
+    "{{ gerar_link(produto.foto_url) }}"
+  ],
+  "description": "{{ produto.descricao[:160] if produto.descricao else 'Equipamento tático de alta performance na M4 Tática.' }}",
+  "sku": "{{ produto.codigo }}",
+  "mpn": "{{ produto.codigo }}",
+  "brand": {
+    "@type": "Brand",
+    "name": "{{ produto.marca_rel.nome if produto.marca_rel else 'M4 Tática' }}"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "{{ request.url }}",
+    "priceCurrency": "BRL",
+    "price": "{{ "{:.2f}".format(precos.preco_a_vista) }}",
+    "availability": "https://schema.org/InStock",
+    "itemCondition": "https://schema.org/NewCondition"
+  }
+}
+</script>
+
     <div class="row g-5">
         <div class="col-lg-7">
             <div class="img-main-container rounded shadow-sm">
