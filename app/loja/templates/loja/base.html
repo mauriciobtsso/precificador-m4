@@ -114,6 +114,37 @@
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W786W67Z" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     <header>
+
+{# No header ou logo após o body do base.html #}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{
+    "@type": "ListItem",
+    "position": 1,
+    "name": "Início",
+    "item": "https://app.m4tatica.com.br/loja/"
+  }
+  {% if categoria_ativa %}
+  ,{
+    "@type": "ListItem",
+    "position": 2,
+    "name": "{{ categoria_ativa.nome }}",
+    "item": "{{ url_for('loja.categoria', slug_categoria=categoria_ativa.slug, _external=True) }}"
+  }
+  {% endif %}
+  {% if produto %}
+  ,{
+    "@type": "ListItem",
+    "position": 3,
+    "name": "{{ produto.nome }}",
+    "item": "{{ request.url }}"
+  }
+  {% endif %}]
+}
+</script>
+
         <div class="navbar-main">
             <div class="container d-flex flex-wrap align-items-center justify-content-between">
                 <a href="{{ url_for('loja.index') }}" class="navbar-brand m-0" aria-label="M4 Tática - Página Inicial">

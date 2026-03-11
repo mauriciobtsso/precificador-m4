@@ -8,36 +8,62 @@ Confira a maior variedade de armas de fogo, pistolas, revólveres e munições n
 
 {% block content %}
 
-{# ── DADOS ESTRUTURADOS PARA A HOME (SEO DE AUTORIDADE) ── #}
+{# ── DADOS ESTRUTURADOS DE ELITE (HOME) ── #}
 <script type="application/ld+json">
-[{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "M4 Tática",
-  "url": "https://app.m4tatica.com.br/loja/",
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": "https://app.m4tatica.com.br/loja/?q={search_term_string}",
-    "query-input": "required name=search_term_string"
-  }
-},
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "M4 Tática",
-  "url": "https://app.m4tatica.com.br/loja/",
-  "logo": "https://app.m4tatica.com.br/static/img/logo.png",
-  "contactPoint": {
-    "@type": "ContactPoint",
-    "telephone": "+55-86-3025-5885",
-    "contactType": "customer service",
-    "areaServed": "BR",
-    "availableLanguage": "Portuguese"
+[
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "M4 Tática",
+    "url": "https://app.m4tatica.com.br/loja/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://app.m4tatica.com.br/loja/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
   },
-  "sameAs": [
-    "https://instagram.com/m4tatica"
-  ]
-}]
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "M4 Tática",
+    "url": "https://app.m4tatica.com.br/loja/",
+    "logo": "https://app.m4tatica.com.br/static/img/logo.png",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+55-86-3025-5885",
+      "contactType": "customer service",
+      "areaServed": "BR",
+      "availableLanguage": "Portuguese"
+    },
+    "sameAs": [
+      "https://www.instagram.com/m4tatica"
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Pistolas",
+        "url": "https://app.m4tatica.com.br/loja/categoria/pistola"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Revólveres",
+        "url": "https://app.m4tatica.com.br/loja/categoria/revolver"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "Munições",
+        "url": "https://app.m4tatica.com.br/loja/categoria/municoes"
+      }
+    ]
+  }
+]
 </script>
 
 {# =============================================

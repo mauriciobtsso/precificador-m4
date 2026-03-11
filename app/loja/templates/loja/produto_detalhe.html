@@ -184,7 +184,7 @@
         </ol>
     </nav>
 
-{# ── DADOS ESTRUTURADOS AVANÇADOS (SOLUÇÃO DE SNIPPETS) ── #}
+{# ── DADOS ESTRUTURADOS FULL SNIPPET (PRODUTO) ── #}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org/",
@@ -193,14 +193,13 @@
   "image": [
     {{ gerar_link(produto.foto_url) | tojson | safe }}
   ],
-  "description": {{ (produto.descricao[:160] if produto.descricao else 'Equipamento tático de alta performance na M4 Tática.') | tojson | safe }},
+  "description": {{ (produto.descricao[:160] if produto.descricao else 'Equipamento tático de alta performance.') | tojson | safe }},
   "sku": {{ produto.codigo | tojson | safe }},
   "mpn": {{ produto.codigo | tojson | safe }},
   "brand": {
     "@type": "Brand",
     "name": {{ (produto.marca_rel.nome if produto.marca_rel else 'M4 Tática') | tojson | safe }}
   },
-  {# Review e Rating genéricos para evitar avisos se não houver notas no banco #}
   "aggregateRating": {
     "@type": "AggregateRating",
     "ratingValue": "5",
@@ -235,18 +234,8 @@
       },
       "deliveryTime": {
         "@type": "ShippingDeliveryTime",
-        "handlingTime": {
-          "@type": "QuantitativeValue",
-          "minValue": 1,
-          "maxValue": 3,
-          "unitCode": "d"
-        },
-        "transitTime": {
-          "@type": "ShippingDeliveryTime",
-          "minValue": 5,
-          "maxValue": 15,
-          "unitCode": "d"
-        }
+        "handlingTime": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 3, "unitCode": "d" },
+        "transitTime": { "@type": "ShippingDeliveryTime", "minValue": 5, "maxValue": 15, "unitCode": "d" }
       }
     }
   }
