@@ -1,3 +1,4 @@
+# app/produtos/routes/utils.py
 import os
 import uuid
 import mimetypes
@@ -21,17 +22,21 @@ def _r2_client():
     )
 
 def _r2_bucket():
-    """Obtém o nome do bucket R2 (compatível com .env e config local)."""
+    """Obtém o nome do bucket R2 (Documentos/Privado)."""
     return (
         current_app.config.get("R2_BUCKET")
         or current_app.config.get("R2_BUCKET_NAME")
         or os.getenv("R2_BUCKET_NAME")
     )
 
+def _r2_bucket_publico():
+    """Retorna explicitamente o bucket da LOJA (Público/Fotos de Produtos)."""
+    return "m4-loja-publico"
+
 def _r2_public_base():
     """
     Base pública para montar URL acessível no R2.
-    Prioriza variável .env R2_PUBLIC_BASE_URL (ex: https://pub-xxxxxx.r2.dev)
+    Prioriza variável .env R2_PUBLIC_BASE_URL (ex: https://cdn.m4tatica.com.br)
     """
     return (
         current_app.config.get("R2_PUBLIC_BASEURL")

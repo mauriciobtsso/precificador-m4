@@ -43,11 +43,6 @@
 
                     <img
                         src="{{ url_t280 }}"
-                        srcset="{{ url_t160 }} 160w,
-                                {{ url_t280 }} 280w"
-                        sizes="(max-width: 575px) 48vw,
-                               (max-width: 991px) 30vw,
-                               280px"
                         alt="{{ nome_seo }} - M4 Tática"
                         title="{{ nome_seo }} na M4 Tática"
                         class="m4-product-img"
@@ -59,7 +54,7 @@
                         decoding="async"
                         width="280"
                         height="280"
-                        onerror="this.onerror=null;this.src='{{ url_orig }}';">
+                        onerror="this.onerror=null;this.srcset='';this.src='{{ url_orig }}';">
                 {% else %}
                     <div class="text-center opacity-25" aria-hidden="true"
                          style="width:260px;height:260px;display:flex;flex-direction:column;justify-content:center;">

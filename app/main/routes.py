@@ -265,29 +265,41 @@ def api_produto_whatsapp(produto_id):
     return jsonify({"texto_completo": texto_whats})
 
 # ============================================================
-# PROXY DE IMAGEM (NOVA ROTA - ADICIONE ISSO)
+# PROXY DE IMAGEM (ROTA ATUALIZADA - BUSCA DUPLA)
 # ============================================================
 @main.route("/imagem-proxy")
 @login_required
 def imagem_proxy():
     """
     Baixa a imagem do R2 pelo backend e serve para o frontend.
+    Tenta primeiro no bucket Público (E-commerce) e depois no Privado (Docs).
     """
+    import mimetypes
+    from flask import Response, stream_with_context
+    
     key = request.args.get("key")
     if not key:
         return abort(404)
 
     try:
         s3 = get_s3()
-        bucket = get_bucket()
+        bucket_privado = get_bucket()
+        bucket_publico = "m4-loja-publico" # O novo bucket de vitrine
 
-        # CORREÇÃO: Remove o nome do bucket se ele vier "grudado" no início da chave
-        # Ex: de "meu-bucket/produtos/foto.jpg" para "produtos/foto.jpg"
-        if key.startswith(f"{bucket}/"):
-            key = key[len(bucket)+1:]
+        # Remove o nome do bucket se ele vier "grudado" no início da chave
+        if key.startswith(f"{bucket_privado}/"):
+            key = key[len(bucket_privado)+1:]
+        elif key.startswith(f"{bucket_publico}/"):
+            key = key[len(bucket_publico)+1:]
         
-        # Obtém o objeto do R2
-        file_obj = s3.get_object(Bucket=bucket, Key=key)
+        file_obj = None
+        
+        # 1ª TENTATIVA: Bucket Público (Fotos novas de produtos)
+        try:
+            file_obj = s3.get_object(Bucket=bucket_publico, Key=key)
+        except Exception:
+            # 2ª TENTATIVA: Bucket Privado (Fotos antigas e documentos)
+            file_obj = s3.get_object(Bucket=bucket_privado, Key=key)
         
         content_type = file_obj.get('ContentType') or mimetypes.guess_type(key)[0] or 'application/octet-stream'
         
