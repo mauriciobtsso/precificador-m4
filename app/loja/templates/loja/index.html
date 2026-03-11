@@ -7,6 +7,39 @@ Confira a maior variedade de armas de fogo, pistolas, revólveres e munições n
 {% endblock %}
 
 {% block content %}
+
+{# ── DADOS ESTRUTURADOS PARA A HOME (SEO DE AUTORIDADE) ── #}
+<script type="application/ld+json">
+[{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "M4 Tática",
+  "url": "https://app.m4tatica.com.br/loja/",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://app.m4tatica.com.br/loja/?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+},
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "M4 Tática",
+  "url": "https://app.m4tatica.com.br/loja/",
+  "logo": "https://app.m4tatica.com.br/static/img/logo.png",
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+55-86-3025-5885",
+    "contactType": "customer service",
+    "areaServed": "BR",
+    "availableLanguage": "Portuguese"
+  },
+  "sameAs": [
+    "https://instagram.com/m4tatica"
+  ]
+}]
+</script>
+
 {# =============================================
    1. BANNER CARROSSEL (AUTOPLAY REATIVADO)
    ============================================= #}
