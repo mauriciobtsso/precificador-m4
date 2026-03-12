@@ -10,6 +10,14 @@ Disallow: /config.py
 Disallow: /.env
 Disallow: /instance/
 
+# PREVENÇÃO DE SOFT 404 (BLOQUEIO DE FILTROS DA LOJA)
+Disallow: /*?*marca=*
+Disallow: /*?*calibre=*
+Disallow: /*?*preco_max=*
+Disallow: /*?*ordenar=*
+Disallow: /*?*sort=*
+Disallow: /*?*tipo=*
+
 # PERMISSÃO PARA PREVIEW DE LINKS
 User-agent: facebookexternalhit
 Allow: /loja/produto/

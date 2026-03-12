@@ -1,5 +1,19 @@
 {% extends 'loja/base.html' %}
 
+{# ==========================================
+   BLINDAGEM SEO - PREVENÇÃO DE SOFT 404 
+   ========================================== #}
+{% block opengraph %}
+    {# 1. A Tag Canonical: Força o Google a olhar apenas para a categoria raiz, ignorando URLs com parâmetros #}
+    <link rel="canonical" href="{{ url_for('loja.categoria', slug_categoria=categoria_ativa.slug, _external=True) }}">
+
+    {# 2. A Tag NoIndex: Se a filtragem resultou em zero produtos, mandamos o Google não indexar a página vazia #}
+    {% if not produtos or produtos|length == 0 %}
+        <meta name="robots" content="noindex, follow">
+    {% endif %}
+{% endblock %}
+{# ========================================== #}
+
 {% block content %}
 <div class="container-fluid px-lg-5 mt-4">
     {# BREADCRUMB - Navegação Otimizada #}
