@@ -12,9 +12,37 @@ BUCKET_PRIVADO = "m4-clientes-docs"
 BUCKET_PUBLICO = "m4-loja-publico"
 CDN_URL = "https://cdn.m4tatica.com.br"
 
+
+def _limpar_path_r2(caminho_arquivo: str) -> str:
+    """
+    Extrai o r2_key limpo a partir de qualquer formato de URL ou path:
+      - URL do CDN:      https://cdn.m4tatica.com.br/produtos/fotos/5/x.webp  → produtos/fotos/5/x.webp
+      - URL R2 direto:   https://xxx.r2.dev/m4-loja-publico/produtos/...       → produtos/...
+      - URL R2 privado:  https://xxx.r2.dev/m4-clientes-docs/docs/...          → docs/...
+      - Path já limpo:   produtos/fotos/5/x.webp                               → produtos/fotos/5/x.webp
+    """
+    if not caminho_arquivo:
+        return ""
+
+    # Se for URL completa, extrai só o path
+    if caminho_arquivo.startswith("http"):
+        parsed_url = urlparse(caminho_arquivo)
+        caminho_arquivo = parsed_url.path.lstrip("/")
+
+    # Remove prefixo do bucket privado
+    if caminho_arquivo.startswith(BUCKET_PRIVADO + "/"):
+        caminho_arquivo = caminho_arquivo[len(BUCKET_PRIVADO) + 1:]
+
+    # Remove prefixo do bucket público (BUG CORRIGIDO)
+    if caminho_arquivo.startswith(BUCKET_PUBLICO + "/"):
+        caminho_arquivo = caminho_arquivo[len(BUCKET_PUBLICO) + 1:]
+
+    return caminho_arquivo
+
+
 def gerar_link_r2(caminho_arquivo: str, expiracao: int = 3600) -> str:
     """
-    Gera o link para o arquivo. 
+    Gera o link para o arquivo.
     SE FOR PÚBLICO (loja/ ou produtos/): Retorna link direto via CDN (Cloudflare Cache).
     SE FOR PRIVADO (documentos): Gera link assinado pelo R2.
     """
@@ -22,18 +50,13 @@ def gerar_link_r2(caminho_arquivo: str, expiracao: int = 3600) -> str:
         return ""
 
     try:
-        # Limpeza de URL caso venha o link completo do banco
-        if caminho_arquivo.startswith('http'):
-            parsed_url = urlparse(caminho_arquivo)
-            caminho_arquivo = parsed_url.path.lstrip('/')
-            
-            # Remove prefixo do bucket antigo se existir no path
-            if caminho_arquivo.startswith(BUCKET_PRIVADO + '/'):
-                caminho_arquivo = caminho_arquivo[len(BUCKET_PRIVADO) + 1:]
+        caminho_arquivo = _limpar_path_r2(caminho_arquivo)
+
+        if not caminho_arquivo:
+            return ""
 
         # 🎯 REGRA DE OURO: Roteamento para o CDN (Performance Máxima)
-        # Identifica se o arquivo já foi migrado para o bucket público
-        pastas_publicas = ('loja/', 'produtos/')
+        pastas_publicas = ("loja/", "produtos/")
         if caminho_arquivo.startswith(pastas_publicas):
             return f"{CDN_URL}/{caminho_arquivo}"
 
@@ -50,9 +73,10 @@ def gerar_link_r2(caminho_arquivo: str, expiracao: int = 3600) -> str:
         logging.error(f"[R2] Erro ao gerar link para {caminho_arquivo}: {e}")
         return ""
 
+
 def upload_file_to_r2(file_storage, folder="uploads") -> str:
     """
-    Faz upload selecionando o bucket correto: 
+    Faz upload selecionando o bucket correto:
     loja ou produtos -> m4-loja-publico
     outros -> m4-clientes-docs
     """
@@ -66,25 +90,26 @@ def upload_file_to_r2(file_storage, folder="uploads") -> str:
 
         if folder.endswith("/"):
             folder = folder[:-1]
-            
+
         caminho_destino = f"{folder}/{filename}"
 
         # Seleção automática de Bucket
-        bucket_destino = BUCKET_PUBLICO if folder.startswith(('loja', 'produtos')) else BUCKET_PRIVADO
+        bucket_destino = BUCKET_PUBLICO if folder.startswith(("loja", "produtos")) else BUCKET_PRIVADO
 
         s3 = get_s3()
         s3.upload_fileobj(
             file_storage,
             bucket_destino,
             caminho_destino,
-            ExtraArgs={'ContentType': file_storage.content_type}
+            ExtraArgs={"ContentType": file_storage.content_type},
         )
-        
+
         return caminho_destino
 
     except Exception as e:
         logging.error(f"[R2] Erro no upload_file_to_r2: {e}")
         return None
+
 
 def upload_fileobj_r2(file_obj, folder="uploads"):
     """Wrapper para manter compatibilidade com o módulo de Compras"""

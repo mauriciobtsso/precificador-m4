@@ -3,24 +3,6 @@ app/utils/thumbnail_utils.py
 ─────────────────────────────────────────────────────────────────────────────
 Geração de thumbnails no servidor para resolver o problema de imagens
 oversized apontado pelo PageSpeed Insights.
-
-Problema:  logos de 3840×1957px servidos em 85×43px → 115 KiB desperdiçados
-Solução:   gerar versões redimensionadas no R2 e servir pelo CDN
-
-Como funciona:
-  1. Ao cadastrar/atualizar produto ou marca, o sistema gera automaticamente
-     thumbnails (280px, 160px, 80px) e os salva no R2 com sufixo _tXXX
-  2. Os templates usam a função get_thumb_url() para pegar o tamanho certo
-  3. Imagens já existentes podem ser processadas em lote pelo comando CLI
-
-Tamanhos gerados:
-  _t280  → cards de produto (desktop)
-  _t160  → cards de produto (mobile) e grid
-  _t80   → logos de marcas no carrossel
-
-Roteamento de buckets (igual ao r2_helpers.py):
-  produtos/*  → m4-loja-publico  (CDN público)
-  outros      → m4-clientes-docs (bucket privado)
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -59,7 +41,7 @@ THUMB_QUALITY = {
 
 def _strip_cdn_prefix(url: str) -> str:
     """
-    Remove o prefixo de URL e retorna só o path (r2_key).
+    Remove o prefixo de URL e retorna só o r2_key limpo.
 
     Exemplos:
         https://cdn.m4tatica.com.br/produtos/fotos/166/aa4.webp
@@ -68,7 +50,10 @@ def _strip_cdn_prefix(url: str) -> str:
         https://pub-xxxx.r2.dev/produtos/fotos/166/aa4.webp
             → produtos/fotos/166/aa4.webp
 
-        https://cdn.m4tatica.com.br/m4-clientes-docs/produtos/...
+        https://xxx.r2.dev/m4-loja-publico/produtos/fotos/166/aa4.webp  ← BUG CORRIGIDO
+            → produtos/fotos/166/aa4.webp
+
+        https://xxx.r2.dev/m4-clientes-docs/produtos/...
             → produtos/...
     """
     if not url:
@@ -79,6 +64,10 @@ def _strip_cdn_prefix(url: str) -> str:
     # Remove prefixo do bucket privado se aparecer no path
     if path.startswith(f"{BUCKET_PRIVADO}/"):
         path = path[len(BUCKET_PRIVADO) + 1:]
+
+    # Remove prefixo do bucket público se aparecer no path (BUG CORRIGIDO)
+    if path.startswith(f"{BUCKET_PUBLICO}/"):
+        path = path[len(BUCKET_PUBLICO) + 1:]
 
     return path
 
@@ -103,7 +92,7 @@ def _bucket_para_key(r2_key: str) -> str:
 def get_thumb_url(original_url: str, size_key: str = 't280') -> str:
     """
     Retorna a URL do thumbnail no CDN.
-    Se o thumbnail não existir ainda, retorna a URL original (fallback seguro).
+    Se o thumbnail não existir ainda, retorna a URL original via CDN (fallback seguro).
 
     Uso nos templates:
         {{ get_thumb_url(produto.foto_url, 't280') }}
@@ -113,8 +102,10 @@ def get_thumb_url(original_url: str, size_key: str = 't280') -> str:
         return original_url or ''
 
     # Insere o sufixo antes da extensão
-    # ex: produtos/fotos/166/aa4258c.webp → produtos/fotos/166/aa4258c_t280.webp
     path = _strip_cdn_prefix(original_url)
+    if not path:
+        return original_url
+
     stem, ext = _split_ext(path)
     thumb_path = f"{stem}_{size_key}.webp"
 
@@ -201,10 +192,6 @@ def upload_thumb_to_r2(thumb_bytes: bytes, r2_key: str) -> bool:
     """
     Faz upload do thumbnail para o bucket correto no R2.
 
-    Roteamento (igual ao r2_helpers.py):
-      produtos/* → m4-loja-publico  (acessível via CDN público)
-      outros     → m4-clientes-docs (bucket privado)
-
     Args:
         thumb_bytes: bytes do WebP gerado
         r2_key:      caminho no bucket, ex: produtos/fotos/166/aa4258c_t280.webp
@@ -212,7 +199,6 @@ def upload_thumb_to_r2(thumb_bytes: bytes, r2_key: str) -> bool:
     Returns:
         True se sucesso, False se erro
     """
-    # Garante separadores Unix (evita problema no Windows)
     r2_key = _normalizar_key(r2_key)
     bucket = _bucket_para_key(r2_key)
 

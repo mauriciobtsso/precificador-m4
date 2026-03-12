@@ -23,24 +23,12 @@
            class="text-decoration-none"
            aria-label="Ver detalhes de {{ nome_seo }}">
             <div class="m4-img-container">
-                {% set imagem = produto.foto_url or produto.imagem_principal or produto.imagem_url or produto.foto %}
+{% set imagem = produto.foto_url or produto.imagem_principal or produto.imagem_url or produto.foto %}
 
                 {% if imagem %}
-                    {#
-                        THUMBNAILS GERADOS NO SERVIDOR (plano gratuito)
-                        ─────────────────────────────────────────────────
-                        get_thumb_url() retorna a URL do thumb gerado pelo
-                        scripts/gerar_thumbnails.py e app/utils/thumb_hooks.py
-                        
-                        Fallback: se o thumb não existir ainda, usa a original.
-                        
-                        srcset oferece t160 para mobile e t280 para desktop,
-                        evitando download desnecessário em telas pequenas.
-                    #}
                     {% set url_t280 = get_thumb_url(imagem, 't280') %}
                     {% set url_t160 = get_thumb_url(imagem, 't160') %}
-                    {% set url_orig = gerar_link(imagem) %}
-
+                    {# Fallback blindado: Remove o sufixo _t280 caso precise carregar a foto completa #}
                     <img
                         src="{{ url_t280 }}"
                         alt="{{ nome_seo }} - M4 Tática"
@@ -54,7 +42,7 @@
                         decoding="async"
                         width="280"
                         height="280"
-                        onerror="this.onerror=null;this.srcset='';this.src='{{ url_orig }}';">
+                        onerror="this.onerror=null; this.src=this.src.replace('_t280', '');">
                 {% else %}
                     <div class="text-center opacity-25" aria-hidden="true"
                          style="width:260px;height:260px;display:flex;flex-direction:column;justify-content:center;">

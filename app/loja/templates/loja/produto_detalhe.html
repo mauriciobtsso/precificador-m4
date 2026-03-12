@@ -244,12 +244,24 @@
 
     <div class="row g-5">
         <div class="col-lg-7">
-            <div class="img-main-container rounded shadow-sm">
+<div class="img-main-container rounded shadow-sm">
                 {% set imagem = produto.foto_url or produto.imagem_principal %}
                 {% if imagem %}
-                {% set url_t280 = get_thumb_url(imagem, 't280') %}
-		{% set url_orig = gerar_link(imagem) %}
-                        <img src="{{ url_t280 }}" alt="{{ produto.nome_comercial or produto.nome }}" loading="eager" decoding="async" onerror="this.onerror=null;this.src='{{ url_orig }}';">
+                    {% set url_t280 = get_thumb_url(imagem, 't280') %}
+                    {# A página de detalhes deveria carregar a foto em alta, mas usa _t280 por padrão no seu código. 
+                       Vamos forçar o carregamento da imagem original no CDN para ter alta qualidade! #}
+                    
+                    {# Remove qualquer prefixo acidental e limpa a URL para uso direto no CDN #}
+                    {% set caminho_limpo = imagem.replace('m4-loja-publico/', '').replace('m4-clientes-docs/', '') %}
+                    {% if not caminho_limpo.startswith('http') %}
+                        {% set caminho_limpo = 'https://cdn.m4tatica.com.br/' ~ caminho_limpo.lstrip('/') %}
+                    {% endif %}
+
+                    <img src="{{ caminho_limpo }}" 
+                         alt="{{ produto.nome_comercial or produto.nome }}" 
+                         loading="eager" 
+                         decoding="async" 
+                         onerror="this.onerror=null; this.src='/static/img/placeholder.jpg';">
                 {% else %}
                     <div class="text-center text-muted opacity-50">
                         <i class="bi bi-image fs-1 d-block mb-2"></i>

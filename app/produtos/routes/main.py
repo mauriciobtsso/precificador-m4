@@ -340,41 +340,62 @@ def gerenciar_produto(produto_id=None):
             db.session.add(produto)
             db.session.flush()
 
+ 
             # ============================================================
             # MIGRAR FOTO DO TEMP PARA A PASTA DEFINITIVA DO PRODUTO NO R2
             # ============================================================
             if produto.foto_url and 'produtos/fotos/temp/' in produto.foto_url:
                 try:
-                    # Removi o _key_from_url daqui, pois já importamos no topo do arquivo
                     from app.produtos.routes.utils import _r2_client, _r2_bucket_publico
                     client = _r2_client()
                     bucket = _r2_bucket_publico()
-                    
+ 
+                    # ✅ _key_from_url agora remove o prefixo do bucket do path
                     old_key = _key_from_url(produto.foto_url)
-                    if old_key:
-                        # Cria a nova chave trocando /temp/ por /<ID>/
-                        new_key = old_key.replace('produtos/fotos/temp/', f'produtos/fotos/{produto.id}/')
-                        
-                        # Move a foto principal
-                        client.copy_object(Bucket=bucket, CopySource={'Bucket': bucket, 'Key': old_key}, Key=new_key)
+ 
+                    if old_key and 'produtos/fotos/temp/' in old_key:
+                        new_key = old_key.replace(
+                            'produtos/fotos/temp/',
+                            f'produtos/fotos/{produto.id}/'
+                        )
+ 
+                        # Copia a foto principal
+                        client.copy_object(
+                            Bucket=bucket,
+                            CopySource={'Bucket': bucket, 'Key': old_key},
+                            Key=new_key
+                        )
                         client.delete_object(Bucket=bucket, Key=old_key)
-                        
-                        # Atualiza a URL no objeto antes do commit final
-                        produto.foto_url = produto.foto_url.replace('produtos/fotos/temp/', f'produtos/fotos/{produto.id}/')
-
-                        # Tenta mover as thumbnails (t280, t160) se já tiverem sido geradas
+ 
+                        # ✅ Reconstrói a URL usando o CDN, não a URL antiga com bug
+                        from app.utils.r2_helpers import CDN_URL
+                        produto.foto_url = f"{CDN_URL}/{new_key}"
+ 
+                        # Tenta mover thumbnails (t280, t160) se já existirem
                         for size in ['t280', 't160']:
-                            old_thumb = old_key.replace('.webp', f'_{size}.webp')
-                            new_thumb = new_key.replace('.webp', f'_{size}.webp')
+                            from pathlib import Path as _Path
+                            old_p = _Path(old_key)
+                            new_p = _Path(new_key)
+                            old_thumb = str(old_p.parent / f"{old_p.stem}_{size}.webp")
+                            new_thumb = str(new_p.parent / f"{new_p.stem}_{size}.webp")
                             try:
-                                client.copy_object(Bucket=bucket, CopySource={'Bucket': bucket, 'Key': old_thumb}, Key=new_thumb)
+                                client.copy_object(
+                                    Bucket=bucket,
+                                    CopySource={'Bucket': bucket, 'Key': old_thumb},
+                                    Key=new_thumb
+                                )
                                 client.delete_object(Bucket=bucket, Key=old_thumb)
                             except Exception:
-                                pass # Ignora se a miniatura não existir ainda
-                                
-                        current_app.logger.info(f"Foto e thumbs movidos do temp para a pasta definitiva: {produto.id}")
+                                pass  # Thumbnail ainda não gerado, será criado pelo hook
+ 
+                        current_app.logger.info(
+                            f"[M4] Foto migrada: temp → produtos/fotos/{produto.id}/ | "
+                            f"nova URL: {produto.foto_url}"
+                        )
                 except Exception as e:
-                    current_app.logger.error(f"Erro ao mover foto da pasta temp para definitivo: {e}")
+                    current_app.logger.error(
+                        f"[M4] Erro ao migrar foto temp para definitivo (produto {produto.id}): {e}"
+                    )
             # ============================================================
 
             registros = []
