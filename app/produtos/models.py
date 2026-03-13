@@ -44,6 +44,8 @@ class Produto(db.Model):
     
     descricao = db.Column(db.Text, nullable=True)
 
+
+
     # --- CAMPOS DE E-COMMERCE E VISIBILIDADE ---
     # NOME 2: Nome de Exibição na Loja (Amigável)
     nome_comercial = db.Column(db.String(255), nullable=True) 
@@ -176,6 +178,28 @@ class Produto(db.Model):
             "preco_a_vista": self.preco_a_vista,
             "lucro_liquido_real": self.lucro_liquido_real,
             "em_oferta": em_oferta
+        }
+
+    def to_compare_dict(self):
+        """Retorna dados do produto formatados para o comparador público"""
+        from flask import url_for
+        
+        return {
+            'id': self.id,
+            'nome': self.nome_comercial or self.nome,
+            'categoria': self.categoria.nome if self.categoria else 'N/A',
+            'calibre': self.calibre_rel.nome if self.calibre_rel else 'N/A',
+            'preco_vista': float(self.preco_a_vista) if self.preco_a_vista else 0.0,
+            'foto_url': self.foto_url or url_for('static', filename='img/sem-foto.jpg'),
+            'especificacoes': {
+                'marca': self.marca_rel.nome if self.marca_rel else 'N/A',
+                'tipo': self.tipo_rel.nome if self.tipo_rel else 'N/A',
+                'funcionamento': self.funcionamento_rel.nome if self.funcionamento_rel else 'N/A',
+                'peso': f"{self.peso} kg" if self.peso else 'N/A',
+                'comprimento': f"{self.comprimento} cm" if self.comprimento else 'N/A',
+                'largura': f"{self.largura} cm" if self.largura else 'N/A',
+                'altura': f"{self.altura} cm" if self.altura else 'N/A',
+            }
         }
 
     def __repr__(self):

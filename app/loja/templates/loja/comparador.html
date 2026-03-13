@@ -1,0 +1,775 @@
+{% extends "loja/base.html" %}
+
+{% block title %}Comparador Técnico de Produtos | M4 Tática{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ========== DESIGN PROFISSIONAL CORPORATIVO ========== */
+    
+    .comparador-header {
+        background: linear-gradient(180deg, #1a1a1a 0%, #2d2d2d 100%);
+        padding: 50px 0;
+        border-bottom: 3px solid var(--m4-gold);
+    }
+    
+    .comparador-header h1 {
+        color: #fff;
+        font-weight: 700;
+        font-size: 2.2rem;
+        margin-bottom: 8px;
+        letter-spacing: -0.5px;
+    }
+    
+    .comparador-header .subtitle {
+        color: #b8b8b8;
+        font-size: 1rem;
+        font-weight: 400;
+    }
+    
+    .icon-professional {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+    
+    /* Cards de busca e seleção */
+    .card-profissional {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        transition: box-shadow 0.2s;
+    }
+    
+    .card-profissional:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    
+    .card-header-profissional {
+        background: #f8f8f8;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 16px 20px;
+        font-weight: 600;
+        font-size: 14px;
+        color: #333;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .search-input-pro {
+        width: 100%;
+        padding: 14px 50px 14px 16px;
+        border: 1px solid #d0d0d0;
+        border-radius: 3px;
+        font-size: 15px;
+        transition: all 0.2s;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    
+    .search-input-pro:focus {
+        outline: none;
+        border-color: var(--m4-gold);
+        box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.08);
+    }
+    
+    .icon-search {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+        width: 18px;
+        height: 18px;
+        pointer-events: none;
+    }
+    
+    /* Dropdown de resultados */
+    .results-dropdown-pro {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #d0d0d0;
+        border-top: none;
+        max-height: 350px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: none;
+    }
+    
+    .results-dropdown-pro.show {
+        display: block;
+    }
+    
+    .result-item-pro {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    
+    .result-item-pro:hover {
+        background: #fafafa;
+    }
+    
+    .result-item-pro img {
+        width: 48px;
+        height: 48px;
+        object-fit: contain;
+        border: 1px solid #e8e8e8;
+        border-radius: 3px;
+        margin-right: 14px;
+        background: #fff;
+        padding: 4px;
+    }
+    
+    .result-info-pro {
+        flex: 1;
+    }
+    
+    .result-name-pro {
+        font-weight: 600;
+        font-size: 13px;
+        color: #222;
+        margin-bottom: 3px;
+    }
+    
+    .result-meta-pro {
+        font-size: 11px;
+        color: #666;
+    }
+    
+    .result-price-pro {
+        font-weight: 700;
+        color: var(--m4-gold-text);
+        font-size: 15px;
+    }
+    
+    /* Cards de produtos selecionados */
+    .produto-card-pro {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 16px;
+        position: relative;
+        transition: all 0.2s;
+    }
+    
+    .produto-card-pro:hover {
+        border-color: var(--m4-gold);
+        box-shadow: 0 2px 8px rgba(197, 160, 89, 0.15);
+    }
+    
+    .produto-card-pro img {
+        width: 100%;
+        height: 140px;
+        object-fit: contain;
+        margin-bottom: 12px;
+        background: #fafafa;
+        border-radius: 3px;
+        padding: 12px;
+    }
+    
+    .btn-remove-pro {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: #dc3545;
+        color: #fff;
+        border: none;
+        width: 26px;
+        height: 26px;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.15s;
+    }
+    
+    .btn-remove-pro:hover {
+        background: #c82333;
+    }
+    
+    /* Botão comparar */
+    .btn-comparar-pro {
+        background: var(--m4-gold);
+        color: #000;
+        border: none;
+        padding: 16px 44px;
+        font-size: 15px;
+        font-weight: 700;
+        text-transform: uppercase;
+        border-radius: 3px;
+        transition: all 0.2s;
+        letter-spacing: 0.8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-comparar-pro:hover:not(:disabled) {
+        background: var(--m4-gold-hover);
+        box-shadow: 0 4px 12px rgba(197, 160, 89, 0.3);
+    }
+    
+    .btn-comparar-pro:disabled {
+        background: #d0d0d0;
+        cursor: not-allowed;
+        color: #888;
+    }
+    
+    /* Tabela comparativa profissional */
+    .table-comparacao-pro {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .table-comparacao-pro th {
+        background: #2d2d2d;
+        color: #fff;
+        font-weight: 600;
+        padding: 18px 14px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        border-bottom: 2px solid var(--m4-gold);
+    }
+    
+    .table-comparacao-pro td {
+        padding: 16px 14px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+    }
+    
+    .table-comparacao-pro tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .table-comparacao-pro .header-produto {
+        text-align: center;
+        padding: 20px 12px;
+    }
+    
+    .table-comparacao-pro .header-produto img {
+        width: 90px;
+        height: 90px;
+        object-fit: contain;
+        border: 1px solid #e8e8e8;
+        border-radius: 3px;
+        margin-bottom: 12px;
+        background: #fafafa;
+        padding: 10px;
+    }
+    
+    .table-comparacao-pro .header-produto strong {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #222;
+    }
+    
+    .label-spec {
+        font-weight: 600;
+        color: #333;
+        background: #f8f8f8;
+        padding: 6px 12px;
+        border-left: 3px solid var(--m4-gold);
+        font-size: 13px;
+    }
+    
+    /* Caixa de análise técnica - DESIGN PROFISSIONAL */
+    .analise-box-pro {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        margin-top: 24px;
+        overflow: hidden;
+    }
+    
+    .analise-header-pro {
+        background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+        padding: 18px 24px;
+        border-bottom: 2px solid var(--m4-gold);
+        display: flex;
+        align-items: center;
+    }
+    
+    .analise-header-pro h3 {
+        color: #fff;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .analise-content-pro {
+        padding: 28px;
+        line-height: 1.8;
+        color: #333;
+        font-size: 14.5px;
+    }
+    
+    /* Formatação do texto da IA */
+    .analise-content-pro h4 {
+        font-size: 15px;
+        font-weight: 700;
+        color: #222;
+        margin-top: 24px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #f0f0f0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .analise-content-pro h4:first-child {
+        margin-top: 0;
+    }
+    
+    .analise-content-pro p {
+        margin-bottom: 14px;
+        text-align: justify;
+    }
+    
+    .analise-content-pro strong {
+        color: #000;
+        font-weight: 600;
+    }
+    
+    .analise-content-pro ul {
+        margin: 12px 0;
+        padding-left: 24px;
+    }
+    
+    .analise-content-pro li {
+        margin-bottom: 8px;
+    }
+    
+    /* Badge de credibilidade */
+    .badge-ia {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(197, 160, 89, 0.1);
+        color: var(--m4-gold-text);
+        padding: 8px 14px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 20px;
+        border: 1px solid rgba(197, 160, 89, 0.3);
+    }
+    
+    .badge-ia svg {
+        width: 14px;
+        height: 14px;
+        margin-right: 6px;
+    }
+    
+    /* Loading profissional */
+    .loading-pro {
+        text-align: center;
+        padding: 50px 20px;
+    }
+    
+    .spinner-pro {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #f0f0f0;
+        border-top-color: var(--m4-gold);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .loading-pro p {
+        margin-top: 16px;
+        color: #666;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    /* Estado vazio */
+    .empty-state-pro {
+        text-align: center;
+        padding: 50px 20px;
+        color: #888;
+    }
+    
+    .empty-state-pro svg {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 16px;
+        color: #ddd;
+    }
+    
+    @media (max-width: 768px) {
+        .comparador-header h1 {
+            font-size: 1.6rem;
+        }
+        
+        .table-comparacao-pro {
+            font-size: 12px;
+        }
+        
+        .analise-content-pro {
+            padding: 20px;
+            font-size: 13.5px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="comparador-header">
+    <div class="container text-center">
+        <h1>Comparador Técnico de Produtos</h1>
+        <p class="subtitle">Análise comparativa baseada em inteligência artificial</p>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="card-profissional mb-4">
+            <div class="card-header-profissional">
+                <svg class="icon-professional" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                Buscar Produtos
+            </div>
+            <div class="p-4">
+                <div class="position-relative">
+                    <input type="text" 
+                           id="search-input" 
+                           class="search-input-pro" 
+                           placeholder="Digite o código ou nome do armamento..."
+                           autocomplete="off">
+                    <svg class="icon-search" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    
+                    <div class="results-dropdown-pro" id="results-dropdown"></div>
+                </div>
+                
+                <small class="text-muted d-flex align-items-center mt-2">
+                    <svg class="icon-professional" style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Mínimo 2 caracteres | Máximo 3 produtos para emissão de laudo comparativo
+                </small>
+            </div>
+        </div>
+        
+        <div class="card-profissional">
+            <div class="card-header-profissional">
+                <svg class="icon-professional" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                </svg>
+                Itens Selecionados (<span id="contador">0</span>/3)
+            </div>
+            <div class="p-4">
+                <div class="row" id="grid-selecionados">
+                    <div class="col-12 empty-state-pro" id="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                        </svg>
+                        <p class="mb-0">Aguardando seleção de produtos</p>
+                        <small>Utilize o campo de busca acima.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <button id="btn-comparar" class="btn-comparar-pro" disabled>
+                <svg class="icon-professional" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                </svg>
+                Gerar Laudo Comparativo
+            </button>
+        </div>
+    </div>
+</section>
+
+<section id="resultado" class="py-5" style="display: none;">
+    <div class="container">
+        <div class="table-comparacao-pro">
+            <table class="table mb-0" id="tabela"></table>
+        </div>
+        
+        <div class="analise-box-pro">
+            <div class="analise-header-pro">
+                <h3>
+                    <svg class="icon-professional" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="margin: 0;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    Parecer Técnico / IA
+                </h3>
+            </div>
+            <div class="analise-content-pro" id="analise-texto"></div>
+        </div>
+    </div>
+</section>
+
+<div id="loading" class="loading-pro" style="display: none;">
+    <div class="spinner-pro mx-auto"></div>
+    <p>Processando parâmetros técnicos e emitindo laudo...</p>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const resultsDropdown = document.getElementById('results-dropdown');
+    const gridSelecionados = document.getElementById('grid-selecionados');
+    const emptyState = document.getElementById('empty-state');
+    const contador = document.getElementById('contador');
+    const btnComparar = document.getElementById('btn-comparar');
+    const resultado = document.getElementById('resultado');
+    const loading = document.getElementById('loading');
+    
+    let selecionados = [];
+    let timeout = null;
+    
+    function formatarPreco(v) {
+        return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    
+    function formatarTextoIA(texto) {
+        if (!texto) return '';
+        
+        // Remove qualquer emoji que a IA possa tentar colocar acidentalmente
+        texto = texto.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+        
+        // Substitui **texto** por <strong>
+        texto = texto.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        
+        // Substitui seções numeradas (1. RESUMO TÉCNICO) por títulos <h4>
+        texto = texto.replace(/^(\d+\.\s+[A-ZÀÁÉÍÓÚÇÃÕÂÊ].+?)$/gm, '<h4>$1</h4>');
+        
+        // Trata quebras de linha
+        texto = texto.replace(/\n\n/g, '</p><p>');
+        texto = texto.replace(/\n/g, '<br>');
+        
+        // Envolve em parágrafos e limpa parágrafos vazios
+        texto = '<p>' + texto + '</p>';
+        texto = texto.replace(/<p><\/p>/g, '');
+        texto = texto.replace(/<p><br><\/p>/g, '');
+        
+        return texto;
+    }
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(timeout);
+        const termo = this.value.trim();
+        
+        if (termo.length < 2) {
+            resultsDropdown.classList.remove('show');
+            return;
+        }
+        
+        timeout = setTimeout(() => buscar(termo), 300);
+    });
+    
+    async function buscar(termo) {
+        try {
+            const res = await fetch(`/loja/api/produtos/buscar?q=${encodeURIComponent(termo)}`);
+            const data = await res.json();
+            
+            if (data.produtos && data.produtos.length > 0) {
+                renderResultados(data.produtos);
+                resultsDropdown.classList.add('show');
+            } else {
+                resultsDropdown.innerHTML = '<div class="p-3 text-center text-muted">Nenhum armamento encontrado</div>';
+                resultsDropdown.classList.add('show');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    
+    function renderResultados(produtos) {
+        resultsDropdown.innerHTML = produtos.map(p => `
+            <div class="result-item-pro" data-id="${p.id}">
+                <img src="${p.foto}" alt="${p.nome}" onerror="this.src='/static/img/sem-foto.jpg'">
+                <div class="result-info-pro">
+                    <div class="result-name-pro">${p.nome}</div>
+                    <div class="result-meta-pro">Cód: ${p.codigo} | ${p.categoria} | ${p.calibre}</div>
+                </div>
+                <div class="result-price-pro">R$ ${formatarPreco(p.preco)}</div>
+            </div>
+        `).join('');
+        
+        resultsDropdown.querySelectorAll('.result-item-pro').forEach(el => {
+            el.addEventListener('click', function() {
+                const id = parseInt(this.dataset.id);
+                const prod = produtos.find(p => p.id === id);
+                adicionar(prod);
+            });
+        });
+    }
+    
+    function adicionar(prod) {
+        if (selecionados.find(p => p.id === prod.id)) {
+            alert('Armamento já selecionado no comparador.');
+            return;
+        }
+        
+        if (selecionados.length >= 3) {
+            alert('Aviso: Máximo de 3 itens permitidos para manter a precisão do laudo.');
+            return;
+        }
+        
+        selecionados.push(prod);
+        atualizar();
+        
+        searchInput.value = '';
+        resultsDropdown.classList.remove('show');
+    }
+    
+    function remover(id) {
+        selecionados = selecionados.filter(p => p.id !== id);
+        atualizar();
+    }
+    
+    window.remover = remover;
+    
+    function atualizar() {
+        contador.textContent = selecionados.length;
+        btnComparar.disabled = selecionados.length < 2;
+        
+        if (selecionados.length === 0) {
+            emptyState.style.display = 'block';
+            gridSelecionados.querySelectorAll('.col-md-4').forEach(el => el.remove());
+        } else {
+            emptyState.style.display = 'none';
+            
+            gridSelecionados.innerHTML = selecionados.map(p => `
+                <div class="col-md-4 mb-3">
+                    <div class="produto-card-pro">
+                        <button class="btn-remove-pro" onclick="remover(${p.id})">×</button>
+                        <img src="${p.foto}" alt="${p.nome}" onerror="this.src='/static/img/sem-foto.jpg'">
+                        <strong class="d-block mb-2" style="font-size: 13px;">${p.nome}</strong>
+                        <div class="text-muted small mb-1">Código: ${p.codigo}</div>
+                        <div class="text-muted small mb-2">${p.categoria} | ${p.calibre}</div>
+                        <div style="color: var(--m4-gold-text); font-weight: 700; font-size: 16px;">
+                            R$ ${formatarPreco(p.preco)}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsDropdown.contains(e.target)) {
+            resultsDropdown.classList.remove('show');
+        }
+    });
+    
+    btnComparar.addEventListener('click', async function() {
+        const ids = selecionados.map(p => p.id);
+        
+        loading.style.display = 'block';
+        resultado.style.display = 'none';
+        
+        try {
+            const res = await fetch('/loja/api/comparar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ produto_ids: ids })
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok) {
+                alert(data.erro || 'Erro no processamento.');
+                return;
+            }
+            
+            renderComparacao(data);
+            
+        } catch (e) {
+            console.error(e);
+            alert('Ocorreu um erro ao comunicar com os servidores.');
+        } finally {
+            loading.style.display = 'none';
+        }
+    });
+    
+    function renderComparacao(data) {
+        const produtos = data.produtos;
+        const analise = data.analise_ia;
+        
+        let html = '<thead><tr><th style="width: 180px;">Especificação</th>';
+        produtos.forEach(p => {
+            html += `<th class="header-produto">
+                        <img src="${p.foto_url}" alt="${p.nome}" onerror="this.src='/static/img/sem-foto.jpg'">
+                        <strong>${p.nome}</strong>
+                     </th>`;
+        });
+        html += '</tr></thead><tbody>';
+        
+        const linhas = [
+            { label: 'Categoria', key: 'categoria' },
+            { label: 'Calibre', key: 'calibre' },
+            { label: 'Preço à Vista', key: 'preco_vista', formato: v => `<strong style="color: var(--m4-gold-text); font-size: 18px;">R$ ${formatarPreco(v)}</strong>` },
+            { label: 'Fabricante', key: 'especificacoes.marca' },
+            { label: 'Tipo', key: 'especificacoes.tipo' },
+            { label: 'Sistema', key: 'especificacoes.funcionamento' },
+            { label: 'Peso', key: 'especificacoes.peso' },
+            { label: 'Comprimento', key: 'especificacoes.comprimento' }
+        ];
+        
+        linhas.forEach(linha => {
+            html += `<tr><td class="label-spec">${linha.label}</td>`;
+            produtos.forEach(p => {
+                let valor = linha.key.includes('.') 
+                    ? linha.key.split('.').reduce((o, k) => o[k] || 'N/A', p)
+                    : p[linha.key];
+                
+                if (linha.formato) valor = linha.formato(valor);
+                html += `<td class="text-center">${valor}</td>`;
+            });
+            html += '</tr>';
+        });
+        
+        html += '</tbody>';
+        document.getElementById('tabela').innerHTML = html;
+        
+        // Insere a análise processada e o selo de autenticidade (com SVG)
+        document.getElementById('analise-texto').innerHTML = formatarTextoIA(analise) + 
+            `<div class="badge-ia">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                </svg>
+                Documento gerado por Inteligência Artificial
+            </div>`;
+        
+        resultado.style.display = 'block';
+        resultado.scrollIntoView({ behavior: 'smooth' });
+    }
+});
+</script>
+{% endblock %}

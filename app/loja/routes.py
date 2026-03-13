@@ -1,7 +1,9 @@
 #app/loja/routes.py
 
-from flask import render_template, abort, request, url_for, send_from_directory, current_app, redirect, Response, make_response
+from flask import render_template, abort, request, url_for, send_from_directory, current_app, redirect, Response, make_response, flash, session, jsonify
 from app.loja import loja_bp
+from app import db
+from groq import Groq
 from app.loja.models_admin import Banner, PaginaInstitucional
 from app.produtos.models import Produto
 from app.produtos.categorias.models import CategoriaProduto
@@ -412,3 +414,269 @@ def limpar_cache():
         return "✅ Cache limpo com sucesso! As prateleiras serão reconstruídas no próximo acesso."
     except Exception as e:
         return f"❌ Erro ao limpar cache: {str(e)}"
+
+# ============================================================
+# COMPARADOR DE PRODUTOS - VERSÃO FINAL CORRIGIDA
+# ============================================================
+# SUBSTITUA TODA A SEÇÃO DO COMPARADOR NO app/loja/routes.py
+
+@loja_bp.route('/comparador')
+def comparador():
+    """Página do comparador - busca produtos via API"""
+    return render_template('loja/comparador.html')
+
+
+@loja_bp.route('/api/produtos/buscar', methods=['GET'])
+def buscar_produtos():
+    """API de busca de produtos para o comparador - APENAS ARMAS E MUNIÇÕES"""
+    termo = request.args.get('q', '').strip()
+    
+    if len(termo) < 2:
+        return jsonify({'produtos': []})
+    
+    # Categorias permitidas no comparador (apenas armas e munições)
+    categorias_permitidas = [
+        'pistola', 'revolver', 'rifle', 'espingarda', 'carabina',
+        'submetralhadora', 'fuzil', 'munição', 'municao', 'cartucho'
+    ]
+    
+    # Busca categorias que correspondem às permitidas
+    categorias_ids = CategoriaProduto.query.filter(
+        or_(*[CategoriaProduto.nome.ilike(f'%{cat}%') for cat in categorias_permitidas])
+    ).with_entities(CategoriaProduto.id).all()
+    
+    categoria_ids_flat = [cat.id for cat in categorias_ids]
+    
+    # Se não houver categorias permitidas, retorna vazio
+    if not categoria_ids_flat:
+        current_app.logger.warning('Nenhuma categoria de arma/munição encontrada no sistema')
+        categoria_ids_flat = [-1]  # ID impossível para retornar vazio
+    
+    # Busca produtos APENAS das categorias permitidas
+    filtro = f"%{termo}%"
+    produtos = Produto.query.filter(
+        Produto.categoria_id.in_(categoria_ids_flat),  # FILTRO CRÍTICO
+        or_(
+            Produto.nome.ilike(filtro),
+            Produto.nome_comercial.ilike(filtro),
+            Produto.codigo.ilike(filtro)
+        )
+    ).limit(20).all()
+    
+    # Monta resultado
+    resultado = []
+    for p in produtos:
+        if p.foto_url:
+            if p.foto_url.startswith('http') or p.foto_url.startswith('/'):
+                foto = p.foto_url
+            else:
+                foto = url_for('static', filename='img/sem-foto.jpg')
+        else:
+            foto = url_for('static', filename='img/sem-foto.jpg')
+        
+        resultado.append({
+            'id': p.id,
+            'nome': p.nome_comercial or p.nome,
+            'codigo': p.codigo,
+            'categoria': p.categoria.nome if p.categoria else 'N/A',
+            'calibre': p.calibre_rel.nome if p.calibre_rel else 'N/A',
+            'preco': float(p.preco_a_vista or 0),
+            'foto': foto
+        })
+    
+    current_app.logger.info(f'Busca "{termo}": {len(resultado)} produtos encontrados (apenas armas/munições)')
+    return jsonify({'produtos': resultado})
+
+
+@loja_bp.route('/api/comparar', methods=['POST'])
+def comparar_produtos():
+    """API que retorna dados comparativos + análise técnica profissional"""
+    try:
+        data = request.get_json()
+        produto_ids = data.get('produto_ids', [])
+        
+        # Validação
+        if not produto_ids or len(produto_ids) < 2:
+            return jsonify({'erro': 'Selecione pelo menos 2 produtos'}), 400
+        if len(produto_ids) > 3:
+            return jsonify({'erro': 'Máximo 3 produtos'}), 400
+        
+        # Busca produtos
+        produtos = Produto.query.filter(Produto.id.in_(produto_ids)).all()
+        if len(produtos) != len(produto_ids):
+            return jsonify({'erro': 'Produto não encontrado'}), 404
+        
+        # Monta dados para comparação
+        produtos_data = [p.to_compare_dict() for p in produtos]
+        
+        # Análise da IA via Groq
+        analise_ia = gerar_analise_comparativa(produtos_data)
+        
+        return jsonify({
+            'produtos': produtos_data,
+            'analise_ia': analise_ia
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f'Erro no comparador: {str(e)}')
+        return jsonify({'erro': f'Erro ao processar comparação: {str(e)}'}), 500
+
+
+def gerar_analise_local(produtos_data):
+    """Análise local detalhada (fallback sem IA)"""
+    mais_barato = min(produtos_data, key=lambda x: x['preco_vista'])
+    mais_caro = max(produtos_data, key=lambda x: x['preco_vista'])
+    
+    analise = f"""ANÁLISE COMPARATIVA TÉCNICA
+
+MELHOR CUSTO-BENEFÍCIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{mais_barato['nome']}
+Preço: R$ {mais_barato['preco_vista']:,.2f}
+Marca: {mais_barato['especificacoes']['marca']}
+Sistema: {mais_barato['especificacoes']['funcionamento']}
+
+Este produto oferece o menor investimento inicial entre os comparados.
+
+COMPARAÇÃO DETALHADA POR PREÇO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+    
+    for i, p in enumerate(sorted(produtos_data, key=lambda x: x['preco_vista']), 1):
+        analise += f"""
+{i}. {p['nome']}
+   Preço: R$ {p['preco_vista']:,.2f}
+   {p['calibre']} | {p['especificacoes']['marca']}
+   {p['especificacoes']['funcionamento']}
+"""
+    
+    if len(produtos_data) > 1:
+        diferenca = mais_caro['preco_vista'] - mais_barato['preco_vista']
+        economia_pct = (diferenca / mais_caro['preco_vista']) * 100
+        
+        analise += f"""
+ANÁLISE FINANCEIRA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Escolhendo o produto mais acessível, você economiza:
+• Valor: R$ {diferenca:,.2f}
+• Percentual: {economia_pct:.1f}%
+
+IMPORTANTE: Esta análise considera apenas o preço de aquisição.
+Para análise técnica completa sobre adequação ao uso (IPSC, defesa pessoal, 
+tiro esportivo), configure a API do Groq para análise com IA.
+
+Configure em .env:
+GROQ_API_KEY=sua_chave_aqui
+"""
+    
+    return analise
+
+
+def gerar_analise_comparativa(produtos_data):
+    """Chama IA via Groq (Llama 3.1) para emissão de PARECER TÉCNICO PROFISSIONAL"""
+    
+    api_key = os.getenv('GROQ_API_KEY')
+    model_name = os.getenv('GROQ_MODEL', 'llama-3.1-8b-instant')
+    
+    if not api_key:
+        current_app.logger.warning('GROQ_API_KEY não configurada - usando análise local')
+        return gerar_analise_local(produtos_data)
+    
+    try:
+        client = Groq(api_key=api_key)
+        
+        # Monta os dados estritamente técnicos (SEM EMOJIS)
+        produtos_info = "\n\n".join([
+            f"""[PRODUTO {i+1}]
+Nome: {p['nome']}
+Categoria: {p['categoria']}
+Calibre: {p['calibre']}
+Preço: R$ {p['preco_vista']:.2f}
+
+ESPECIFICAÇÕES TÉCNICAS:
+• Marca/Fabricante: {p['especificacoes']['marca']}
+• Tipo: {p['especificacoes']['tipo']}
+• Sistema de Funcionamento: {p['especificacoes']['funcionamento']}
+• Peso: {p['especificacoes']['peso']}
+• Dimensões: {p['especificacoes']['comprimento']} x {p['especificacoes']['largura']} x {p['especificacoes']['altura']}"""
+            for i, p in enumerate(produtos_data)
+        ])
+        
+        # PROMPT PROFISSIONAL: Foco total em laudo técnico
+        prompt = f"""Atue como um Engenheiro de Armamento e Instrutor Tático de nível Sênior.
+
+Emita um parecer técnico comparativo, estritamente profissional, objetivo e imparcial sobre os armamentos abaixo.
+
+IMPORTANTE: 
+- NÃO USE EMOJIS em nenhuma hipótese
+- Utilize vocabulário técnico de armaria
+- Mantenha tom formal e acadêmico
+- Seja objetivo e baseado em fatos
+
+DADOS DOS ARMAMENTOS:
+{produtos_info}
+
+ESTRUTURA DO PARECER EXIGIDA:
+
+1. RESUMO TÉCNICO
+   Breve panorama comparando as plataformas, calibres e sistemas de funcionamento.
+
+2. COMPARAÇÃO DE DESEMPENHO E APLICAÇÃO
+   Analise os pontos fortes e limitações de cada modelo considerando:
+   - Peso e ergonomia
+   - Sistema de disparo
+   - Confiabilidade mecânica
+   - Manutenção
+
+3. ADEQUAÇÃO OPERACIONAL
+   Classifique a adequação de cada arma para as seguintes finalidades usando "Alta", "Média" ou "Inadequada", justificando tecnicamente:
+   
+   a) Porte Velado / Defesa Pessoal
+   b) Defesa Residencial / Patrimonial
+   c) Tiro Esportivo (IPSC, IDSC)
+   d) Uso Profissional (Segurança/Polícia)
+
+4. ANÁLISE DE CUSTO-BENEFÍCIO
+   Cruze o valor de aquisição com:
+   - Durabilidade esperada do equipamento
+   - Custo operacional (munição, manutenção)
+   - Perfil do atirador ideal para cada modelo
+
+5. RECOMENDAÇÃO FINAL
+   Indique qual produto é mais adequado para:
+   - Atirador iniciante
+   - Atirador intermediário
+   - Atirador avançado/profissional
+
+REQUISITOS:
+- Máximo 450 palavras
+- Tom sóbrio, direto e técnico
+- Baseie-se apenas nos dados fornecidos
+- Não invente especificações"""
+
+        current_app.logger.info(f'Solicitando Parecer Técnico ao Groq ({model_name})...')
+        
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Você é um perito em armamento tático. Responda em Português do Brasil (PT-BR) com tom estritamente técnico, formal, acadêmico. NUNCA use emojis ou linguagem coloquial."
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model=model_name,
+            temperature=0.1,  # CRÍTICO: Temperatura baixa = máxima precisão e formalidade
+            max_tokens=1024,
+        )
+        
+        current_app.logger.info(f'✅ Parecer Técnico gerado com sucesso via Groq')
+        return chat_completion.choices[0].message.content
+        
+    except Exception as e:
+        current_app.logger.error(f'Erro Groq: {str(e)}')
+        return gerar_analise_local(produtos_data)
+
+
