@@ -1,6 +1,6 @@
 {% extends "loja/base.html" %}
 
-{% block title %}Comparador Técnico de Produtos | M4 Tática{% endblock %}
+{% block title %}Comparador de Armas | M4 Tática{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -164,6 +164,8 @@
         position: relative;
         transition: all 0.2s;
         height: 100%;
+        display: flex;
+        flex-direction: column;
     }
     
     .produto-card-pro:hover {
@@ -223,6 +225,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        width: auto;
     }
     
     .btn-comparar-pro:hover:not(:disabled) {
@@ -247,6 +250,13 @@
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
     
+    /* Scroll horizontal apenas para a tabela no mobile */
+    .table-responsive-custom {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 6px;
+    }
+    
     .table-comparacao-pro th {
         background: #1a1a1a;
         color: #fff;
@@ -257,6 +267,7 @@
         letter-spacing: 1px;
         border-bottom: 3px solid var(--m4-gold);
         text-align: center;
+        min-width: 150px;
     }
     
     .table-comparacao-pro td {
@@ -294,6 +305,7 @@
         background: #f8f9fa;
         text-align: left !important;
         border-right: 1px solid #eee;
+        min-width: 160px;
     }
     
     /* Caixa de análise técnica - DESIGN PROFISSIONAL */
@@ -353,12 +365,15 @@
         font-weight: 700;
     }
     
-    /* Estilo para as Tabelas que a IA gera */
+    /* Estilo para as Tabelas que a IA gera (Responsivas) */
     .analise-content-pro table {
         width: 100%;
         border-collapse: collapse;
         margin: 20px 0;
         font-size: 14px;
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
     }
     
     .analise-content-pro th, .analise-content-pro td {
@@ -401,6 +416,7 @@
         margin-top: 30px;
         border: 1px solid #e0e0e0;
         border-left: 4px solid var(--m4-gold);
+        line-height: 1.4;
     }
     
     /* Loading profissional */
@@ -435,6 +451,88 @@
         margin-bottom: 15px;
         color: #ccc;
     }
+
+    /* ========== RESPONSIVIDADE MOBILE ========== */
+    @media (max-width: 768px) {
+        .comparador-header {
+            padding: 30px 0;
+        }
+        
+        .comparador-header h1 {
+            font-size: 1.6rem;
+        }
+        
+        .comparador-header .subtitle {
+            font-size: 0.9rem;
+            padding: 0 15px;
+        }
+        
+        .card-profissional {
+            margin-bottom: 15px;
+        }
+        
+        .search-input-pro {
+            font-size: 14px;
+            padding: 14px 40px 14px 15px;
+        }
+        
+        .btn-comparar-pro {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 15px;
+        }
+        
+        .produto-card-pro img {
+            height: 100px;
+            padding: 5px;
+        }
+        
+        .produto-card-pro {
+            padding: 12px;
+        }
+        
+        .table-comparacao-pro th {
+            font-size: 12px;
+            padding: 12px 10px;
+            min-width: 120px;
+        }
+        
+        .table-comparacao-pro td {
+            font-size: 13px;
+            padding: 12px 10px;
+        }
+        
+        .label-spec {
+            min-width: 120px;
+            font-size: 12px;
+        }
+        
+        .table-comparacao-pro .header-produto img {
+            width: 70px;
+            height: 70px;
+        }
+        
+        .analise-header-pro h3 {
+            font-size: 15px;
+        }
+        
+        .analise-content-pro {
+            padding: 20px 15px;
+            font-size: 14px;
+        }
+        
+        .badge-ia {
+            font-size: 10px;
+            padding: 10px;
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .badge-ia svg {
+            margin-right: 0 !important;
+            margin-bottom: 5px;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -444,25 +542,25 @@
 <section class="comparador-header">
     <div class="container text-center">
         <h1>Comparador Técnico de Armamentos</h1>
-        <p class="subtitle">Análise pericial cruzada com base de dados tática</p>
+        <p class="subtitle">Análise cruzada com base nos dados e IA</p>
     </div>
 </section>
 
-<section class="py-5" style="background-color: #f4f6f8;">
+<section class="py-4 py-md-5" style="background-color: #f4f6f8;">
     <div class="container">
         <div class="card-profissional">
             <div class="card-header-profissional">
                 <svg class="icon-professional" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
-                Buscar Armamentos para Comparação
+                Buscar Armas para Comparação
             </div>
-            <div class="p-4">
+            <div class="p-3 p-md-4">
                 <div class="search-input-wrapper">
                     <input type="text" 
                            id="search-input" 
                            class="search-input-pro" 
-                           placeholder="Digite o código, modelo ou marca da arma..."
+                           placeholder="Digite código, modelo ou marca..."
                            autocomplete="off">
                     <svg class="icon-search" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -471,11 +569,11 @@
                     <div class="results-dropdown-pro" id="results-dropdown"></div>
                 </div>
                 
-                <small class="text-muted d-flex align-items-center mt-3">
-                    <svg class="icon-professional" style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <small class="text-muted d-flex align-items-start align-items-md-center mt-3" style="font-size: 0.85rem;">
+                    <svg class="icon-professional mt-1 mt-md-0" style="width: 14px; height: 14px; min-width: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    Mínimo 2 caracteres. Você pode selecionar até 3 armamentos para gerar o laudo.
+                    <span>Mínimo 2 caracteres. Selecione até 3 armamentos para gerar o laudo.</span>
                 </small>
             </div>
         </div>
@@ -485,45 +583,46 @@
                 <svg class="icon-professional" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                 </svg>
-                Itens Selecionados para Perícia (<span id="contador">0</span>/3)
+                Itens Selecionados (<span id="contador">0</span>/3)
             </div>
-            <div class="p-4">
-                <div class="row align-items-stretch" id="grid-selecionados">
+            <div class="p-3 p-md-4">
+                <div class="row align-items-stretch g-3" id="grid-selecionados">
                     <div class="col-12 empty-state-pro" id="empty-state">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                         </svg>
                         <p class="mb-0" style="font-weight: bold; color: #555;">Aguardando seleção de armamentos</p>
-                        <small>Utilize o campo de busca acima.</small>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="text-center mt-5">
+        <div class="text-center mt-4 mt-md-5">
             <button id="btn-comparar" class="btn-comparar-pro" disabled>
                 <svg class="icon-professional" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                 </svg>
-                Gerar Laudo Técnico Comparativo
+                Gerar Análise Comparativa
             </button>
         </div>
     </div>
 </section>
 
-<section id="resultado" class="py-5" style="display: none;">
+<section id="resultado" class="py-4 py-md-5" style="display: none;">
     <div class="container">
         
-        <h2 class="mb-4" style="font-weight: 800; border-left: 4px solid var(--m4-gold); padding-left: 15px;">Ficha Técnica Parametrizada</h2>
+        <h2 class="mb-3 mb-md-4 h4" style="font-weight: 800; border-left: 4px solid var(--m4-gold); padding-left: 15px;">Ficha Técnica Parametrizada</h2>
         
-        <div class="table-comparacao-pro mb-5">
-            <table class="table mb-0" id="tabela"></table>
+        <div class="table-responsive-custom mb-4 mb-md-5">
+            <div class="table-comparacao-pro">
+                <table class="table mb-0" id="tabela"></table>
+            </div>
         </div>
         
         <div class="analise-box-pro" id="box-parecer">
             <div class="analise-header-pro">
                 <h3>
-                    <svg class="icon-professional" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 12px;">
+                    <svg class="icon-professional" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 8px;">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
                     </svg>
                     Parecer Técnico Especializado
@@ -536,7 +635,7 @@
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: 8px;">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
-                    Laudo processado por Inteligência Artificial (Modelo: Llama 3.1)
+                    <span>Laudo processado por Inteligência Artificial (Modelo: Llama 3.1)</span>
                 </div>
             </div>
         </div>
@@ -545,7 +644,7 @@
 
 <div id="loading" class="loading-pro" style="display: none;">
     <div class="spinner-pro"></div>
-    <p class="mt-4">Processando parâmetros balísticos e consultando base de dados...</p>
+    <p class="mt-3 mt-md-4" style="font-size: 14px;">Processando parâmetros e consultando base de dados...</p>
 </div>
 
 <script>
@@ -587,7 +686,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderResultados(data.produtos);
                 resultsDropdown.classList.add('show');
             } else {
-                resultsDropdown.innerHTML = '<div class="p-3 text-center text-muted" style="font-weight: 500;">Nenhum armamento localizado no acervo.</div>';
+                resultsDropdown.innerHTML = '<div class="p-3 text-center text-muted" style="font-weight: 500; font-size: 14px;">Nenhum armamento localizado no acervo.</div>';
                 resultsDropdown.classList.add('show');
             }
         } catch (e) {
@@ -647,19 +746,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (selecionados.length === 0) {
             emptyState.style.display = 'block';
-            gridSelecionados.querySelectorAll('.col-md-4').forEach(el => el.remove());
+            gridSelecionados.querySelectorAll('.col-12.col-md-4, .col-6.col-md-4').forEach(el => el.remove());
         } else {
             emptyState.style.display = 'none';
             
+            // Layout flexível: em mobile fica 2 produtos lado a lado, ou 1 se for ímpar/grande
             gridSelecionados.innerHTML = selecionados.map(p => `
-                <div class="col-md-4 mb-3">
+                <div class="col-6 col-md-4 mb-3">
                     <div class="produto-card-pro">
                         <button class="btn-remove-pro" onclick="remover(${p.id})">&times;</button>
                         <img src="${p.foto}" alt="${p.nome}" onerror="this.src='/static/img/sem-foto.jpg'">
-                        <strong class="d-block mb-1" style="font-size: 14px; line-height: 1.3;">${p.nome}</strong>
-                        <div class="text-muted small mb-1">Cód: ${p.codigo}</div>
-                        <div class="text-muted small mb-2" style="font-weight: 600;">Calibre: ${p.calibre}</div>
-                        <div style="color: var(--m4-gold-text); font-weight: 900; font-size: 18px; margin-top: 10px;">
+                        <strong class="d-block mb-1" style="font-size: 13px; line-height: 1.3;">${p.nome}</strong>
+                        <div class="text-muted small mb-1" style="font-size: 11px;">Cód: ${p.codigo}</div>
+                        <div class="text-muted small mb-2" style="font-weight: 600; font-size: 11px;">Calibre: ${p.calibre}</div>
+                        <div style="color: var(--m4-gold-text); font-weight: 900; font-size: 16px; margin-top: auto;">
                             R$ ${formatarPreco(p.preco)}
                         </div>
                     </div>
@@ -708,8 +808,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const produtos = data.produtos;
         const analise = data.analise_ia;
         
-        // --- 1. RENDERIZAR TABELA ---
-        let html = '<thead><tr><th style="width: 220px; background: #000;">Especificação Técnica</th>';
+        let html = '<thead><tr><th style="width: 220px; background: #000;">Especificação</th>';
         produtos.forEach(p => {
             html += `<th class="header-produto">
                         <img src="${p.foto_url}" alt="${p.nome}" onerror="this.src='/static/img/sem-foto.jpg'">
@@ -721,7 +820,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const linhas = [
             { label: 'Categoria', key: 'categoria' },
             { label: 'Calibre Nominal', key: 'calibre' },
-            { label: 'Valor Base', key: 'preco_vista', formato: v => `<strong style="color: var(--m4-gold-text); font-size: 18px;">R$ ${formatarPreco(v)}</strong>` },
+            { label: 'Valor Base', key: 'preco_vista', formato: v => `<strong style="color: var(--m4-gold-text); font-size: 16px;">R$ ${formatarPreco(v)}</strong>` },
             { label: 'Fabricante', key: 'especificacoes.marca' },
             { label: 'Plataforma/Tipo', key: 'especificacoes.tipo' },
             { label: 'Ação/Sistema', key: 'especificacoes.funcionamento' },
@@ -745,13 +844,10 @@ document.addEventListener('DOMContentLoaded', function() {
         html += '</tbody>';
         document.getElementById('tabela').innerHTML = html;
         
-        // --- 2. RENDERIZAR LAUDO IA COM MARKED.JS ---
-        // Marked processa perfeitamente as tabelas e negritos gerados pela IA
         document.getElementById('analise-texto').innerHTML = marked.parse(analise);
         
         resultado.style.display = 'block';
         
-        // Rola a tela suavemente para a tabela
         setTimeout(() => {
             document.getElementById('resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);

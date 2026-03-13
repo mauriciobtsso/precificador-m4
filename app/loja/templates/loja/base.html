@@ -73,7 +73,16 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        .nav-departments { background-color: #fff; border-bottom: 3px solid var(--m4-gold); min-height: 51px; }
+        /* Nav Departments - AJUSTADO PARA MOBILE SCROLL */
+        .nav-departments { 
+            background-color: #fff; 
+            border-bottom: 3px solid var(--m4-gold); 
+            min-height: 51px; 
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE and Edge */
+        }
+        .nav-departments::-webkit-scrollbar { display: none; /* Chrome, Safari, Opera */ }
+        
         .nav-departments .nav-link { color: #111 !important; font-size: 12px; font-weight: 800; text-transform: uppercase; padding: 16px 15px !important; letter-spacing: 1px; }
 
         .dropdown-menu { border-radius: 0; border: none; border-top: 3px solid var(--m4-gold); box-shadow: 0 10px 30px rgba(0,0,0,.1); min-width: 250px; max-height: 80vh; overflow-y: auto; }
@@ -92,6 +101,11 @@
             .search-container { order: 3; max-width: 100%; margin-top: 15px; }
             .logo-img { height: 40px; width: 120px; }
             header { min-height: 70px; }
+            
+            /* Habilita rolagem horizontal suave no celular */
+            .nav-departments { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+            .nav-departments .nav { flex-wrap: nowrap; justify-content: flex-start !important; }
+            .nav-departments .nav-link { padding: 14px 15px !important; }
         }
 
         @media (min-width: 992px) {
@@ -177,7 +191,8 @@
             </div>
         </div>
 
-        <nav class="nav-departments d-none d-lg-block" aria-label="Navegação por categorias">
+        {# REMOVIDO "d-none d-lg-block" PARA QUE O MENU APAREÇA NO MOBILE COMO SCROLL #}
+        <nav class="nav-departments" aria-label="Navegação por categorias">
             <div class="container">
                 <ul class="nav justify-content-center">
                     {% for cat in categorias_menu if cat.exibir_no_menu %}
@@ -194,7 +209,13 @@
                             {% endif %}
                         </li>
                     {% endfor %}
-                    <li class="nav-item"><a class="nav-link text-danger fw-bold" href="https://wa.me/{{ loja.loja_whatsapp or '558630255885' }}" target="_blank" rel="noopener"><i class="bi bi-shield-check me-1"></i> SERVIÇOS / CR</a></li>
+                    
+                    {# ── NOVO BOTÃO DO COMPARADOR (SUBSTITUINDO O DESPACHANTE) ── #}
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold" style="color: var(--m4-gold-text) !important;" href="{{ url_for('loja.comparador') }}">
+                            <i class="bi bi-arrow-left-right me-1"></i> COMPARADOR TÉCNICO
+                        </a>
+                    </li>
                 </ul>
             </div>
         </nav>

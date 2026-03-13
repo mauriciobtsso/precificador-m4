@@ -195,6 +195,9 @@ def configuracoes():
 @loja_admin_bp.route('/auditoria-loja')
 @login_required
 def auditoria_loja():
+    # IMPORTAÇÃO NECESSÁRIA PARA O FILTRO FUNCIONAR
+    from app.produtos.categorias.models import CategoriaProduto
+    
     # 1. Pendências Gerais (Para todos os produtos visíveis na loja)
     condicao_base = or_(
         Produto.nome_comercial == None, Produto.nome_comercial == '',
@@ -209,6 +212,10 @@ def auditoria_loja():
     condicao_arma = and_(
         # Considera arma se tem funcionamento OU se exige documentação e tem calibre
         or_(Produto.funcionamento_id != None, and_(Produto.requer_documentacao == True, Produto.calibre_id != None)),
+        # Exclui munições, insumos e carregadores
+        ~Produto.categoria.has(CategoriaProduto.slug.ilike('%muni%')),
+        ~Produto.categoria.has(CategoriaProduto.slug.ilike('%insumo%')),
+        ~Produto.categoria.has(CategoriaProduto.slug.ilike('%carregador%')),
         # Se for arma, verifica se peso ou comprimento estão zerados/nulos
         or_(Produto.peso == None, Produto.peso <= 0, Produto.comprimento == None, Produto.comprimento <= 0)
     )
@@ -218,7 +225,6 @@ def auditoria_loja():
         or_(condicao_base, condicao_arma)
     ).order_by(Produto.nome.asc()).all()
 
-    # Corrigido o caminho do template para a pasta correta (loja_admin)
     return render_template('loja_admin/auditoria_loja.html', produtos=produtos_incompletos, total=len(produtos_incompletos))
 
 # =========================================================

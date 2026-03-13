@@ -176,20 +176,33 @@ Confira a maior variedade de armas de fogo, pistolas, revólveres e munições n
         </section>
         {% endif %}
 
-        {# 4. BANNER INSTITUCIONAL #}
+        {# 4. BANNER INSTITUCIONAL (AGORA É O COMPARADOR COM IA) #}
         <section class="mb-5">
-            <div class="promo-banner shadow-sm rounded overflow-hidden bg-dark text-center position-relative" style="min-height: 300px; display: flex; align-items: center;">
+            <div class="promo-banner shadow-sm rounded overflow-hidden text-center position-relative" style="min-height: 320px; display: flex; align-items: center; background: linear-gradient(135deg, #111 0%, #2a2a2a 100%); border: 1px solid #444;">
                 <div class="container p-5 position-relative z-1">
-                    <h2 class="text-gold fw-bold mb-2 h1">{{ loja.loja_despachante_titulo or 'DESPACHANTE M4 TÁTICA' }}</h2>
-                    <p class="text-white opacity-75 mb-4 mx-auto" style="max-width: 600px;">{{ loja.loja_despachante_texto or 'Assessoria completa para CR e Posse.' }}</p>
-                    <a href="https://wa.me/{{ loja.loja_whatsapp or '558630255885' }}" class="btn btn-gold btn-lg fw-bold px-5 py-3 shadow">
-                        QUERO MINHA ARMA LEGALIZADA
+                    
+                    <div class="mb-3">
+                        <svg style="width: 54px; height: 54px; color: var(--m4-gold);" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+
+                    <h2 class="fw-bold mb-2 h1" style="color: var(--m4-gold); letter-spacing: -0.5px;">COMPARADOR TÉCNICO COM IA</h2>
+                    <p class="text-white opacity-75 mb-4 mx-auto" style="max-width: 650px; font-size: 1.1rem; line-height: 1.6;">
+                        Na dúvida de qual armamento escolher? Compare especificações técnicas lado a lado e receba um laudo pericial gerado por nossa Inteligência Artificial.
+                    </p>
+                    
+                    <a href="{{ url_for('loja.comparador') }}" class="btn btn-lg fw-bold px-5 py-3 shadow-lg" style="background-color: var(--m4-gold); color: #000; transition: all 0.3s;">
+                        <i class="bi bi-arrow-left-right me-2"></i> ACESSAR COMPARADOR AGORA
                     </a>
                 </div>
+                
+                {# Overlay sutil com a imagem configurada no painel para dar textura #}
                 {% if loja.banner_despachante_link %}
-                <img src="{{ loja.banner_despachante_link }}" alt="Background Despachante" class="position-absolute start-0 top-0 w-100 h-100" style="object-fit: cover; opacity: 0.3; z-index: 0;" loading="lazy">
+                <img src="{{ loja.banner_despachante_link }}" alt="Background Comparador" class="position-absolute start-0 top-0 w-100 h-100" style="object-fit: cover; opacity: 0.15; mix-blend-mode: luminosity; z-index: 0;" loading="lazy">
                 {% endif %}
-            </section>
+            </div>
+        </section>
 
         {# 5. PRATELEIRAS ADICIONAIS #}
         {% if prateleiras %}
@@ -255,6 +268,9 @@ Confira a maior variedade de armas de fogo, pistolas, revólveres e munições n
     .brand-card:hover .brand-img { filter: grayscale(0%); opacity: 1; }
     @keyframes scrollBrands { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
     .btn-gold { background-color: var(--m4-gold); color: #000; border: none; }
+    
+    /* Efeito de hover no botão do banner da IA */
+    .promo-banner .btn:hover { background-color: var(--m4-gold-hover) !important; transform: translateY(-3px); }
 </style>
 {% endblock %}
 

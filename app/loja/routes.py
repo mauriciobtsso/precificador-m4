@@ -427,34 +427,33 @@ def comparador():
 
 @loja_bp.route('/api/produtos/buscar', methods=['GET'])
 def buscar_produtos():
-    """API de busca de produtos para o comparador - APENAS ARMAS E MUNIÇÕES"""
+    """API de busca de produtos para o comparador (EXCLUSIVO PARA ARMAS)"""
     termo = request.args.get('q', '').strip()
     
     if len(termo) < 2:
         return jsonify({'produtos': []})
     
-    # Categorias permitidas no comparador (apenas armas e munições)
-    categorias_permitidas = [
-        'pistola', 'revolver', 'rifle', 'espingarda', 'carabina',
-        'submetralhadora', 'fuzil', 'munição', 'municao', 'cartucho'
-    ]
-    
-    # Busca categorias que correspondem às permitidas
-    categorias_ids = CategoriaProduto.query.filter(
-        or_(*[CategoriaProduto.nome.ilike(f'%{cat}%') for cat in categorias_permitidas])
-    ).with_entities(CategoriaProduto.id).all()
-    
-    categoria_ids_flat = [cat.id for cat in categorias_ids]
-    
-    # Se não houver categorias permitidas, retorna vazio
-    if not categoria_ids_flat:
-        current_app.logger.warning('Nenhuma categoria de arma/munição encontrada no sistema')
-        categoria_ids_flat = [-1]  # ID impossível para retornar vazio
-    
-    # Busca produtos APENAS das categorias permitidas
     filtro = f"%{termo}%"
+    
+    from sqlalchemy import and_, or_
+    from app.produtos.categorias.models import CategoriaProduto
+    
+    # REGRA DE NEGÓCIO BLINDADA
+    # É arma se tem funcionamento OU (exige doc e tem calibre)
+    # MAS exclui ativamente tudo que for munição ou insumo
+    condicao_arma = and_(
+        or_(
+            Produto.funcionamento_id != None, 
+            and_(Produto.requer_documentacao == True, Produto.calibre_id != None)
+        ),
+        ~Produto.categoria.has(CategoriaProduto.slug.ilike('%muni%')),
+        ~Produto.categoria.has(CategoriaProduto.slug.ilike('%insumo%')),
+        ~Produto.categoria.has(CategoriaProduto.slug.ilike('%carregador%'))
+    )
+    
     produtos = Produto.query.filter(
-        Produto.categoria_id.in_(categoria_ids_flat),  # FILTRO CRÍTICO
+        condicao_arma,
+        Produto.visivel_loja == True,
         or_(
             Produto.nome.ilike(filtro),
             Produto.nome_comercial.ilike(filtro),
@@ -462,7 +461,6 @@ def buscar_produtos():
         )
     ).limit(20).all()
     
-    # Monta resultado
     resultado = []
     for p in produtos:
         if p.foto_url:
@@ -483,7 +481,6 @@ def buscar_produtos():
             'foto': foto
         })
     
-    current_app.logger.info(f'Busca "{termo}": {len(resultado)} produtos encontrados (apenas armas/munições)')
     return jsonify({'produtos': resultado})
 
 
@@ -585,19 +582,17 @@ def gerar_analise_comparativa(produtos_data):
         from groq import Groq
         client = Groq(api_key=api_key)
         
-        # Monta os dados básicos que a loja possui
+        # MUDANÇA 1: Tiramos o "[PRODUTO 1]" e colocamos o nome da arma direto no cabeçalho
         produtos_info = "\n\n".join([
-            f"""[PRODUTO {i+1}]
-Nome: {p['nome']}
+            f"""[ARMAMENTO: {p['nome'].upper()}]
 Categoria: {p['categoria']}
 Calibre: {p['calibre']}
 Preço na Loja: R$ {p['preco_vista']:.2f}
 Marca: {p['especificacoes']['marca']}
 Tipo: {p['especificacoes']['tipo']}"""
-            for i, p in enumerate(produtos_data)
+            for p in produtos_data
         ])
         
-        # PROMPT INTELIGENTE: Obriga a IA a usar o conhecimento externo dela
         prompt = f"""Atue como um Engenheiro de Armamento e Instrutor Tático de nível Sênior.
 Abaixo estão os dados comerciais de armamentos extraídos do nosso sistema. 
 IMPORTANTE: Como algumas especificações técnicas podem estar ausentes no cadastro, VOCÊ DEVE OBRIGATORIAMENTE UTILIZAR SUA PRÓPRIA BASE DE CONHECIMENTO sobre estes modelos reais de armas de fogo para preencher as lacunas (dimensões, peso padrão, capacidade, histórico de confiabilidade mecânica, materiais de construção, etc).
@@ -626,7 +621,8 @@ ESTRUTURA DO PARECER EXIGIDA:
 REGRAS RÍGIDAS: 
 - Limite-se a 450 palavras. 
 - Mantenha o tom sóbrio, direto e use formatação Markdown para destacar os tópicos. 
-- NÃO USE EMOJIS EM NENHUMA HIPÓTESE."""
+- NÃO USE EMOJIS EM NENHUMA HIPÓTESE.
+- PROIBIDO usar termos genéricos como "Produto 1" ou "Produto 2". Cite EXCLUSIVAMENTE o nome real da arma (ex: "Taurus GX2", "G2c") em todo o texto e nos cabeçalhos de eventuais tabelas."""
  
         current_app.logger.info(f'Solicitando Laudo Inteligente ao Groq ({model_name})...')
         
@@ -634,7 +630,7 @@ REGRAS RÍGIDAS:
             messages=[
                 {
                     "role": "system",
-                    "content": "Você é um perito em armamento tático de alto nível. Responda em Português do Brasil (PT-BR) com tom estritamente técnico, formal e acadêmico. Traga informações reais do mundo armamentista para enriquecer o laudo. Não use emojis."
+                    "content": "Você é um perito em armamento tático de alto nível. Responda em Português do Brasil (PT-BR) com tom estritamente técnico, formal e acadêmico. Traga informações reais do mundo armamentista para enriquecer o laudo. Não use emojis. Refira-se aos armamentos sempre pelos seus nomes oficiais e comerciais."
                 },
                 {
                     "role": "user",
@@ -642,9 +638,7 @@ REGRAS RÍGIDAS:
                 }
             ],
             model=model_name,
-            # Aumentamos levemente a temperatura para 0.3. 
-            # Isso permite que a IA "lembre" e traga dados técnicos externos de forma confiável.
-            temperature=0.3, 
+            temperature=0.3,
             max_tokens=1024,
         )
         
