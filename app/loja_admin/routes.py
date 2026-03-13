@@ -3,7 +3,8 @@ import re
 import unicodedata
 from flask import render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+# IMPORTANTE: Adicionado o and_ aqui
+from sqlalchemy import or_, and_ 
 from app.produtos.models import Produto
 from app.loja_admin import loja_admin_bp
 from app.loja.models_admin import Banner, PaginaInstitucional
@@ -188,23 +189,37 @@ def configuracoes():
     configs = Configuracao.query.filter(Configuracao.chave.like('loja_%')).all()
     return render_template('loja_admin/configuracoes.html', configs=configs)
 
+# =========================================================
+# AUDITORIA DA LOJA VIRTUAL (ATUALIZADA PARA ARMAS DE FOGO)
+# =========================================================
 @loja_admin_bp.route('/auditoria-loja')
 @login_required
 def auditoria_loja():
-    # ... (toda a lógica da query que já fizemos)
+    # 1. Pendências Gerais (Para todos os produtos visíveis na loja)
+    condicao_base = or_(
+        Produto.nome_comercial == None, Produto.nome_comercial == '',
+        Produto.slug == None, Produto.slug == '',
+        Produto.descricao_comercial == None, Produto.descricao_comercial == '',
+        Produto.descricao_longa == None, Produto.descricao_longa == '',
+        Produto.meta_title == None, Produto.meta_title == '',
+        Produto.meta_description == None, Produto.meta_description == ''
+    )
+    
+    # 2. Pendências Específicas para Armas (Exige Peso e Comprimento)
+    condicao_arma = and_(
+        # Considera arma se tem funcionamento OU se exige documentação e tem calibre
+        or_(Produto.funcionamento_id != None, and_(Produto.requer_documentacao == True, Produto.calibre_id != None)),
+        # Se for arma, verifica se peso ou comprimento estão zerados/nulos
+        or_(Produto.peso == None, Produto.peso <= 0, Produto.comprimento == None, Produto.comprimento <= 0)
+    )
+
+    # Pegamos os produtos que têm alguma pendência
     produtos_incompletos = Produto.query.filter(
-        or_(
-            Produto.nome_comercial == None, Produto.nome_comercial == '',
-            Produto.slug == None, Produto.slug == '',
-            Produto.descricao_comercial == None, Produto.descricao_comercial == '',
-            Produto.descricao_longa == None, Produto.descricao_longa == '',
-            Produto.meta_title == None, Produto.meta_title == '',
-            Produto.meta_description == None, Produto.meta_description == ''
-        )
+        or_(condicao_base, condicao_arma)
     ).order_by(Produto.nome.asc()).all()
 
-    # O erro estava aqui: este 'return' deve ter 4 espaços (ou 1 tab) de recuo
-    return render_template('auditoria_loja.html', produtos=produtos_incompletos, total=len(produtos_incompletos))
+    # Corrigido o caminho do template para a pasta correta (loja_admin)
+    return render_template('loja_admin/auditoria_loja.html', produtos=produtos_incompletos, total=len(produtos_incompletos))
 
 # =========================================================
 # INTEGRAÇÕES (Melhor Envio, Pagar.me, SMTP)

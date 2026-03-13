@@ -418,7 +418,6 @@ def limpar_cache():
 # ============================================================
 # COMPARADOR DE PRODUTOS - VERSÃO FINAL CORRIGIDA
 # ============================================================
-# SUBSTITUA TODA A SEÇÃO DO COMPARADOR NO app/loja/routes.py
 
 @loja_bp.route('/comparador')
 def comparador():
@@ -573,94 +572,69 @@ GROQ_API_KEY=sua_chave_aqui
 
 
 def gerar_analise_comparativa(produtos_data):
-    """Chama IA via Groq (Llama 3.1) para emissão de PARECER TÉCNICO PROFISSIONAL"""
+    """Chama IA via Groq (Llama 3.1) usando conhecimento próprio da IA + dados da loja"""
     
     api_key = os.getenv('GROQ_API_KEY')
     model_name = os.getenv('GROQ_MODEL', 'llama-3.1-8b-instant')
     
     if not api_key:
-        current_app.logger.warning('GROQ_API_KEY não configurada - usando análise local')
+        current_app.logger.warning('GROQ_API_KEY não configurada')
         return gerar_analise_local(produtos_data)
     
     try:
+        from groq import Groq
         client = Groq(api_key=api_key)
         
-        # Monta os dados estritamente técnicos (SEM EMOJIS)
+        # Monta os dados básicos que a loja possui
         produtos_info = "\n\n".join([
             f"""[PRODUTO {i+1}]
 Nome: {p['nome']}
 Categoria: {p['categoria']}
 Calibre: {p['calibre']}
-Preço: R$ {p['preco_vista']:.2f}
-
-ESPECIFICAÇÕES TÉCNICAS:
-• Marca/Fabricante: {p['especificacoes']['marca']}
-• Tipo: {p['especificacoes']['tipo']}
-• Sistema de Funcionamento: {p['especificacoes']['funcionamento']}
-• Peso: {p['especificacoes']['peso']}
-• Dimensões: {p['especificacoes']['comprimento']} x {p['especificacoes']['largura']} x {p['especificacoes']['altura']}"""
+Preço na Loja: R$ {p['preco_vista']:.2f}
+Marca: {p['especificacoes']['marca']}
+Tipo: {p['especificacoes']['tipo']}"""
             for i, p in enumerate(produtos_data)
         ])
         
-        # PROMPT PROFISSIONAL: Foco total em laudo técnico
+        # PROMPT INTELIGENTE: Obriga a IA a usar o conhecimento externo dela
         prompt = f"""Atue como um Engenheiro de Armamento e Instrutor Tático de nível Sênior.
+Abaixo estão os dados comerciais de armamentos extraídos do nosso sistema. 
+IMPORTANTE: Como algumas especificações técnicas podem estar ausentes no cadastro, VOCÊ DEVE OBRIGATORIAMENTE UTILIZAR SUA PRÓPRIA BASE DE CONHECIMENTO sobre estes modelos reais de armas de fogo para preencher as lacunas (dimensões, peso padrão, capacidade, histórico de confiabilidade mecânica, materiais de construção, etc).
 
-Emita um parecer técnico comparativo, estritamente profissional, objetivo e imparcial sobre os armamentos abaixo.
-
-IMPORTANTE: 
-- NÃO USE EMOJIS em nenhuma hipótese
-- Utilize vocabulário técnico de armaria
-- Mantenha tom formal e acadêmico
-- Seja objetivo e baseado em fatos
-
-DADOS DOS ARMAMENTOS:
+DADOS COMERCIAIS:
 {produtos_info}
 
 ESTRUTURA DO PARECER EXIGIDA:
 
-1. RESUMO TÉCNICO
-   Breve panorama comparando as plataformas, calibres e sistemas de funcionamento.
+1. RESUMO TÉCNICO E CONSTRUTIVO
+   (Utilize seu conhecimento sobre as armas para descrever a plataforma, o material do frame/ferrolho e as propostas de projeto de cada modelo).
 
 2. COMPARAÇÃO DE DESEMPENHO E APLICAÇÃO
-   Analise os pontos fortes e limitações de cada modelo considerando:
-   - Peso e ergonomia
-   - Sistema de disparo
-   - Confiabilidade mecânica
-   - Manutenção
+   (Analise o peso típico, dimensões, sistema de gatilho, capacidade padrão e ergonomia teórica de cada modelo com base no que se sabe sobre elas no mundo real).
 
 3. ADEQUAÇÃO OPERACIONAL
-   Classifique a adequação de cada arma para as seguintes finalidades usando "Alta", "Média" ou "Inadequada", justificando tecnicamente:
-   
-   a) Porte Velado / Defesa Pessoal
-   b) Defesa Residencial / Patrimonial
-   c) Tiro Esportivo (IPSC, IDSC)
-   d) Uso Profissional (Segurança/Polícia)
+   (Classifique a adequação de cada arma para as seguintes finalidades usando "Alta", "Média" ou "Inadequada", justificando tecnicamente:
+   - Porte Velado / Defesa Pessoal
+   - Defesa Residencial / Patrimonial
+   - Tiro Esportivo (IPSC, IDSC)
+   - Uso Policial / Tático)
 
-4. ANÁLISE DE CUSTO-BENEFÍCIO
-   Cruze o valor de aquisição com:
-   - Durabilidade esperada do equipamento
-   - Custo operacional (munição, manutenção)
-   - Perfil do atirador ideal para cada modelo
+4. VEREDITO DE CUSTO-BENEFÍCIO
+   (Cruze o "Preço na Loja" fornecido com a durabilidade, qualidade de acabamento e confiabilidade que você conhece desses modelos no mercado real).
 
-5. RECOMENDAÇÃO FINAL
-   Indique qual produto é mais adequado para:
-   - Atirador iniciante
-   - Atirador intermediário
-   - Atirador avançado/profissional
-
-REQUISITOS:
-- Máximo 450 palavras
-- Tom sóbrio, direto e técnico
-- Baseie-se apenas nos dados fornecidos
-- Não invente especificações"""
-
-        current_app.logger.info(f'Solicitando Parecer Técnico ao Groq ({model_name})...')
+REGRAS RÍGIDAS: 
+- Limite-se a 450 palavras. 
+- Mantenha o tom sóbrio, direto e use formatação Markdown para destacar os tópicos. 
+- NÃO USE EMOJIS EM NENHUMA HIPÓTESE."""
+ 
+        current_app.logger.info(f'Solicitando Laudo Inteligente ao Groq ({model_name})...')
         
         chat_completion = client.chat.completions.create(
             messages=[
                 {
                     "role": "system",
-                    "content": "Você é um perito em armamento tático. Responda em Português do Brasil (PT-BR) com tom estritamente técnico, formal, acadêmico. NUNCA use emojis ou linguagem coloquial."
+                    "content": "Você é um perito em armamento tático de alto nível. Responda em Português do Brasil (PT-BR) com tom estritamente técnico, formal e acadêmico. Traga informações reais do mundo armamentista para enriquecer o laudo. Não use emojis."
                 },
                 {
                     "role": "user",
@@ -668,11 +642,13 @@ REQUISITOS:
                 }
             ],
             model=model_name,
-            temperature=0.1,  # CRÍTICO: Temperatura baixa = máxima precisão e formalidade
+            # Aumentamos levemente a temperatura para 0.3. 
+            # Isso permite que a IA "lembre" e traga dados técnicos externos de forma confiável.
+            temperature=0.3, 
             max_tokens=1024,
         )
         
-        current_app.logger.info(f'✅ Parecer Técnico gerado com sucesso via Groq')
+        current_app.logger.info(f'✅ Laudo Inteligente gerado com sucesso.')
         return chat_completion.choices[0].message.content
         
     except Exception as e:

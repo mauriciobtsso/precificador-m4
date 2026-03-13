@@ -3,7 +3,7 @@
 {% block extra_css %}
 <style>
     .badge-missing { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; font-size: 0.75rem; margin-right: 2px; }
-    .badge-ok { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; font-size: 0.75rem; }
+    .badge-ok { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; font-size: 0.75rem; margin-right: 2px; }
     .table-hover tbody tr:hover { background-color: rgba(197, 160, 89, 0.05); }
     .card-stats { border-left: 4px solid var(--m4-gold); }
 </style>
@@ -17,7 +17,7 @@
     </div>
     <div class="card card-stats shadow-sm px-4 py-2 bg-white">
         <div class="small text-muted text-uppercase fw-bold">Pendências Encontradas</div>
-        <div class="fs-3 fw-bold text-danger">{{ total }}</div>
+        <div class="fs-3 fw-bold text-danger">{{ produtos|length }}</div>
     </div>
 </div>
 
@@ -34,6 +34,10 @@
                 </thead>
                 <tbody>
                     {% for p in produtos %}
+                    
+                    {# Lógica para identificar se é arma (Tem funcionamento ou requer doc+calibre) #}
+                    {% set eh_arma = p.funcionamento_id or (p.requer_documentacao and p.calibre_id) %}
+                    
                     <tr>
                         <td class="ps-4">
                             <div class="fw-bold text-dark">{{ p.nome }}</div>
@@ -42,20 +46,22 @@
                         <td>
                             <div class="d-flex flex-wrap gap-1">
                                 {{ '<span class="badge badge-ok"><i class="bi bi-check"></i> Nome Comercial</span>'|safe if p.nome_comercial else '<span class="badge badge-missing">Falta: Nome Comercial</span>'|safe }}
-                                
                                 {{ '<span class="badge badge-ok"><i class="bi bi-check"></i> Slug</span>'|safe if p.slug else '<span class="badge badge-missing">Falta: Slug</span>'|safe }}
-                                
                                 {{ '<span class="badge badge-ok"><i class="bi bi-check"></i> Resumo</span>'|safe if p.descricao_comercial else '<span class="badge badge-missing">Falta: Resumo</span>'|safe }}
-                                
                                 {{ '<span class="badge badge-ok"><i class="bi bi-check"></i> Ficha Técnica</span>'|safe if p.descricao_longa else '<span class="badge badge-missing">Falta: Ficha Técnica</span>'|safe }}
-                                
                                 {{ '<span class="badge badge-ok"><i class="bi bi-check"></i> SEO Title</span>'|safe if p.meta_title else '<span class="badge badge-missing">Falta: Meta Title</span>'|safe }}
-                                
                                 {{ '<span class="badge badge-ok"><i class="bi bi-check"></i> SEO Desc</span>'|safe if p.meta_description else '<span class="badge badge-missing">Falta: Meta Desc</span>'|safe }}
+                                
+                                {# Validação Exclusiva para Armas de Fogo #}
+                                {% if eh_arma %}
+                                    {{ '<span class="badge badge-ok"><i class="bi bi-check"></i> Peso</span>'|safe if p.peso and p.peso > 0 else '<span class="badge badge-missing">Falta: Peso</span>'|safe }}
+                                    {{ '<span class="badge badge-ok"><i class="bi bi-check"></i> Comprimento</span>'|safe if p.comprimento and p.comprimento > 0 else '<span class="badge badge-missing">Falta: Comprimento</span>'|safe }}
+                                {% endif %}
                             </div>
                         </td>
                         <td class="text-center pe-4">
-                            <a href="{{ url_for('produtos.editar_produto', id=p.id) }}" class="btn btn-sm btn-dark px-3">
+                            {# AQUI ESTAVA O ERRO: Alterado para 'produtos.gerenciar_produto' #}
+                            <a href="{{ url_for('produtos.gerenciar_produto', id=p.id) }}" class="btn btn-sm btn-dark px-3" target="_blank">
                                 <i class="bi bi-pencil-square me-1"></i> Corrigir
                             </a>
                         </td>
