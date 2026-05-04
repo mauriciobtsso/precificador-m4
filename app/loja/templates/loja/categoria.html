@@ -23,25 +23,26 @@
     </nav>
 
     <div class="row">
-        {# SIDEBAR DE FILTROS - Agora com Offcanvas Responsivo para Mobile #}
+        {# SIDEBAR DE FILTROS - Offcanvas Responsivo para Mobile #}
         <aside class="col-lg-3">
             
-            <!-- Botão Mobile para exibir filtros (Desliza Suave) -->
+            <!-- Botão Mobile para exibir filtros -->
             <div class="d-block d-lg-none mb-3">
                 <button class="btn btn-dark w-100 fw-bold py-2 shadow-sm d-flex justify-content-center align-items-center" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarFiltros" aria-controls="sidebarFiltros">
                     <i class="bi bi-funnel-fill me-2 fs-5"></i> <span style="letter-spacing: 1px;">FILTRAR EQUIPAMENTOS</span>
                 </button>
             </div>
 
-            <!-- Estrutura Offcanvas (Gaveta no Mobile, Coluna fixa no PC) -->
+            <!-- Estrutura Offcanvas -->
             <div class="offcanvas-lg offcanvas-start" tabindex="-1" id="sidebarFiltros" aria-labelledby="sidebarFiltrosLabel">
                 <div class="offcanvas-header bg-dark text-white border-bottom border-gold">
                     <h5 class="offcanvas-title fw-bold" id="sidebarFiltrosLabel" style="letter-spacing: 1px;"><i class="bi bi-funnel me-2"></i> FILTROS</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#sidebarFiltros" aria-label="Fechar"></button>
                 </div>
+                
                 <div class="offcanvas-body flex-column p-0 p-lg-2">
-                    <div class="sidebar-loja sticky-top w-100" style="top: 110px; z-index: 100;">
-                        <div class="bg-white p-4 p-lg-4 border-0 shadow-sm rounded">
+                    <div class="sidebar-loja sidebar-desktop-sticky w-100">
+                        <div class="bg-white p-3 p-lg-4 border-0 shadow-sm rounded">
                             
                             <div class="d-none d-lg-flex justify-content-between align-items-center mb-4">
                                 <h2 class="fw-bold mb-0 filter-title h5">FILTROS</h2>
@@ -51,9 +52,11 @@
                             </div>
                             
                             <!-- Botão limpar no mobile -->
-                            <div class="d-lg-none mb-4 text-end">
+                            <div class="d-lg-none mb-4 text-center mt-1">
                                 {% if filtros.marca or filtros.calibre or filtros.preco_max %}
-                                <a href="{{ url_for('loja.categoria', slug_categoria=categoria_ativa.slug) }}" class="btn btn-sm btn-outline-danger w-100 fw-bold">Limpar Filtros</a>
+                                <a href="{{ url_for('loja.categoria', slug_categoria=categoria_ativa.slug) }}" class="btn btn-outline-danger w-100 fw-bold py-2">
+                                    <i class="bi bi-trash3-fill me-1"></i> Limpar Filtros
+                                </a>
                                 {% endif %}
                             </div>
                             
@@ -221,6 +224,15 @@
 
     .breadcrumb-item + .breadcrumb-item::before { content: "›"; font-size: 1.2rem; vertical-align: middle; }
     
+    /* Classe customizada que garante que a sidebar só fique "sticky" no desktop */
+    @media (min-width: 992px) {
+        .sidebar-desktop-sticky {
+            position: sticky !important;
+            top: 110px !important;
+            z-index: 100 !important;
+        }
+    }
+
     /* Garantia do Offcanvas no Desktop (Fallback seguro) */
     @media (min-width: 992px) {
         .offcanvas-lg {
@@ -238,9 +250,13 @@
     
     .border-gold { border-bottom-color: var(--m4-gold) !important; border-bottom-width: 3px !important; }
 
+    /* CIRURGIA A LASER: Força a gaveta (offcanvas) a passar por cima do header no mobile */
     @media (max-width: 991px) {
         .col-lg-9 { width: 100%; }
         .shelf-header h1 { font-size: 1.2rem; }
+        
+        #sidebarFiltros { z-index: 2050 !important; }
+        .offcanvas-backdrop { z-index: 2040 !important; }
     }
 </style>
 {% endblock %}
