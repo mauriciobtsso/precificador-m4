@@ -47,17 +47,15 @@
 
         @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 900; font-display: swap; src: local('Inter'); }
 
-        /* Reset mínimo para evitar CLS antes do Bootstrap carregar */
         *, *::before, *::after { box-sizing: border-box; }
         body { font-family: 'Inter', system-ui, sans-serif; background-color: #fff; color: var(--m4-text); margin: 0; overflow-x: hidden; }
 
-        /* Header estático para não haver CLS com sticky */
         header {
             position: sticky; top: 0; width: 100%; z-index: 2000;
             background-color: var(--m4-dark); min-height: 86px; contain: layout style;
         }
 
-        .navbar-main { padding: 15px 0; border-bottom: 1px solid #222; }
+        .navbar-main { padding: 15px 0; border-bottom: 1px solid #222; position: relative; }
         .logo-img { height: 55px; width: 160px; object-fit: contain; display: block; }
 
         .search-container { max-width: 500px; width: 100%; }
@@ -73,15 +71,10 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* Nav Departments - AJUSTADO PARA MOBILE SCROLL */
         .nav-departments { 
             background-color: #fff; 
             border-bottom: 3px solid var(--m4-gold); 
-            min-height: 51px; 
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none;  /* IE and Edge */
         }
-        .nav-departments::-webkit-scrollbar { display: none; /* Chrome, Safari, Opera */ }
         
         .nav-departments .nav-link { color: #111 !important; font-size: 12px; font-weight: 800; text-transform: uppercase; padding: 16px 15px !important; letter-spacing: 1px; }
 
@@ -97,15 +90,49 @@
         footer a { color: var(--m4-gray-light); text-decoration: none; transition: .3s; font-size: 13px; }
         footer a:hover { color: var(--m4-gold); padding-left: 5px; }
 
+        /* ====== AJUSTES MOBILE ====== */
         @media (max-width: 991px) {
             .search-container { order: 3; max-width: 100%; margin-top: 15px; }
             .logo-img { height: 40px; width: 120px; }
             header { min-height: 70px; }
             
-            /* Habilita rolagem horizontal suave no celular */
-            .nav-departments { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-            .nav-departments .nav { flex-wrap: nowrap; justify-content: flex-start !important; }
-            .nav-departments .nav-link { padding: 14px 15px !important; }
+            /* Transforma o menu em um acordeão perfeito no mobile */
+            .navbar-main { padding: 10px 0; }
+            .nav-departments {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background-color: #fff;
+                z-index: 1050;
+                border-bottom: 3px solid var(--m4-gold);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            }
+            .nav-departments .nav-link {
+                padding: 16px 20px !important;
+                border-bottom: 1px solid #f0f0f0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 14px;
+            }
+            /* O dropdown no mobile vira uma lista encadeada, sem cortar na tela */
+            .nav-departments .dropdown-menu {
+                position: static !important;
+                float: none;
+                width: 100%;
+                margin-top: 0;
+                background-color: #f9f9f9;
+                box-shadow: none;
+                border-top: none;
+                padding: 0;
+            }
+            .dropdown-item {
+                padding: 12px 35px;
+                border-bottom: 1px solid #f0f0f0;
+                font-size: 13px;
+            }
+            .dropdown-item:hover { padding-left: 40px; }
         }
 
         @media (min-width: 992px) {
@@ -124,12 +151,10 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    {# GTM noscript — mantido por compliance, mas sem JS bloqueante #}
+    {# GTM noscript #}
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W786W67Z" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     <header>
-
-{# No header ou logo após o body do base.html #}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -161,21 +186,29 @@
 
         <div class="navbar-main">
             <div class="container d-flex flex-wrap align-items-center justify-content-between">
-                <a href="{{ url_for('loja.index') }}" class="navbar-brand m-0" aria-label="M4 Tática - Página Inicial">
-                    <picture>
-                        <source srcset="{{ url_for('static', filename='img/logo.webp') }}" type="image/webp">
-                        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo M4 Tática" class="logo-img" width="160" height="55" fetchpriority="high">
-                    </picture>
-                </a>
+                
+                <div class="d-flex align-items-center">
+                    <!-- Botão Hamburger (Mobile) -->
+                    <button class="btn btn-link text-white d-lg-none p-0 me-3 border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMobileMenu" aria-expanded="false" aria-label="Abrir Menu">
+                        <i class="bi bi-list fs-1"></i>
+                    </button>
 
-                <div class="search-container d-flex">
+                    <a href="{{ url_for('loja.index') }}" class="navbar-brand m-0" aria-label="M4 Tática - Página Inicial">
+                        <picture>
+                            <source srcset="{{ url_for('static', filename='img/logo.webp') }}" type="image/webp">
+                            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo M4 Tática" class="logo-img" width="160" height="55" fetchpriority="high">
+                        </picture>
+                    </a>
+                </div>
+
+                <div class="search-container d-flex order-3 order-lg-2 mt-3 mt-lg-0">
                     <form action="{{ url_for('loja.index') }}" method="GET" class="d-flex w-100 shadow-sm" role="search">
                         <input type="text" name="q" class="form-control search-box-m4" placeholder="O que você está procurando?" value="{{ termo_busca or '' }}" aria-label="Buscar produtos">
                         <button type="submit" class="search-btn-m4" aria-label="Pesquisar"><i class="bi bi-search"></i></button>
                     </form>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 order-2 order-lg-3">
                     {% if cliente_loja %}
                         <a href="{{ url_for('loja.minha_conta') }}" class="header-icon" title="{{ cliente_loja.nome.split()[0] }}" aria-label="Minha Conta">
                             <i class="bi bi-person-check-fill" style="color: var(--m4-gold);"></i>
@@ -191,16 +224,16 @@
             </div>
         </div>
 
-        {# REMOVIDO "d-none d-lg-block" PARA QUE O MENU APAREÇA NO MOBILE COMO SCROLL #}
-        <nav class="nav-departments" aria-label="Navegação por categorias">
-            <div class="container">
-                <ul class="nav justify-content-center">
+        <!-- Estrutura Menu adaptada para Colapso Inteligente no Mobile -->
+        <nav class="nav-departments collapse d-lg-block shadow-sm" id="navMobileMenu" aria-label="Navegação por categorias">
+            <div class="container p-0 p-lg-2">
+                <ul class="nav flex-column flex-lg-row justify-content-lg-center">
                     {% for cat in categorias_menu if cat.exibir_no_menu %}
                         {% set subs = cat.subcategorias|selectattr("exibir_no_menu", "equalto", True)|list %}
                         <li class="nav-item {% if subs %}dropdown{% endif %}">
-                            <a class="nav-link {% if subs %}dropdown-toggle{% endif %}" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}" {% if subs %}id="navDrop{{ cat.id }}" data-bs-toggle="dropdown"{% endif %}>{{ cat.nome }}</a>
+                            <a class="nav-link {% if subs %}dropdown-toggle{% endif %}" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}" {% if subs %}id="navDrop{{ cat.id }}" data-bs-toggle="dropdown" aria-expanded="false"{% endif %}>{{ cat.nome }}</a>
                             {% if subs %}
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu border-0 shadow-lg" aria-labelledby="navDrop{{ cat.id }}">
                                 <li><a class="dropdown-item fw-bold text-dark border-bottom mb-1" href="{{ url_for('loja.categoria', slug_categoria=cat.slug) }}">VER TUDO EM {{ cat.nome|upper }}</a></li>
                                 {% for sub in subs %}
                                     <li><a class="dropdown-item" href="{{ url_for('loja.categoria', slug_categoria=sub.slug) }}">{{ sub.nome }}</a></li>
@@ -210,7 +243,6 @@
                         </li>
                     {% endfor %}
                     
-                    {# ── NOVO BOTÃO DO COMPARADOR (SUBSTITUINDO O DESPACHANTE) ── #}
                     <li class="nav-item">
                         <a class="nav-link fw-bold" style="color: var(--m4-gold-text) !important;" href="{{ url_for('loja.comparador') }}">
                             <i class="bi bi-arrow-left-right me-1"></i> COMPARADOR TÉCNICO
@@ -246,14 +278,11 @@
                     <p class="mb-1"><a href="https://wa.me/{{ loja.loja_whatsapp or '558630255885' }}" target="_blank" rel="noopener"><i class="bi bi-whatsapp text-success"></i> <span style="font-size:13px;color:#d1d1d1;">{{ loja.loja_telefone or '(86) 3025-5885' }}</span></a></p>
                     <div class="d-flex gap-3 mt-3">
                         {% if loja.loja_instagram %}
-                        <a href="https://instagram.com/{{ loja.loja_instagram|replace('@', '') }}"
-                           target="_blank" class="fs-4 text-white" rel="noopener"
-                           aria-label="Siga a M4 Tática no Instagram">
+                        <a href="https://instagram.com/{{ loja.loja_instagram|replace('@', '') }}" target="_blank" class="fs-4 text-white" rel="noopener" aria-label="Siga a M4 Tática no Instagram">
                             <i class="bi bi-instagram"></i>
                         </a>
                         {% endif %}
-                        <a href="mailto:{{ loja.loja_email }}" class="fs-4 text-white"
-                           aria-label="Envie um e-mail para o suporte da M4 Tática">
+                        <a href="mailto:{{ loja.loja_email }}" class="fs-4 text-white" aria-label="Envie um e-mail para o suporte da M4 Tática">
                             <i class="bi bi-envelope"></i>
                         </a>
                     </div>
@@ -276,7 +305,6 @@
             </div>
         </div>
 
-        {# Toast de carrinho #}
         <div class="toast-container position-fixed bottom-0 end-0 p-3">
             <div id="cartToast" class="toast align-items-center text-white bg-dark border-0" role="alert">
                 <div class="d-flex">
@@ -287,17 +315,9 @@
         </div>
     </footer>
 
-    {# ── SCRIPTS: Bootstrap primeiro, depois GTM diferido ── #}
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}" defer></script>
-
-    {# No final do body, antes do bloco extra_js #}
     <script src="{{ url_for('static', filename='js/cart-handler.js') }}" defer></script>
 
-    {#
-        GTM carregado UMA ÚNICA VEZ, após interação do usuário.
-        Estratégia "partytown-like": aguarda o primeiro scroll/click/mousemove
-        para disparar — isso elimina o impacto no TBT/LCP sem perder dados.
-    #}
     <script>
 (function() {
     var gtmLoaded = false;
@@ -323,7 +343,6 @@
         window.addEventListener(evt, scheduleGTM, {once: true, passive: true});
     });
 })();
-
     </script>
 
     {% block extra_js %}{% endblock %}

@@ -1,0 +1,2 @@
+row_json
+"{""cliente_id"": 96, ""created_at"": ""2025-11-10T17:07:24.677887"", ""data_abertura"": ""2024-09-24T11:26:00"", ""data_fechamento"": ""2024-09-24T11:36:00"", ""data_quitacao"": ""2024-09-24T11:36:00"", ""id"": 693, ""nf_numero"": ""2116"", ""nf_valor"": 68.8, ""status"": ""Finalizado"", ""status_financeiro"": ""Pago"", ""teve_devolucao"": false, ""updated_at"": ""2025-11-10T17:07:24.677887"", ""valor_total"": 74.5, ""vendedor"": ""ANTONIO FERNANDO BATISTA DE SOUSA""}"

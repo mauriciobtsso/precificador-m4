@@ -1,0 +1,191 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 2, 'produto_id': 1, 'campo': 'codigo', 'valor_antigo': None, 'valor_novo': 'TAU00084', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 10, 21, 13, 49, 27, 929752, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=995
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 888, 'produto_id': 17, 'campo': 'imposto_venda', 'valor_antigo': '9.00', 'valor_novo': '9.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 10, 23, 17, 51, 0, 893174, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 2680, 'produto_id': 30, 'campo': 'frete', 'valor_antigo': '0.00', 'valor_novo': '250.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 3, 17, 10, 49, 492735, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 2509, 'produto_id': 203, 'campo': 'ipi', 'valor_antigo': '0.00', 'valor_novo': '0.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 3, 14, 36, 50, 59815, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 3935, 'produto_id': 242, 'campo': 'ipi', 'valor_antigo': '0.00', 'valor_novo': '0.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 5, 11, 27, 48, 439293, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 4940, 'produto_id': 47, 'campo': 'margem', 'valor_antigo': '0.00', 'valor_novo': '0.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 5, 14, 20, 51, 158493, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 6089, 'produto_id': 113, 'campo': 'difal', 'valor_antigo': '26.00', 'valor_novo': '26', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 5, 14, 50, 3, 579456, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 6948, 'produto_id': 65, 'campo': 'margem', 'valor_antigo': '0.00', 'valor_novo': '0.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 5, 15, 42, 26, 110836, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 7970, 'produto_id': 83, 'campo': 'lucro_alvo', 'valor_antigo': '1099.00', 'valor_novo': '1099.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 5, 16, 13, 3, 583748, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 8942, 'produto_id': 218, 'campo': 'margem', 'valor_antigo': '0.00', 'valor_novo': '0.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 5, 16, 51, 1, 336730, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 10242, 'produto_id': 131, 'campo': 'difal', 'valor_antigo': '26.00', 'valor_novo': '26.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 5, 17, 42, 42, 421916, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 10985, 'produto_id': 146, 'campo': 'frete', 'valor_antigo': '0.00', 'valor_novo': '0.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 5, 18, 14, 26, 668022, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 12063, 'produto_id': 175, 'campo': 'lucro_alvo', 'valor_antigo': '1099.00', 'valor_novo': '1099.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 5, 18, 29, 54, 684945, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 16181, 'produto_id': 319, 'campo': 'imposto_venda', 'valor_antigo': '9.00 %', 'valor_novo': '9.00 %', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 12, 1, 18, 17, 31, 784949, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 13931, 'produto_id': 264, 'campo': 'imposto_venda', 'valor_antigo': '9.00', 'valor_novo': '9.0', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 7, 11, 41, 19, 716764, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 14792, 'produto_id': 282, 'campo': 'ipi_tipo', 'valor_antigo': '%', 'valor_novo': '', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 7, 15, 53, 21, 633894, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 15648, 'produto_id': 313, 'campo': 'calibre_id', 'valor_antigo': None, 'valor_novo': '13.00', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2025, 11, 26, 13, 26, 36, 472193, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 17302, 'produto_id': 323, 'campo': 'preco_fornecedor', 'valor_antigo': '4488.93', 'valor_novo': '4356.43', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2026, 1, 9, 12, 37, 28, 787976, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 18309, 'produto_id': 7, 'campo': 'difal', 'valor_antigo': '26.00', 'valor_novo': '26', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 4, 17, 7, 34, 961890, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 19327, 'produto_id': 339, 'campo': 'ipi', 'valor_antigo': '0.00 %', 'valor_novo': '0.00 %', 'usuario_id': 2, 'usuario_nome': 'admin', 'data_modificacao': datetime.datetime(2026, 2, 12, 14, 4, 17, 874247, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 20439, 'produto_id': 259, 'campo': 'nome_comercial', 'valor_antigo': '', 'valor_novo': None, 'usuario_id': 2, 'usuario_nome': None, 'data_modificacao': datetime.datetime(2026, 2, 18, 19, 23, 41, 656897, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 21253, 'produto_id': 275, 'campo': 'promo_ativada', 'valor_antigo': None, 'valor_novo': 'False', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 18, 19, 33, 2, 481484, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 22409, 'produto_id': 328, 'campo': 'descricao_longa', 'valor_antigo': '<p><br></p>', 'valor_novo': '<h1>Pistola Taurus TX22 Calibre .22 LR - Performance e Economia</h1>\n\n<p>A <strong>Pistola Taurus TX22</strong> é a solução definitiva para quem bu ... (3278 characters truncated) ... C3%A3o%20sobre%20a%20Pistola%20Taurus%20TX22"" rel=""noopener"" target=""_blank""><strong>✅ Clique aqui para falar conosco pelo WhatsApp!</strong></a></p>', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 19, 17, 28, 5, 687571, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 23353, 'produto_id': 270, 'campo': 'preco_fornecedor', 'valor_antigo': '1.22', 'valor_novo': '58.63', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 20, 14, 23, 37, 472776, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 24143, 'produto_id': 277, 'campo': 'frete', 'valor_antigo': '0.00', 'valor_novo': '0', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 20, 17, 56, 0, 795305, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 25053, 'produto_id': 300, 'campo': 'meta_title', 'valor_antigo': 'Munição CBC Calibre .38 TPC Gold Hex 124gr EXPO – Blister com 10 Unidades', 'valor_novo': 'Munição CBC .38 TPC Gold Hex 124gr EXPO 10 Un | M4 Tática', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 20, 18, 31, 28, 754173, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 26484, 'produto_id': 29, 'campo': 'preco_final', 'valor_antigo': '0.00', 'valor_novo': '0', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 24, 12, 34, 10, 430811, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 32029, 'produto_id': 16, 'campo': 'meta_title', 'valor_antigo': 'Pistola Taurus GX4 T.O.R.O. Calibre .38 TPC – 11/13 Tiros – Cano 3"" – Acabamento Grafite', 'valor_novo': 'Pistola Taurus GX4 T.O.R.O. .38 TPC 13 Tiros Grafite | M4 Tática', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 27, 13, 37, 54, 982966, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 28171, 'produto_id': 62, 'campo': 'promo_preco_fornecedor', 'valor_antigo': '0.00', 'valor_novo': '0', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 26, 17, 38, 44, 631484, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 29046, 'produto_id': 85, 'campo': 'nome_comercial', 'valor_antigo': '', 'valor_novo': 'Rifle CBC 8122M Bolt Action Calibre .22 WMR (Magnum) – Cano 21"" – Oxidado – Madeira', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 26, 18, 7, 31, 634086, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 30001, 'produto_id': 96, 'campo': 'lucro_alvo', 'valor_antigo': '1099.00', 'valor_novo': '1099', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 26, 18, 32, 21, 638911, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 30981, 'produto_id': 2, 'campo': 'meta_title', 'valor_antigo': 'Pistola Taurus G3 T.O.R.O. Calibre .38 TPC – Cano 4"" – 15/17 Tiros – Acabamento Tenox', 'valor_novo': None, 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 27, 12, 20, 47, 366840, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 32722, 'produto_id': 181, 'campo': 'descricao_longa', 'valor_antigo': '<p><br></p>', 'valor_novo': '<h1>Taurus 1911 Officer .45 ACP - O Poder do Clássico em Formato Compacto</h1>\n\n<p>A <strong>Pistola Taurus 1911 Officer</strong> no calibre <stron ... (3006 characters truncated) ... C3%A3o%20sobre%20a%20Taurus%201911%20Officer"" rel=""noopener"" target=""_blank""><strong>✅ Clique aqui para falar conosco pelo WhatsApp!</strong></a></p>', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 27, 14, 44, 43, 57052, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 33735, 'produto_id': 242, 'campo': 'meta_title', 'valor_antigo': 'Carregador Original Taurus PT838 / TH380 Calibre .380 ACP – 18 Tiros – Oxidado', 'valor_novo': 'Carregador Taurus PT838 / TH380 .380 ACP 18 Tiros Original | M4 Tática', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 2, 27, 18, 22, 50, 552628, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 34736, 'produto_id': 353, 'campo': 'preco_final', 'valor_antigo': '299.00', 'valor_novo': '299', 'usuario_id': 2, 'usuario_nome': None, 'data_modificacao': datetime.datetime(2026, 3, 2, 13, 56, 50, 17435, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 35792, 'produto_id': 362, 'campo': 'comprimento', 'valor_antigo': '0.00', 'valor_novo': '0', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 3, 3, 13, 6, 56, 746321, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 36736, 'produto_id': 331, 'campo': 'largura', 'valor_antigo': '0.00', 'valor_novo': '0', 'usuario_id': 2, 'usuario_nome': '<User admin>', 'data_modificacao': datetime.datetime(2026, 3, 9, 18, 1, 44, 441120, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO produto_historico (id, produto_id, campo, valor_antigo, valor_novo, usuario_id, usuario_nome, data_modificacao) VALUES (%(id)s, %(produto_id)s, %(campo)s, %(valor_antigo)s, %(valor_novo)s, %(usuario_id)s, %(usuario_nome)s, %(data_modificacao)s)]
+[parameters: {'id': 37734, 'produto_id': 388, 'campo': 'calibre_id', 'valor_antigo': None, 'valor_novo': '6', 'usuario_id': 2, 'usuario_nome': None, 'data_modificacao': datetime.datetime(2026, 3, 12, 17, 32, 1, 430394, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=809

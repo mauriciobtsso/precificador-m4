@@ -17,6 +17,7 @@ depends_on = None
 
 
 def upgrade():
+    op.execute("DROP TABLE IF EXISTS estoque_itens CASCADE")
     op.create_table(
         'estoque_itens',
         sa.Column('id', sa.Integer(), primary_key=True),

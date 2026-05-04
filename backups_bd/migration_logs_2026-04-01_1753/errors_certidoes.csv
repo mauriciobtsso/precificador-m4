@@ -1,0 +1,6 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO certidoes (id, cliente_id, tipo, status, data_solicitacao, data_emissao, validade_ate, url_portal, arquivo_storage_key, observacoes, criado_em, atualizado_em, criado_por_id) VALUES (%(id)s, %(cliente_id)s, %(tipo)s, %(status)s, %(data_solicitacao)s, %(data_emissao)s, %(validade_ate)s, %(url_portal)s, %(arquivo_storage_key)s, %(observacoes)s, %(criado_em)s, %(atualizado_em)s, %(criado_por_id)s)]
+[parameters: {'id': 4, 'cliente_id': 2, 'tipo': 'FEDERAL_TRF1', 'status': 'PENDENTE', 'data_solicitacao': datetime.datetime(2025, 12, 6, 12, 58, 35, 716352, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600))), 'data_emissao': None, 'validade_ate': None, 'url_portal': 'https://sistemas.trf1.jus.br/certidao/#/solicitacao', 'arquivo_storage_key': None, 'observacoes': None, 'criado_em': datetime.datetime(2025, 12, 6, 12, 58, 35, 716355, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600))), 'atualizado_em': datetime.datetime(2025, 12, 6, 12, 58, 35, 716357, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=75600))), 'criado_por_id': 2}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=24

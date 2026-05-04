@@ -20,7 +20,7 @@ def upgrade():
     op.execute("CREATE INDEX IF NOT EXISTS idx_vendas_data_abertura ON vendas (data_abertura DESC);")
 
     # Índice para joins de performance (ItemVenda → Produto)
-    op.execute("CREATE INDEX IF NOT EXISTS idx_itemvenda_produto_id ON itens_venda (produto_id);")
+    #op.execute("CREATE INDEX IF NOT EXISTS idx_itemvenda_produto_id ON itens_venda (produto_id);")
 
     # Opcional: índice composto para buscas de vendas recentes
     op.execute("""

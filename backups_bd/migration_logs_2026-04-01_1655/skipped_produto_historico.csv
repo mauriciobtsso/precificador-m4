@@ -1,0 +1,6 @@
+row_json
+"{""campo"": ""desconto_fornecedor"", ""data_modificacao"": ""2025-10-21T13:49:27.930085-03:00"", ""id"": 10, ""produto_id"": 1, ""usuario_id"": 2, ""usuario_nome"": ""admin"", ""valor_antigo"": null, ""valor_novo"": ""2""}"
+"{""campo"": ""frete"", ""data_modificacao"": ""2025-10-21T13:49:27.930118-03:00"", ""id"": 11, ""produto_id"": 1, ""usuario_id"": 2, ""usuario_nome"": ""admin"", ""valor_antigo"": null, ""valor_novo"": ""0""}"
+"{""campo"": ""margem"", ""data_modificacao"": ""2025-10-21T13:49:27.930152-03:00"", ""id"": 12, ""produto_id"": 1, ""usuario_id"": 2, ""usuario_nome"": ""admin"", ""valor_antigo"": null, ""valor_novo"": ""23.972""}"
+"{""campo"": ""lucro_alvo"", ""data_modificacao"": ""2025-10-21T13:49:27.930191-03:00"", ""id"": 13, ""produto_id"": 1, ""usuario_id"": 2, ""usuario_nome"": ""admin"", ""valor_antigo"": null, ""valor_novo"": ""0""}"
+"{""campo"": ""preco_final"", ""data_modificacao"": ""2025-10-21T13:49:27.930271-03:00"", ""id"": 14, ""produto_id"": 1, ""usuario_id"": 2, ""usuario_nome"": ""admin"", ""valor_antigo"": null, ""valor_novo"": ""0""}"

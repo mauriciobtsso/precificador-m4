@@ -1,0 +1,6 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO itens_venda (id, venda_id, produto_nome, categoria, quantidade, valor_unitario, valor_total) VALUES (%(id)s, %(venda_id)s, %(produto_nome)s, %(categoria)s, %(quantidade)s, %(valor_unitario)s, %(valor_total)s)]
+[parameters: {'id': 684, 'venda_id': 564, 'produto_nome': 'MUN CBC 9MM LUGER EXPO +P 135GR P.SHOCK BL C', 'categoria': 'Munição', 'quantidade': 20, 'valor_unitario': Decimal('15.88'), 'valor_total': Decimal('317.60')}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=722

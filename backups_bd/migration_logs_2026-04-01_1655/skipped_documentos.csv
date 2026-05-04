@@ -1,0 +1,2 @@
+row_json
+"{""caminho_arquivo"": ""/uploads/craf_teste.pdf"", ""categoria"": null, ""cliente_id"": 3, ""created_at"": ""2025-10-04T12:54:08.882221"", ""data_emissao"": null, ""data_upload"": ""2025-06-19T11:53:57.139646"", ""data_validade"": null, ""emissor"": null, ""id"": 7, ""mime_type"": ""application/pdf"", ""nome_original"": ""craf_teste.pdf"", ""numero_documento"": null, ""observacoes"": null, ""tipo"": ""CRAF"", ""updated_at"": ""2025-10-04T12:54:08.882221"", ""validade_indeterminada"": false}"

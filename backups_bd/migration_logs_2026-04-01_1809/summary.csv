@@ -1,0 +1,8 @@
+tabela,linhas_origem,inseridos,ignorados,erros,chave_usada
+compra_nf,2,0,2,0,pk:id
+compra_item,7,7,0,0,pk:id
+estoque_itens,4,4,0,0,pk:id
+certidoes,24,24,0,0,pk:id
+produto_historico,37809,37809,0,0,pk:id
+carrinhos,2,2,0,0,pk:id
+carrinho_items,1,1,0,0,pk:id

@@ -1,0 +1,7 @@
+row_json
+"{""atualizado_em"": ""2026-02-18T17:18:20.046878-03:00"", ""criado_em"": ""2025-10-28T14:43:59.206701-03:00"", ""descricao"": ""None"", ""id"": 6, ""nome"": ""Carabina"", ""pai_id"": 24}"
+"{""atualizado_em"": ""2026-02-18T17:18:27.490413-03:00"", ""criado_em"": ""2025-10-24T10:09:08.264305-03:00"", ""descricao"": ""None"", ""id"": 5, ""nome"": ""Espingarda"", ""pai_id"": 24}"
+"{""atualizado_em"": ""2026-02-18T17:18:34.927044-03:00"", ""criado_em"": ""2025-10-17T15:42:00.145985-03:00"", ""descricao"": ""Armas longas de alma raiada, de uso tático/militar, em calibres de fuzil como 5.56x45mm e 7.62x51mm"", ""id"": 21, ""nome"": ""Fuzil"", ""pai_id"": 24}"
+"{""atualizado_em"": ""2026-02-18T17:18:42.608537-03:00"", ""criado_em"": ""2025-10-21T14:10:27.246163-03:00"", ""descricao"": ""None"", ""id"": 2, ""nome"": ""Pistola"", ""pai_id"": 24}"
+"{""atualizado_em"": ""2026-02-18T17:18:57.199502-03:00"", ""criado_em"": ""2025-10-21T16:24:50.724060-03:00"", ""descricao"": ""None"", ""id"": 4, ""nome"": ""Rifle"", ""pai_id"": 24}"
+"{""atualizado_em"": ""2026-02-18T17:23:23.938271-03:00"", ""criado_em"": ""2025-10-16T16:38:37.491048-03:00"", ""descricao"": ""Dispositivos para armazenamento e alimentação de munição em armas de fogo, como pistolas e carabinas."", ""id"": 19, ""nome"": ""Carregadores"", ""pai_id"": null}"

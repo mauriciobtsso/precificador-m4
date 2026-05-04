@@ -1,0 +1,4 @@
+row_json
+"{""cliente_id"": 3, ""data_envio"": ""2025-10-13T17:43:28.954985"", ""erro"": null, ""id"": 2, ""meio"": ""sistema"", ""mensagem"": ""Processo 'Aquisição de arma' em andamento (concluido) — M4 TÁTICA COMERCIO E SERVIÇOS LTDA"", ""nivel"": ""baixo"", ""status"": ""lido"", ""tipo"": ""processo""}"
+"{""cliente_id"": 3, ""data_envio"": ""2025-10-13T17:43:28.209002"", ""erro"": null, ""id"": 1, ""meio"": ""sistema"", ""mensagem"": ""Processo 'TESTE1' em andamento (Em andamento) — M4 TÁTICA COMERCIO E SERVIÇOS LTDA"", ""nivel"": ""baixo"", ""status"": ""lido"", ""tipo"": ""processo""}"
+"{""cliente_id"": null, ""data_envio"": ""2025-10-13T20:13:50.401331"", ""erro"": null, ""id"": 3, ""meio"": ""sistema"", ""mensagem"": ""Processo 'CR' em andamento (Em andamento) — MARCELL BRANDAO WERCKLOSE"", ""nivel"": ""baixo"", ""status"": ""lido"", ""tipo"": ""processo""}"

@@ -1,0 +1,11 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO clientes_enderecos (id, cliente_id, cep, estado, cidade, bairro, numero, complemento, logradouro, created_at, updated_at, tipo) VALUES (%(id)s, %(cliente_id)s, %(cep)s, %(estado)s, %(cidade)s, %(bairro)s, %(numero)s, %(complemento)s, %(logradouro)s, %(created_at)s, %(updated_at)s, %(tipo)s)]
+[parameters: {'id': 798, 'cliente_id': 474, 'cep': None, 'estado': 'PI', 'cidade': 'TERESINA', 'bairro': 'FÁTIMA', 'numero': None, 'complemento': None, 'logradouro': 'RUA DAS ORQUÍDEAS', 'created_at': datetime.datetime(2025, 11, 26, 16, 46, 24, 796200), 'updated_at': datetime.datetime(2025, 11, 26, 16, 46, 24, 796245), 'tipo': 'residencial'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=748
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO clientes_enderecos (id, cliente_id, cep, estado, cidade, bairro, numero, complemento, logradouro, created_at, updated_at, tipo) VALUES (%(id)s, %(cliente_id)s, %(cep)s, %(estado)s, %(cidade)s, %(bairro)s, %(numero)s, %(complemento)s, %(logradouro)s, %(created_at)s, %(updated_at)s, %(tipo)s)]
+[parameters: {'id': 1541, 'cliente_id': 1189, 'cep': '64090245', 'estado': 'PI', 'cidade': 'TERESINA', 'bairro': 'GURUPI', 'numero': None, 'complemento': 'QD 12 CS 02', 'logradouro': 'RUA LUÍS MEMÓRIA', 'created_at': datetime.datetime(2025, 11, 26, 16, 51, 59, 606790), 'updated_at': datetime.datetime(2025, 11, 26, 16, 51, 59, 606835), 'tipo': 'residencial'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=173

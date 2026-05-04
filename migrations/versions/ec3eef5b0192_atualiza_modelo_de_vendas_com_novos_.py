@@ -23,7 +23,7 @@ def upgrade():
 
     with op.batch_alter_table('importacoes_log', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('idx_importacoes_log_data_hora'))
-        batch_op.drop_index(batch_op.f('idx_importacoes_log_tipo'))
+        #batch_op.drop_index(batch_op.f('idx_importacoes_log_tipo'))
 
     with op.batch_alter_table('itens_venda', schema=None) as batch_op:
         batch_op.add_column(sa.Column('sku', sa.String(length=50), nullable=True))

@@ -1,0 +1,16 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO clientes_contatos (id, cliente_id, tipo, valor, created_at, updated_at) VALUES (%(id)s, %(cliente_id)s, %(tipo)s, %(valor)s, %(created_at)s, %(updated_at)s)]
+[parameters: {'id': 1812, 'cliente_id': 248, 'tipo': 'email', 'valor': 'VENTURA_420@HOTMAIL.COM', 'created_at': datetime.datetime(2025, 11, 26, 16, 46, 24, 448226), 'updated_at': datetime.datetime(2025, 11, 26, 16, 46, 24, 448240)}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=450
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO clientes_contatos (id, cliente_id, tipo, valor, created_at, updated_at) VALUES (%(id)s, %(cliente_id)s, %(tipo)s, %(valor)s, %(created_at)s, %(updated_at)s)]
+[parameters: {'id': 2246, 'cliente_id': 216, 'tipo': 'email', 'valor': 'brunnosilvaporto1@gmail.com', 'created_at': datetime.datetime(2025, 11, 26, 16, 48, 11, 596013), 'updated_at': datetime.datetime(2025, 11, 26, 16, 48, 11, 596021)}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=1000
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO clientes_contatos (id, cliente_id, tipo, valor, created_at, updated_at) VALUES (%(id)s, %(cliente_id)s, %(tipo)s, %(valor)s, %(created_at)s, %(updated_at)s)]
+[parameters: {'id': 3249, 'cliente_id': 68, 'tipo': 'email', 'valor': 'ADVOGADOJOAODUATE@GMAIL.COM', 'created_at': datetime.datetime(2025, 11, 26, 16, 52, 15, 482995), 'updated_at': datetime.datetime(2025, 11, 26, 16, 52, 15, 482998)}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=247

@@ -37,7 +37,7 @@ def upgrade():
 
     # Tabela importacoes_log (para filtros recentes)
     op.execute("CREATE INDEX IF NOT EXISTS idx_importacoes_log_data_hora ON importacoes_log (data_hora DESC);")
-    op.execute("CREATE INDEX IF NOT EXISTS idx_importacoes_log_tipo ON importacoes_log (tipo);")
+    #op.execute("CREATE INDEX IF NOT EXISTS idx_importacoes_log_tipo ON importacoes_log (tipo);")
 
 
 def downgrade():

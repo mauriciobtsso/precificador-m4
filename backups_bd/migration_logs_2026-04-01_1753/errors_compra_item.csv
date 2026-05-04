@@ -1,0 +1,6 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO compra_item (id, nf_id, descricao, marca, modelo, calibre, lote, quantidade, valor_unitario, valor_total, seriais_xml, codigo_produto_xml, produto_id, numero_embalagem) VALUES (%(id)s, %(nf_id)s, %(descricao)s, %(marca)s, %(modelo)s, %(calibre)s, %(lote)s, %(quantidade)s, %(valor_unitario)s, %(valor_total)s, %(seriais_xml)s, %(codigo_produto_xml)s, %(produto_id)s, %(numero_embalagem)s)]
+[parameters: {'id': 81, 'nf_id': 42, 'descricao': 'MUNICAO .38 SPL CHOG 158GR CBC REF 10026419', 'marca': '', 'modelo': '', 'calibre': '', 'lote': '', 'quantidade': Decimal('150.00'), 'valor_unitario': Decimal('6.15'), 'valor_total': Decimal('922.28'), 'seriais_xml': '', 'codigo_produto_xml': 'CBC00009', 'produto_id': 24, 'numero_embalagem': 'Caixa 0'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=7

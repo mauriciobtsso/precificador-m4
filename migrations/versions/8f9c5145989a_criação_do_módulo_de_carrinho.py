@@ -40,11 +40,13 @@ def upgrade():
     sa.ForeignKeyConstraint(['produto_id'], ['produtos.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    
     with op.batch_alter_table('categoria_produto', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('idx_categoria_slug'))
+        # batch_op.drop_index(batch_op.f('idx_categoria_slug'))
+        pass
 
     with op.batch_alter_table('clientes', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_clientes_email_login'))
+        # batch_op.drop_index(batch_op.f('ix_clientes_email_login'))
         batch_op.drop_column('aceitou_termos')
         batch_op.drop_column('password_hash')
         batch_op.drop_column('email_login')
@@ -52,7 +54,8 @@ def upgrade():
         batch_op.drop_column('ultimo_login')
 
     with op.batch_alter_table('produtos', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('idx_produto_preco'))
+        # batch_op.drop_index(batch_op.f('idx_produto_preco'))
+        pass
 
     # ### end Alembic commands ###
 

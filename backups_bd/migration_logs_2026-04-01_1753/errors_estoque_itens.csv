@@ -1,0 +1,6 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO estoque_itens (id, produto_id, fornecedor_id, tipo_item, numero_serie, lote, numero_embalagem, quantidade, status, data_entrada, observacoes, nota_fiscal, data_nf, compra_item_id, guia_transito_file, numero_selo) VALUES (%(id)s, %(produto_id)s, %(fornecedor_id)s, %(tipo_item)s, %(numero_serie)s, %(lote)s, %(numero_embalagem)s, %(quantidade)s, %(status)s, %(data_entrada)s, %(observacoes)s, %(nota_fiscal)s, %(data_nf)s, %(compra_item_id)s, %(guia_transito_file)s, %(numero_selo)s)]
+[parameters: {'id': 13, 'produto_id': 12, 'fornecedor_id': 3, 'tipo_item': 'arma', 'numero_serie': 'AGB009651', 'lote': '', 'numero_embalagem': None, 'quantidade': 1, 'status': 'disponivel', 'data_entrada': datetime.date(2025, 11, 28), 'observacoes': 'Entrada via NF 2286', 'nota_fiscal': '2286', 'data_nf': datetime.date(2025, 3, 14), 'compra_item_id': 55, 'guia_transito_file': 'guias_transito/2286_26032025.pdf', 'numero_selo': '11361868'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=4

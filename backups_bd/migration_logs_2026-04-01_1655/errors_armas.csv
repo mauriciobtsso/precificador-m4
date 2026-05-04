@@ -1,0 +1,6 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO armas (id, cliente_id, marca, modelo, calibre, numero_serie, data_aquisicao, data_validade_craf, created_at, updated_at, caminho_craf, tipo, funcionamento, emissor_craf, numero_sigma, categoria_adquirente, validade_indeterminada) VALUES (%(id)s, %(cliente_id)s, %(marca)s, %(modelo)s, %(calibre)s, %(numero_serie)s, %(data_aquisicao)s, %(data_validade_craf)s, %(created_at)s, %(updated_at)s, %(caminho_craf)s, %(tipo)s, %(funcionamento)s, %(emissor_craf)s, %(numero_sigma)s, %(categoria_adquirente)s, %(validade_indeterminada)s)]
+[parameters: {'id': 2, 'cliente_id': 289, 'marca': 'TAURUS', 'modelo': 'G2C', 'calibre': '.38 TPC', 'numero_serie': 'AGJ407106', 'data_aquisicao': None, 'data_validade_craf': datetime.date(2030, 2, 21), 'created_at': datetime.datetime(2025, 11, 11, 14, 39, 44, 528701), 'updated_at': datetime.datetime(2025, 11, 11, 14, 39, 44, 528710), 'caminho_craf': 'clientes/289/armas/20251111_143905_Relatorio.pdf', 'tipo': 'pistola', 'funcionamento': 'semi_automatica', 'emissor_craf': 'sinarm', 'numero_sigma': '906674581', 'categoria_adquirente': 'civil', 'validade_indeterminada': False}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=5

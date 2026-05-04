@@ -1,0 +1,6 @@
+error,row_json
+"batch_error:(psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+
+[SQL: INSERT INTO documentos (id, cliente_id, tipo, nome_original, caminho_arquivo, mime_type, data_upload, categoria, emissor, numero_documento, data_emissao, data_validade, validade_indeterminada, observacoes, created_at, updated_at) VALUES (%(id)s, %(cliente_id)s, %(tipo)s, %(nome_original)s, %(caminho_arquivo)s, %(mime_type)s, %(data_upload)s, %(categoria)s, %(emissor)s, %(numero_documento)s, %(data_emissao)s, %(data_validade)s, %(validade_indeterminada)s, %(observacoes)s, %(created_at)s, %(updated_at)s)]
+[parameters: {'id': 2, 'cliente_id': 289, 'tipo': 'CNH', 'nome_original': None, 'caminho_arquivo': 'clientes/289/documentos/CNH_Digital.pdf', 'mime_type': None, 'data_upload': datetime.datetime(2025, 11, 11, 14, 41, 27, 701989), 'categoria': 'CNH', 'emissor': 'DETRAN', 'numero_documento': '05675319647', 'data_emissao': datetime.date(2018, 10, 25), 'data_validade': datetime.date(2026, 10, 17), 'validade_indeterminada': False, 'observacoes': '', 'created_at': datetime.datetime(2025, 11, 11, 14, 41, 27, 703610), 'updated_at': datetime.datetime(2025, 11, 11, 14, 41, 27, 703613)}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)",batch_size=6
