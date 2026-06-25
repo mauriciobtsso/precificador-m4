@@ -14,6 +14,38 @@ from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload, subqueryload
 import os
 
+# ============================================================
+# INTERCEPTADOR DE SEO: REDIRECIONAMENTO 301 (MIGRAÇÃO DE DOMÍNIO)
+# ============================================================
+@loja_bp.before_request
+def redirecionar_legado_para_subdominio():
+    # Verifica se o ambiente atual configurado é o ADMIN
+    # e se a requisição veio bater no domínio antigo (app.m4tatica.com.br)
+    if os.getenv("M4_AMBIENTE", "ADMIN") == "ADMIN":
+        host = request.host.lower()
+        if "app.m4tatica.com.br" in host:
+            # Captura o caminho atual (ex: /loja/categoria/pistola)
+            caminho_atual = request.path
+            
+            # Remove o prefixo '/loja' se ele existir para casar com a raiz do novo subdomínio
+            if caminho_atual.startswith('/loja'):
+                caminho_novo = caminho_atual[5:] # Remove os primeiros 5 caracteres (/loja)
+            else:
+                caminho_novo = caminho_atual
+                
+            # Garante que não vai quebrar a barra inicial
+            if not caminho_novo.startswith('/'):
+                caminho_novo = '/' + caminho_novo
+                
+            # Captura os parâmetros de busca (?q=taurus&marca=1) para não quebrar os filtros
+            parametros = request.query_string.decode('utf-8')
+            url_final = f"https://loja.m4tatica.com.br{caminho_novo}"
+            if parametros:
+                url_final += f"?{parametros}"
+                
+            # Dispara o Redirecionamento 301 Permanente (Crítico para SEO)
+            return redirect(url_final, code=301)
+
 try:
     from flask_caching import Cache
     cache_enabled = True
