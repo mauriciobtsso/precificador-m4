@@ -1,14 +1,12 @@
-# ===========================
+# ===========================================
 # ALERTAS - AGENDADOR DIÁRIO
-# + Keep-Alive Render
-# + Retry robusto para DB (Locaweb)
-# ===========================
+# + Retry robusto para DB (Aiven)
+# ===========================================
 
 from datetime import datetime
 import time
 import traceback
 import os
-import requests
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import current_app
@@ -48,8 +46,6 @@ def executar_com_retry(acao, descricao="acao", tentativas=3, pausa_inicial=2):
             return resultado
 
         except sa_exc.OperationalError as e:
-            # Erros típicos: SSL error, connection reset, timeout, bad record mac, etc.
-            msg = str(e).lower()
             if current_app:
                 current_app.logger.warning(
                     f"[RETRY] Erro operacional ao executar '{descricao}' "
@@ -57,7 +53,6 @@ def executar_com_retry(acao, descricao="acao", tentativas=3, pausa_inicial=2):
                 )
 
             db.session.rollback()
-            # descarta pool atual para forçar novas conexões limpas
             try:
                 db.engine.dispose()
             except Exception:
@@ -74,7 +69,6 @@ def executar_com_retry(acao, descricao="acao", tentativas=3, pausa_inicial=2):
             pausa *= 2  # backoff exponencial (2s, 4s, 8s...)
 
         except Exception as e:
-            # Outros erros não relacionados a conexão: não faz sentido tentar novamente
             db.session.rollback()
             if current_app:
                 current_app.logger.error(
@@ -82,22 +76,6 @@ def executar_com_retry(acao, descricao="acao", tentativas=3, pausa_inicial=2):
                     exc_info=True,
                 )
             raise
-
-
-# ---------------------------------------------------------
-# Keep-Alive para impedir Render de dormir
-# ---------------------------------------------------------
-def manter_render_vivo():
-    url = os.getenv("RENDER_PING_URL", "https://precificador-m4.onrender.com/health")
-    try:
-        requests.head(url, timeout=5)
-        print(f"[KEEP-ALIVE] Ping enviado para {url}")
-        if current_app:
-            current_app.logger.info(f"[KEEP-ALIVE] Ping enviado para {url}")
-    except Exception as e:
-        print(f"[KEEP-ALIVE] Falha ao pingar Render: {e}")
-        if current_app:
-            current_app.logger.warning(f"[KEEP-ALIVE] Falha ao pingar Render: {e}")
 
 
 # ---------------------------------------------------------
@@ -125,7 +103,6 @@ def verificar_alertas_diarios(app=None):
         total_novos = 0
         inicio_exec = time.time()
 
-        # Geração de alertas com retry robusto
         resultado = executar_com_retry(
             gerar_alertas_gerais,
             descricao="gerar_alertas_gerais",
@@ -142,7 +119,6 @@ def verificar_alertas_diarios(app=None):
         if current_app:
             current_app.logger.info(f"[ALERTAS] {len(alertas)} alertas encontrados.")
 
-        # Processamento de alertas
         for alerta in alertas:
             try:
                 registro = enviar_notificacao(alerta, meio="sistema")
@@ -200,10 +176,9 @@ def corrigir_todas_as_sequencias():
     """
     Corrige automaticamente as sequências (auto-increment) das tabelas
     relacionadas a produtos e configurações.
-    Também usa retry para evitar falhas temporárias de conexão.
     """
     try:
-        from app import db  # import tardio para evitar ciclos
+        from app import db
 
         total_corrigidas = 0
         falhas = []
@@ -212,8 +187,8 @@ def corrigir_todas_as_sequencias():
             def acao_corrigir():
                 sql = text(f"""
                     SELECT setval(
-                        pg_get_serial_sequence('{tabela}', 'id'),
-                        COALESCE((SELECT MAX(id) FROM {tabela}), 1),
+                        pg_get_serial_sequence('"{tabela}"', 'id'),
+                        COALESCE((SELECT MAX(id) FROM "{tabela}"), 1),
                         TRUE
                     );
                 """)
@@ -261,18 +236,16 @@ def corrigir_todas_as_sequencias():
 
 
 # ---------------------------------------------------------
-# Iniciar Scheduler
+# Iniciar Scheduler (CIRURGIA A LASER: KEEP-ALIVE REMOVIDO)
 # ---------------------------------------------------------
 def iniciar_scheduler(app):
     """
     Configura e inicia o APScheduler integrado ao Flask.
-      • Verificação de alertas às 06:00
-      • Ajuste de sequências às 03:00
-      • Keep-alive a cada 10 minutos
+         • Verificação de alertas às 06:00
+         • Ajuste de sequências às 03:00
     """
     scheduler = BackgroundScheduler(timezone="America/Sao_Paulo")
 
-    # Remove jobs antigos (evita duplicidade em hot-reload)
     for job in scheduler.get_jobs():
         scheduler.remove_job(job.id)
 
@@ -296,31 +269,13 @@ def iniciar_scheduler(app):
         replace_existing=True,
     )
 
-    # Keep-alive Render
-    scheduler.add_job(
-        func=manter_render_vivo,
-        trigger="interval",
-        minutes=10,
-        id="manter_render_vivo",
-        replace_existing=True,
-    )
-
     scheduler.start()
-    print(
-        "Agendador iniciado: alertas (06:00), ajuste de sequências (03:00) "
-        "e keep-alive (10 min)."
-    )
+    print("Agendador iniciado com sucesso: alertas (06:00) e ajuste de sequências (03:00).")
     if current_app:
-        current_app.logger.info(
-            "Scheduler iniciado: alertas (06:00), auto-sequência (03:00), "
-            "keep-alive (10 min)."
-        )
+        current_app.logger.info("Scheduler iniciado: alertas (06:00) e auto-sequência (03:00).")
     return scheduler
 
 
-# ---------------------------------------------------------
-# Execução manual (CLI)
-# ---------------------------------------------------------
 if __name__ == "__main__":
     from app import create_app
 
@@ -331,6 +286,3 @@ if __name__ == "__main__":
 
         print("⚙️ Executando ajuste manual de sequências...")
         corrigir_todas_as_sequencias()
-
-        print("⚙️ Executando keep-alive...")
-        manter_render_vivo()

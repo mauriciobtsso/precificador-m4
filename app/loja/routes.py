@@ -3,7 +3,6 @@
 from flask import render_template, abort, request, url_for, send_from_directory, current_app, redirect, Response, make_response, flash, session, jsonify
 from app.loja import loja_bp
 from app import db
-from groq import Groq
 from app.loja.models_admin import Banner, PaginaInstitucional
 from app.produtos.models import Produto
 from app.produtos.categorias.models import CategoriaProduto
@@ -15,7 +14,6 @@ from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload, subqueryload
 import os
 
-# --- AJUSTE PARA O RENDER ---
 try:
     from flask_caching import Cache
     cache_enabled = True
@@ -31,13 +29,10 @@ except ImportError:
     cache_enabled = False
     class NoOpCache:
         def cached(self, *args, **kwargs):
-            def decorator(f):
-                return f
+            def decorator(f): return f
             return decorator
-        def get(self, key):
-            return None
-        def set(self, key, value, timeout=None):
-            pass
+        def get(self, key): return None
+        def set(self, key, value, timeout=None): pass
     cache = NoOpCache()
     init_cache = lambda app: None
     print("Flask-Caching não instalado. Performance reduzida.")
@@ -93,33 +88,28 @@ def inject_loja_data():
 
 @loja_bp.app_context_processor
 def inject_thumb_helper():
-    """Disponibiliza get_thumb_url em todos os templates da loja."""
-    from app.utils.thumbnail_utils import get_thumb_url
     return dict(get_thumb_url=get_thumb_url)
 
 # ============================================================
-# VITRINE PRINCIPAL
+# VITRINE PRINCIPAL (CIRURGIA A LASER: OPTIMIZED GET_SMART_CAT)
 # ============================================================
 @loja_bp.route('/')
 @cache.cached(timeout=60, query_string=True, key_prefix='index_v7')
 def index():
     termo_busca = request.args.get('q', '').strip()
-    # Importação local para evitar importação circular
     from app.produtos.configs.models import MarcaProduto
     
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
-    # 1. CASO DE BUSCA (AGORA COM FILTRO DE MARCA CORRIGIDO)
     if termo_busca:
         busca_like = f"%{termo_busca}%"
-        # Adicionamos o JOIN com marca_rel para o filtro 'q' enxergar a Fabricante
         query = Produto.query.join(Produto.marca_rel).filter(
             Produto.visivel_loja == True
         ).filter(
             or_(
                 Produto.nome.ilike(busca_like),
                 Produto.codigo.ilike(busca_like),
-                MarcaProduto.nome.ilike(busca_like) # <--- ESSENCIAL PARA O CARROSSEL DE MARCAS
+                MarcaProduto.nome.ilike(busca_like)
             )
         ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))
         
@@ -134,7 +124,6 @@ def index():
                                gerar_link=gerador_limpo, 
                                termo_busca=termo_busca)
 
-    # 2. LANÇAMENTOS E DESTAQUES (Mantido conforme v4)
     lancamentos = cache.get('lancamentos_home_v4')
     if lancamentos is None:
         lancamentos = Produto.query.filter_by(visivel_loja=True)\
@@ -144,14 +133,15 @@ def index():
 
     destaques = cache.get('destaques_home_v4')
     if destaques is None:
+        # CIRURGIA: Removido func.random() dos destaques para poupar RAM
         destaques = Produto.query.filter_by(visivel_loja=True)\
             .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
-            .order_by(func.random()).limit(4).all()
+            .order_by(Produto.id.desc()).limit(4).all()
         cache.set('destaques_home_v4', destaques, timeout=300)
 
-    # 3. PRATELEIRAS INTELIGENTES (v8 - Variedade por subcategoria)
     prateleiras = cache.get('prateleiras_home_v8')
     if prateleiras is None:
+        # CIRURGIA A LASER: Reescrutura sem func.random() - Alta performance estável
         def get_smart_cat(termo, limite=4):
             cats = CategoriaProduto.query.filter(
                 or_(CategoriaProduto.slug.ilike(f"%{termo}%"), CategoriaProduto.nome.ilike(f"%{termo}%"))
@@ -162,31 +152,13 @@ def index():
                 [cat.id for cat in cats] + [s.id for cat in cats for s in cat.subcategorias]
             ))
             
-            resultado = []
-            ids_ja_incluidos = set()
-            
-            # PASSO 1: 1 produto aleatório por subcategoria
-            for cat_id in ids_alvo:
-                prod = Produto.query.filter(
-                    Produto.visivel_loja == True,
-                    Produto.categoria_id == cat_id
-                ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
-                 .order_by(func.random()).first()
-                
-                if prod and prod.id not in ids_ja_incluidos:
-                    resultado.append(prod)
-                    ids_ja_incluidos.add(prod.id)
-                if len(resultado) >= limite: break
-            
-            # PASSO 2: Completa se necessário
-            if len(resultado) < limite:
-                extras = Produto.query.filter(
-                    Produto.visivel_loja == True,
-                    Produto.categoria_id.in_(ids_alvo),
-                    Produto.id.notin_(ids_ja_incluidos)
-                ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
-                 .order_by(func.random()).limit(limite - len(resultado)).all()
-                resultado.extend(extras)
+            # Trazemos os registros ordenados estaticamente pelo ID descendente (Mais recentes)
+            resultado = Produto.query.filter(
+                Produto.visivel_loja == True,
+                Produto.categoria_id.in_(ids_alvo)
+            ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
+             .order_by(Produto.id.desc()).limit(limite).all()
+             
             return resultado
 
         prateleiras = {
@@ -197,7 +169,6 @@ def index():
         }
         cache.set('prateleiras_home_v8', prateleiras, timeout=300)
 
-    # 4. BANNERS E MARCAS
     banners = cache.get('banners_home')
     if banners is None:
         banners = Banner.query.filter_by(ativo=True).order_by(Banner.ordem.asc()).all()
@@ -215,6 +186,7 @@ def index():
                            banners=banners, 
                            marcas=marcas_home, 
                            gerar_link=gerador_limpo)
+
 
 # ============================================================
 # DETALHE DO PRODUTO
@@ -265,8 +237,9 @@ def detalhe_produto(slug):
                        parcela_12x=parcela_12x,
                        relacionados=relacionados,
                        gerar_link=gerador_limpo,
-                       get_thumb_url=get_thumb_url,   # ← adiciona isso
+                       get_thumb_url=get_thumb_url,
                        title=f"{produto.nome} - M4 Tática")
+
 
 # ============================================================
 # PÁGINA DE CATEGORIA
@@ -333,6 +306,7 @@ def categoria(slug_categoria):
                            filtros={'marca': marca_id, 'calibre': calibre_id, 'preco_max': preco_max},
                            gerar_link=gerador_limpo)
 
+
 @loja_bp.route('/p/<string:slug>')
 @cache.cached(timeout=3600, make_cache_key=lambda *args, **kwargs: request.path)
 def exibir_pagina(slug):
@@ -371,7 +345,6 @@ def sitemap():
 
 @loja_bp.route('/robots.txt')
 def robots_txt():
-    # Isso garante que ele busque na pasta static correta do projeto
     static_dir = os.path.join(current_app.root_path, 'static')
     return send_from_directory(static_dir, 'robots.txt')
 
@@ -401,7 +374,6 @@ def otimizar_banco():
 
 @loja_bp.route('/sistema/limpar-cache')
 def limpar_cache():
-    """Rota utilitária para forçar limpeza do cache das prateleiras."""
     try:
         cache.delete('prateleiras_home_v6')
         cache.delete('prateleiras_home_v7')
@@ -415,32 +387,19 @@ def limpar_cache():
     except Exception as e:
         return f"❌ Erro ao limpar cache: {str(e)}"
 
-# ============================================================
-# COMPARADOR DE PRODUTOS - VERSÃO FINAL CORRIGIDA
-# ============================================================
-
 @loja_bp.route('/comparador')
 def comparador():
-    """Página do comparador - busca produtos via API"""
     return render_template('loja/comparador.html')
-
 
 @loja_bp.route('/api/produtos/buscar', methods=['GET'])
 def buscar_produtos():
-    """API de busca de produtos para o comparador (EXCLUSIVO PARA ARMAS)"""
     termo = request.args.get('q', '').strip()
-    
-    if len(termo) < 2:
-        return jsonify({'produtos': []})
-    
+    if len(termo) < 2: return jsonify({'produtos': []})
     filtro = f"%{termo}%"
     
     from sqlalchemy import and_, or_
     from app.produtos.categorias.models import CategoriaProduto
     
-    # REGRA DE NEGÓCIO BLINDADA
-    # É arma se tem funcionamento OU (exige doc e tem calibre)
-    # MAS exclui ativamente tudo que for munição ou insumo
     condicao_arma = and_(
         or_(
             Produto.funcionamento_id != None, 
@@ -463,14 +422,7 @@ def buscar_produtos():
     
     resultado = []
     for p in produtos:
-        if p.foto_url:
-            if p.foto_url.startswith('http') or p.foto_url.startswith('/'):
-                foto = p.foto_url
-            else:
-                foto = url_for('static', filename='img/sem-foto.jpg')
-        else:
-            foto = url_for('static', filename='img/sem-foto.jpg')
-        
+        foto = p.foto_url if p.foto_url and (p.foto_url.startswith('http') or p.foto_url.startswith('/')) else url_for('static', filename='img/sem-foto.jpg')
         resultado.append({
             'id': p.id,
             'nome': p.nome_comercial or p.nome,
@@ -480,173 +432,67 @@ def buscar_produtos():
             'preco': float(p.preco_a_vista or 0),
             'foto': foto
         })
-    
     return jsonify({'produtos': resultado})
-
 
 @loja_bp.route('/api/comparar', methods=['POST'])
 def comparar_produtos():
-    """API que retorna dados comparativos + análise técnica profissional"""
     try:
         data = request.get_json()
         produto_ids = data.get('produto_ids', [])
         
-        # Validação
-        if not produto_ids or len(produto_ids) < 2:
-            return jsonify({'erro': 'Selecione pelo menos 2 produtos'}), 400
-        if len(produto_ids) > 3:
-            return jsonify({'erro': 'Máximo 3 produtos'}), 400
+        if not produto_ids or len(produto_ids) < 2: return jsonify({'erro': 'Selecione pelo menos 2 produtos'}), 400
+        if len(produto_ids) > 3: return jsonify({'erro': 'Máximo 3 produtos'}), 400
         
-        # Busca produtos
         produtos = Produto.query.filter(Produto.id.in_(produto_ids)).all()
-        if len(produtos) != len(produto_ids):
-            return jsonify({'erro': 'Produto não encontrado'}), 404
+        if len(produtos) != len(produto_ids): return jsonify({'erro': 'Produto não encontrado'}), 404
         
-        # Monta dados para comparação
         produtos_data = [p.to_compare_dict() for p in produtos]
-        
-        # Análise da IA via Groq
         analise_ia = gerar_analise_comparativa(produtos_data)
         
         return jsonify({
             'produtos': produtos_data,
             'analise_ia': analise_ia
         })
-        
     except Exception as e:
         current_app.logger.error(f'Erro no comparador: {str(e)}')
         return jsonify({'erro': f'Erro ao processar comparação: {str(e)}'}), 500
 
-
 def gerar_analise_local(produtos_data):
-    """Análise local detalhada (fallback sem IA)"""
     mais_barato = min(produtos_data, key=lambda x: x['preco_vista'])
     mais_caro = max(produtos_data, key=lambda x: x['preco_vista'])
     
-    analise = f"""ANÁLISE COMPARATIVA TÉCNICA
-
-MELHOR CUSTO-BENEFÍCIO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{mais_barato['nome']}
-Preço: R$ {mais_barato['preco_vista']:,.2f}
-Marca: {mais_barato['especificacoes']['marca']}
-Sistema: {mais_barato['especificacoes']['funcionamento']}
-
-Este produto oferece o menor investimento inicial entre os comparados.
-
-COMPARAÇÃO DETALHADA POR PREÇO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-    
+    analise = f"ANÁLISE COMPARATIVA TÉCNICA\n\nMELHOR CUSTO-BENEFÍCIO\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n{mais_barato['nome']}\nPreço: R$ {mais_barato['preco_vista']:,.2f}\nMarca: {mais_barato['especificacoes']['marca']}\n\nEste produto oferece o menor investimento inicial entre os comparados.\n\nCOMPARAÇÃO DETALHADA POR PREÇO\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
     for i, p in enumerate(sorted(produtos_data, key=lambda x: x['preco_vista']), 1):
-        analise += f"""
-{i}. {p['nome']}
-   Preço: R$ {p['preco_vista']:,.2f}
-   {p['calibre']} | {p['especificacoes']['marca']}
-   {p['especificacoes']['funcionamento']}
-"""
+        analise += f"\n{i}. {p['nome']}\n   Preço: R$ {p['preco_vista']:,.2f}\n   {p['calibre']} | {p['especificacoes']['marca']}\n"
     
     if len(produtos_data) > 1:
         diferenca = mais_caro['preco_vista'] - mais_barato['preco_vista']
         economia_pct = (diferenca / mais_caro['preco_vista']) * 100
-        
-        analise += f"""
-ANÁLISE FINANCEIRA
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Escolhendo o produto mais acessível, você economiza:
-• Valor: R$ {diferenca:,.2f}
-• Percentual: {economia_pct:.1f}%
-
-IMPORTANTE: Esta análise considera apenas o preço de aquisição.
-Para análise técnica completa sobre adequação ao uso (IPSC, defesa pessoal, 
-tiro esportivo), configure a API do Groq para análise com IA.
-
-Configure em .env:
-GROQ_API_KEY=sua_chave_aqui
-"""
-    
+        analise += f"\nANÁLISE FINANCEIRA\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nEscolhendo o produto mais acessível, você economiza:\n• Valor: R$ {diferenca:,.2f}\n• Percentual: {economia_pct:.1f}%\n"
     return analise
 
-
 def gerar_analise_comparativa(produtos_data):
-    """Chama IA via Groq (Llama 3.1) usando conhecimento próprio da IA + dados da loja"""
-    
     api_key = os.getenv('GROQ_API_KEY')
     model_name = os.getenv('GROQ_MODEL', 'llama-3.1-8b-instant')
     
-    if not api_key:
-        current_app.logger.warning('GROQ_API_KEY não configurada')
-        return gerar_analise_local(produtos_data)
+    if not api_key: return gerar_analise_local(produtos_data)
     
     try:
         from groq import Groq
         client = Groq(api_key=api_key)
+        produtos_info = "\n\n".join([f"[ARMAMENTO: {p['nome'].upper()}]\nCategoria: {p['categoria']}\nCalibre: {p['calibre']}\nPreço: R$ {p['preco_vista']:.2f}\nMarca: {p['especificacoes']['marca']}" for p in produtos_data])
         
-        # MUDANÇA 1: Tiramos o "[PRODUTO 1]" e colocamos o nome da arma direto no cabeçalho
-        produtos_info = "\n\n".join([
-            f"""[ARMAMENTO: {p['nome'].upper()}]
-Categoria: {p['categoria']}
-Calibre: {p['calibre']}
-Preço na Loja: R$ {p['preco_vista']:.2f}
-Marca: {p['especificacoes']['marca']}
-Tipo: {p['especificacoes']['tipo']}"""
-            for p in produtos_data
-        ])
-        
-        prompt = f"""Atue como um Engenheiro de Armamento e Instrutor Tático de nível Sênior.
-Abaixo estão os dados comerciais de armamentos extraídos do nosso sistema. 
-IMPORTANTE: Como algumas especificações técnicas podem estar ausentes no cadastro, VOCÊ DEVE OBRIGATORIAMENTE UTILIZAR SUA PRÓPRIA BASE DE CONHECIMENTO sobre estes modelos reais de armas de fogo para preencher as lacunas (dimensões, peso padrão, capacidade, histórico de confiabilidade mecânica, materiais de construção, etc).
-
-DADOS COMERCIAIS:
-{produtos_info}
-
-ESTRUTURA DO PARECER EXIGIDA:
-
-1. RESUMO TÉCNICO E CONSTRUTIVO
-   (Utilize seu conhecimento sobre as armas para descrever a plataforma, o material do frame/ferrolho e as propostas de projeto de cada modelo).
-
-2. COMPARAÇÃO DE DESEMPENHO E APLICAÇÃO
-   (Analise o peso típico, dimensões, sistema de gatilho, capacidade padrão e ergonomia teórica de cada modelo com base no que se sabe sobre elas no mundo real).
-
-3. ADEQUAÇÃO OPERACIONAL
-   (Classifique a adequação de cada arma para as seguintes finalidades usando "Alta", "Média" ou "Inadequada", justificando tecnicamente:
-   - Porte Velado / Defesa Pessoal
-   - Defesa Residencial / Patrimonial
-   - Tiro Esportivo (IPSC, IDSC)
-   - Uso Policial / Tático)
-
-4. VEREDITO DE CUSTO-BENEFÍCIO
-   (Cruze o "Preço na Loja" fornecido com a durabilidade, qualidade de acabamento e confiabilidade que você conhece desses modelos no mercado real).
-
-REGRAS RÍGIDAS: 
-- Limite-se a 450 palavras. 
-- Mantenha o tom sóbrio, direto e use formatação Markdown para destacar os tópicos. 
-- NÃO USE EMOJIS EM NENHUMA HIPÓTESE.
-- PROIBIDO usar termos genéricos como "Produto 1" ou "Produto 2". Cite EXCLUSIVAMENTE o nome real da arma (ex: "Taurus GX2", "G2c") em todo o texto e nos cabeçalhos de eventuais tabelas."""
- 
-        current_app.logger.info(f'Solicitando Laudo Inteligente ao Groq ({model_name})...')
+        prompt = f"Atue como um Engenheiro de Armamento e Instrutor Tático de nível Sênior. Abaixo estão os dados de armamentos. Utilize sua base de conhecimento real sobre os modelos para preencher dimensões, peso e capacidade padrão.\n\nDADOS COMERCIAIS:\n{produtos_info}\n\nESTRUTURA: 1. Resumo Técnico | 2. Comparação de Desempenho | 3. Adequação Operacional | 4. Veredito. Limite-se a 450 palavras. Não use emojis. Use os nomes reais das armas."
         
         chat_completion = client.chat.completions.create(
             messages=[
-                {
-                    "role": "system",
-                    "content": "Você é um perito em armamento tático de alto nível. Responda em Português do Brasil (PT-BR) com tom estritamente técnico, formal e acadêmico. Traga informações reais do mundo armamentista para enriquecer o laudo. Não use emojis. Refira-se aos armamentos sempre pelos seus nomes oficiais e comerciais."
-                },
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
+                {"role": "system", "content": "Você é um perito em armamento tático. Responda em PT-BR, tom estritamente formal. Não use emojis."},
+                {"role": "user", "content": prompt}
             ],
             model=model_name,
             temperature=0.3,
             max_tokens=1024,
         )
-        
-        current_app.logger.info(f'✅ Laudo Inteligente gerado com sucesso.')
         return chat_completion.choices[0].message.content
-        
-    except Exception as e:
-        current_app.logger.error(f'Erro Groq: {str(e)}')
+    except Exception:
         return gerar_analise_local(produtos_data)
-
-
