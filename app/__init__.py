@@ -123,8 +123,10 @@ def create_app():
         app.logger.warning(f"[CACHE] Erro ao inicializar cache: {e}")
 
     # =========================================================
-    # REGISTRO DE BLUEPRINTS
+    # REGISTRO DE BLUEPRINTS (Roteamento Dinâmico M4)
     # =========================================================
+    ambiente = os.getenv("M4_AMBIENTE", "ADMIN")
+
     from app.main import main
     from app.admin import admin_bp
     from app.clientes.routes import clientes_bp
@@ -146,13 +148,24 @@ def create_app():
     from app.loja_admin import loja_admin_bp
     from app.carrinho import carrinho_bp
     
+    # -----------------------------------------------------
+    # A VIRADA DE CHAVE (Isolamento de Infraestrutura)
+    # -----------------------------------------------------
+    if ambiente == "LOJA_PUBLICA":
+        # Novo Render (Subdomínio): A loja assume a vitrine (/)
+        app.register_blueprint(loja_bp, url_prefix="/")
+        app.register_blueprint(main, url_prefix="/sistema-interno") 
+    else:
+        # Render Atual/Local: Painel Admin na vitrine (/), loja em /loja
+        app.register_blueprint(main)
+        app.register_blueprint(loja_bp, url_prefix="/loja")
+
+    # Demais módulos compartilhados carregam normalmente
     app.register_blueprint(uploads_bp, url_prefix="/uploads")
-    app.register_blueprint(main)
     app.register_blueprint(clientes_bp, url_prefix="/clientes")
     app.register_blueprint(produtos_bp)
     app.register_blueprint(estoque_bp)
     app.register_blueprint(configs_bp)
-    app.register_blueprint(loja_bp)
     app.register_blueprint(carrinho_bp, url_prefix='/carrinho')
     app.register_blueprint(loja_admin_bp, url_prefix="/admin-loja")
     app.register_blueprint(vendas_bp, url_prefix="/vendas")
