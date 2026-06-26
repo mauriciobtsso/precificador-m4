@@ -172,14 +172,22 @@ TABELAS_SEQUENCIAS = [
 ]
 
 
-def corrigir_todas_as_sequencias():
+def corrigir_todas_as_sequencias(app=None):
     """
     Corrige automaticamente as sequências (auto-increment) das tabelas
     relacionadas a produtos e configurações.
     """
+    ctx = None
+    # CIRURGIA A LASER: Adiciona o Contexto da Aplicação
+    if app:
+        try:
+            ctx = app.app_context()
+            ctx.push()
+        except Exception:
+            pass
+            
     try:
         from app import db
-
         total_corrigidas = 0
         falhas = []
 
@@ -216,10 +224,8 @@ def corrigir_todas_as_sequencias():
                 if current_app:
                     current_app.logger.error(msg_err, exc_info=True)
 
-        resumo = (
-            f"{total_corrigidas} sequência(s) corrigida(s) às "
-            f"{datetime.now():%d/%m/%Y %H:%M:%S}"
-        )
+        resumo = (f"{total_corrigidas} sequência(s) corrigida(s) às "
+                  f"{datetime.now():%d/%m/%Y %H:%M:%S}")
         if falhas:
             resumo += f" — Falhas em: {', '.join(t for t, _ in falhas)}"
 
@@ -233,6 +239,10 @@ def corrigir_todas_as_sequencias():
         traceback.print_exc()
         if current_app:
             current_app.logger.error(msg, exc_info=True)
+            
+    finally:
+        if ctx:
+            ctx.pop()
 
 
 # ---------------------------------------------------------
@@ -241,15 +251,12 @@ def corrigir_todas_as_sequencias():
 def iniciar_scheduler(app):
     """
     Configura e inicia o APScheduler integrado ao Flask.
-         • Verificação de alertas às 06:00
-         • Ajuste de sequências às 03:00
     """
     scheduler = BackgroundScheduler(timezone="America/Sao_Paulo")
 
     for job in scheduler.get_jobs():
         scheduler.remove_job(job.id)
 
-    # Verificação de alertas diários
     scheduler.add_job(
         func=lambda: verificar_alertas_diarios(app),
         trigger="cron",
@@ -259,9 +266,8 @@ def iniciar_scheduler(app):
         replace_existing=True,
     )
 
-    # Ajuste automático de sequências
     scheduler.add_job(
-        func=corrigir_todas_as_sequencias,
+        func=lambda: corrigir_todas_as_sequencias(app), # Passa a variável 'app' aqui
         trigger="cron",
         hour=3,
         minute=0,

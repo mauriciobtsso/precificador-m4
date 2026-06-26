@@ -126,7 +126,7 @@ def inject_thumb_helper():
 # VITRINE PRINCIPAL (CIRURGIA A LASER: OPTIMIZED GET_SMART_CAT)
 # ============================================================
 @loja_bp.route('/')
-@cache.cached(timeout=60, query_string=True, key_prefix='index_v7')
+@cache.cached(timeout=60, query_string=True, key_prefix='index_v8')
 def index():
     termo_busca = request.args.get('q', '').strip()
     from app.produtos.configs.models import MarcaProduto
@@ -156,35 +156,34 @@ def index():
                                gerar_link=gerador_limpo, 
                                termo_busca=termo_busca)
 
-    lancamentos = cache.get('lancamentos_home_v4')
+    lancamentos = cache.get('lancamentos_home_v5')
     if lancamentos is None:
         lancamentos = Produto.query.filter_by(visivel_loja=True)\
             .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
             .order_by(Produto.criado_em.desc()).limit(4).all()
-        cache.set('lancamentos_home_v4', lancamentos, timeout=300)
+        cache.set('lancamentos_home_v5', lancamentos, timeout=300)
 
-    destaques = cache.get('destaques_home_v4')
+    destaques = cache.get('destaques_home_v5')
     if destaques is None:
-        # CIRURGIA: Removido func.random() dos destaques para poupar RAM
         destaques = Produto.query.filter_by(visivel_loja=True)\
             .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
             .order_by(Produto.id.desc()).limit(4).all()
-        cache.set('destaques_home_v4', destaques, timeout=300)
+        cache.set('destaques_home_v5', destaques, timeout=300)
 
-    prateleiras = cache.get('prateleiras_home_v8')
+    prateleiras = cache.get('prateleiras_home_v9')
     if prateleiras is None:
-        # CIRURGIA A LASER: Reescrutura sem func.random() - Alta performance estável
         def get_smart_cat(termo, limite=4):
+            # CIRURGIA A LASER: subqueryload resolve o Timeout empacotando os dados numa viagem só
             cats = CategoriaProduto.query.filter(
                 or_(CategoriaProduto.slug.ilike(f"%{termo}%"), CategoriaProduto.nome.ilike(f"%{termo}%"))
-            ).all()
+            ).options(subqueryload(CategoriaProduto.subcategorias)).all()
+            
             if not cats: return []
             
             ids_alvo = list(set(
                 [cat.id for cat in cats] + [s.id for cat in cats for s in cat.subcategorias]
             ))
             
-            # Trazemos os registros ordenados estaticamente pelo ID descendente (Mais recentes)
             resultado = Produto.query.filter(
                 Produto.visivel_loja == True,
                 Produto.categoria_id.in_(ids_alvo)
@@ -199,17 +198,17 @@ def index():
             "Rifles":     get_smart_cat("rifle"),
             "Munições":   get_smart_cat("muni"),
         }
-        cache.set('prateleiras_home_v8', prateleiras, timeout=300)
+        cache.set('prateleiras_home_v9', prateleiras, timeout=300)
 
-    banners = cache.get('banners_home')
+    banners = cache.get('banners_home_v2')
     if banners is None:
         banners = Banner.query.filter_by(ativo=True).order_by(Banner.ordem.asc()).all()
-        cache.set('banners_home', banners, timeout=300)
+        cache.set('banners_home_v2', banners, timeout=300)
 
-    marcas_home = cache.get('marcas_home')
+    marcas_home = cache.get('marcas_home_v2')
     if marcas_home is None:
         marcas_home = MarcaProduto.query.filter(MarcaProduto.logo_url != None).all()
-        cache.set('marcas_home', marcas_home, timeout=3600)
+        cache.set('marcas_home_v2', marcas_home, timeout=3600)
 
     return render_template('loja/index.html', 
                            lancamentos=lancamentos, 
