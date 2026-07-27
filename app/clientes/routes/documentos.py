@@ -1,10 +1,10 @@
+# app/clientes/routes/documentos.py
+
 from flask import (
     render_template, request, redirect, url_for,
-    flash, jsonify, current_app
+    flash, current_app
 )
 
-from datetime import datetime
-from io import BytesIO
 from werkzeug.utils import secure_filename
 
 from app import db
@@ -12,9 +12,11 @@ from app.clientes import clientes_bp
 from app.clientes.models import Cliente, Documento
 from app.clientes.constants import CATEGORIAS_DOCUMENTO, EMISSORES_DOCUMENTO
 
-from app.utils.r2_helpers import gerar_link_r2
-from app.utils.storage import get_s3, get_bucket, deletar_arquivo
+# Importações Táticas M4 (Helpers e Storage)
+from app.utils.r2_helpers import gerar_link_r2, upload_file_to_r2
+from app.utils.storage import deletar_arquivo
 from app.utils.datetime import now_local
+from app.clientes.routes.helpers import parse_date
 
 
 # =================================================
@@ -36,35 +38,27 @@ def novo_documento(cliente_id):
     tipo = categoria or request.form.get("tipo")
     emissor = request.form.get("emissor")
     numero = request.form.get("numero_documento")
-    data_emissao = request.form.get("data_emissao")
-    data_validade = request.form.get("data_validade")
     validade_indeterminada = bool(request.form.get("validade_indeterminada"))
     observacoes = request.form.get("observacoes")
+    
+    # Recebe caminho se já processado via OCR no JS, senão None
     caminho_arquivo = request.form.get("caminho_arquivo") or None
     nome_original = request.form.get("arquivo") or None
 
-    # Upload manual
+    # Upload manual usando o R2 Helper
     if not caminho_arquivo and "arquivo" in request.files and request.files["arquivo"].filename:
         file = request.files["arquivo"]
         nome_seguro = secure_filename(file.filename)
         timestamp = now_local().strftime("%Y%m%d_%H%M%S")
-        caminho_arquivo = f"clientes/{cliente_id}/documentos/{timestamp}_{nome_seguro}"
-
-        s3 = get_s3()
-        bucket = get_bucket()
-        s3.upload_fileobj(file, bucket, caminho_arquivo)
+        
+        # Alteramos o nome do arquivo em memória para garantir a unicidade no R2
+        file.filename = f"{timestamp}_{nome_seguro}"
+        
+        pasta_destino = f"clientes/{cliente_id}/documentos"
+        caminho_arquivo = upload_file_to_r2(file, folder=pasta_destino)
+        
+        # Guardamos o nome seguro original para exibição limpa no front-end
         nome_original = nome_seguro
-
-    # Conversão de datas
-    def parse_date(value):
-        if not value:
-            return None
-        for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
-            try:
-                return datetime.strptime(value, fmt).date()
-            except ValueError:
-                continue
-        return None
 
     documento = Documento(
         cliente_id=cliente.id,
@@ -72,8 +66,8 @@ def novo_documento(cliente_id):
         categoria=categoria,
         emissor=emissor,
         numero_documento=numero,
-        data_emissao=parse_date(data_emissao),
-        data_validade=parse_date(data_validade),
+        data_emissao=parse_date(request.form.get("data_emissao")),
+        data_validade=parse_date(request.form.get("data_validade")),
         validade_indeterminada=validade_indeterminada,
         observacoes=observacoes,
         caminho_arquivo=caminho_arquivo,
@@ -113,17 +107,7 @@ def editar_documento(cliente_id, doc_id):
     documento.observacoes = request.form.get("observacoes")
     documento.validade_indeterminada = bool(request.form.get("validade_indeterminada"))
 
-    # Conversão de datas
-    def parse_date(value):
-        if not value:
-            return None
-        for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
-            try:
-                return datetime.strptime(value, fmt).date()
-            except ValueError:
-                continue
-        return None
-
+    # Conversão de datas centralizada via helper
     documento.data_emissao = parse_date(request.form.get("data_emissao"))
     documento.data_validade = parse_date(request.form.get("data_validade"))
 
@@ -135,13 +119,16 @@ def editar_documento(cliente_id, doc_id):
         file = request.files[field_name]
         nome_seguro = secure_filename(file.filename)
         timestamp = now_local().strftime("%Y%m%d_%H%M%S")
-        novo_caminho = f"clientes/{cliente_id}/documentos/{timestamp}_{nome_seguro}"
-
-        s3 = get_s3()
-        bucket = get_bucket()
-        file.seek(0)
-        s3.upload_fileobj(file, bucket, novo_caminho)
-        documento.nome_original = nome_seguro
+        
+        # Unicidade do arquivo
+        file.filename = f"{timestamp}_{nome_seguro}"
+        
+        pasta_destino = f"clientes/{cliente_id}/documentos"
+        caminho_upload = upload_file_to_r2(file, folder=pasta_destino)
+        
+        if caminho_upload:
+            novo_caminho = caminho_upload
+            documento.nome_original = nome_seguro
 
     if novo_caminho:
         documento.caminho_arquivo = novo_caminho
@@ -164,6 +151,7 @@ def deletar_documento(cliente_id, doc_id):
         db.session.delete(documento)
         db.session.commit()
 
+        # O helper deletar_arquivo processa de forma segura a exclusão no R2
         if caminho_arquivo_para_deletar:
             deletar_arquivo(caminho_arquivo_para_deletar)
 
