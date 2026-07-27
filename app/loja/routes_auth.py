@@ -1,7 +1,7 @@
 # app/loja/routes_auth.py
 import os
 from datetime import date
-from flask import render_template, request, redirect, url_for, flash, send_file
+from flask import render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 from app import db
 from app.loja import loja_bp
@@ -9,8 +9,11 @@ from app.clientes.models import Cliente, EnderecoCliente, ContatoCliente, Docume
 from app.loja.auth_loja import logar_cliente, deslogar_cliente, get_cliente_logado, cliente_logado_required
 from app.utils.datetime import now_local
 
-UPLOAD_PASTA       = os.path.join('app', 'static', 'uploads', 'documentos_clientes')
-UPLOAD_PASTA_CRAF  = os.path.join('app', 'static', 'uploads', 'crafe_clientes')
+# 🛰️ Storage tático M4: uploads do cliente agora vão direto pro R2,
+# nunca mais para o disco local (que é efêmero no Render).
+from app.utils.r2_helpers import upload_file_to_r2, gerar_link_r2
+from app.utils.storage import deletar_arquivo
+
 EXTENSOES_OK       = {'pdf', 'jpg', 'jpeg', 'png'}
 CATEGORIA_LOJA     = 'cliente_loja'
 
@@ -256,10 +259,16 @@ def upload_documento():
         flash('Formato não permitido. Use PDF, JPG ou PNG.', 'warning')
         return redirect(url_for('loja.meus_documentos'))
 
-    os.makedirs(UPLOAD_PASTA, exist_ok=True)
-    nome_final = f"cli_{cliente.id}_{now_local().strftime('%Y%m%d%H%M%S')}_{secure_filename(arquivo.filename)}"
-    caminho    = os.path.join(UPLOAD_PASTA, nome_final)
-    arquivo.save(caminho)
+    # 🛰️ Nome único e envio direto para o R2 (bucket privado m4-clientes-docs).
+    # Nada mais é salvo em disco local — o disco do Render é efêmero.
+    nome_seguro = secure_filename(arquivo.filename)
+    timestamp   = now_local().strftime('%Y%m%d%H%M%S')
+    arquivo.filename = f"{timestamp}_{nome_seguro}"
+
+    caminho_r2 = upload_file_to_r2(arquivo, folder=f"clientes/{cliente.id}/documentos")
+    if not caminho_r2:
+        flash('Erro ao enviar o arquivo para o storage. Tente novamente.', 'danger')
+        return redirect(url_for('loja.meus_documentos'))
 
     indet = bool(request.form.get('validade_indeterminada'))
     db.session.add(Documento(
@@ -271,8 +280,8 @@ def upload_documento():
         data_validade          = None if indet else _parse_date('data_validade'),
         validade_indeterminada = indet,
         observacoes            = (request.form.get('observacoes') or '').strip() or None,
-        nome_original          = arquivo.filename,
-        caminho_arquivo        = caminho,
+        nome_original          = nome_seguro,
+        caminho_arquivo        = caminho_r2,
         mime_type              = arquivo.mimetype,
     ))
     db.session.commit()
@@ -290,13 +299,16 @@ def excluir_documento(doc_id):
     doc = Documento.query.filter_by(
         id=doc_id, cliente_id=cliente.id, categoria=CATEGORIA_LOJA
     ).first_or_404()
-    if doc.caminho_arquivo and os.path.exists(doc.caminho_arquivo):
-        try:
-            os.remove(doc.caminho_arquivo)
-        except OSError:
-            pass
+
+    caminho_para_deletar = doc.caminho_arquivo
+
     db.session.delete(doc)
     db.session.commit()
+
+    # 🛰️ Exclusão no R2 (não é mais arquivo local)
+    if caminho_para_deletar:
+        deletar_arquivo(caminho_para_deletar)
+
     flash('Documento removido.', 'info')
     return redirect(url_for('loja.meus_documentos'))
 
@@ -309,14 +321,18 @@ def excluir_documento(doc_id):
 def baixar_documento(doc_id):
     cliente = get_cliente_logado()
     doc = Documento.query.filter_by(id=doc_id, cliente_id=cliente.id).first_or_404()
-    if not doc.caminho_arquivo or not os.path.exists(doc.caminho_arquivo):
+
+    if not doc.caminho_arquivo:
         flash('Arquivo não encontrado.', 'danger')
         return redirect(url_for('loja.meus_documentos'))
-    return send_file(
-        doc.caminho_arquivo,
-        download_name=doc.nome_original or f'documento_{doc.id}',
-        as_attachment=True,
-    )
+
+    # 🛰️ Gera link assinado do R2 em vez de servir arquivo local
+    link = gerar_link_r2(doc.caminho_arquivo)
+    if not link:
+        flash('Erro ao gerar o link do arquivo.', 'danger')
+        return redirect(url_for('loja.meus_documentos'))
+
+    return redirect(link)
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -336,17 +352,22 @@ def baixar_documento(doc_id):
 def solicitar_arma():
     cliente = get_cliente_logado()
 
-    # ── arquivo do CRAF (opcional) ──────────────────────────────
+    # ── arquivo do CRAF (opcional) — agora enviado direto pro R2 ──
     caminho_craf = None
     arquivo_craf = request.files.get('arquivo_craf')
     if arquivo_craf and arquivo_craf.filename:
         if not _ext_ok(arquivo_craf.filename):
             flash('Formato do arquivo CRAF inválido. Use PDF, JPG ou PNG.', 'warning')
             return redirect(url_for('loja.meus_documentos'))
-        os.makedirs(UPLOAD_PASTA_CRAF, exist_ok=True)
-        nome_craf    = f"craf_{cliente.id}_{now_local().strftime('%Y%m%d%H%M%S')}_{secure_filename(arquivo_craf.filename)}"
-        caminho_craf = os.path.join(UPLOAD_PASTA_CRAF, nome_craf)
-        arquivo_craf.save(caminho_craf)
+
+        nome_seguro_craf = secure_filename(arquivo_craf.filename)
+        timestamp_craf   = now_local().strftime('%Y%m%d%H%M%S')
+        arquivo_craf.filename = f"craf_{timestamp_craf}_{nome_seguro_craf}"
+
+        caminho_craf = upload_file_to_r2(arquivo_craf, folder=f"clientes/{cliente.id}/armas")
+        if not caminho_craf:
+            flash('Erro ao enviar o arquivo do CRAF para o storage. Tente novamente.', 'danger')
+            return redirect(url_for('loja.meus_documentos'))
 
     # ── número de série — evita violação de unique=True ─────────
     numero_serie = (request.form.get('numero_serie') or '').strip() or None
@@ -370,7 +391,7 @@ def solicitar_arma():
         data_aquisicao         = _parse_date('data_aquisicao'),
         validade_indeterminada = indet,
         data_validade_craf     = None if indet else _parse_date('data_validade_craf'),
-        caminho_craf           = caminho_craf,   # arquivo do CRAF salvo localmente
+        caminho_craf           = caminho_craf,   # chave R2 do CRAF (ou None)
     )
 
     db.session.add(arma)
