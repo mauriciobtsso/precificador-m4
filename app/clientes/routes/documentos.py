@@ -41,11 +41,16 @@ def novo_documento(cliente_id):
     validade_indeterminada = bool(request.form.get("validade_indeterminada"))
     observacoes = request.form.get("observacoes")
     
-    # Recebe caminho se já processado via OCR no JS, senão None
+    # Recebe caminho limpo do R2 vindo do OCR (JS), senão None
     caminho_arquivo = request.form.get("caminho_arquivo") or None
     nome_original = request.form.get("arquivo") or None
 
-    # Upload manual usando o R2 Helper
+    # 🛡️ SAFEGUARD M4: Impede lixo de cache antigo do frontend de poluir o DB
+    if caminho_arquivo and ("app/static" in caminho_arquivo or "uploads/" in caminho_arquivo):
+        current_app.logger.warning(f"Interceptado caminho local sujo enviado pelo front: {caminho_arquivo}")
+        caminho_arquivo = None # Força o upload manual caso o arquivo venha no request.files
+
+    # Upload manual usando o R2 Helper (caso não tenha passado pelo OCR)
     if not caminho_arquivo and "arquivo" in request.files and request.files["arquivo"].filename:
         file = request.files["arquivo"]
         nome_seguro = secure_filename(file.filename)
@@ -130,7 +135,7 @@ def editar_documento(cliente_id, doc_id):
             novo_caminho = caminho_upload
             documento.nome_original = nome_seguro
 
-    if novo_caminho:
+    if novo_caminho and not ("app/static" in novo_caminho):
         documento.caminho_arquivo = novo_caminho
         documento.data_upload = now_local()
 
