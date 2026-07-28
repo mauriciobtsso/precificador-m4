@@ -402,47 +402,56 @@
     </div>
 
 {# ── CIRURGIA SEO: BLOCO SEMÂNTICO (RICH CONTENT) ── #}
-<div class="m4-seo-content mt-5 mb-5 p-4 bg-light border rounded">
-    <h2 class="h4 fw-bold text-dark mb-3">
-        Qual o valor do {{ produto.nome_comercial or produto.nome }} em {{ now_local().strftime('%Y') }}?
-    </h2>
-    <p class="text-secondary" style="font-size: 0.95rem; line-height: 1.6;">
-        Atualmente, o preço atualizado do <strong>{{ produto.nome_comercial or produto.nome }}</strong> é de 
-        <strong class="text-success">R$ {{ "{:,.2f}".format(precos.preco_a_vista).replace(',','X').replace('.',',').replace('X','.') }} à vista no PIX</strong>. 
-        Na M4 Tática, localizada em Teresina, PI, você adquire este armamento com garantia de procedência, emissão de nota fiscal e suporte completo para a sua documentação.
-    </p>
+<div class="row mt-4 mb-4">
+        <div class="col-12">
+            {# ── CIRURGIA SEO: BLOCO SEMÂNTICO (RICH CONTENT) ── #}
+            <div class="m4-seo-content p-4 bg-light border rounded">
+                <h2 class="h4 fw-bold text-dark mb-3">
+                    Qual o valor do {{ produto.nome_comercial or produto.nome }} em {{ now_local().strftime('%Y') }}?
+                </h2>
+                <p class="text-secondary" style="font-size: 0.95rem; line-height: 1.6;">
+                    Atualmente, o preço atualizado do <strong>{{ produto.nome_comercial or produto.nome }}</strong> é de 
+                    <strong class="text-success">R$ {{ "{:,.2f}".format(precos.preco_a_vista).replace(',','X').replace('.',',').replace('X','.') }} à vista no PIX</strong>. 
+                    Na M4 Tática, localizada em Teresina, PI, você adquire este armamento com garantia de procedência, emissão de nota fiscal e suporte completo para a sua documentação.
+                </p>
 
-    <h3 class="h5 fw-bold text-dark mt-4 mb-3">Especificações Técnicas</h3>
-    <div class="row">
-        <div class="col-md-6">
-            <ul class="list-group list-group-flush bg-transparent">
-                {% if produto.marca_rel %}
-                <li class="list-group-item bg-transparent px-0 border-bottom-dashed">
-                    <span class="text-muted small">Fabricante:</span> <br>
-                    <strong>{{ produto.marca_rel.nome }}</strong>
-                </li>
-                {% endif %}
-                {% if produto.calibre_rel %}
-                <li class="list-group-item bg-transparent px-0 border-bottom-dashed">
-                    <span class="text-muted small">Calibre Oficial:</span> <br>
-                    <strong>{{ produto.calibre_rel.nome }}</strong>
-                </li>
-                {% endif %}
-            </ul>
-        </div>
-        <div class="col-md-6">
-            <ul class="list-group list-group-flush bg-transparent">
-                {% if produto.funcionamento_rel %}
-                <li class="list-group-item bg-transparent px-0 border-bottom-dashed">
-                    <span class="text-muted small">Sistema de Funcionamento:</span> <br>
-                    <strong>{{ produto.funcionamento_rel.nome }}</strong>
-                </li>
-                {% endif %}
-                <li class="list-group-item bg-transparent px-0 border-bottom-dashed">
-                    <span class="text-muted small">Condição:</span> <br>
-                    <strong>Arma Nova / Zero na Caixa</strong>
-                </li>
-            </ul>
+                <h3 class="h5 fw-bold text-dark mt-4 mb-3">Especificações Rápidas</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-group list-group-flush bg-transparent">
+                            {% if produto.marca_rel %}
+                            <li class="list-group-item bg-transparent px-0 border-bottom-dashed">
+                                <span class="text-muted small">Fabricante:</span> <br>
+                                <strong>{{ produto.marca_rel.nome }}</strong>
+                            </li>
+                            {% endif %}
+                            {% if produto.calibre_rel %}
+                            <li class="list-group-item bg-transparent px-0 border-bottom-dashed">
+                                <span class="text-muted small">Calibre Oficial:</span> <br>
+                                <strong>{{ produto.calibre_rel.nome }}</strong>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-group list-group-flush bg-transparent">
+                            {% if produto.funcionamento_rel %}
+                            <li class="list-group-item bg-transparent px-0 border-bottom-dashed">
+                                <span class="text-muted small">Sistema de Funcionamento:</span> <br>
+                                <strong>{{ produto.funcionamento_rel.nome }}</strong>
+                            </li>
+                            {% endif %}
+                            <li class="list-group-item bg-transparent px-0 border-bottom-dashed">
+                                <span class="text-muted small">Condição:</span> <br>
+                                <strong>Arma Nova / Zero na Caixa</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <style>
+                .border-bottom-dashed { border-bottom: 1px dashed #dee2e6 !important; }
+            </style>
         </div>
     </div>
 
