@@ -184,7 +184,7 @@
         </ol>
     </nav>
 
-{# ── DADOS ESTRUTURADOS FULL SNIPPET (PRODUTO) ── #}
+{# ── DADOS ESTRUTURADOS FULL SNIPPET (PRODUTO) CORRIGIDO ── #}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org/",
@@ -211,12 +211,13 @@
     "priceCurrency": "BRL",
     "price": "{{ "%.2f"|format(precos['preco_a_vista']|float) }}",
     "priceValidUntil": "2026-12-31",
+    "validFrom": "{{ now_local().strftime('%Y-%m-%d') }}",
     "availability": "https://schema.org/InStock",
     "itemCondition": "https://schema.org/NewCondition",
     "hasMerchantReturnPolicy": {
       "@type": "MerchantReturnPolicy",
       "applicableCountry": "BR",
-      "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnPeriod",
+      "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
       "merchantReturnDays": 7,
       "returnMethod": "https://schema.org/ReturnByMail",
       "returnFees": "https://schema.org/FreeReturn"
@@ -235,7 +236,7 @@
       "deliveryTime": {
         "@type": "ShippingDeliveryTime",
         "handlingTime": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 3, "unitCode": "d" },
-        "transitTime": { "@type": "ShippingDeliveryTime", "minValue": 5, "maxValue": 15, "unitCode": "d" }
+        "transitTime": { "@type": "QuantitativeValue", "minValue": 5, "maxValue": 15, "unitCode": "d" }
       }
     }
   }
