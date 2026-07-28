@@ -18,8 +18,11 @@
 
     <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
 
-    <title>{% block title %}{{ title if title else 'M4 Tática | Armas, Munições e Acessórios' }}{% endblock %}</title>
-    <meta name="description" content="{% block meta_description %}{{ meta_desc if meta_desc else 'A maior variedade de armas e munições com a qualidade M4 Tática.' }}{% endblock %}">
+    <title>{% block title %}M4 Tática | Armas, Munições e Equipamentos Táticos em Teresina - PI{% endblock %}</title>
+
+    {% block seo_meta %}
+    <meta name="description" content="A melhor loja de armas, munições e equipamentos táticos do Piauí. Produtos com garantia, assessoria documental e os melhores preços.">
+    {% endblock %}
 
     {% block opengraph %}
     <meta property="og:site_name" content="M4 Tática">

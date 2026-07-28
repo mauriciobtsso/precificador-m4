@@ -3,7 +3,14 @@
 {% set precos = produto.calcular_precos() %}
 
 {% block title %}
-    {{ produto.meta_title if produto.meta_title else (produto.nome_comercial if produto.nome_comercial else produto.nome) }} | M4 Tática
+    {{ produto.nome_comercial or produto.nome }} | {{ produto.calibre_rel.nome if produto.calibre_rel else 'M4 Tática' }} | Preço Atualizado {{ now_local().strftime('%Y') }}
+{% endblock %}
+
+{% block seo_meta %}
+    {% set ano_atual = now_local().strftime('%Y') %}
+    {% set preco_formatado = "{:,.2f}".format(precos.preco_a_vista).replace(',','X').replace('.',',').replace('X','.') %}
+    
+    <meta name="description" content="Buscando o valor do {{ produto.nome_comercial or produto.nome }} em {{ ano_atual }}? Compre por R$ {{ preco_formatado }} à vista na M4 Tática. Calibre {{ produto.calibre_rel.nome if produto.calibre_rel else 'oficial' }}. Assessoria documental completa.">
 {% endblock %}
 
 {% block opengraph %}
