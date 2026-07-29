@@ -1,14 +1,15 @@
 User-agent: *
+Allow: /
+
+# PROTEÇÃO DE CRAWL BUDGET (Rotas que não agregam ao SEO)
 Disallow: /admin/
 Disallow: /admin-loja/
 Disallow: /login
 Disallow: /sistema/
-Disallow: /carrinho/checkout/
+Disallow: /carrinho/
+Disallow: /checkout/
 Disallow: /minha-conta/
 Disallow: /app/
-Disallow: /config.py
-Disallow: /.env
-Disallow: /instance/
 
 # PREVENÇÃO DE SOFT 404 (BLOQUEIO DE FILTROS DA LOJA)
 Disallow: /*?*marca=*
@@ -23,19 +24,17 @@ User-agent: facebookexternalhit
 Allow: /loja/produto/
 
 User-agent: WhatsApp
-Allow: /loja/produto/
+Allow: /
 
-# BLOQUEIO DE TREINAMENTO DE IA
+# TREINAMENTO DE IA (Scrapers)
 User-agent: Google-Extended
-Disallow: /
-
+Allow: /
 User-agent: GPTBot
-Disallow: /
-
+Allow: /
 User-agent: CCBot
-Disallow: /
-
+Allow: /
 User-agent: anthropic-ai
-Disallow: /
+Allow: /
 
-Sitemap: https://app.m4tatica.com.br/loja/sitemap.xml
+# APONTAMENTO CORRETO DO MAPA DO SITE
+Sitemap: https://loja.m4tatica.com.br/sitemap.xml

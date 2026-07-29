@@ -13,6 +13,8 @@ import app.utils.parcelamento as parcelamento_logic
 from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload, subqueryload
 import os
+from datetime import datetime
+import pytz
 
 # ============================================================
 # INTERCEPTADOR DE SEO: REDIRECIONAMENTO 301 (MIGRAÇÃO DE DOMÍNIO)
@@ -355,23 +357,34 @@ def google_verification():
     return send_from_directory(static_dir, 'google8fe23db2fb19380f.html')
 
 @loja_bp.route('/sitemap.xml')
-@cache.cached(timeout=86400, key_prefix='sitemap_xml_v2')
+@cache.cached(timeout=86400, key_prefix='sitemap_xml_v3')
 def sitemap():
-    pages = []
-    pages.append({'loc': url_for('loja.index', _external=True)})
+    # 1. Configuração do fuso horário e domínio base blindado contra o proxy do Render
+    tz = pytz.timezone('America/Sao_Paulo')
+    hoje = datetime.now(tz).strftime('%Y-%m-%d')
+    base_url = "https://loja.m4tatica.com.br"
     
-    categorias_slugs = CategoriaProduto.query.with_entities(CategoriaProduto.slug).all()
-    for cat_slug in categorias_slugs:
-        pages.append({'loc': url_for('loja.categoria', slug_categoria=cat_slug.slug, _external=True)})
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>']
+    xml.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+    
+    # 2. Rota Principal (Home)
+    xml.append(f'  <url>\n    <loc>{base_url}/</loc>\n    <lastmod>{hoje}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>')
+    
+    # 3. Rotas de Categorias
+    categorias = CategoriaProduto.query.with_entities(CategoriaProduto.slug).all()
+    for cat in categorias:
+        xml.append(f'  <url>\n    <loc>{base_url}/categoria/{cat.slug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>')
         
-    produtos_slugs = Produto.query.filter_by(visivel_loja=True).with_entities(Produto.slug).all()
-    for prod_slug in produtos_slugs:
-        pages.append({'loc': url_for('loja.detalhe_produto', slug=prod_slug.slug, _external=True)})
-
-    from app.utils.datetime import now_local
-    sitemap_xml = render_template('loja/sitemap.xml', pages=pages, now_local=now_local)
-    response = make_response(sitemap_xml)
-    response.headers["Content-Type"] = "application/xml"
+    # 4. Rotas de Produtos
+    produtos = Produto.query.filter_by(visivel_loja=True).with_entities(Produto.slug).all()
+    for prod in produtos:
+        xml.append(f'  <url>\n    <loc>{base_url}/produto/{prod.slug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.9</priority>\n  </url>')
+        
+    xml.append('</urlset>')
+    
+    # 5. Gera a resposta forçando o cabeçalho correto para o Google ler como XML puro
+    response = make_response('\n'.join(xml))
+    response.headers["Content-Type"] = "application/xml; charset=utf-8"
     return response
 
 @loja_bp.route('/robots.txt')
