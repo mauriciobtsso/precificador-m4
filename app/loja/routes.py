@@ -356,7 +356,7 @@ def google_verification():
     static_dir = os.path.join(current_app.root_path, 'static')
     return send_from_directory(static_dir, 'google8fe23db2fb19380f.html')
 
-@loja_bp.route('/sitemap.xml')
+@loja_bp.route('/sitemap.xml', strict_slashes=False)
 @cache.cached(timeout=86400, key_prefix='sitemap_xml_v3')
 def sitemap():
     # 1. Configuração do fuso horário e domínio base blindado contra o proxy do Render
