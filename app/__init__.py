@@ -1,4 +1,5 @@
 from flask import Flask, request, send_from_directory, redirect, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix
 from jinja2.runtime import Undefined
 from sqlalchemy import inspect
 from config import Config
@@ -64,6 +65,9 @@ def configure_logging(app):
 # =========================================================
 def create_app():
     app = Flask(__name__)
+
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1) 
+
     app.config.from_object(Config)
 
     # 🚀 ATIVAÇÃO DA COMPRESSÃO (Crítico para PageSpeed)
