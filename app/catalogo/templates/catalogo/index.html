@@ -1,0 +1,672 @@
+{% extends 'catalogo/base.html' %}
+
+{% block title %}Catálogo de Atendimento — M4 Tática{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── HERO BUSCA ────────────────────────────────────────── */
+    .cat-hero {
+        text-align: center;
+        padding: 48px 0 32px;
+    }
+
+    .cat-hero-eyebrow {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--c-gold);
+        margin-bottom: 12px;
+    }
+
+    .cat-hero-title {
+        font-size: clamp(28px, 5vw, 48px);
+        font-weight: 800;
+        color: var(--c-dark);
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin: 0 0 8px;
+    }
+
+    .cat-hero-sub {
+        font-size: 16px;
+        color: var(--c-mid);
+        margin: 0 0 32px;
+    }
+
+    /* ── BUSCA HERO GRANDE (complementar ao header) ─────────── */
+    .cat-hero-search-wrap {
+        max-width: 600px;
+        margin: 0 auto;
+        position: relative;
+    }
+
+    .cat-hero-search-input {
+        width: 100%;
+        height: 56px;
+        padding: 0 56px 0 22px;
+        background-color: var(--c-white);
+        border: 2px solid var(--c-border);
+        border-radius: 28px;
+        font-size: 17px;
+        color: var(--c-dark);
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+        box-shadow: var(--shadow-md);
+        -webkit-transition: border-color 0.2s;
+        transition: border-color 0.2s;
+    }
+
+    .cat-hero-search-input:focus {
+        border-color: var(--c-gold);
+        box-shadow: 0 0 0 4px rgba(197,160,89,.15), var(--shadow-md);
+    }
+
+    .cat-hero-search-input::-webkit-input-placeholder { color: var(--c-mid); }
+    .cat-hero-search-input::placeholder { color: var(--c-mid); }
+
+    .cat-hero-search-icon {
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        -webkit-transform: translateY(-50%);
+        transform: translateY(-50%);
+        color: var(--c-gold);
+        font-size: 20px;
+        pointer-events: none;
+    }
+
+    /* ── CHIPS ─────────────────────────────────────────────── */
+    .cat-chips-section {
+        padding: 0 0 8px;
+    }
+
+    /* ── GRID DINÂMICO (filtrado por JS) ─────────────────────── */
+    .cat-dynamic-section {
+        padding-top: 32px;
+    }
+
+    .cat-dynamic-header {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--c-border);
+    }
+
+    .cat-dynamic-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--c-dark);
+        margin: 0;
+        letter-spacing: -0.02em;
+    }
+
+    .cat-dynamic-count {
+        font-size: 13px;
+        color: var(--c-mid);
+    }
+
+    .cat-dynamic-grid {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-flex-wrap: wrap;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .cat-dynamic-item {
+        width: calc(50% - 8px);
+    }
+
+    @media (min-width: 600px) {
+        .cat-dynamic-item { width: calc(33.333% - 11px); }
+    }
+
+    @media (min-width: 900px) {
+        .cat-dynamic-item { width: calc(25% - 12px); }
+    }
+
+    /* ── SKELETON LOADING ────────────────────────────────────── */
+    .cat-skeleton {
+        background: linear-gradient(90deg, var(--c-light) 25%, #ebebeb 50%, var(--c-light) 75%);
+        background-size: 400% 100%;
+        -webkit-animation: shimmer 1.4s ease infinite;
+        animation: shimmer 1.4s ease infinite;
+        border-radius: var(--radius-md);
+    }
+
+    @-webkit-keyframes shimmer {
+        0%   { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    @keyframes shimmer {
+        0%   { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    .cat-skeleton-card {
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px solid var(--c-border);
+    }
+
+    .cat-skeleton-img {
+        aspect-ratio: 1;
+        background: linear-gradient(90deg, var(--c-light) 25%, #ebebeb 50%, var(--c-light) 75%);
+        background-size: 400% 100%;
+        -webkit-animation: shimmer 1.4s ease infinite;
+        animation: shimmer 1.4s ease infinite;
+    }
+
+    .cat-skeleton-body {
+        padding: 12px;
+    }
+
+    .cat-skeleton-line {
+        height: 10px;
+        margin-bottom: 8px;
+        border-radius: 5px;
+        background: linear-gradient(90deg, var(--c-light) 25%, #ebebeb 50%, var(--c-light) 75%);
+        background-size: 400% 100%;
+        -webkit-animation: shimmer 1.4s ease infinite;
+        animation: shimmer 1.4s ease infinite;
+    }
+
+    .cat-skeleton-line.short { width: 60%; }
+    .cat-skeleton-line.medium { width: 80%; }
+
+    /* ── ESTADO VAZIO ─────────────────────────────────────── */
+    .cat-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--c-mid);
+    }
+
+    .cat-empty-icon {
+        font-size: 48px;
+        opacity: 0.2;
+        margin-bottom: 16px;
+    }
+
+    .cat-empty-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--c-dark);
+        margin-bottom: 8px;
+    }
+
+    .cat-empty-text {
+        font-size: 15px;
+    }
+
+    /* ── PAGINAÇÃO ────────────────────────────────────────── */
+    .cat-load-more {
+        text-align: center;
+        margin-top: 32px;
+    }
+
+    .cat-btn-load-more {
+        display: inline-block;
+        height: 48px;
+        padding: 0 32px;
+        background-color: var(--c-light);
+        color: var(--c-dark);
+        border-radius: 24px;
+        font-size: 15px;
+        font-weight: 600;
+        border: 1.5px solid var(--c-border);
+        cursor: pointer;
+        -webkit-transition: all 0.2s;
+        transition: all 0.2s;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .cat-btn-load-more:hover {
+        background-color: var(--c-dark);
+        color: var(--c-white);
+        border-color: var(--c-dark);
+    }
+
+    /* ── SEÇÕES ESTÁTICAS (SSR) ──────────────────────────── */
+    .cat-ssr-section {
+        padding-top: 40px;
+    }
+
+    .cat-ssr-title {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--c-dark);
+        margin: 0 0 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--c-border);
+    }
+
+    .cat-ssr-title span.cat-accent {
+        color: var(--c-gold);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── HERO ───────────────────────────────────────────────────────── #}
+<section class="cat-hero" aria-label="Busca de produtos">
+    <p class="cat-hero-eyebrow">M4 Tática</p>
+    <h1 class="cat-hero-title">Catálogo de Atendimento</h1>
+    <p class="cat-hero-sub">Pesquise qualquer produto, fabricante ou calibre</p>
+
+    <div class="cat-hero-search-wrap" role="search">
+        <input
+            type="search"
+            id="catHeroSearch"
+            class="cat-hero-search-input"
+            placeholder="Ex: Glock, 9mm, pistola, carregador…"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            aria-label="Pesquisar produtos"
+        >
+        <i class="bi bi-search cat-hero-search-icon" aria-hidden="true"></i>
+    </div>
+</section>
+
+{# ── CHIPS DE CATEGORIA ─────────────────────────────────────────── #}
+<section class="cat-chips-section" aria-label="Filtros por categoria">
+    <div class="cat-chips-wrap">
+        <div class="cat-chips" id="catChips">
+            <button class="cat-chip active" data-cat="" data-slug="" id="chipTodos" aria-pressed="true">
+                <i class="bi bi-grid-fill" aria-hidden="true"></i> Todos
+            </button>
+            {% for cat in catalogo_categorias %}
+            <button
+                class="cat-chip"
+                data-cat="{{ cat.id }}"
+                data-slug="{{ cat.slug }}"
+                data-nome="{{ cat.nome }}"
+                aria-pressed="false"
+            >
+                {% if cat.icone_loja %}
+                <i class="bi bi-{{ cat.icone_loja }}" aria-hidden="true"></i>
+                {% endif %}
+                {{ cat.nome }}
+            </button>
+            {% endfor %}
+            <button class="cat-chip active-gold" data-cat="promo" data-slug="promo" aria-pressed="false">
+                <i class="bi bi-tag-fill" aria-hidden="true"></i> Promoções
+            </button>
+        </div>
+    </div>
+</section>
+
+{# ── SEÇÃO DINÂMICA (JS) ────────────────────────────────────────── #}
+<section class="cat-dynamic-section" id="catDynamicSection" aria-live="polite">
+    {# renderizado via JS com base no chip ativo #}
+</section>
+
+{# ── SEÇÃO SSR: DESTAQUES ──────────────────────────────────────── #}
+{% if destaques %}
+<section class="cat-ssr-section" id="secaoDestaques">
+    <h2 class="cat-ssr-title">Destaques <span class="cat-accent">M4</span></h2>
+    <ul class="cat-grid" role="list">
+        {% for p in destaques %}
+        <li class="cat-grid-item" role="listitem">
+            {% set thumb = get_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
+                <div class="cat-product-img">
+                    <img
+                        src="{{ thumb }}"
+                        alt="{{ p.nome_comercial or p.nome }}"
+                        loading="{{ 'eager' if loop.index <= 4 else 'lazy' }}"
+                        onerror="this.onerror=null;this.src='{{ gerar_link(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
+                    >
+                </div>
+                <div class="cat-product-body">
+                    {% if p.marca_rel %}
+                    <span class="cat-product-marca">{{ p.marca_rel.nome }}</span>
+                    {% endif %}
+                    <span class="cat-product-nome">{{ p.nome_comercial or p.nome }}</span>
+                    {% if p.calibre_rel %}
+                    <span class="cat-product-meta">{{ p.calibre_rel.nome }}</span>
+                    {% elif p.categoria %}
+                    <span class="cat-product-meta">{{ p.categoria.nome }}</span>
+                    {% endif %}
+                    {% if p.preco_a_vista %}
+                    <span class="cat-product-preco">
+                        {% if p.promo_ativada %}<span class="cat-badge-promo">Oferta</span> {% endif %}
+                        R$ {{ "{:,.2f}".format(p.preco_a_vista | float).replace(',','X').replace('.',',').replace('X','.') }}
+                    </span>
+                    {% endif %}
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{# ── SEÇÃO SSR: LANÇAMENTOS ────────────────────────────────────── #}
+{% if lancamentos %}
+<section class="cat-ssr-section" id="secaoLancamentos">
+    <h2 class="cat-ssr-title">Últimos <span class="cat-accent">Cadastrados</span></h2>
+    <ul class="cat-grid" role="list">
+        {% for p in lancamentos %}
+        <li class="cat-grid-item" role="listitem">
+            {% set thumb = get_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
+                <div class="cat-product-img">
+                    <img
+                        src="{{ thumb }}"
+                        alt="{{ p.nome_comercial or p.nome }}"
+                        loading="lazy"
+                        onerror="this.onerror=null;this.src='{{ gerar_link(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
+                    >
+                </div>
+                <div class="cat-product-body">
+                    {% if p.marca_rel %}
+                    <span class="cat-product-marca">{{ p.marca_rel.nome }}</span>
+                    {% endif %}
+                    <span class="cat-product-nome">{{ p.nome_comercial or p.nome }}</span>
+                    {% if p.calibre_rel %}
+                    <span class="cat-product-meta">{{ p.calibre_rel.nome }}</span>
+                    {% elif p.categoria %}
+                    <span class="cat-product-meta">{{ p.categoria.nome }}</span>
+                    {% endif %}
+                    {% if p.preco_a_vista %}
+                    <span class="cat-product-preco">
+                        R$ {{ "{:,.2f}".format(p.preco_a_vista | float).replace(',','X').replace('.',',').replace('X','.') }}
+                    </span>
+                    {% endif %}
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{# ── SEÇÃO SSR: PROMOÇÕES ──────────────────────────────────────── #}
+{% if promocoes %}
+<section class="cat-ssr-section" id="secaoPromocoes">
+    <h2 class="cat-ssr-title"><span class="cat-accent">Promoções</span> Ativas</h2>
+    <ul class="cat-grid" role="list">
+        {% for p in promocoes %}
+        <li class="cat-grid-item" role="listitem">
+            {% set thumb = get_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
+                <div class="cat-product-img">
+                    <img
+                        src="{{ thumb }}"
+                        alt="{{ p.nome_comercial or p.nome }}"
+                        loading="lazy"
+                        onerror="this.onerror=null;this.src='{{ gerar_link(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
+                    >
+                </div>
+                <div class="cat-product-body">
+                    {% if p.marca_rel %}
+                    <span class="cat-product-marca">{{ p.marca_rel.nome }}</span>
+                    {% endif %}
+                    <span class="cat-product-nome">{{ p.nome_comercial or p.nome }}</span>
+                    {% if p.preco_a_vista %}
+                    <span class="cat-product-preco">
+                        <span class="cat-badge-promo">Oferta</span>
+                        R$ {{ "{:,.2f}".format(p.preco_a_vista | float).replace(',','X').replace('.',',').replace('X','.') }}
+                    </span>
+                    {% endif %}
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    'use strict';
+
+    // ── Variáveis de estado ──────────────────────────────────
+    var catAtivo    = { slug: '', nome: 'Todos' };
+    var paginaAtual = 1;
+    var totalPaginas = 1;
+    var carregando   = false;
+    var BASE_URL     = '{{ url_for("catalogo.index") }}';
+    var API_CAT      = '{{ url_for("catalogo.api_categoria", slug="__SLUG__") }}';
+    var PROD_URL     = '{{ url_for("catalogo.produto", slug="_S_") }}'.replace('_S_', '');
+
+    var secaoDyn    = document.getElementById('catDynamicSection');
+    var secaoDestaques  = document.getElementById('secaoDestaques');
+    var secaoLancamentos = document.getElementById('secaoLancamentos');
+    var secaoPromocoes  = document.getElementById('secaoPromocoes');
+
+    function fmtPreco(v) {
+        if (!v) return '';
+        return 'R$ ' + parseFloat(v).toFixed(2)
+            .replace('.', ',')
+            .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    function renderCardGrid(produtos) {
+        if (!produtos || produtos.length === 0) {
+            return '<div class="cat-empty">' +
+                '<div class="cat-empty-icon"><i class="bi bi-box-seam"></i></div>' +
+                '<div class="cat-empty-title">Nenhum produto encontrado</div>' +
+                '<div class="cat-empty-text">Tente outro filtro ou use a busca.</div>' +
+            '</div>';
+        }
+        var html = '<ul class="cat-dynamic-grid" role="list">';
+        for (var i = 0; i < produtos.length; i++) {
+            var p = produtos[i];
+            var precoHtml = p.preco > 0
+                ? '<span class="cat-product-preco">' +
+                    (p.em_promocao ? '<span class="cat-badge-promo">Oferta</span> ' : '') +
+                    fmtPreco(p.preco) + '</span>'
+                : '';
+            html += '<li class="cat-dynamic-item" role="listitem">' +
+                '<a href="' + PROD_URL + encodeURIComponent(p.slug) + '" class="cat-product-card" aria-label="' + p.nome + '">' +
+                    '<div class="cat-product-img">' +
+                        '<img src="' + p.foto + '" alt="' + p.nome + '" loading="lazy" onerror="this.onerror=null;this.src=\'/static/img/placeholder.jpg\';">' +
+                    '</div>' +
+                    '<div class="cat-product-body">' +
+                        (p.marca ? '<span class="cat-product-marca">' + p.marca + '</span>' : '') +
+                        '<span class="cat-product-nome">' + p.nome + '</span>' +
+                        (p.calibre ? '<span class="cat-product-meta">' + p.calibre + '</span>' : '') +
+                        precoHtml +
+                    '</div>' +
+                '</a>' +
+            '</li>';
+        }
+        html += '</ul>';
+        return html;
+    }
+
+    function renderSkeletons(n) {
+        var html = '<ul class="cat-dynamic-grid" role="list">';
+        for (var i = 0; i < n; i++) {
+            html += '<li class="cat-dynamic-item cat-skeleton-card">' +
+                '<div class="cat-skeleton-img"></div>' +
+                '<div class="cat-skeleton-body">' +
+                    '<div class="cat-skeleton-line short"></div>' +
+                    '<div class="cat-skeleton-line medium"></div>' +
+                    '<div class="cat-skeleton-line short"></div>' +
+                '</div>' +
+            '</li>';
+        }
+        html += '</ul>';
+        return html;
+    }
+
+    function mostrarSsrSections(visivel) {
+        var sections = [secaoDestaques, secaoLancamentos, secaoPromocoes];
+        for (var i = 0; i < sections.length; i++) {
+            if (sections[i]) {
+                sections[i].style.display = visivel ? '' : 'none';
+            }
+        }
+    }
+
+    function carregarCategoria(slug, nome, pagina) {
+        if (carregando) return;
+        carregando = true;
+
+        if (pagina === 1) {
+            secaoDyn.innerHTML =
+                '<div class="cat-dynamic-header">' +
+                    '<h2 class="cat-dynamic-title">' + nome + '</h2>' +
+                    '<span class="cat-dynamic-count">Carregando…</span>' +
+                '</div>' +
+                renderSkeletons(8);
+            mostrarSsrSections(false);
+        }
+
+        var url = API_CAT.replace('__SLUG__', encodeURIComponent(slug)) + '?page=' + pagina;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState !== 4) return;
+            carregando = false;
+            if (xhr.status === 200) {
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    totalPaginas = data.paginas || 1;
+                    paginaAtual  = data.pagina_atual || 1;
+
+                    var countTxt = data.total
+                        ? data.total + ' produto' + (data.total !== 1 ? 's' : '')
+                        : '';
+
+                    var gridHtml = renderCardGrid(data.produtos);
+
+                    var loadMore = '';
+                    if (paginaAtual < totalPaginas) {
+                        loadMore = '<div class="cat-load-more">' +
+                            '<button class="cat-btn-load-more" id="btnLoadMore">Carregar mais</button>' +
+                        '</div>';
+                    }
+
+                    if (pagina === 1) {
+                        secaoDyn.innerHTML =
+                            '<div class="cat-dynamic-header">' +
+                                '<h2 class="cat-dynamic-title">' + nome + '</h2>' +
+                                '<span class="cat-dynamic-count">' + countTxt + '</span>' +
+                            '</div>' +
+                            gridHtml +
+                            loadMore;
+                    } else {
+                        // Append — remove btn antigo
+                        var btnOld = document.getElementById('btnLoadMore');
+                        if (btnOld) btnOld.parentNode.removeChild(btnOld);
+                        var gridEl = secaoDyn.querySelector('.cat-dynamic-grid');
+                        if (gridEl) {
+                            var tmp = document.createElement('div');
+                            tmp.innerHTML = gridHtml;
+                            var newGrid = tmp.querySelector('.cat-dynamic-grid');
+                            if (newGrid) {
+                                var items = newGrid.querySelectorAll('.cat-dynamic-item');
+                                for (var i = 0; i < items.length; i++) {
+                                    gridEl.appendChild(items[i]);
+                                }
+                            }
+                        }
+                        if (loadMore) {
+                            var loadDiv = document.createElement('div');
+                            loadDiv.innerHTML = loadMore;
+                            secaoDyn.appendChild(loadDiv.firstChild);
+                        }
+                    }
+
+                    // Rebind load more
+                    var btnLM = document.getElementById('btnLoadMore');
+                    if (btnLM) {
+                        btnLM.addEventListener('click', function () {
+                            carregarCategoria(catAtivo.slug, catAtivo.nome, paginaAtual + 1);
+                        });
+                    }
+
+                } catch(e) {
+                    secaoDyn.innerHTML = '<div class="cat-empty"><div class="cat-empty-title">Erro ao carregar.</div></div>';
+                }
+            }
+        };
+        xhr.send();
+    }
+
+    function carregarPromocoes() {
+        // Rola para a seção de promoções SSR se existir
+        if (secaoPromocoes) {
+            mostrarSsrSections(false);
+            secaoPromocoes.style.display = '';
+            secaoDyn.innerHTML = '';
+        } else {
+            secaoDyn.innerHTML = '<div class="cat-empty"><div class="cat-empty-title">Nenhuma promoção ativa no momento.</div></div>';
+            mostrarSsrSections(false);
+        }
+    }
+
+    // ── Chips ────────────────────────────────────────────────
+    var chips = document.querySelectorAll('.cat-chip');
+    for (var ci = 0; ci < chips.length; ci++) {
+        chips[ci].addEventListener('click', (function (chip) {
+            return function () {
+                // Atualiza estado visual
+                for (var j = 0; j < chips.length; j++) {
+                    chips[j].classList.remove('active');
+                    chips[j].setAttribute('aria-pressed', 'false');
+                }
+                chip.classList.add('active');
+                chip.setAttribute('aria-pressed', 'true');
+
+                var slug = chip.getAttribute('data-slug');
+                var nome = chip.getAttribute('data-nome') || 'Todos';
+
+                catAtivo = { slug: slug, nome: nome };
+                paginaAtual = 1;
+
+                if (slug === '') {
+                    // Todos — mostra SSR
+                    secaoDyn.innerHTML = '';
+                    mostrarSsrSections(true);
+                } else if (slug === 'promo') {
+                    carregarPromocoes();
+                } else {
+                    carregarCategoria(slug, nome, 1);
+                }
+            };
+        }(chips[ci])));
+    }
+
+    // ── Hero Search → sincroniza com busca do header ─────────
+    var heroInput  = document.getElementById('catHeroSearch');
+    var headInput  = document.getElementById('catSearchInput');
+    var headResults = document.getElementById('catSearchResults');
+    var headBackdrop = document.getElementById('catSearchBackdrop');
+
+    if (heroInput && headInput) {
+        heroInput.addEventListener('input', function () {
+            headInput.value = this.value;
+            headInput.dispatchEvent(new Event('input'));
+        });
+
+        heroInput.addEventListener('focus', function () {
+            // Ao focar no hero, delega para o input do header
+            setTimeout(function () { headInput.focus(); }, 0);
+        });
+    }
+
+}());
+</script>
+{% endblock %}

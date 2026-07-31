@@ -1,5 +1,4 @@
 from flask import Flask, request, send_from_directory, redirect, url_for
-from werkzeug.middleware.proxy_fix import ProxyFix
 from jinja2.runtime import Undefined
 from sqlalchemy import inspect
 from config import Config
@@ -65,9 +64,6 @@ def configure_logging(app):
 # =========================================================
 def create_app():
     app = Flask(__name__)
-
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1) 
-
     app.config.from_object(Config)
 
     # 🚀 ATIVAÇÃO DA COMPRESSÃO (Crítico para PageSpeed)
@@ -98,6 +94,12 @@ def create_app():
     @app.route('/robots.txt')
     def robots_at_root():
         return send_from_directory(os.path.join(app.root_path, 'static'), 'robots.txt')
+
+    @app.route('/sitemap.xml')
+    def sitemap_at_root():
+        # Redireciona para a rota que você já criou no blueprint da loja
+        from flask import url_for
+        return redirect(url_for('loja.sitemap'))
 
     # 🚀 CONFIGURAÇÃO DE CACHE DE ATIVOS (SEO & PERFORMANCE)
     @app.after_request
@@ -145,6 +147,7 @@ def create_app():
     from app.loja import loja_bp
     from app.loja_admin import loja_admin_bp
     from app.carrinho import carrinho_bp
+    from app.catalogo import catalogo_bp
     
     # -----------------------------------------------------
     # A VIRADA DE CHAVE (Isolamento de Infraestrutura)
@@ -177,6 +180,7 @@ def create_app():
     app.register_blueprint(importacoes_bp)
     app.register_blueprint(certidoes_bp, url_prefix="/certidoes")
     app.register_blueprint(admin_bp, url_prefix="/admin")
+    app.register_blueprint(catalogo_bp, url_prefix="/catalogo")
 
     # =========================================================
     # AGENDADOR DE TAREFAS

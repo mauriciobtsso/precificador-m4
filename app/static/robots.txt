@@ -10,6 +10,7 @@ Disallow: /carrinho/
 Disallow: /checkout/
 Disallow: /minha-conta/
 Disallow: /app/
+Disallow: /catalogo/
 
 # PREVENÇÃO DE SOFT 404 (BLOQUEIO DE FILTROS DA LOJA)
 Disallow: /*?*marca=*

@@ -1,0 +1,1185 @@
+{% extends 'catalogo/base.html' %}
+
+{% set nome_display = produto.nome_comercial or produto.nome %}
+{% set precos_calc  = produto.calcular_precos() %}
+
+{% block title %}{{ nome_display }} — Catálogo M4 Tática{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── LAYOUT PRINCIPAL ─────────────────────────────────── */
+    .cat-prod-layout {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-flex-wrap: wrap;
+        flex-wrap: wrap;
+        gap: 40px;
+        padding-top: 28px;
+    }
+
+    .cat-prod-col-media {
+        width: 100%;
+    }
+
+    .cat-prod-col-info {
+        width: 100%;
+    }
+
+    @media (min-width: 720px) {
+        .cat-prod-col-media {
+            width: calc(52% - 20px);
+        }
+        .cat-prod-col-info {
+            width: calc(48% - 20px);
+            position: -webkit-sticky;
+            position: sticky;
+            top: 80px;
+            -webkit-align-self: flex-start;
+            align-self: flex-start;
+        }
+    }
+
+    /* ── BREADCRUMB ─────────────────────────────────────── */
+    .cat-breadcrumb {
+        font-size: 13px;
+        color: var(--c-mid);
+        margin-bottom: 20px;
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-flex-wrap: wrap;
+        flex-wrap: wrap;
+        gap: 4px;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+    }
+
+    .cat-breadcrumb a {
+        color: var(--c-mid);
+        -webkit-transition: color 0.15s;
+        transition: color 0.15s;
+    }
+
+    .cat-breadcrumb a:hover { color: var(--c-dark); }
+
+    .cat-breadcrumb-sep {
+        font-size: 10px;
+        opacity: 0.4;
+    }
+
+    .cat-breadcrumb-cur {
+        color: var(--c-dark);
+        font-weight: 600;
+    }
+
+    /* ── GALERIA ─────────────────────────────────────────── */
+    .cat-gallery {
+        border-radius: var(--radius-xl);
+        background-color: var(--c-light);
+        overflow: hidden;
+    }
+
+    .cat-gallery-main {
+        width: 100%;
+        aspect-ratio: 1;
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+        -webkit-box-pack: center;
+        -webkit-justify-content: center;
+        justify-content: center;
+        padding: 24px;
+        cursor: zoom-in;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cat-gallery-main img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        -webkit-transition: -webkit-transform 0.4s cubic-bezier(.25,.46,.45,.94);
+        transition: transform 0.4s cubic-bezier(.25,.46,.45,.94);
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    .cat-gallery-main.zoomed img {
+        -webkit-transform: scale(2);
+        transform: scale(2);
+        cursor: zoom-out;
+    }
+
+    /* Zoom por toque */
+    .cat-gallery-main {
+        touch-action: manipulation;
+    }
+
+    /* Badge de produto controlado (PCE) */
+    .cat-badge-pce {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background-color: var(--c-dark);
+        color: var(--c-white);
+        font-size: 10px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border-left: 3px solid var(--c-gold);
+        pointer-events: none;
+    }
+
+    /* ── FICHA TÉCNICA ────────────────────────────────────── */
+    .cat-specs {
+        background-color: var(--c-white);
+        border: 1px solid var(--c-border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        margin-top: 20px;
+    }
+
+    .cat-spec-row {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        border-bottom: 1px solid var(--c-light);
+    }
+
+    .cat-spec-row:last-child { border-bottom: none; }
+
+    .cat-spec-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--c-mid);
+        padding: 12px 14px;
+        width: 40%;
+        -webkit-flex-shrink: 0;
+        flex-shrink: 0;
+        background-color: var(--c-surface);
+        border-right: 1px solid var(--c-light);
+    }
+
+    .cat-spec-value {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--c-dark);
+        padding: 12px 14px;
+        -webkit-box-flex: 1;
+        -webkit-flex: 1;
+        flex: 1;
+    }
+
+    /* ── PAINEL DE INFO DO PRODUTO ───────────────────────── */
+    .cat-prod-eyebrow {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--c-gold);
+        margin-bottom: 8px;
+    }
+
+    .cat-prod-title {
+        font-size: clamp(24px, 4vw, 34px);
+        font-weight: 800;
+        color: var(--c-dark);
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin: 0 0 6px;
+    }
+
+    .cat-prod-codigo {
+        font-size: 12px;
+        color: var(--c-mid);
+        margin-bottom: 20px;
+        font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+        letter-spacing: 0.05em;
+    }
+
+    .cat-prod-descricao {
+        font-size: 15px;
+        line-height: 1.65;
+        color: #444;
+        margin-bottom: 24px;
+    }
+
+    .cat-prod-descricao h2,
+    .cat-prod-descricao h3,
+    .cat-prod-descricao h4 {
+        font-size: 16px;
+        font-weight: 700;
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+    }
+
+    /* ── CAIXA DE PREÇO ──────────────────────────────────── */
+    .cat-price-box {
+        background-color: var(--c-surface);
+        border: 1px solid var(--c-border);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .cat-price-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--c-mid);
+        margin-bottom: 4px;
+    }
+
+    .cat-price-value {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--c-dark);
+        letter-spacing: -0.03em;
+        line-height: 1;
+    }
+
+    .cat-price-pix {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--c-green);
+        margin-top: 6px;
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .cat-price-oferta {
+        font-size: 13px;
+        color: var(--c-mid);
+        text-decoration: line-through;
+        margin-bottom: 4px;
+    }
+
+    .cat-price-badge-promo {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        background-color: var(--c-red);
+        color: var(--c-white);
+        padding: 3px 10px;
+        border-radius: 20px;
+        margin-left: 8px;
+        text-transform: uppercase;
+    }
+
+    /* Disponibilidade */
+    .cat-disponibilidade {
+        display: -webkit-inline-box;
+        display: -webkit-inline-flex;
+        display: inline-flex;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        padding: 6px 12px;
+        border-radius: 20px;
+    }
+
+    .cat-disponibilidade.disp-sim {
+        background-color: rgba(52, 199, 89, 0.1);
+        color: var(--c-green);
+    }
+
+    .cat-disponibilidade.disp-nao {
+        background-color: rgba(255, 59, 48, 0.08);
+        color: var(--c-red);
+    }
+
+    /* ── BOTÕES DE AÇÃO ──────────────────────────────────── */
+    .cat-actions {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-flex-wrap: wrap;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 24px;
+    }
+
+    .cat-action-btn {
+        display: -webkit-inline-box;
+        display: -webkit-inline-flex;
+        display: inline-flex;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+        gap: 7px;
+        height: 48px;
+        padding: 0 20px;
+        border-radius: 24px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        -webkit-transition: all 0.2s;
+        transition: all 0.2s;
+        border: none;
+        -webkit-appearance: none;
+        appearance: none;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    .cat-btn-primary {
+        background-color: var(--c-dark);
+        color: var(--c-white);
+    }
+
+    .cat-btn-primary:hover,
+    .cat-btn-primary:active {
+        background-color: var(--c-gold);
+        color: var(--c-black);
+    }
+
+    .cat-btn-secondary {
+        background-color: var(--c-light);
+        color: var(--c-dark);
+        border: 1.5px solid var(--c-border);
+    }
+
+    .cat-btn-secondary:hover,
+    .cat-btn-secondary:active {
+        background-color: var(--c-border);
+    }
+
+    .cat-btn-fav {
+        background-color: var(--c-light);
+        color: var(--c-mid);
+        border: 1.5px solid var(--c-border);
+    }
+
+    .cat-btn-fav.favoritado {
+        background-color: rgba(255,59,48,.08);
+        color: var(--c-red);
+        border-color: rgba(255,59,48,.2);
+    }
+
+    .cat-btn-comparar {
+        background-color: var(--c-light);
+        color: var(--c-dark);
+        border: 1.5px solid var(--c-border);
+    }
+
+    .cat-btn-comparar.no-comparador {
+        background-color: rgba(197,160,89,.12);
+        color: var(--c-gold-dark);
+        border-color: rgba(197,160,89,.4);
+    }
+
+    /* ── QR CODE PANEL ───────────────────────────────────── */
+    .cat-qr-panel {
+        display: none;
+        background-color: var(--c-white);
+        border: 1px solid var(--c-border);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 16px;
+    }
+
+    .cat-qr-panel.visible { display: block; }
+
+    .cat-qr-canvas {
+        margin: 0 auto 12px;
+        display: block;
+    }
+
+    .cat-qr-label {
+        font-size: 12px;
+        color: var(--c-mid);
+    }
+
+    /* ── COMPARADOR FLUTUANTE ────────────────────────────── */
+    .cat-comparador-bar {
+        position: fixed;
+        bottom: -80px;
+        left: 0;
+        right: 0;
+        background-color: var(--c-dark);
+        color: var(--c-white);
+        padding: 14px 20px;
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+        -webkit-box-pack: justify;
+        -webkit-justify-content: space-between;
+        justify-content: space-between;
+        gap: 12px;
+        z-index: 900;
+        -webkit-transition: bottom 0.3s cubic-bezier(.25,.46,.45,.94);
+        transition: bottom 0.3s cubic-bezier(.25,.46,.45,.94);
+        box-shadow: 0 -4px 24px rgba(0,0,0,.2);
+    }
+
+    .cat-comparador-bar.visible {
+        bottom: 0;
+    }
+
+    .cat-comparador-info {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .cat-comparador-names {
+        font-size: 12px;
+        color: rgba(255,255,255,.6);
+        margin-top: 2px;
+    }
+
+    .cat-comparador-actions {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        gap: 10px;
+        -webkit-flex-shrink: 0;
+        flex-shrink: 0;
+    }
+
+    .cat-btn-comparar-ver {
+        height: 40px;
+        padding: 0 20px;
+        background-color: var(--c-gold);
+        color: var(--c-black);
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: -webkit-inline-box;
+        display: -webkit-inline-flex;
+        display: inline-flex;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+    }
+
+    .cat-btn-comparar-limpar {
+        height: 40px;
+        padding: 0 16px;
+        background-color: transparent;
+        color: rgba(255,255,255,.7);
+        border-radius: 20px;
+        font-size: 13px;
+        border: 1px solid rgba(255,255,255,.2);
+        cursor: pointer;
+    }
+
+    /* ── DESCRIÇÃO LONGA ─────────────────────────────────── */
+    .cat-descricao-longa {
+        font-size: 15px;
+        line-height: 1.7;
+        color: #444;
+        margin-top: 8px;
+    }
+
+    .cat-descricao-longa h2,
+    .cat-descricao-longa h3,
+    .cat-descricao-longa h4 {
+        font-size: 17px;
+        font-weight: 700;
+        margin: 1.5em 0 0.5em;
+        color: var(--c-dark);
+    }
+
+    .cat-descricao-longa ul,
+    .cat-descricao-longa ol {
+        padding-left: 1.4em;
+        margin-bottom: 1em;
+    }
+
+    .cat-descricao-longa table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1em 0;
+    }
+
+    .cat-descricao-longa td,
+    .cat-descricao-longa th {
+        border: 1px solid var(--c-border);
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    /* ── SEÇÃO ABAS ──────────────────────────────────────── */
+    .cat-tabs {
+        margin-top: 48px;
+        border-top: 1px solid var(--c-border);
+        padding-top: 32px;
+    }
+
+    .cat-tab-nav {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid var(--c-border);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .cat-tab-nav::-webkit-scrollbar { display: none; }
+
+    .cat-tab-btn {
+        padding: 12px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--c-mid);
+        border: none;
+        background: none;
+        border-bottom: 2.5px solid transparent;
+        white-space: nowrap;
+        cursor: pointer;
+        -webkit-transition: all 0.18s;
+        transition: all 0.18s;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .cat-tab-btn.active {
+        color: var(--c-dark);
+        border-bottom-color: var(--c-dark);
+    }
+
+    .cat-tab-content {
+        display: none;
+        padding-top: 24px;
+    }
+
+    .cat-tab-content.active {
+        display: block;
+    }
+
+    /* ── RELACIONADOS ─────────────────────────────────────── */
+    .cat-rel-section {
+        margin-top: 56px;
+        padding-top: 32px;
+        border-top: 1px solid var(--c-border);
+    }
+
+    .cat-rel-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--c-dark);
+        letter-spacing: -0.02em;
+        margin: 0 0 24px;
+    }
+
+    /* ── TOAST NOTIFICAÇÃO ───────────────────────────────── */
+    .cat-toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        -webkit-transform: translateX(-50%) translateY(80px);
+        transform: translateX(-50%) translateY(80px);
+        background-color: var(--c-dark);
+        color: var(--c-white);
+        padding: 12px 20px;
+        border-radius: 24px;
+        font-size: 13px;
+        font-weight: 600;
+        z-index: 9999;
+        -webkit-transition: -webkit-transform 0.35s cubic-bezier(.25,.46,.45,.94);
+        transition: transform 0.35s cubic-bezier(.25,.46,.45,.94);
+        white-space: nowrap;
+        box-shadow: var(--shadow-lg);
+        pointer-events: none;
+    }
+
+    .cat-toast.show {
+        -webkit-transform: translateX(-50%) translateY(0);
+        transform: translateX(-50%) translateY(0);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── BREADCRUMB ──────────────────────────────────────────────── #}
+<nav class="cat-breadcrumb" aria-label="Navegação estrutural">
+    <a href="{{ url_for('catalogo.index') }}">Catálogo</a>
+    <span class="cat-breadcrumb-sep" aria-hidden="true">›</span>
+    {% if produto.categoria %}
+    <span>{{ produto.categoria.nome }}</span>
+    <span class="cat-breadcrumb-sep" aria-hidden="true">›</span>
+    {% endif %}
+    <span class="cat-breadcrumb-cur">{{ nome_display }}</span>
+</nav>
+
+{# ── LAYOUT PRINCIPAL ────────────────────────────────────────── #}
+<div class="cat-prod-layout">
+
+    {# ── COLUNA ESQUERDA: GALERIA ──────────────────────────── #}
+    <div class="cat-prod-col-media">
+
+        <div class="cat-gallery">
+            <div class="cat-gallery-main" id="galeriaPrincipal" aria-label="Foto principal do produto">
+                {% if produto.requer_documentacao %}
+                <div class="cat-badge-pce">
+                    <i class="bi bi-shield-lock-fill" aria-hidden="true"></i> Produto Controlado
+                </div>
+                {% endif %}
+
+                {% if produto.foto_url %}
+                    {% set caminho_clean = produto.foto_url.replace('m4-loja-publico/','').replace('m4-clientes-docs/','') %}
+                    {% if not caminho_clean.startswith('http') %}
+                        {% set foto_full = 'https://cdn.m4tatica.com.br/' ~ caminho_clean.lstrip('/') %}
+                    {% else %}
+                        {% set foto_full = caminho_clean %}
+                    {% endif %}
+                    <img
+                        id="fotoMain"
+                        src="{{ foto_full }}"
+                        alt="{{ nome_display }}"
+                        loading="eager"
+                        fetchpriority="high"
+                        decoding="async"
+                        onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';"
+                    >
+                {% else %}
+                    <div style="text-align:center;color:var(--c-mid);opacity:.4;">
+                        <i class="bi bi-image" style="font-size:56px;display:block;margin-bottom:8px;"></i>
+                        <span style="font-size:13px;">Imagem não disponível</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ── FICHA TÉCNICA (mobile: abaixo da foto; desktop: aba) ── #}
+        <div class="cat-specs" style="margin-top:20px;" aria-label="Ficha técnica">
+            {% if produto.marca_rel %}
+            <div class="cat-spec-row">
+                <div class="cat-spec-label">Fabricante</div>
+                <div class="cat-spec-value" style="color:var(--c-gold);font-weight:700;">{{ produto.marca_rel.nome }}</div>
+            </div>
+            {% endif %}
+
+            {% if produto.categoria %}
+            <div class="cat-spec-row">
+                <div class="cat-spec-label">Categoria</div>
+                <div class="cat-spec-value">{{ produto.categoria.nome }}</div>
+            </div>
+            {% endif %}
+
+            {% if produto.calibre_rel %}
+            <div class="cat-spec-row">
+                <div class="cat-spec-label">Calibre</div>
+                <div class="cat-spec-value">{{ produto.calibre_rel.nome }}</div>
+            </div>
+            {% endif %}
+
+            {% if produto.tipo_rel %}
+            <div class="cat-spec-row">
+                <div class="cat-spec-label">Tipo</div>
+                <div class="cat-spec-value">{{ produto.tipo_rel.nome }}</div>
+            </div>
+            {% endif %}
+
+            {% if produto.funcionamento_rel %}
+            <div class="cat-spec-row">
+                <div class="cat-spec-label">Funcionamento</div>
+                <div class="cat-spec-value">{{ produto.funcionamento_rel.nome }}</div>
+            </div>
+            {% endif %}
+
+            {% if produto.peso and produto.peso > 0 %}
+            <div class="cat-spec-row">
+                <div class="cat-spec-label">Peso</div>
+                <div class="cat-spec-value">{{ "%.3f"|format(produto.peso|float) }} kg</div>
+            </div>
+            {% endif %}
+
+            {% if produto.comprimento and produto.comprimento > 0 %}
+            <div class="cat-spec-row">
+                <div class="cat-spec-label">Comprimento</div>
+                <div class="cat-spec-value">{{ "%.1f"|format(produto.comprimento|float) }} cm</div>
+            </div>
+            {% endif %}
+
+            {% if produto.largura and produto.largura > 0 %}
+            <div class="cat-spec-row">
+                <div class="cat-spec-label">Largura</div>
+                <div class="cat-spec-value">{{ "%.1f"|format(produto.largura|float) }} cm</div>
+            </div>
+            {% endif %}
+
+            {% if produto.altura and produto.altura > 0 %}
+            <div class="cat-spec-row">
+                <div class="cat-spec-label">Altura</div>
+                <div class="cat-spec-value">{{ "%.1f"|format(produto.altura|float) }} cm</div>
+            </div>
+            {% endif %}
+
+            {# Especificações técnicas JSON personalizadas #}
+            {% if produto.especificacoes_tecnicas is mapping %}
+                {% for chave, valor in produto.especificacoes_tecnicas.items() %}
+                    {% if valor %}
+                    <div class="cat-spec-row">
+                        <div class="cat-spec-label">{{ chave }}</div>
+                        <div class="cat-spec-value">{{ valor }}</div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            <div class="cat-spec-row">
+                <div class="cat-spec-label">Referência</div>
+                <div class="cat-spec-value" style="font-family:monospace;font-size:13px;">{{ produto.codigo }}</div>
+            </div>
+        </div>
+
+    </div>
+
+    {# ── COLUNA DIREITA: INFORMAÇÕES ─────────────────────────── #}
+    <div class="cat-prod-col-info">
+
+        {% if produto.marca_rel %}
+        <p class="cat-prod-eyebrow">{{ produto.marca_rel.nome }}</p>
+        {% endif %}
+
+        <h1 class="cat-prod-title">{{ nome_display }}</h1>
+        <p class="cat-prod-codigo">REF: {{ produto.codigo }}</p>
+
+        {# Disponibilidade #}
+        {% set estoque = produto.estoque_disponivel or 0 %}
+        <div class="cat-disponibilidade {% if estoque > 0 %}disp-sim{% else %}disp-nao{% endif %}" aria-label="Situação do estoque">
+            <i class="bi bi-{% if estoque > 0 %}check-circle-fill{% else %}x-circle-fill{% endif %}" aria-hidden="true"></i>
+            {% if estoque > 0 %}Disponível{% else %}Consultar disponibilidade{% endif %}
+        </div>
+
+        {# Descrição comercial #}
+        {% if produto.descricao_comercial %}
+        <div class="cat-prod-descricao">
+            {{ produto.descricao_comercial | safe }}
+        </div>
+        {% elif produto.descricao %}
+        <div class="cat-prod-descricao">
+            {{ produto.descricao | replace('\n', '<br>') | safe }}
+        </div>
+        {% endif %}
+
+        {# ── CAIXA DE PREÇO ─────────────────────────────────── #}
+        {% if precos_calc and precos_calc.preco_a_vista %}
+        <div class="cat-price-box" aria-label="Informações de preço">
+            <div class="cat-price-label">Preço à vista</div>
+            {% if precos_calc.em_oferta %}
+            <div class="cat-price-oferta">
+                De R$ {{ "{:,.2f}".format((precos_calc.preco_a_vista * 1.1) | float).replace(',','X').replace('.',',').replace('X','.') }}
+                <span class="cat-price-badge-promo">Promoção</span>
+            </div>
+            {% endif %}
+            <div class="cat-price-value">
+                R$ {{ "{:,.2f}".format(precos_calc.preco_a_vista | float).replace(',','X').replace('.',',').replace('X','.') }}
+            </div>
+            <div class="cat-price-pix">
+                <i class="bi bi-lightning-fill" aria-hidden="true"></i> No Pix ou dinheiro
+            </div>
+        </div>
+        {% endif %}
+
+        {# ── AÇÕES ──────────────────────────────────────────── #}
+        <div class="cat-actions" role="group" aria-label="Ações do produto">
+            <button
+                class="cat-action-btn cat-btn-fav"
+                id="btnFavoritar"
+                aria-label="Adicionar aos favoritos"
+                title="Salvar nos favoritos"
+                data-id="{{ produto.id }}"
+                data-nome="{{ nome_display }}"
+            >
+                <i class="bi bi-heart" id="favIcon" aria-hidden="true"></i>
+                <span id="favLabel">Favoritar</span>
+            </button>
+
+            <button
+                class="cat-action-btn cat-btn-comparar"
+                id="btnComparar"
+                aria-label="Comparar produto"
+                title="Adicionar ao comparador"
+                data-id="{{ produto.id }}"
+                data-nome="{{ nome_display }}"
+            >
+                <i class="bi bi-arrow-left-right" aria-hidden="true"></i>
+                <span>Comparar</span>
+            </button>
+
+            <button
+                class="cat-action-btn cat-btn-secondary"
+                id="btnQrCode"
+                aria-label="Mostrar QR Code do produto"
+                title="QR Code para o cliente acessar no celular"
+            >
+                <i class="bi bi-qr-code" aria-hidden="true"></i>
+                <span>QR Code</span>
+            </button>
+
+            <button
+                class="cat-action-btn cat-btn-secondary"
+                id="btnCompartilhar"
+                aria-label="Compartilhar produto"
+            >
+                <i class="bi bi-share" aria-hidden="true"></i>
+                <span>Compartilhar</span>
+            </button>
+        </div>
+
+        {# ── PAINEL QR CODE ─────────────────────────────────── #}
+        <div class="cat-qr-panel" id="qrPanel" aria-hidden="true">
+            <canvas id="qrCanvas" class="cat-qr-canvas" width="160" height="160"></canvas>
+            <p class="cat-qr-label">Aponte a câmera do celular para acessar este produto</p>
+            <p style="font-size:11px;color:var(--c-mid);word-break:break-all;" id="qrUrl"></p>
+        </div>
+
+        {# Produto controlado — aviso #}
+        {% if produto.requer_documentacao %}
+        <div style="background:var(--c-light);border-radius:var(--radius-md);padding:12px 16px;font-size:13px;color:var(--c-mid);margin-top:8px;">
+            <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+            Produto Controlado (PCE) — exige documentação e autorização legal.
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{# ── ABAS: DESCRIÇÃO LONGA ───────────────────────────────────── #}
+{% if produto.descricao_longa %}
+<div class="cat-tabs">
+    <div class="cat-tab-nav" role="tablist">
+        <button class="cat-tab-btn active" role="tab" aria-selected="true" aria-controls="tabDescricao" data-tab="descricao">
+            Descrição Detalhada
+        </button>
+    </div>
+    <div class="cat-tab-content active" id="tabDescricao" role="tabpanel">
+        <div class="cat-descricao-longa">
+            {{ produto.descricao_longa | safe }}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ── PRODUTOS RELACIONADOS ──────────────────────────────────── #}
+{% if relacionados %}
+<section class="cat-rel-section" aria-label="Produtos relacionados">
+    <h2 class="cat-rel-title">Produtos Relacionados</h2>
+    <ul class="cat-grid" role="list">
+        {% for p in relacionados %}
+        <li class="cat-grid-item" role="listitem">
+            {% set thumb = get_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
+                <div class="cat-product-img">
+                    <img
+                        src="{{ thumb }}"
+                        alt="{{ p.nome_comercial or p.nome }}"
+                        loading="lazy"
+                        onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';"
+                    >
+                </div>
+                <div class="cat-product-body">
+                    {% if p.marca_rel %}<span class="cat-product-marca">{{ p.marca_rel.nome }}</span>{% endif %}
+                    <span class="cat-product-nome">{{ p.nome_comercial or p.nome }}</span>
+                    {% if p.categoria %}<span class="cat-product-meta">{{ p.categoria.nome }}</span>{% endif %}
+                    {% if p.preco_a_vista %}
+                    <span class="cat-product-preco">
+                        R$ {{ "{:,.2f}".format(p.preco_a_vista | float).replace(',','X').replace('.',',').replace('X','.') }}
+                    </span>
+                    {% endif %}
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{# ── COMPARADOR FLUTUANTE ────────────────────────────────────── #}
+<div class="cat-comparador-bar" id="comparadorBar" role="status" aria-live="polite">
+    <div>
+        <div class="cat-comparador-info" id="compInfo">Comparando 1 produto</div>
+        <div class="cat-comparador-names" id="compNames"></div>
+    </div>
+    <div class="cat-comparador-actions">
+        <button class="cat-btn-comparar-limpar" id="btnLimparComp" aria-label="Limpar comparador">Limpar</button>
+        <a href="{{ url_for('loja.comparador') }}" class="cat-btn-comparar-ver" id="btnVerComp" aria-label="Ver comparação">
+            Comparar
+        </a>
+    </div>
+</div>
+
+{# ── TOAST ────────────────────────────────────────────────────── #}
+<div class="cat-toast" id="catToast" role="status" aria-live="assertive"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    'use strict';
+
+    var PROD_ID   = {{ produto.id }};
+    var PROD_NOME = {{ nome_display | tojson | safe }};
+    var LOJA_URL  = window.location.origin + '{{ url_for("loja.detalhe_produto", slug=produto.slug) }}';
+    var CAT_URL   = window.location.href;
+
+    // ── Toast ─────────────────────────────────────────────
+    var toastEl   = document.getElementById('catToast');
+    var toastTimer = null;
+
+    function showToast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () {
+            toastEl.classList.remove('show');
+        }, 2500);
+    }
+
+    // ── Favoritos (localStorage) ───────────────────────────
+    var FAV_KEY  = 'm4_favoritos';
+    var btnFav   = document.getElementById('btnFavoritar');
+    var favIcon  = document.getElementById('favIcon');
+    var favLabel = document.getElementById('favLabel');
+
+    function getFavs() {
+        try {
+            return JSON.parse(localStorage.getItem(FAV_KEY) || '{}');
+        } catch(e) { return {}; }
+    }
+
+    function setFavs(obj) {
+        try { localStorage.setItem(FAV_KEY, JSON.stringify(obj)); } catch(e) {}
+    }
+
+    function atualizarFavBtn(favs) {
+        if (favs[PROD_ID]) {
+            btnFav.classList.add('favoritado');
+            favIcon.className = 'bi bi-heart-fill';
+            favLabel.textContent = 'Favorito';
+            btnFav.setAttribute('aria-label', 'Remover dos favoritos');
+        } else {
+            btnFav.classList.remove('favoritado');
+            favIcon.className = 'bi bi-heart';
+            favLabel.textContent = 'Favoritar';
+            btnFav.setAttribute('aria-label', 'Adicionar aos favoritos');
+        }
+    }
+
+    atualizarFavBtn(getFavs());
+
+    btnFav.addEventListener('click', function () {
+        var favs = getFavs();
+        if (favs[PROD_ID]) {
+            delete favs[PROD_ID];
+            showToast('Removido dos favoritos');
+        } else {
+            favs[PROD_ID] = { nome: PROD_NOME, slug: '{{ produto.slug }}' };
+            showToast('♥ Adicionado aos favoritos');
+        }
+        setFavs(favs);
+        atualizarFavBtn(favs);
+    });
+
+    // ── Comparador (localStorage) ──────────────────────────
+    var COMP_KEY = 'm4_comparador';
+    var btnComp  = document.getElementById('btnComparar');
+    var compBar  = document.getElementById('comparadorBar');
+    var compInfo = document.getElementById('compInfo');
+    var compNames= document.getElementById('compNames');
+
+    function getComp() {
+        try { return JSON.parse(localStorage.getItem(COMP_KEY) || '{}'); } catch(e) { return {}; }
+    }
+
+    function setComp(obj) {
+        try { localStorage.setItem(COMP_KEY, JSON.stringify(obj)); } catch(e) {}
+    }
+
+    function atualizarCompBar() {
+        var comp = getComp();
+        var ids  = Object.keys(comp);
+        var n    = ids.length;
+
+        if (n === 0) {
+            compBar.classList.remove('visible');
+            btnComp.classList.remove('no-comparador');
+        } else {
+            compBar.classList.add('visible');
+            compInfo.textContent = 'Comparando ' + n + ' produto' + (n > 1 ? 's' : '');
+            compNames.textContent = ids.map(function(id) { return comp[id].nome; }).join(' × ');
+        }
+
+        if (comp[PROD_ID]) {
+            btnComp.classList.add('no-comparador');
+            btnComp.querySelector('span').textContent = 'No comparador';
+        } else {
+            btnComp.classList.remove('no-comparador');
+            btnComp.querySelector('span').textContent = 'Comparar';
+        }
+    }
+
+    atualizarCompBar();
+
+    btnComp.addEventListener('click', function () {
+        var comp = getComp();
+        if (comp[PROD_ID]) {
+            delete comp[PROD_ID];
+            showToast('Removido do comparador');
+        } else {
+            var ids = Object.keys(comp);
+            if (ids.length >= 3) {
+                showToast('Máximo de 3 produtos no comparador');
+                return;
+            }
+            comp[PROD_ID] = { nome: PROD_NOME, slug: '{{ produto.slug }}' };
+            showToast('Adicionado ao comparador');
+        }
+        setComp(comp);
+        atualizarCompBar();
+    });
+
+    document.getElementById('btnLimparComp').addEventListener('click', function () {
+        setComp({});
+        atualizarCompBar();
+        showToast('Comparador limpo');
+    });
+
+    // ── Zoom na galeria (toque e clique) ───────────────────
+    var galeria = document.getElementById('galeriaPrincipal');
+    if (galeria) {
+        galeria.addEventListener('click', function () {
+            this.classList.toggle('zoomed');
+        });
+
+        // Duplo toque no iOS
+        var lastTap = 0;
+        galeria.addEventListener('touchend', function (e) {
+            var now = Date.now();
+            if (now - lastTap < 300) {
+                this.classList.toggle('zoomed');
+                e.preventDefault();
+            }
+            lastTap = now;
+        }, { passive: false });
+    }
+
+    // ── QR Code ────────────────────────────────────────────
+    var btnQr  = document.getElementById('btnQrCode');
+    var qrPanel= document.getElementById('qrPanel');
+    var qrUrl  = document.getElementById('qrUrl');
+    var qrGen  = false;
+
+    btnQr.addEventListener('click', function () {
+        if (qrPanel.classList.contains('visible')) {
+            qrPanel.classList.remove('visible');
+            qrPanel.setAttribute('aria-hidden', 'true');
+            return;
+        }
+        qrPanel.classList.add('visible');
+        qrPanel.setAttribute('aria-hidden', 'false');
+        qrUrl.textContent = LOJA_URL;
+
+        if (!qrGen) {
+            qrGen = true;
+            gerarQR(LOJA_URL);
+        }
+    });
+
+    function gerarQR(url) {
+        var canvas = document.getElementById('qrCanvas');
+        if (!canvas) return;
+        var ctx = canvas.getContext('2d');
+        var size = 160;
+
+        // Implementação QR Code mínima sem dependências externas
+        // Usa a API de canvas para desenhar QR Code via codificação binária simplificada
+        // Para iOS 9 sem bibliotecas externas, usamos um QR Code canvas puro
+        // Carrega qrcode.js dinamicamente se disponível
+        var script = document.createElement('script');
+        script.src = '{{ url_for("static", filename="vendor/qrcode/qrcode.min.js") }}';
+        script.onload = function () {
+            try {
+                var qr = new QRCode(canvas, {
+                    text: url,
+                    width: size,
+                    height: size,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            } catch(e) {
+                // Fallback: exibe URL textual
+                ctx.clearRect(0, 0, size, size);
+                ctx.fillStyle = '#f5f5f7';
+                ctx.fillRect(0, 0, size, size);
+                ctx.fillStyle = '#111';
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('QR Code', size/2, size/2 - 8);
+                ctx.fillText('indisponível', size/2, size/2 + 8);
+            }
+        };
+        script.onerror = function () {
+            // Fallback silencioso
+            ctx.fillStyle = '#f5f5f7';
+            ctx.fillRect(0, 0, size, size);
+            ctx.fillStyle = '#333';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('Acesse:', size/2, 70);
+            ctx.fillText(url.replace('https://',''), size/2, 86);
+        };
+        document.head.appendChild(script);
+    }
+
+    // ── Compartilhar ────────────────────────────────────────
+    document.getElementById('btnCompartilhar').addEventListener('click', function () {
+        if (navigator.share) {
+            navigator.share({
+                title: PROD_NOME + ' — M4 Tática',
+                text: 'Veja este produto na M4 Tática: ' + PROD_NOME,
+                url: LOJA_URL
+            }).catch(function () {});
+        } else {
+            // Fallback: copia link
+            var input = document.createElement('input');
+            input.value = LOJA_URL;
+            document.body.appendChild(input);
+            input.select();
+            try {
+                document.execCommand('copy');
+                showToast('Link copiado!');
+            } catch(e) {
+                showToast(LOJA_URL);
+            }
+            document.body.removeChild(input);
+        }
+    });
+
+}());
+</script>
+{% endblock %}

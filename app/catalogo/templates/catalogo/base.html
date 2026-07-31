@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="robots" content="noindex, nofollow">
+   
+    <meta name="robots" content="noindex, nofollow">
+
+    <title>{% block title %}Catálogo M4 Tática{% endblock %}</title>
+    <meta name="description" content="Catálogo de Atendimento M4 Tática — Equipamentos táticos, armas e munições.">
+
+    {# Preloads críticos para performance no iPad Mini #}
+    <link rel="preload" href="{{ url_for('static', filename='img/logo.webp') }}" as="image" fetchpriority="high">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
+
+    {# Bootstrap Icons — já presente no projeto #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
+
+    <style>
+        /* ============================================================
+           DESIGN SYSTEM — CATÁLOGO M4 TÁTICA
+           Inspiração: Apple Store, minimalismo, espaço em branco,
+           tipografia expressiva, contraste máximo.
+           Compatível com Safari iOS 9 (iPad Mini A1454).
+        ============================================================ */
+
+        :root {
+            --c-black:     #000000;
+            --c-near-black: #111111;
+            --c-dark:      #1d1d1f;
+            --c-mid:       #6e6e73;
+            --c-light:     #f5f5f7;
+            --c-white:     #ffffff;
+            --c-gold:      #c5a059;
+            --c-gold-dark: #a0813f;
+            --c-green:     #34c759;
+            --c-red:       #ff3b30;
+            --c-blue:      #0071e3;
+            --c-border:    #d2d2d7;
+            --c-surface:   #fbfbfd;
+
+            --radius-sm:   8px;
+            --radius-md:   12px;
+            --radius-lg:   18px;
+            --radius-xl:   24px;
+
+            --shadow-sm:   0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+            --shadow-md:   0 4px 12px rgba(0,0,0,.10), 0 2px 4px rgba(0,0,0,.06);
+            --shadow-lg:   0 10px 40px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.06);
+
+            --font-system: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+            /* Touch targets mínimos — Apple HIG: 44px */
+            --touch-min:   44px;
+        }
+
+        /* Reset mínimo — seguro para iOS 9 */
+        *, *:before, *:after {
+            -webkit-box-sizing: border-box;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        body {
+            font-family: var(--font-system);
+            background-color: var(--c-white);
+            color: var(--c-dark);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        img {
+            display: block;
+            max-width: 100%;
+        }
+
+        button {
+            cursor: pointer;
+            font-family: inherit;
+            border: none;
+            background: none;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        input {
+            font-family: inherit;
+        }
+
+        /* ── HEADER ────────────────────────────────────────────── */
+        .cat-header {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background-color: rgba(255,255,255,0.92);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--c-border);
+        }
+
+        .cat-header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 12px 20px;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .cat-logo {
+            -webkit-flex-shrink: 0;
+            flex-shrink: 0;
+        }
+
+        .cat-logo img {
+            height: 36px;
+            width: auto;
+        }
+
+        .cat-logo-sep {
+            width: 1px;
+            height: 24px;
+            background-color: var(--c-border);
+            -webkit-flex-shrink: 0;
+            flex-shrink: 0;
+        }
+
+        .cat-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--c-mid);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            -webkit-flex-shrink: 0;
+            flex-shrink: 0;
+        }
+
+        /* Barra de busca — protagonista */
+        .cat-search-wrap {
+            -webkit-box-flex: 1;
+            -webkit-flex: 1;
+            flex: 1;
+            position: relative;
+        }
+
+        .cat-search-input {
+            width: 100%;
+            height: 44px;
+            padding: 0 44px 0 16px;
+            background-color: var(--c-light);
+            border: 1.5px solid transparent;
+            border-radius: 22px;
+            font-size: 16px;
+            color: var(--c-dark);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            -webkit-transition: border-color 0.2s, background-color 0.2s;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .cat-search-input:focus {
+            background-color: var(--c-white);
+            border-color: var(--c-gold);
+        }
+
+        .cat-search-input::-webkit-input-placeholder { color: var(--c-mid); }
+        .cat-search-input::placeholder { color: var(--c-mid); }
+
+        .cat-search-icon {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            -webkit-transform: translateY(-50%);
+            transform: translateY(-50%);
+            color: var(--c-mid);
+            font-size: 16px;
+            pointer-events: none;
+        }
+
+        /* Botão Modo Atendimento */
+        .cat-btn-modo {
+            height: 44px;
+            padding: 0 18px;
+            background-color: var(--c-near-black);
+            color: var(--c-white);
+            border-radius: 22px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            gap: 6px;
+            -webkit-transition: background-color 0.2s;
+            transition: background-color 0.2s;
+            -webkit-flex-shrink: 0;
+            flex-shrink: 0;
+        }
+
+        .cat-btn-modo:hover,
+        .cat-btn-modo:active {
+            background-color: var(--c-gold);
+            color: var(--c-black);
+        }
+
+        .cat-btn-modo.active {
+            background-color: var(--c-gold);
+            color: var(--c-black);
+        }
+
+        /* ── RESULTADO DE BUSCA DROPDOWN ─────────────────────── */
+        .cat-search-results {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background-color: var(--c-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--c-border);
+            max-height: 60vh;
+            overflow-y: auto;
+            z-index: 2000;
+            display: none;
+        }
+
+        .cat-search-results.visible {
+            display: block;
+        }
+
+        .cat-search-result-item {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--c-light);
+            cursor: pointer;
+            -webkit-transition: background-color 0.15s;
+            transition: background-color 0.15s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .cat-search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .cat-search-result-item:hover,
+        .cat-search-result-item:active {
+            background-color: var(--c-light);
+        }
+
+        .cat-result-thumb {
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius-sm);
+            background-color: var(--c-light);
+            overflow: hidden;
+            -webkit-flex-shrink: 0;
+            flex-shrink: 0;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+        }
+
+        .cat-result-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .cat-result-info {
+            -webkit-box-flex: 1;
+            -webkit-flex: 1;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .cat-result-nome {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--c-dark);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .cat-result-meta {
+            font-size: 12px;
+            color: var(--c-mid);
+            margin-top: 2px;
+        }
+
+        .cat-result-preco {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--c-dark);
+            white-space: nowrap;
+        }
+
+        .cat-search-empty {
+            padding: 24px;
+            text-align: center;
+            color: var(--c-mid);
+            font-size: 14px;
+        }
+
+        /* ── MAIN CONTENT ────────────────────────────────────── */
+        .cat-main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px 80px;
+        }
+
+        /* ── FOOTER MÍNIMO ────────────────────────────────────── */
+        .cat-footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 11px;
+            color: var(--c-mid);
+            border-top: 1px solid var(--c-border);
+            background-color: var(--c-surface);
+        }
+
+        /* ── MODO ATENDIMENTO ─────────────────────────────────── */
+        body.modo-atendimento .cat-footer,
+        body.modo-atendimento .cat-label,
+        body.modo-atendimento .cat-logo-sep {
+            display: none;
+        }
+
+        /* ── UTILITÁRIOS ─────────────────────────────────────── */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            border: 0;
+        }
+
+        .text-gold { color: var(--c-gold); }
+        .text-mid  { color: var(--c-mid); }
+        .text-green { color: var(--c-green); }
+        .text-red   { color: var(--c-red); }
+
+        /* ── CARDS DE PRODUTO ────────────────────────────────── */
+        .cat-product-card {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-orient: vertical;
+            -webkit-flex-direction: column;
+            flex-direction: column;
+            background-color: var(--c-white);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--c-border);
+            -webkit-transition: -webkit-transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .cat-product-card:hover,
+        .cat-product-card:active {
+            -webkit-transform: translateY(-2px);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .cat-product-img {
+            width: 100%;
+            aspect-ratio: 1;
+            background-color: var(--c-light);
+            overflow: hidden;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+        }
+
+        .cat-product-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 8px;
+        }
+
+        .cat-product-body {
+            padding: 12px;
+            -webkit-box-flex: 1;
+            -webkit-flex: 1;
+            flex: 1;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-orient: vertical;
+            -webkit-flex-direction: column;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .cat-product-marca {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--c-mid);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .cat-product-nome {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--c-dark);
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .cat-product-meta {
+            font-size: 12px;
+            color: var(--c-mid);
+        }
+
+        .cat-product-preco {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--c-dark);
+            margin-top: auto;
+            padding-top: 8px;
+        }
+
+        .cat-badge-promo {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            background-color: var(--c-red);
+            color: var(--c-white);
+            padding: 2px 7px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ── GRID DE PRODUTOS ────────────────────────────────── */
+        .cat-grid {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-flex-wrap: wrap;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .cat-grid-item {
+            width: calc(50% - 8px);
+        }
+
+        @media (min-width: 600px) {
+            .cat-grid-item {
+                width: calc(33.333% - 11px);
+            }
+        }
+
+        @media (min-width: 900px) {
+            .cat-grid-item {
+                width: calc(25% - 12px);
+            }
+        }
+
+        /* ── SECTION HEADER ──────────────────────────────────── */
+        .cat-section {
+            padding-top: 40px;
+        }
+
+        .cat-section-header {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: baseline;
+            -webkit-align-items: baseline;
+            align-items: baseline;
+            -webkit-box-pack: justify;
+            -webkit-justify-content: space-between;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--c-border);
+        }
+
+        .cat-section-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--c-dark);
+            letter-spacing: -0.02em;
+            margin: 0;
+        }
+
+        .cat-section-count {
+            font-size: 13px;
+            color: var(--c-mid);
+        }
+
+        /* ── CHIPS DE FILTRO ─────────────────────────────────── */
+        .cat-chips-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 16px 0 4px;
+            scrollbar-width: none;
+        }
+
+        .cat-chips-wrap::-webkit-scrollbar {
+            display: none;
+        }
+
+        .cat-chips {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            gap: 8px;
+            padding: 0;
+            white-space: nowrap;
+        }
+
+        .cat-chip {
+            display: -webkit-inline-box;
+            display: -webkit-inline-flex;
+            display: inline-flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            gap: 6px;
+            height: 38px;
+            padding: 0 16px;
+            background-color: var(--c-light);
+            border: 1.5px solid transparent;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--c-dark);
+            cursor: pointer;
+            -webkit-transition: all 0.18s;
+            transition: all 0.18s;
+            white-space: nowrap;
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .cat-chip:hover,
+        .cat-chip:active,
+        .cat-chip.active {
+            background-color: var(--c-dark);
+            color: var(--c-white);
+            border-color: var(--c-dark);
+        }
+
+        .cat-chip.active-gold {
+            background-color: var(--c-gold);
+            color: var(--c-black);
+            border-color: var(--c-gold);
+        }
+
+        /* ── OVERLAY DE BUSCA (backdrop) ─────────────────────── */
+        .cat-search-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+        }
+
+        .cat-search-backdrop.visible {
+            display: block;
+        }
+
+        /* ── SPINNER ─────────────────────────────────────────── */
+        .cat-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--c-border);
+            border-top-color: var(--c-gold);
+            border-radius: 50%;
+            -webkit-animation: spin 0.7s linear infinite;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @-webkit-keyframes spin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+        @keyframes spin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+
+    {# ── HEADER GLOBAL DO CATÁLOGO ──────────────────────────── #}
+    <header class="cat-header" role="banner">
+        <div class="cat-header-inner">
+            <a href="{{ url_for('loja.index') }}" class="cat-logo" aria-label="M4 Tática — Voltar à Loja">
+                <picture>
+                    <source srcset="{{ url_for('static', filename='img/logo.webp') }}" type="image/webp">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="M4 Tática" width="120" height="36" fetchpriority="high">
+                </picture>
+            </a>
+
+            <div class="cat-logo-sep" aria-hidden="true"></div>
+            <span class="cat-label">Catálogo</span>
+
+            {# Campo de busca — protagonista da interface #}
+            <div class="cat-search-wrap" role="search">
+                <input
+                    type="search"
+                    id="catSearchInput"
+                    class="cat-search-input"
+                    placeholder="Pesquisar produto, calibre, marca…"
+                    autocomplete="off"
+                    autocorrect="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                    aria-label="Pesquisar produtos"
+                    aria-autocomplete="list"
+                    aria-controls="catSearchResults"
+                >
+                <i class="bi bi-search cat-search-icon" aria-hidden="true"></i>
+
+                <div id="catSearchResults" class="cat-search-results" role="listbox" aria-label="Resultados da busca">
+                    {# preenchido dinamicamente via JS #}
+                </div>
+            </div>
+
+            <div class="cat-search-backdrop" id="catSearchBackdrop"></div>
+
+            {# Botão Modo Atendimento #}
+            <button
+                id="btnModoAtendimento"
+                class="cat-btn-modo"
+                aria-pressed="false"
+                title="Oculta elementos administrativos para atendimento ao cliente"
+            >
+                <i class="bi bi-person-fill" aria-hidden="true"></i>
+                <span class="cat-modo-label">Modo Atendimento</span>
+            </button>
+        </div>
+    </header>
+
+    {# ── CONTEÚDO PRINCIPAL ─────────────────────────────────── #}
+    <main class="cat-main" id="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    {# ── RODAPÉ MÍNIMO ──────────────────────────────────────── #}
+    <footer class="cat-footer" role="contentinfo">
+        &copy; 2026 M4 Tática — Catálogo de Atendimento
+    </footer>
+
+    {# ── JS GLOBAL: Busca instantânea + Modo Atendimento ─────── #}
+    <script>
+    (function () {
+        'use strict';
+
+        // ── Modo Atendimento ─────────────────────────────────
+        var MODO_KEY = 'm4_modo_atendimento';
+        var btnModo  = document.getElementById('btnModoAtendimento');
+        var body     = document.body;
+
+        function aplicarModo(ativo) {
+            if (ativo) {
+                body.classList.add('modo-atendimento');
+                btnModo.classList.add('active');
+                btnModo.setAttribute('aria-pressed', 'true');
+            } else {
+                body.classList.remove('modo-atendimento');
+                btnModo.classList.remove('active');
+                btnModo.setAttribute('aria-pressed', 'false');
+            }
+        }
+
+        // Restaura estado persistido
+        try {
+            aplicarModo(localStorage.getItem(MODO_KEY) === '1');
+        } catch(e) {}
+
+        btnModo.addEventListener('click', function () {
+            var ativo = !body.classList.contains('modo-atendimento');
+            aplicarModo(ativo);
+            try { localStorage.setItem(MODO_KEY, ativo ? '1' : '0'); } catch(e) {}
+        });
+
+        // ── Busca instantânea ────────────────────────────────
+        var CATALOGO_PROD_PREFIX = '{{ url_for("catalogo.produto", slug="_SLUG_") }}'.replace('_SLUG_', '').replace(/\/$/, '') + '/';
+        var CATALOGO_API_BUSCAR  = '{{ url_for("catalogo.api_buscar") }}';
+        var input    = document.getElementById('catSearchInput');
+        var results  = document.getElementById('catSearchResults');
+        var backdrop = document.getElementById('catSearchBackdrop');
+        var debounce = null;
+        var lastQ    = '';
+
+        function fmtPreco(v) {
+            if (!v) return '';
+            return 'R$ ' + parseFloat(v).toFixed(2)
+                .replace('.', ',')
+                .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        function showResults(html) {
+            results.innerHTML = html;
+            results.classList.add('visible');
+            backdrop.classList.add('visible');
+        }
+
+        function hideResults() {
+            results.classList.remove('visible');
+            backdrop.classList.remove('visible');
+        }
+
+        function renderResults(data) {
+            if (!data || !data.produtos || data.produtos.length === 0) {
+                showResults('<div class="cat-search-empty"><i class="bi bi-search" style="font-size:24px;opacity:.3;display:block;margin-bottom:8px;"></i>Nenhum produto encontrado</div>');
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < data.produtos.length; i++) {
+                var p = data.produtos[i];
+                var meta = [];
+                if (p.marca) meta.push(p.marca);
+                if (p.calibre) meta.push(p.calibre);
+                if (p.categoria) meta.push(p.categoria);
+                html += '<a href="' + CATALOGO_PROD_PREFIX + encodeURIComponent(p.slug) + '" class="cat-search-result-item" role="option">' +
+                    '<div class="cat-result-thumb"><img src="' + p.foto + '" alt="' + p.nome + '" loading="lazy" onerror="this.src=\'/static/img/placeholder.jpg\';"></div>' +
+                    '<div class="cat-result-info">' +
+                        '<div class="cat-result-nome">' + p.nome + '</div>' +
+                        '<div class="cat-result-meta">' + meta.join(' · ') + '</div>' +
+                    '</div>' +
+                    (p.preco > 0 ? '<div class="cat-result-preco">' + fmtPreco(p.preco) + '</div>' : '') +
+                '</a>';
+            }
+            showResults(html);
+        }
+
+        function buscar(q) {
+            if (q === lastQ) return;
+            lastQ = q;
+            if (q.length < 2) { hideResults(); return; }
+
+            results.innerHTML = '<div class="cat-search-empty"><span class="cat-spinner"></span></div>';
+            results.classList.add('visible');
+            backdrop.classList.add('visible');
+
+            // XHR compatível com iOS 9
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', CATALOGO_API_BUSCAR + '?q=' + encodeURIComponent(q), true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== 4) return;
+                if (xhr.status === 200) {
+                    try {
+                        renderResults(JSON.parse(xhr.responseText));
+                    } catch(e) { hideResults(); }
+                } else {
+                    hideResults();
+                }
+            };
+            xhr.send();
+        }
+
+        input.addEventListener('input', function () {
+            clearTimeout(debounce);
+            var q = this.value.trim();
+            debounce = setTimeout(function () { buscar(q); }, 280);
+        });
+
+        input.addEventListener('focus', function () {
+            if (this.value.trim().length >= 2) {
+                results.classList.add('visible');
+                backdrop.classList.add('visible');
+            }
+        });
+
+        backdrop.addEventListener('click', hideResults);
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                hideResults();
+                input.blur();
+            }
+        });
+
+    }());
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
