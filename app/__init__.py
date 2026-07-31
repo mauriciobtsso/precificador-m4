@@ -53,7 +53,7 @@ def configure_logging(app):
     app.logger.setLevel(level)
     app.logger.addHandler(file_handler)
     app.logger.addHandler(console_handler)
-    app.logger.propagate = False
+    app.logger.propagate = True
 
     app._logging_configured = True
     app.logger.info("Logging configurado (nível=%s)", log_level_name)
