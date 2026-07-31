@@ -11,7 +11,7 @@
     <meta name="description" content="Catálogo de Atendimento M4 Tática — Equipamentos táticos, armas e munições.">
 
     {# Preloads críticos para performance no iPad Mini #}
-    <link rel="preload" href="{{ url_for('static', filename='img/logo.webp') }}" as="image" fetchpriority="high">
+    <link rel="preload" href="{{ url_for('static', filename='img/logo_pedido.png') }}" as="image" fetchpriority="high">
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
 
     {# Bootstrap Icons — já presente no projeto #}
@@ -649,7 +649,7 @@
         <div class="cat-header-inner">
             <a href="{{ url_for('loja.index') }}" class="cat-logo" aria-label="M4 Tática — Voltar à Loja">
                 <picture>
-                    <source srcset="{{ url_for('static', filename='img/logo.webp') }}" type="image/webp">
+                    <source srcset="{{ url_for('static', filename='img/logo_pedido.png') }}" type="image/png">
                     <img src="{{ url_for('static', filename='img/logo.png') }}" alt="M4 Tática" width="120" height="36" fetchpriority="high">
                 </picture>
             </a>

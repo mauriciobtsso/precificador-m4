@@ -122,35 +122,68 @@ def _emitir_por_tipo(cert: Certidao) -> bytes:
 
 
 def _emitir_estadual_tjpi(cert: Certidao) -> bytes:
-    """
-    Stub de emissão da certidão Estadual TJPI (Criminal + Auditoria Militar).
-    """
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
-
-    buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, 800, "CERTIDÃO CRIMINAL + AUDITORIA MILITAR")
-    c.drawString(50, 780, "TRIBUNAL DE JUSTIÇA DO ESTADO DO PIAUÍ - TJPI")
-
-    c.setFont("Helvetica", 11)
-    c.drawString(50, 750, f"Cliente ID: {cert.cliente_id}")
-    c.drawString(50, 735, f"Certidão ID: {cert.id}")
-    c.drawString(50, 720, f"Emitida em: {now_local().strftime('%d/%m/%Y %H:%M')}")
-
-    c.drawString(
-        50,
-        690,
-        "Documento gerado automaticamente pelo sistema M4 (stub para testes).",
+    from app.certidoes.robots.tjpi import (
+        emitir_certidao_tjpi,
+        DadosRequerenteTJPI,
+        TJPIRobotError,
     )
-    c.showPage()
-    c.save()
+ 
+    cliente = cert.cliente
+    if not cliente:
+        raise RuntimeError("Certidão TJPI sem cliente associado.")
+ 
+    # Endereço: sempre o do tipo "residencial"
+    endereco = next(
+        (e for e in cliente.enderecos if e.tipo == "residencial"),
+        None,
+    )
+    if not endereco:
+        raise RuntimeError(
+            f"Cliente #{cliente.id} não possui endereço do tipo 'residencial' cadastrado."
+        )
+ 
+    # Validação dos campos obrigatórios antes de acionar o robô
+    campos_obrigatorios = {
+        "nome": cliente.nome,
+        "cpf (documento)": cliente.documento,
+        "rg": cliente.rg,
+        "rg_emissor": cliente.rg_emissor,
+        "estado_civil": cliente.estado_civil,
+        "nome_mae": cliente.nome_mae,
+        "cep": endereco.cep,
+        "logradouro": endereco.logradouro,
+        "bairro": endereco.bairro,
+        "cidade": endereco.cidade,
+        "estado (uf)": endereco.estado,
+    }
+    faltando = [nome for nome, valor in campos_obrigatorios.items() if not valor]
+    if faltando:
+        raise RuntimeError(
+            f"Cliente #{cliente.id} está com campos obrigatórios faltando para "
+            f"emissão TJPI: {', '.join(faltando)}."
+        )
 
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
+    dados = DadosRequerenteTJPI(
+        nome=cliente.nome,
+        cpf=cliente.documento,
+        rg=cliente.rg,
+        orgao_expedidor=cliente.rg_emissor,
+        estado_civil=cliente.estado_civil,
+        mae=cliente.nome_mae,
+        pai=cliente.nome_pai,  # opcional no form
+        cep=endereco.cep,
+        endereco=endereco.logradouro,
+        numero=endereco.numero,
+        complemento=endereco.complemento,
+        bairro=endereco.bairro,
+        uf=endereco.estado,
+        municipio=endereco.cidade,
+    )
+  
+    try:
+        return emitir_certidao_tjpi(dados)
+    except TJPIRobotError as e:
+        raise RuntimeError(f"Falha no robô TJPI: {e}")
 
 
 def _emitir_militar_stm(cert: Certidao) -> bytes:
