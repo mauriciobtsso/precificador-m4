@@ -1,6 +1,7 @@
 #app/loja/routes.py
 
 from flask import render_template, abort, request, url_for, send_from_directory, current_app, redirect, Response, make_response, flash, session, jsonify
+from flask_login import login_required
 from app.loja import loja_bp
 from app import db
 from app.loja.models_admin import Banner, PaginaInstitucional
@@ -393,6 +394,7 @@ def robots_txt():
     return send_from_directory(static_dir, 'robots.txt')
 
 @loja_bp.route('/sistema/otimizar-banco-m4')
+@login_required
 def otimizar_banco():
     from flask import current_app
     from sqlalchemy import text
@@ -417,6 +419,7 @@ def otimizar_banco():
         return f"❌ Erro na operação: {str(e)}"
 
 @loja_bp.route('/sistema/limpar-cache')
+@login_required
 def limpar_cache():
     try:
         cache.delete('prateleiras_home_v6')

@@ -14,7 +14,7 @@ ckeditor = CKEditor()
 compress = Compress()
 
 # Importa extensões centralizadas
-from app.extensions import db, login_manager, migrate
+from app.extensions import db, login_manager, migrate, csrf, limiter
 from app.loja.routes import cache
 from app.produtos.configs import models as configs_models
 from app.utils.datetime import now_local
@@ -86,6 +86,40 @@ def create_app():
     login_manager.login_view = "main.login"
     migrate.init_app(app, db)
     ckeditor.init_app(app)
+
+    # =========================================================
+    # CSRF — Proteção Global (isenção apenas para APIs JSON e webhooks)
+    # =========================================================
+    csrf.init_app(app)
+    # Rotas isentas de CSRF (APIs consumidas por JS ou sistemas externos)
+    csrf.exempt("app.loja.routes.buscar_produtos")
+    csrf.exempt("app.loja.routes.comparar_produtos")
+    csrf.exempt("app.carrinho.routes.adicionar")
+    csrf.exempt("app.carrinho.routes.atualizar_quantidade")
+    csrf.exempt("app.carrinho.routes.api_calcular_frete")
+    csrf.exempt("app.carrinho.routes.salvar_frete_sessao")
+    csrf.exempt("app.carrinho.routes.processar_pedido")
+    csrf.exempt("app.carrinho.routes.webhook_pagarme")
+
+    # =========================================================
+    # RATE LIMITER — Proteção contra força bruta
+    # =========================================================
+    limiter.init_app(app)
+
+    # =========================================================
+    # HEADERS DE SEGURANÇA HTTP (Flask-Talisman)
+    # =========================================================
+    from flask_talisman import Talisman
+    Talisman(
+        app,
+        content_security_policy=False,   # Desativado inicialmente; ativar gradualmente
+        force_https=False,               # Gerenciado pelo Cloudflare/proxy
+        strict_transport_security=False, # Idem
+        frame_options='SAMEORIGIN',      # Anti-clickjacking
+        referrer_policy='strict-origin-when-cross-origin',
+        x_content_type_options=True,     # Anti-MIME sniffing
+        x_xss_protection=True,
+    )
 
     # with app.app_context():
     from app.utils.thumb_hooks import registrar_hooks
@@ -250,10 +284,8 @@ def create_app():
             tabelas = set(inspector.get_table_names())
 
             if {"users", "taxas", "produtos", "configuracoes"}.issubset(tabelas):
-                if not User.query.filter_by(username="admin").first():
-                    admin = User(username="admin")
-                    admin.set_password("admin")
-                    db.session.add(admin)
+                # NOTA: O usuário admin não é mais criado automaticamente.
+                # Crie manualmente via /admin/usuario/novo após o primeiro deploy.
 
                 if not Taxa.query.first():
                     taxas_padrao = [Taxa(numero_parcelas=i, juros=1.0) for i in range(13)]

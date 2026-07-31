@@ -131,6 +131,8 @@
         <form method="post"
               action="{{ url_for('certidoes.criar_pacote_certidoes', cliente_id=cliente.id) }}"
               class="d-inline me-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <button type="submit" class="btn btn-sm btn-outline-primary">
                 <i class="fas fa-file-signature"></i> Gerar Certidões
             </button>
@@ -163,6 +165,8 @@
               Cancelar
             </button>
             <form method="POST" action="{{ url_for('clientes.deletar_cliente', cliente_id=cliente.id) }}" class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
               <button type="submit" class="btn btn-danger">
                 <i class="fas fa-trash-alt"></i> Confirmar Exclusão
               </button>
@@ -216,6 +220,8 @@
                         <form method="POST"
                               action="{{ url_for('clientes.revogar_acesso_loja', cliente_id=cliente.id) }}"
                               onsubmit="return confirm('Revogar acesso à loja deste cliente?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                             <button type="submit" class="btn btn-outline-danger btn-sm">
                                 <i class="fas fa-slash me-1"></i> Revogar Acesso
                             </button>
@@ -223,6 +229,8 @@
                     {% else %}
                         <form method="POST"
                               action="{{ url_for('clientes.reativar_acesso_loja', cliente_id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                             <button type="submit" class="btn btn-outline-success btn-sm">
                                 <i class="fas fa-check-circle me-1"></i> Reativar Acesso
                             </button>
@@ -257,6 +265,8 @@
                 </div>
                 <form method="POST"
                       action="{{ url_for('clientes.liberar_acesso_loja', cliente_id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <div class="modal-body">
                         <p class="text-muted small mb-3">
                             O cliente receberá estes dados para acessar a loja.
@@ -312,6 +322,8 @@
                 </div>
                 <form method="POST"
                       action="{{ url_for('clientes.liberar_acesso_loja', cliente_id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <div class="modal-body">
                         <input type="hidden" name="email_login" value="{{ cliente.email_login }}">
 
@@ -530,6 +542,8 @@
                 <form method="post"
                       action="{{ url_for('certidoes.criar_pacote_certidoes', cliente_id=cliente.id) }}"
                       class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <button type="submit" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-plus-circle me-1"></i> Gerar certidões padrão
                     </button>
@@ -613,6 +627,8 @@
                                 <form method="post"
                                       action="{{ url_for('certidoes.gerar_certidao', certidao_id=c.id) }}"
                                       class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                                     {% if status_value == 'emitida' %}
                                         <button type="submit" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-redo me-1"></i> Regerar
@@ -643,6 +659,8 @@
                   <form method="post"
                         action="{{ url_for('certidoes.gerar_certidao', certidao_id=c.id) }}"
                         class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <div class="modal-header bg-light">
                       <h5 class="modal-title" id="modalCertidaoLabel{{ c.id }}">
                         <i class="fas fa-file-signature me-2"></i>

@@ -12,6 +12,8 @@
 
     <div class="card-body">
       <form method="POST" action="{{ url_for('clientes.editar_processo', cliente_id=cliente.id, proc_id=processo.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="row">
           <!-- Tipo -->
           <div class="col-md-4 mb-3">

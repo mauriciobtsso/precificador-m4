@@ -37,6 +37,8 @@
                     action="{{ url_for('clientes.deletar_contato', cliente_id=cliente.id, contato_id=c.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Deseja realmente excluir este contato?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <button type="submit" class="btn btn-outline-danger">
                   <i class="fas fa-trash"></i>
                 </button>
@@ -55,6 +57,8 @@
 <div class="modal fade" id="modalAddContato" tabindex="-1" aria-labelledby="modalAddContatoLabel" aria-hidden="true">
   <div class="modal-dialog">
     <form method="POST" action="{{ url_for('clientes.adicionar_contato', cliente_id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="modalAddContatoLabel"><i class="fas fa-plus"></i> Novo Contato</h5>

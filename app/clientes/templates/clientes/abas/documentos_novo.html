@@ -6,6 +6,8 @@
     <div class="modal-content">
       <form method="POST" enctype="multipart/form-data"
             action="{{ url_for('clientes.novo_documento', cliente_id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="modal-header">
           <h5 class="modal-title" id="modalNovoDocumentoLabel">
             <i class="fas fa-file-circle-plus me-2 text-primary"></i> Novo Documento

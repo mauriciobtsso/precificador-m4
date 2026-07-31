@@ -5,6 +5,7 @@
     <p class="text-muted">Envie relatórios de <strong>clientes</strong> ou <strong>vendas</strong> no formato Excel (.xlsx) exportados do sistema da loja.</p>
 
     <form method="POST" enctype="multipart/form-data" class="card p-4 shadow-sm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="mb-3">
             <label for="tipo" class="form-label">Tipo de Importação</label>
             <select class="form-select" id="tipo" name="tipo" required>

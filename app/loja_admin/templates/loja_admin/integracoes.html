@@ -167,6 +167,8 @@
 {% endwith %}
 
 <form method="POST" action="{{ url_for('loja_admin.salvar_integracoes') }}" id="formIntegracoes">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
 
     {# ── FRETE ────────────────────────────────────────────────────────── #}
     <div class="section-divider"><i class="bi bi-truck me-1"></i>Frete e Logística</div>

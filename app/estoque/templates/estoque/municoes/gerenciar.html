@@ -131,6 +131,8 @@
                                 <td class="text-muted small">{{ item.data_entrada.strftime('%d/%m/%Y') }}</td>
                                 <td class="text-end pe-4">
                                     <form action="{{ url_for('estoque.municoes_excluir', item_id=item.id) }}" method="POST" onsubmit="return confirm('Excluir esta embalagem?');" class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
                                     </form>
                                 </td>

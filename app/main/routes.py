@@ -7,6 +7,7 @@ from sqlalchemy import func, extract, case, text
 from datetime import datetime, timedelta
 from decimal import Decimal
 from io import TextIOWrapper
+from urllib.parse import urlparse, urljoin
 import csv, os
 
 # =========================
@@ -34,10 +35,25 @@ from app.services.dashboard_service import (
     get_dashboard_resumo,
     get_dashboard_timeline
 )
+from app.extensions import limiter
 
 from flask import Response, stream_with_context, abort
 import mimetypes
 from app.utils.storage import get_s3, get_bucket
+
+# =====================================================
+# Utilitário de segurança: validação de redirect
+# =====================================================
+def _is_safe_url(target: str) -> bool:
+    """Garante que o redirect 'next' aponta apenas para o próprio domínio."""
+    if not target:
+        return False
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return (
+        test_url.scheme in ("http", "https")
+        and ref_url.netloc == test_url.netloc
+    )
 
 # =====================================================
 # Rotas principais
@@ -48,6 +64,7 @@ def index():
 
 # --- Login ---
 @main.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute", error_message="Muitas tentativas de login. Aguarde 1 minuto.")
 def login():
     if request.method == "POST":
         username = request.form.get("username")
@@ -58,6 +75,8 @@ def login():
             login_user(user)
             flash("Login realizado com sucesso!", "success")
             next_page = request.args.get("next")
+            if not _is_safe_url(next_page):
+                next_page = None
             return redirect(next_page or url_for("main.dashboard"))
         else:
             flash("Usuário ou senha inválidos", "danger")
@@ -94,7 +113,7 @@ def dashboard_api_resumo():
         return jsonify(data)
     except Exception as e:
         current_app.logger.error(f"Erro no dashboard_api_resumo: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno ao carregar resumo."}), 500
 
 
 @main.route("/dashboard/api/timeline")
@@ -105,7 +124,7 @@ def dashboard_api_timeline():
         return jsonify(data)
     except Exception as e:
         current_app.logger.error(f"Erro no dashboard_api_timeline: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno ao carregar timeline."}), 500
 
 
 # ===========================================================

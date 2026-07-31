@@ -13,6 +13,8 @@
                 <p class="text-muted small mb-2">Exibir opção de pagamento via PIX no WhatsApp</p>
                 {% set cfg = configs|selectattr("chave","equalto","incluir_pix")|first %}
                 <form method="POST" action="{{ url_for('main.gerenciar_configuracao', config_id=cfg.id if cfg else None) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <input type="hidden" name="chave" value="incluir_pix">
                     <select name="valor" class="form-select form-select-sm mb-2">
                         <option value="true" {% if cfg and cfg.valor == "true" %}selected{% endif %}>Ativado</option>
@@ -32,6 +34,8 @@
                 <p class="text-muted small mb-2">Acréscimo aplicado para cálculo no débito</p>
                 {% set cfg = configs|selectattr("chave","equalto","debito_percent")|first %}
                 <form method="POST" action="{{ url_for('main.gerenciar_configuracao', config_id=cfg.id if cfg else None) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <input type="hidden" name="chave" value="debito_percent">
                     <input type="number" step="0.01" name="valor" class="form-control form-control-sm mb-2"
                            value="{{ cfg.valor if cfg else '1.09' }}">
@@ -49,6 +53,8 @@
                 <p class="text-muted small mb-2">Observação exibida no final das mensagens</p>
                 {% set cfg = configs|selectattr("chave","equalto","mensagem_whats_prefixo")|first %}
                 <form method="POST" action="{{ url_for('main.gerenciar_configuracao', config_id=cfg.id if cfg else None) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <input type="hidden" name="chave" value="mensagem_whats_prefixo">
                     <textarea name="valor" class="form-control form-control-sm mb-2" rows="3">{{ cfg.valor if cfg else "⚠️ Os valores poderão sofrer alterações sem aviso prévio." }}</textarea>
                     <button class="btn btn-sm btn-success"><i class="fas fa-save"></i> Salvar</button>

@@ -13,6 +13,8 @@
                 {# Lógica Tática: Se tem ID, vai para editar. Se não, vai para novo. #}
                 <form action="{{ url_for('loja_admin.gerenciar_banner', id=banner.id) if banner.id else url_for('loja_admin.gerenciar_banner') }}" 
                       method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     
                     <div class="mb-3">
                         <label class="form-label fw-bold">Título Interno</label>

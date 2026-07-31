@@ -39,6 +39,8 @@
                     action="{{ url_for('clientes.deletar_endereco', cliente_id=cliente.id, endereco_id=e.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Deseja realmente excluir este endereço?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <button type="submit" class="btn btn-outline-danger" title="Excluir">
                   <i class="fas fa-trash"></i>
                 </button>
@@ -57,6 +59,8 @@
 <div class="modal fade" id="modalAddEndereco" tabindex="-1" aria-labelledby="modalAddEnderecoLabel" aria-hidden="true">
   <div class="modal-dialog">
     <form method="POST" action="{{ url_for('clientes.adicionar_endereco', cliente_id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="modalAddEnderecoLabel"><i class="fas fa-plus"></i> Novo Endereço</h5>

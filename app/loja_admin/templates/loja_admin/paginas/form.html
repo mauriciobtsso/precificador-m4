@@ -8,6 +8,8 @@
         </div>
         <div class="card-body">
             <form method="POST" id="paginaForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <div class="mb-3">
                     <label class="form-label fw-bold">Título da Página</label>
                     <input type="text" name="titulo" class="form-control form-control-lg" 

@@ -27,6 +27,7 @@
                         {% endwith %}
 
                         <form method="POST" action="{{ url_for('loja.login') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">E-MAIL</label>
                                 <input type="email" name="email" class="form-control form-control-lg border-light bg-light"

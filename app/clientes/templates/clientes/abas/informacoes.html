@@ -31,6 +31,8 @@
                 <form method="POST"
                       action="{{ url_for('clientes.deletar_endereco', cliente_id=cliente.id, endereco_id=e.id) }}"
                       class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                   <button type="submit" class="btn btn-sm btn-danger"
                           onclick="return confirm('Excluir este endereço?')" title="Excluir">
                     <i class="fas fa-trash"></i>
@@ -82,6 +84,8 @@
                 <form method="POST"
                       action="{{ url_for('clientes.deletar_contato', cliente_id=cliente.id, contato_id=c.id) }}"
                       class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                   <button type="submit" class="btn btn-sm btn-danger"
                           onclick="return confirm('Excluir este contato?')" title="Excluir">
                     <i class="fas fa-trash"></i>
@@ -106,6 +110,8 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('clientes.adicionar_endereco', cliente_id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="modal-header">
           <h5 class="modal-title">Adicionar Endereço</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -168,6 +174,8 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('clientes.adicionar_contato', cliente_id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="modal-header">
           <h5 class="modal-title">Adicionar Contato</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

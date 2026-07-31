@@ -69,6 +69,8 @@
           method="POST"
           onsubmit="return confirm('Tem certeza que deseja excluir este produto?');"
           class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
       <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir produto">
         <i class="fas fa-trash"></i>
       </button>

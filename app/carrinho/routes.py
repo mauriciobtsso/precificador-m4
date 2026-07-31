@@ -274,12 +274,36 @@ def sucesso(order_id):
 @carrinho_bp.route('/webhook/pagarme', methods=['POST'])
 def webhook_pagarme():
     """Recebe avisos automáticos de pagamento aprovado do Pagar.me."""
-    data = request.get_json()
-    if data.get('type') == 'order.paid':
-        order_data = data.get('data')
-        pedido = Pedido.query.filter_by(pagarme_id=order_data.get('id')).first()
-        if pedido:
-            pedido.status = 'pago'
-            pedido.pago_em = now_local()
-            db.session.commit()
+    import hmac
+    import hashlib
+
+    # Valida assinatura HMAC-SHA256 do Pagar.me
+    secret = os.getenv('PAGARME_WEBHOOK_SECRET', '')
+    if not secret:
+        current_app.logger.warning("[WEBHOOK] PAGARME_WEBHOOK_SECRET não configurado — webhook recusado.")
+        return jsonify({"error": "Webhook não configurado."}), 503
+
+    signature_header = request.headers.get('X-Hub-Signature', '')
+    payload = request.get_data()
+    expected_sig = 'sha256=' + hmac.new(
+        secret.encode('utf-8'), payload, hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected_sig, signature_header):
+        current_app.logger.warning("[WEBHOOK] Assinatura inválida recebida no webhook Pagar.me.")
+        return jsonify({"error": "Assinatura inválida."}), 401
+
+    try:
+        data = request.get_json(force=True)
+        if data and data.get('type') == 'order.paid':
+            order_data = data.get('data', {})
+            pedido = Pedido.query.filter_by(pagarme_id=order_data.get('id')).first()
+            if pedido:
+                pedido.status = 'pago'
+                pedido.pago_em = now_local()
+                db.session.commit()
+    except Exception as e:
+        current_app.logger.error(f"[WEBHOOK] Erro ao processar webhook Pagar.me: {e}")
+        return jsonify({"error": "Erro interno."}), 500
+
     return jsonify({"status": "received"}), 200

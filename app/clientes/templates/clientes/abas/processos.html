@@ -71,6 +71,8 @@
                         action="{{ url_for('clientes.excluir_processo', cliente_id=cliente.id, proc_id=proc.id) }}"
                         onsubmit="return confirm('Deseja realmente excluir este processo?')"
                         class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <button type="submit" class="btn btn-outline-danger" title="Excluir">
                       <i class="fas fa-trash"></i>
                     </button>

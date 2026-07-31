@@ -289,6 +289,8 @@
 <div class="modal fade" id="modalUploadAnexo" tabindex="-1">
     <div class="modal-dialog">
         <form method="POST" action="{{ url_for('vendas.upload_anexo', venda_id=venda.id) }}" enctype="multipart/form-data" class="modal-content">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <div class="modal-header">
                 <h5 class="modal-title">Anexar Documento</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

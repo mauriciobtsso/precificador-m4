@@ -12,6 +12,8 @@
 </div>
 
 <form action="{{ url_for('loja_admin.configuracoes') }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     <div class="row">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm mb-4">

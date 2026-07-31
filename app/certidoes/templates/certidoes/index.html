@@ -129,6 +129,8 @@
                                 <form method="post"
                                       action="{{ url_for('certidoes.gerar_certidao', certidao_id=c.id) }}"
                                       class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                                     {% if c.status == CertidaoStatus.EMITIDA %}
                                         <button type="submit" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-redo me-1"></i> Regerar

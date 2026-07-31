@@ -55,6 +55,8 @@
             <div class="bg-light p-4 rounded shadow-sm border h-100">
                 <h4 class="mb-4">Envie uma Mensagem</h4>
                 <form action="#" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Seu Nome</label>
