@@ -1,6 +1,8 @@
 <h5>CR do Cliente</h5>
 
 <form id="formUploadCr" data-cliente-id="{{ cliente.id }}" enctype="multipart/form-data" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
   <div class="mb-3">
     <input type="file" name="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
   </div>
@@ -11,6 +13,8 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('clientes.salvar_cr', cliente_id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="modal-header">
           <h5 class="modal-title">Pré-visualizar CR</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

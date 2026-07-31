@@ -4,6 +4,8 @@
   <h4 class="mb-3"><i class="fas fa-user-edit"></i> Editar Cliente</h4>
 
   <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     {% include "clientes/form_cliente.html" %}
     <div class="mt-3">
       <button type="submit" class="btn btn-primary">

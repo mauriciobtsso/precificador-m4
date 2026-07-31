@@ -2,6 +2,8 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content shadow-sm">
       <form method="POST" action="/clientes/{{ cliente.id }}/contatos/adicionar">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="modal-header">
           <h5 class="modal-title" id="contatoModalLabel">
             <i class="fas fa-address-card me-2"></i>Adicionar Contato

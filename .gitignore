@@ -90,3 +90,14 @@ logs/
 # PDFs gerados pelo sistema
 *.pdf
 
+# Backups de banco de dados (NUNCA versionar — podem conter dados de clientes)
+*.dump
+*.sql
+backups_bd/
+backup_*/
+migration_logs/
+
+# Arquivos de código antigo/backup (evitar versionar código legado)
+*.bak
+*.bk
+*.bk.*

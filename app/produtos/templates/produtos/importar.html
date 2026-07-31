@@ -30,6 +30,8 @@
            ETAPA 1: UPLOAD DO ARQUIVO
       ========================================================== -->
       <form method="POST" enctype="multipart/form-data" class="mt-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="row g-4 align-items-end">
 
           <div class="col-md-6 col-lg-5">
@@ -93,6 +95,8 @@
       <form method="POST"
             action="{{ url_for('produtos.importar_confirmar') }}"
             class="mt-4 d-flex flex-wrap gap-2 justify-content-start">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <button type="submit" class="btn btn-success btn-lg shadow-sm px-4">
           <i class="bi bi-check-circle me-1"></i> Confirmar Importação
         </button>

@@ -40,6 +40,8 @@
         <p class="text-muted small">Informe seu usuário ou email e entraremos em contato.</p>
 
         <form method="POST" action="">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <div class="mb-3">
                 <input type="text" class="form-control" name="usuario" placeholder="Usuário ou email" required>
             </div>

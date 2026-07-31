@@ -24,6 +24,7 @@
                 {% endwith %}
 
                 <form method="POST" action="{{ url_for('loja.cadastro') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="row g-3">
 
                         <div class="col-12">

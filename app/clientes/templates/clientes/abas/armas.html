@@ -53,6 +53,8 @@
                 <td class="text-end">
                     <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEditarArma{{ arma.id }}"><i class="fas fa-edit"></i> Editar</button>
                     <form method="POST" action="{{ url_for('clientes.deletar_arma', cliente_id=cliente.id, arma_id=arma.id) }}" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta arma?');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash-alt"></i> Excluir</button>
                     </form>
                 </td>
@@ -73,6 +75,8 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <form id="formNovaArma" method="POST" action="{{ url_for('clientes.nova_arma', cliente_id=cliente.id) }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="modal-header">
           <h5 class="modal-title">Cadastrar Nova Arma</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -109,6 +113,8 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('clientes.editar_arma', cliente_id=cliente.id, arma_id=arma.id) }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="modal-header"><h5 class="modal-title">Editar Arma</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
           <div class="row"><div class="col-md-6 mb-3"><label>Tipo</label><select name="tipo" class="form-select"><option value="">Selecione</option>{% for val, label in TIPOS_ARMA %}<option value="{{ val }}" {% if arma.tipo == val %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div><div class="col-md-6 mb-3"><label>Funcionamento</label><select name="funcionamento" class="form-select"><option value="">Selecione</option>{% for val, label in FUNCIONAMENTO_ARMA %}<option value="{{ val }}" {% if arma.funcionamento == val %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div></div>

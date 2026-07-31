@@ -8,6 +8,7 @@
 <div class="card shadow-sm mb-4">
   <div class="card-body">
     <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="row g-3 align-items-end">
         <div class="col-md-4">
           <label class="form-label">Valor à vista (R$)</label>

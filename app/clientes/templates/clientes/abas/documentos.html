@@ -100,6 +100,8 @@
                     action="{{ url_for('clientes.deletar_documento', cliente_id=cliente.id, doc_id=doc.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Deseja realmente excluir este documento?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir Documento">
                   <i class="fas fa-trash"></i>
                 </button>

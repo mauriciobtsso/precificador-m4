@@ -24,6 +24,8 @@
 
     <!-- Formulário de edição -->
     <form method="POST" action="{{ url_for('clientes.editar_contato', cliente_id=cliente_id, contato_id=contato.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="mb-3">
             <label for="tipo" class="form-label">Tipo</label>
             <select class="form-select" id="tipo" name="tipo" required>

@@ -1,25 +1,44 @@
 # app/loja/routes_auth.py
 import os
 from datetime import date
-from flask import render_template, request, redirect, url_for, flash
+from urllib.parse import urlparse, urljoin
+from flask import render_template, request, redirect, url_for, flash, send_file
 from werkzeug.utils import secure_filename
 from app import db
 from app.loja import loja_bp
 from app.clientes.models import Cliente, EnderecoCliente, ContatoCliente, Documento, Arma
 from app.loja.auth_loja import logar_cliente, deslogar_cliente, get_cliente_logado, cliente_logado_required
 from app.utils.datetime import now_local
+from app.extensions import limiter
 
-# 🛰️ Storage tático M4: uploads do cliente agora vão direto pro R2,
+# 🛠️ Storage tático M4: uploads do cliente agora vão direto pro R2,
 # nunca mais para o disco local (que é efêmero no Render).
 from app.utils.r2_helpers import upload_file_to_r2, gerar_link_r2
 from app.utils.storage import deletar_arquivo
 
-EXTENSOES_OK       = {'pdf', 'jpg', 'jpeg', 'png'}
-CATEGORIA_LOJA     = 'cliente_loja'
+EXTENSOES_OK  = {'pdf', 'jpg', 'jpeg', 'png'}
+CATEGORIA_LOJA = 'cliente_loja'
+
+# Assinaturas (magic bytes) dos tipos de arquivo permitidos
+_MAGIC = {
+    b'%PDF':         'pdf',
+    b'\xff\xd8\xff': 'jpg',
+    b'\x89PNG':      'png',
+}
 
 
-def _ext_ok(nome):
+def _ext_ok(nome: str) -> bool:
     return '.' in nome and nome.rsplit('.', 1)[1].lower() in EXTENSOES_OK
+
+
+def _magic_ok(fileobj) -> bool:
+    """Verifica a assinatura real dos primeiros bytes do arquivo."""
+    header = fileobj.read(8)
+    fileobj.seek(0)          # reposiciona para o upload não ficar vazio
+    for magic in _MAGIC:
+        if header.startswith(magic):
+            return True
+    return False
 
 
 def _parse_date(campo):
@@ -28,6 +47,18 @@ def _parse_date(campo):
         return date.fromisoformat(val) if val else None
     except ValueError:
         return None
+
+
+def _is_safe_url(target: str) -> bool:
+    """Valida que o redirect 'next' aponta apenas para o próprio domínio."""
+    if not target:
+        return False
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return (
+        test_url.scheme in ('http', 'https')
+        and ref_url.netloc == test_url.netloc
+    )
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -42,6 +73,7 @@ def inject_cliente_loja():
 # LOGIN / CADASTRO / LOGOUT
 # ──────────────────────────────────────────────────────────────────
 @loja_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute", error_message="Muitas tentativas de login. Aguarde 1 minuto.")
 def login():
     if get_cliente_logado():
         return redirect(url_for('loja.minha_conta'))
@@ -59,7 +91,7 @@ def login():
             logar_cliente(cliente)
             flash(f'Bem-vindo, {cliente.nome.split()[0]}!', 'success')
             next_url = request.args.get('next')
-            if next_url and next_url.startswith('/loja'):
+            if _is_safe_url(next_url):
                 return redirect(next_url)
             return redirect(url_for('loja.minha_conta'))
     return render_template('loja/auth/login.html')
@@ -258,6 +290,9 @@ def upload_documento():
     if not _ext_ok(arquivo.filename):
         flash('Formato não permitido. Use PDF, JPG ou PNG.', 'warning')
         return redirect(url_for('loja.meus_documentos'))
+    if not _magic_ok(arquivo.stream):
+        flash('Arquivo inválido: o conteúdo não corresponde ao formato declarado.', 'danger')
+        return redirect(url_for('loja.meus_documentos'))
 
     # 🛰️ Nome único e envio direto para o R2 (bucket privado m4-clientes-docs).
     # Nada mais é salvo em disco local — o disco do Render é efêmero.
@@ -358,6 +393,9 @@ def solicitar_arma():
     if arquivo_craf and arquivo_craf.filename:
         if not _ext_ok(arquivo_craf.filename):
             flash('Formato do arquivo CRAF inválido. Use PDF, JPG ou PNG.', 'warning')
+            return redirect(url_for('loja.meus_documentos'))
+        if not _magic_ok(arquivo_craf.stream):
+            flash('Arquivo CRAF inválido: o conteúdo não corresponde ao formato declarado.', 'danger')
             return redirect(url_for('loja.meus_documentos'))
 
         nome_seguro_craf = secure_filename(arquivo_craf.filename)

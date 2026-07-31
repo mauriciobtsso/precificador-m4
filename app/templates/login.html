@@ -3,6 +3,7 @@
 <h4 class="mb-4 text-center">Acesse sua conta</h4>
 
 <form method="POST" action="{{ url_for('main.login', next=request.args.get('next')) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="mb-3">
         <input 
             type="text" 

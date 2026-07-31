@@ -19,6 +19,8 @@
 
 <!-- Enviar nova comunicação -->
 <form method="POST" action="{{ url_for('clientes.nova_comunicacao', cliente_id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     <div class="row g-2">
         <div class="col-md-2">
             <select name="tipo" class="form-select" required>

@@ -8,6 +8,7 @@
 </div>
 
 <form method="POST" action="{{ url_for('taxas.gerenciar', taxa_id=taxa.id if taxa else None) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="card shadow-sm mb-3">
     <div class="card-body">
       <div class="row g-3">

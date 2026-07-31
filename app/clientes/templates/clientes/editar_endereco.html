@@ -24,6 +24,8 @@
 
     <!-- Formulário de edição -->
     <form method="POST" action="{{ url_for('clientes.editar_endereco', cliente_id=cliente_id, endereco_id=endereco.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         
         <!-- CEP primeiro -->
         <div class="mb-3">

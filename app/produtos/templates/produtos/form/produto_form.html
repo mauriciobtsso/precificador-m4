@@ -8,6 +8,8 @@
   {% include "produtos/form/includes/_header.html" %}
   
   <form method="POST" action="" class="needs-validation" novalidate id="produtoForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
 
     <ul class="nav nav-tabs" id="produtoTabs" role="tablist">
       <li class="nav-item" role="presentation">

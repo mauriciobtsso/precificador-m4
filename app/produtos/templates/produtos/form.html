@@ -80,6 +80,8 @@
           <i class="fas fa-times me-1"></i> Cancelar
         </button>
         <form id="formExcluirProduto" method="POST" class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
           <button type="submit" class="btn btn-danger">
             <i class="fas fa-trash-alt me-1"></i> Sim, excluir produto
           </button>

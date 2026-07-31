@@ -3,6 +3,8 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <form method="POST" action="{{ url_for('clientes.salvar_craf', cliente_id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="modal-header">
           <h5 class="modal-title">Cadastrar Nova Arma</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

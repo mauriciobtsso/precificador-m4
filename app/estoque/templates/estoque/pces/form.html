@@ -7,6 +7,8 @@
   </div>
 
   <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     <div class="m4-card mb-4">
       <h5><i class="fas fa-tags me-2"></i>Produto e Fornecedor</h5>
       <div class="row g-3">

@@ -3,6 +3,8 @@
 <!-- ================================== -->
 
 <form method="POST" enctype="multipart/form-data" action="{{ url_for('clientes.editar_documento', cliente_id=cliente.id, doc_id=doc.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
   <div class="modal-header">
     <h5 class="modal-title">
       <i class="fas fa-pen-to-square me-2 text-primary"></i> Editar Documento
