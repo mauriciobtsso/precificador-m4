@@ -19,6 +19,8 @@ from app.produtos.configs.models import MarcaProduto, CalibreProduto
 from app.models import Configuracao
 from app.utils.r2_helpers import gerar_link_r2
 from app.utils.thumbnail_utils import get_thumb_url
+from app.utils.image_proxy import serve_image_with_fallback
+from app.catalogo.image_url_helper import convert_image_url, convert_thumb_url
 
 # ────────────────────────────────────────────────────────────
 # HELPER LOCAL: compatível com o padrão de loja/routes.py
@@ -116,6 +118,8 @@ def inject_catalogo_data():
             loja_config=loja_config,
             get_thumb_url=get_thumb_url,
             catalogo_gerar_link=_gerador_link,
+            convert_image_url=convert_image_url,
+            convert_thumb_url=convert_thumb_url,
         )
     except Exception as e:
         current_app.logger.error(f"[CATALOGO] Erro no context_processor: {e}")
@@ -124,7 +128,25 @@ def inject_catalogo_data():
             loja_config={},
             get_thumb_url=get_thumb_url,
             catalogo_gerar_link=_gerador_link,
+            convert_image_url=convert_image_url,
+            convert_thumb_url=convert_thumb_url,
         )
+
+
+# ============================================================
+# ROTA: PROXY DE IMAGENS COM FALLBACK PARA NAVEGADORES ANTIGOS
+# ============================================================
+@catalogo_bp.route('/image-proxy/<path:image_path>')
+def image_proxy(image_path):
+    """
+    Proxy de imagens com detecção automática de suporte a WebP.
+    Se o navegador não suporta WebP (ex: iOS 9.3.6), converte para JPEG.
+    
+    Exemplos:
+        /catalogo/image-proxy/produtos/fotos/166/aa4.webp
+        /catalogo/image-proxy/produtos/fotos/166/aa4_t280.webp
+    """
+    return serve_image_with_fallback(image_path)
 
 
 # ============================================================
