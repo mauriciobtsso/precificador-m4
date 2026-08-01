@@ -402,7 +402,15 @@
 
     .cat-qr-canvas {
         margin: 0 auto 12px;
-        display: block;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 160px;
+        height: 160px;
+    }
+    .cat-qr-canvas img, .cat-qr-canvas canvas {
+        max-width: 100%;
+        height: auto;
     }
 
     .cat-qr-label {
@@ -845,7 +853,7 @@
 
         {# ── PAINEL QR CODE ─────────────────────────────────── #}
         <div class="cat-qr-panel" id="qrPanel" aria-hidden="true">
-            <canvas id="qrCanvas" class="cat-qr-canvas" width="160" height="160"></canvas>
+            <div id="qrCanvas" class="cat-qr-canvas"></div>
             <p class="cat-qr-label">Aponte a câmera do celular para acessar este produto</p>
             <p style="font-size:11px;color:var(--c-mid);word-break:break-all;" id="qrUrl"></p>
         </div>
@@ -937,7 +945,7 @@
 
     var PROD_ID   = {{ produto.id }};
     var PROD_NOME = {{ nome_display | tojson | safe }};
-    var LOJA_URL  = window.location.origin + '{{ url_for("loja.detalhe_produto", slug=produto.slug) }}';
+    var LOJA_URL  = 'https://loja.m4tatica.com.br/produto/{{ produto.slug }}';
     var CAT_URL   = window.location.href;
 
     // ── Toast ─────────────────────────────────────────────
@@ -1104,21 +1112,32 @@
     });
 
     function gerarQR(url) {
-        var canvas = document.getElementById('qrCanvas');
-        if (!canvas) return;
-        var ctx = canvas.getContext('2d');
+        var container = document.getElementById('qrCanvas');
+        if (!container) return;
         var size = 160;
 
-        // Implementação QR Code mínima sem dependências externas
-        // Usa a API de canvas para desenhar QR Code via codificação binária simplificada
-        // Para iOS 9 sem bibliotecas externas, usamos um QR Code canvas puro
-        // Carrega qrcode.js dinamicamente se disponível
+        // Se já existir a biblioteca, gera direto
+        if (window.QRCode) {
+            renderizar(url);
+            return;
+        }
+
         var script = document.createElement('script');
         script.src = '{{ url_for("static", filename="vendor/qrcode/qrcode.min.js") }}';
         script.onload = function () {
+            renderizar(url);
+        };
+        script.onerror = function () {
+            container.innerHTML = '<div style="font-size:10px;color:#666;padding:20px;background:#f5f5f7;">' +
+                                 'Acesse:<br><b style="word-break:break-all;">' + url.replace('https://','') + '</b></div>';
+        };
+        document.head.appendChild(script);
+
+        function renderizar(text) {
             try {
-                var qr = new QRCode(canvas, {
-                    text: url,
+                container.innerHTML = '';
+                new QRCode(container, {
+                    text: text,
                     width: size,
                     height: size,
                     colorDark: '#000000',
@@ -1126,28 +1145,9 @@
                     correctLevel: QRCode.CorrectLevel.M
                 });
             } catch(e) {
-                // Fallback: exibe URL textual
-                ctx.clearRect(0, 0, size, size);
-                ctx.fillStyle = '#f5f5f7';
-                ctx.fillRect(0, 0, size, size);
-                ctx.fillStyle = '#111';
-                ctx.font = '10px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('QR Code', size/2, size/2 - 8);
-                ctx.fillText('indisponível', size/2, size/2 + 8);
+                container.innerHTML = '<div style="font-size:10px;color:#666;">QR Code indisponível</div>';
             }
-        };
-        script.onerror = function () {
-            // Fallback silencioso
-            ctx.fillStyle = '#f5f5f7';
-            ctx.fillRect(0, 0, size, size);
-            ctx.fillStyle = '#333';
-            ctx.font = '11px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('Acesse:', size/2, 70);
-            ctx.fillText(url.replace('https://',''), size/2, 86);
-        };
-        document.head.appendChild(script);
+        }
     }
 
     // ── Compartilhar ────────────────────────────────────────
