@@ -321,14 +321,14 @@
     <ul class="cat-grid" role="list">
         {% for p in destaques %}
         <li class="cat-grid-item" role="listitem">
-            {% set thumb = get_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
             <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
                 <div class="cat-product-img">
                     <img
                         src="{{ thumb }}"
                         alt="{{ p.nome_comercial or p.nome }}"
                         loading="{{ 'eager' if loop.index <= 4 else 'lazy' }}"
-                        onerror="this.onerror=null;this.src='{{ gerar_link(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
+                        onerror="this.onerror=null;this.src='{{ convert_image_url(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
                     >
                 </div>
                 <div class="cat-product-body">
@@ -362,14 +362,14 @@
     <ul class="cat-grid" role="list">
         {% for p in lancamentos %}
         <li class="cat-grid-item" role="listitem">
-            {% set thumb = get_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
             <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
                 <div class="cat-product-img">
                     <img
                         src="{{ thumb }}"
                         alt="{{ p.nome_comercial or p.nome }}"
                         loading="lazy"
-                        onerror="this.onerror=null;this.src='{{ gerar_link(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
+                        onerror="this.onerror=null;this.src='{{ convert_image_url(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
                     >
                 </div>
                 <div class="cat-product-body">
@@ -402,14 +402,14 @@
     <ul class="cat-grid" role="list">
         {% for p in promocoes %}
         <li class="cat-grid-item" role="listitem">
-            {% set thumb = get_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
             <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
                 <div class="cat-product-img">
                     <img
                         src="{{ thumb }}"
                         alt="{{ p.nome_comercial or p.nome }}"
                         loading="lazy"
-                        onerror="this.onerror=null;this.src='{{ gerar_link(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
+                        onerror="this.onerror=null;this.src='{{ convert_image_url(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
                     >
                 </div>
                 <div class="cat-product-body">

@@ -18,7 +18,7 @@ from app.produtos.categorias.models import CategoriaProduto
 from app.produtos.configs.models import MarcaProduto, CalibreProduto
 from app.models import Configuracao
 from app.utils.r2_helpers import gerar_link_r2
-from app.utils.thumbnail_utils import get_thumb_url
+# from app.utils.thumbnail_utils import get_thumb_url  # Substituído pelo proxy
 from app.utils.image_proxy import serve_image_with_fallback
 from app.catalogo.image_url_helper import convert_image_url, convert_thumb_url
 
@@ -116,7 +116,7 @@ def inject_catalogo_data():
         return dict(
             catalogo_categorias=categorias,
             loja_config=loja_config,
-            get_thumb_url=get_thumb_url,
+            # get_thumb_url=get_thumb_url,  # Usar convert_thumb_url no lugar
             catalogo_gerar_link=_gerador_link,
             convert_image_url=convert_image_url,
             convert_thumb_url=convert_thumb_url,
@@ -126,7 +126,7 @@ def inject_catalogo_data():
         return dict(
             catalogo_categorias=[],
             loja_config={},
-            get_thumb_url=get_thumb_url,
+            # get_thumb_url=get_thumb_url,  # Usar convert_thumb_url no lugar
             catalogo_gerar_link=_gerador_link,
             convert_image_url=convert_image_url,
             convert_thumb_url=convert_thumb_url,
@@ -324,7 +324,7 @@ def api_buscar():
                 foto_url = '/static/img/placeholder.jpg'
 
             # Usa thumbnail para performance no autocomplete
-            thumb = get_thumb_url(p.foto_url, 't160') if p.foto_url else foto_url
+            thumb = convert_thumb_url(p.foto_url, 't160') if p.foto_url else foto_url
 
             resultado.append({
                 'id': p.id,
@@ -376,7 +376,7 @@ def api_relacionados(produto_id):
 
         resultado = []
         for r in relacionados:
-            thumb = get_thumb_url(r.foto_url, 't280') if r.foto_url else '/static/img/placeholder.jpg'
+            thumb = convert_thumb_url(r.foto_url, 't280') if r.foto_url else '/static/img/placeholder.jpg'
             resultado.append({
                 'id': r.id,
                 'slug': r.slug,
@@ -456,7 +456,7 @@ def api_categoria(slug):
 
         resultado = []
         for p in pagination.items:
-            thumb = get_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg'
+            thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg'
             resultado.append({
                 'id': p.id,
                 'slug': p.slug,

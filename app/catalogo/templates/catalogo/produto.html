@@ -647,20 +647,14 @@
                 {% endif %}
 
                 {% if produto.foto_url %}
-                    {% set caminho_clean = produto.foto_url.replace('m4-loja-publico/','').replace('m4-clientes-docs/','') %}
-                    {% if not caminho_clean.startswith('http') %}
-                        {% set foto_full = 'https://cdn.m4tatica.com.br/' ~ caminho_clean.lstrip('/') %}
-                    {% else %}
-                        {% set foto_full = caminho_clean %}
-                    {% endif %}
                     <img
                         id="fotoMain"
-                        src="{{ foto_full }}"
+                        src="{{ convert_image_url(produto.foto_url) }}"
                         alt="{{ nome_display }}"
                         loading="eager"
                         fetchpriority="high"
                         decoding="async"
-                        onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';"
+                        onerror="this.onerror=null;this.src='{{ convert_image_url(produto.foto_url) if produto.foto_url else '/static/img/placeholder.jpg' }}';"
                     >
                 {% else %}
                     <div style="text-align:center;color:var(--c-mid);opacity:.4;">
@@ -890,14 +884,14 @@
     <ul class="cat-grid" role="list">
         {% for p in relacionados %}
         <li class="cat-grid-item" role="listitem">
-            {% set thumb = get_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
             <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
                 <div class="cat-product-img">
                     <img
                         src="{{ thumb }}"
                         alt="{{ p.nome_comercial or p.nome }}"
                         loading="lazy"
-                        onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';"
+                        onerror="this.onerror=null;this.src='{{ convert_image_url(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
                     >
                 </div>
                 <div class="cat-product-body">
