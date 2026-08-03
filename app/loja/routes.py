@@ -128,9 +128,9 @@ def inject_thumb_helper():
 # ============================================================
 # VITRINE PRINCIPAL (CIRURGIA A LASER: OPTIMIZED GET_SMART_CAT)
 # ============================================================
-@loja_bp.route('/api/buscar')
+@loja_bp.route('/api/buscar-fuzzy')
 @cache.cached(timeout=300, query_string=True)
-def buscar_produtos():
+def buscar_fuzzy():
     termo = request.args.get('q', '').strip()
     if not termo or len(termo) < 2:
         return jsonify([])
