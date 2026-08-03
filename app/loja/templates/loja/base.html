@@ -71,6 +71,61 @@
             display: flex; align-items: center; justify-content: center;
         }
 
+        /* Busca Fuzzy */
+        #search-results-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: #fff;
+            z-index: 9999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            display: none;
+            max-height: 450px;
+            overflow-y: auto;
+            border-radius: 0 0 8px 8px;
+            border: 1px solid #ddd;
+            margin-top: 2px;
+        }
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            text-decoration: none !important;
+            color: #333 !important;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+        .search-result-item:hover {
+            background: #f8f9fa;
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        .search-result-img {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            margin-right: 15px;
+            border-radius: 4px;
+            background: #eee;
+        }
+        .search-result-info {
+            flex: 1;
+        }
+        .search-result-name {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            display: block;
+            line-height: 1.2;
+        }
+        .search-result-price {
+            font-size: 13px;
+            color: var(--m4-gold-text);
+            font-weight: 800;
+        }
+
         .nav-departments { 
             background-color: #fff; 
             border-bottom: 3px solid var(--m4-gold); 
@@ -201,11 +256,12 @@
                     </a>
                 </div>
 
-                <div class="search-container d-flex order-3 order-lg-2 mt-3 mt-lg-0">
+                <div class="search-container d-flex order-3 order-lg-2 mt-3 mt-lg-0 position-relative">
                     <form action="{{ url_for('loja.index') }}" method="GET" class="d-flex w-100 shadow-sm" role="search">
-                        <input type="text" name="q" class="form-control search-box-m4" placeholder="O que você está procurando?" value="{{ termo_busca or '' }}" aria-label="Buscar produtos">
+                        <input type="text" name="q" class="form-control search-box-m4" placeholder="O que você está procurando?" value="{{ termo_busca or '' }}" aria-label="Buscar produtos" autocomplete="off">
                         <button type="submit" class="search-btn-m4" aria-label="Pesquisar"><i class="bi bi-search"></i></button>
                     </form>
+                    <div id="search-results-dropdown"></div>
                 </div>
 
                 <div class="d-flex align-items-center gap-2 order-2 order-lg-3">
@@ -346,5 +402,81 @@
     </script>
 
     {% block extra_js %}{% endblock %}
+    
+    {# Script de Busca Fuzzy (ES5 Puro para Compatibilidade) #}
+    <script>
+    (function() {
+        var searchInput = document.querySelector('.search-box-m4');
+        var dropdown = document.getElementById('search-results-dropdown');
+        var timeout = null;
+        var apiURL = "{{ url_for('loja.buscar_produtos') }}";
+        var productBaseURL = "{{ url_for('loja.detalhe_produto', slug='') }}";
+
+        function formatBRL(val) {
+            return 'R$ ' + val.toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+        }
+
+        function renderResults(data) {
+            if (!data || data.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < data.length; i++) {
+                var item = data[i];
+                var url = productBaseURL + item.slug;
+                html += '<a href="' + url + '" class="search-result-item">' +
+                        '<img src="' + item.foto + '" class="search-result-img" alt="' + item.nome + '">' +
+                        '<div class="search-result-info">' +
+                        '<span class="search-result-name">' + item.nome + '</span>' +
+                        '<span class="search-result-price">' + formatBRL(item.preco) + ' à vista</span>' +
+                        '</div>' +
+                        '</a>';
+            }
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                var q = this.value.trim();
+                if (timeout) clearTimeout(timeout);
+                
+                if (q.length < 2) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                timeout = setTimeout(function() {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', apiURL + '?q=' + encodeURIComponent(q), true);
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4 && xhr.status === 200) {
+                            try {
+                                var res = JSON.parse(xhr.responseText);
+                                renderResults(res);
+                            } catch(e) {}
+                        }
+                    };
+                    xhr.send();
+                }, 300);
+            });
+
+            // Fecha dropdown ao clicar fora
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+            
+            // Reabre se focar e tiver conteúdo
+            searchInput.addEventListener('focus', function() {
+                if (dropdown.innerHTML !== '' && this.value.length >= 2) {
+                    dropdown.style.display = 'block';
+                }
+            });
+        }
+    })();
+    </script>
 </body>
 </html>
