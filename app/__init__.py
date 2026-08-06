@@ -93,6 +93,7 @@ def create_app():
     csrf.init_app(app)
     # Rotas isentas de CSRF (APIs consumidas por JS ou sistemas externos)
     csrf.exempt("app.loja.routes.buscar_produtos")
+    csrf.exempt("app.loja.routes.api_buscar_fuzzy")
     csrf.exempt("app.loja.routes.comparar_produtos")
     csrf.exempt("app.carrinho.routes.adicionar")
     csrf.exempt("app.carrinho.routes.atualizar_quantidade")

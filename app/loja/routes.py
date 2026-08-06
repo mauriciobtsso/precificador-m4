@@ -499,6 +499,64 @@ def limpar_cache():
     except Exception as e:
         return f"❌ Erro ao limpar cache: {str(e)}"
 
+@loja_bp.route('/api/buscar-fuzzy')
+@cache.cached(timeout=300, query_string=True)
+def api_buscar_fuzzy():
+    termo = request.args.get('q', '').strip()
+    if not termo or len(termo) < 2:
+        return jsonify([])
+
+    try:
+        sim_nome = func.similarity(Produto.nome, termo)
+        sim_comercial = func.similarity(Produto.nome_comercial, termo)
+        sim_codigo = func.similarity(Produto.codigo, termo)
+        max_sim = func.greatest(sim_nome, sim_comercial, sim_codigo)
+
+        produtos = Produto.query.filter(
+            Produto.visivel_loja == True,
+            or_(
+                Produto.nome.op('%')(termo),
+                Produto.nome_comercial.op('%')(termo),
+                Produto.codigo.op('%')(termo)
+            )
+        ).order_by(max_sim.desc()).limit(10).all()
+
+        resultados = []
+        for p in produtos:
+            precos = p.calcular_precos()
+            resultados.append({
+                'id': p.id,
+                'nome': p.nome_comercial or p.nome,
+                'slug': p.slug,
+                'preco': float(precos.get('preco_a_vista', 0)),
+                'foto': get_thumb_url(p.foto_url, size='small') if p.foto_url else url_for('static', filename='img/sem-foto.jpg')
+            })
+
+        return jsonify(resultados)
+    except Exception as e:
+        current_app.logger.error(f"Erro na busca fuzzy: {e}")
+        busca_like = f"%{termo}%"
+        produtos = Produto.query.filter(
+            Produto.visivel_loja == True,
+            or_(
+                Produto.nome.ilike(busca_like),
+                Produto.nome_comercial.ilike(busca_like),
+                Produto.codigo.ilike(busca_like)
+            )
+        ).limit(10).all()
+        
+        resultados = []
+        for p in produtos:
+            precos = p.calcular_precos()
+            resultados.append({
+                'id': p.id,
+                'nome': p.nome_comercial or p.nome,
+                'slug': p.slug,
+                'preco': float(precos.get('preco_a_vista', 0)),
+                'foto': get_thumb_url(p.foto_url, size='small') if p.foto_url else url_for('static', filename='img/sem-foto.jpg')
+            })
+        return jsonify(resultados)
+
 @loja_bp.route('/comparador')
 def comparador():
     return render_template('loja/comparador.html')
