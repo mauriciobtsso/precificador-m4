@@ -8,13 +8,20 @@
 {% block extra_css %}
 <style>
     /* ── LAYOUT PRINCIPAL ─────────────────────────────────── */
+    /* Layout de 2 colunas via FLOAT (não flexbox).
+       Motivo: flexbox + position:sticky + align-self tem comportamento
+       inconsistente em engines WebKit antigas (ex.: iPad Mini / iOS 9),
+       mesmo quando a soma das larguras fecha em 100%. Float é a técnica
+       clássica, sem ambiguidade, suportada de forma idêntica em
+       qualquer WebKit desde sempre. */
     .cat-prod-layout {
-        display: -webkit-box;
-        display: -webkit-flex;
-        display: flex;
-        -webkit-flex-wrap: wrap;
-        flex-wrap: wrap;
         padding-top: 28px;
+    }
+
+    .cat-prod-layout:after {
+        content: "";
+        display: table;
+        clear: both;
     }
 
     .cat-prod-col-media {
@@ -28,17 +35,17 @@
 
     @media (min-width: 720px) {
         .cat-prod-col-media {
+            float: left;
             width: calc(52% - 20px);
             margin-right: 40px;
             margin-bottom: 0;
         }
         .cat-prod-col-info {
+            float: left;
             width: calc(48% - 20px);
             position: -webkit-sticky;
             position: sticky;
             top: 80px;
-            -webkit-align-self: flex-start;
-            align-self: flex-start;
         }
     }
 
