@@ -135,15 +135,28 @@ def buscar_fuzzy():
     if not termo or len(termo) < 2:
         return jsonify([])
 
+    def serializar(produtos):
+        resultados = []
+        for p in produtos:
+            precos = p.calcular_precos()
+            resultados.append({
+                'id': p.id,
+                'nome': p.nome_comercial or p.nome,
+                'slug': p.slug,
+                'preco': float(precos.get('preco_a_vista', 0)),
+                'foto': get_thumb_url(p.foto_url, size='small') if p.foto_url else url_for('static', filename='img/sem-foto.jpg')
+            })
+        return resultados
+
     # Busca Fuzzy usando pg_trgm similarity
     # Priorizamos nome_comercial, nome e codigo
     try:
         # Usamos similarity() do PostgreSQL via func
-        # Nota: pg_trgm deve estar ativo no banco (ver migration)
+        # Nota: pg_trgm deve estar ativo no banco (ver migration 20260802_fuzzy_search_trgm)
         sim_nome = func.similarity(Produto.nome, termo)
         sim_comercial = func.similarity(Produto.nome_comercial, termo)
         sim_codigo = func.similarity(Produto.codigo, termo)
-        
+
         # Maior similaridade entre os campos
         max_sim = func.greatest(sim_nome, sim_comercial, sim_codigo)
 
@@ -156,42 +169,31 @@ def buscar_fuzzy():
             )
         ).order_by(max_sim.desc()).limit(10).all()
 
-        resultados = []
-        for p in produtos:
-            precos = p.calcular_precos()
-            resultados.append({
-                'id': p.id,
-                'nome': p.nome_comercial or p.nome,
-                'slug': p.slug,
-                'preco': float(precos.get('preco_a_vista', 0)),
-                'foto': get_thumb_url(p.foto_url, size='small') if p.foto_url else url_for('static', filename='img/sem-foto.jpg')
-            })
-
-        return jsonify(resultados)
+        return jsonify(serializar(produtos))
     except Exception as e:
-        current_app.logger.error(f"Erro na busca fuzzy: {e}")
+        current_app.logger.error(f"Erro na busca fuzzy (pg_trgm indisponível?): {e}")
+
+        # CRÍTICO: sem isso, a transação do Postgres fica "abortada" e TODA
+        # query seguinte nessa mesma conexão falha também — inclusive de
+        # outras rotas (ex.: comparador), até a conexão ser reciclada.
+        db.session.rollback()
+
         # Fallback para busca simples se o pg_trgm falhar ou não estiver disponível
         busca_like = f"%{termo}%"
-        produtos = Produto.query.filter(
-            Produto.visivel_loja == True,
-            or_(
-                Produto.nome.ilike(busca_like),
-                Produto.nome_comercial.ilike(busca_like),
-                Produto.codigo.ilike(busca_like)
-            )
-        ).limit(10).all()
-        
-        resultados = []
-        for p in produtos:
-            precos = p.calcular_precos()
-            resultados.append({
-                'id': p.id,
-                'nome': p.nome_comercial or p.nome,
-                'slug': p.slug,
-                'preco': float(precos.get('preco_a_vista', 0)),
-                'foto': get_thumb_url(p.foto_url, size='small') if p.foto_url else url_for('static', filename='img/sem-foto.jpg')
-            })
-        return jsonify(resultados)
+        try:
+            produtos = Produto.query.filter(
+                Produto.visivel_loja == True,
+                or_(
+                    Produto.nome.ilike(busca_like),
+                    Produto.nome_comercial.ilike(busca_like),
+                    Produto.codigo.ilike(busca_like)
+                )
+            ).limit(10).all()
+            return jsonify(serializar(produtos))
+        except Exception as e2:
+            current_app.logger.error(f"Erro no fallback da busca: {e2}")
+            db.session.rollback()
+            return jsonify([])
 
 @loja_bp.route('/')
 @cache.cached(timeout=60, query_string=True, key_prefix='index_v8')
@@ -499,64 +501,6 @@ def limpar_cache():
     except Exception as e:
         return f"❌ Erro ao limpar cache: {str(e)}"
 
-@loja_bp.route('/api/buscar-fuzzy')
-@cache.cached(timeout=300, query_string=True)
-def api_buscar_fuzzy():
-    termo = request.args.get('q', '').strip()
-    if not termo or len(termo) < 2:
-        return jsonify([])
-
-    try:
-        sim_nome = func.similarity(Produto.nome, termo)
-        sim_comercial = func.similarity(Produto.nome_comercial, termo)
-        sim_codigo = func.similarity(Produto.codigo, termo)
-        max_sim = func.greatest(sim_nome, sim_comercial, sim_codigo)
-
-        produtos = Produto.query.filter(
-            Produto.visivel_loja == True,
-            or_(
-                Produto.nome.op('%')(termo),
-                Produto.nome_comercial.op('%')(termo),
-                Produto.codigo.op('%')(termo)
-            )
-        ).order_by(max_sim.desc()).limit(10).all()
-
-        resultados = []
-        for p in produtos:
-            precos = p.calcular_precos()
-            resultados.append({
-                'id': p.id,
-                'nome': p.nome_comercial or p.nome,
-                'slug': p.slug,
-                'preco': float(precos.get('preco_a_vista', 0)),
-                'foto': get_thumb_url(p.foto_url, size='small') if p.foto_url else url_for('static', filename='img/sem-foto.jpg')
-            })
-
-        return jsonify(resultados)
-    except Exception as e:
-        current_app.logger.error(f"Erro na busca fuzzy: {e}")
-        busca_like = f"%{termo}%"
-        produtos = Produto.query.filter(
-            Produto.visivel_loja == True,
-            or_(
-                Produto.nome.ilike(busca_like),
-                Produto.nome_comercial.ilike(busca_like),
-                Produto.codigo.ilike(busca_like)
-            )
-        ).limit(10).all()
-        
-        resultados = []
-        for p in produtos:
-            precos = p.calcular_precos()
-            resultados.append({
-                'id': p.id,
-                'nome': p.nome_comercial or p.nome,
-                'slug': p.slug,
-                'preco': float(precos.get('preco_a_vista', 0)),
-                'foto': get_thumb_url(p.foto_url, size='small') if p.foto_url else url_for('static', filename='img/sem-foto.jpg')
-            })
-        return jsonify(resultados)
-
 @loja_bp.route('/comparador')
 def comparador():
     return render_template('loja/comparador.html')
@@ -566,10 +510,10 @@ def buscar_produtos():
     termo = request.args.get('q', '').strip()
     if len(termo) < 2: return jsonify({'produtos': []})
     filtro = f"%{termo}%"
-    
+
     from sqlalchemy import and_, or_
     from app.produtos.categorias.models import CategoriaProduto
-    
+
     condicao_arma = and_(
         or_(
             Produto.funcionamento_id != None, 
@@ -579,17 +523,25 @@ def buscar_produtos():
         ~Produto.categoria.has(CategoriaProduto.slug.ilike('%insumo%')),
         ~Produto.categoria.has(CategoriaProduto.slug.ilike('%carregador%'))
     )
-    
-    produtos = Produto.query.filter(
-        condicao_arma,
-        Produto.visivel_loja == True,
-        or_(
-            Produto.nome.ilike(filtro),
-            Produto.nome_comercial.ilike(filtro),
-            Produto.codigo.ilike(filtro)
-        )
-    ).limit(20).all()
-    
+
+    try:
+        produtos = Produto.query.filter(
+            condicao_arma,
+            Produto.visivel_loja == True,
+            or_(
+                Produto.nome.ilike(filtro),
+                Produto.nome_comercial.ilike(filtro),
+                Produto.codigo.ilike(filtro)
+            )
+        ).limit(20).all()
+    except Exception as e:
+        # Defensivo: se a sessão do banco vier "envenenada" por uma
+        # transação abortada em outra rota, isso evita um 500 aqui e
+        # recupera a conexão para as próximas requisições.
+        current_app.logger.error(f"Erro na busca do comparador: {e}")
+        db.session.rollback()
+        return jsonify({'produtos': []})
+
     resultado = []
     for p in produtos:
         foto = p.foto_url if p.foto_url and (p.foto_url.startswith('http') or p.foto_url.startswith('/')) else url_for('static', filename='img/sem-foto.jpg')
@@ -625,6 +577,7 @@ def comparar_produtos():
         })
     except Exception as e:
         current_app.logger.error(f'Erro no comparador: {str(e)}')
+        db.session.rollback()
         return jsonify({'erro': f'Erro ao processar comparação: {str(e)}'}), 500
 
 def gerar_analise_local(produtos_data):
