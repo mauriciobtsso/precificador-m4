@@ -20,7 +20,6 @@
     }
 
     .cat-hero-title {
-        font-size: 32px; /* Fallback para iOS 9 */
         font-size: clamp(28px, 5vw, 48px);
         font-weight: 800;
         color: var(--c-dark);
@@ -99,11 +98,9 @@
         padding-bottom: 12px;
         border-bottom: 1px solid var(--c-border);
     }
-    .cat-dynamic-header > * {
-        margin-right: 12px;
-    }
-    .cat-dynamic-header > *:last-child {
-        margin-right: 0;
+
+    .cat-dynamic-header > * + * {
+        margin-left: 12px;
     }
 
     .cat-dynamic-title {
@@ -119,27 +116,41 @@
         color: var(--c-mid);
     }
 
+    /* Sem "gap" em flexbox no iOS 9: espaçamento via margem real,
+       zerada na última coluna de cada linha (mesma técnica do .cat-grid). */
     .cat-dynamic-grid {
         display: -webkit-box;
         display: -webkit-flex;
         display: flex;
         -webkit-flex-wrap: wrap;
         flex-wrap: wrap;
-        margin-left: -8px;
-        margin-right: -8px;
     }
 
     .cat-dynamic-item {
-        width: 50%;
-        padding: 8px;
+        width: calc(50% - 8px);
+        margin: 0 16px 16px 0;
+    }
+
+    .cat-dynamic-item:nth-child(2n) {
+        margin-right: 0;
     }
 
     @media (min-width: 600px) {
-        .cat-dynamic-item { width: 33.333%; }
+        .cat-dynamic-item {
+            width: calc(33.333% - 10.667px);
+            margin-right: 16px;
+        }
+        .cat-dynamic-item:nth-child(2n) { margin-right: 16px; }
+        .cat-dynamic-item:nth-child(3n) { margin-right: 0; }
     }
 
     @media (min-width: 900px) {
-        .cat-dynamic-item { width: 25%; }
+        .cat-dynamic-item {
+            width: calc(25% - 12px);
+            margin-right: 16px;
+        }
+        .cat-dynamic-item:nth-child(3n) { margin-right: 16px; }
+        .cat-dynamic-item:nth-child(4n) { margin-right: 0; }
     }
 
     /* ── SKELETON LOADING ────────────────────────────────────── */
@@ -167,9 +178,7 @@
     }
 
     .cat-skeleton-img {
-        width: 100%;
-        height: 0;
-        padding-bottom: 100%;
+        aspect-ratio: 1;
         background: linear-gradient(90deg, var(--c-light) 25%, #ebebeb 50%, var(--c-light) 75%);
         background-size: 400% 100%;
         -webkit-animation: shimmer 1.4s ease infinite;

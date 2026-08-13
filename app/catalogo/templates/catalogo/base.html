@@ -126,11 +126,9 @@
             -webkit-align-items: center;
             align-items: center;
         }
-        .cat-header-inner > * {
-            margin-right: 16px;
-        }
-        .cat-header-inner > *:last-child {
-            margin-right: 0;
+
+        .cat-header-inner > * + * {
+            margin-left: 16px;
         }
 
         .cat-logo {
@@ -226,8 +224,9 @@
             -webkit-flex-shrink: 0;
             flex-shrink: 0;
         }
-        .cat-btn-modo i {
-            margin-right: 6px;
+
+        .cat-btn-modo > * + * {
+            margin-left: 6px;
         }
 
         .cat-btn-modo:hover,
@@ -276,11 +275,9 @@
             text-decoration: none;
             color: inherit;
         }
-        .cat-search-result-item > * {
-            margin-right: 12px;
-        }
-        .cat-search-result-item > *:last-child {
-            margin-right: 0;
+
+        .cat-search-result-item > * + * {
+            margin-left: 12px;
         }
 
         .cat-search-result-item:last-child {
@@ -422,17 +419,21 @@
 
         .cat-product-img {
             width: 100%;
-            height: 0;
-            padding-bottom: 100%;
+            aspect-ratio: 1;
             background-color: var(--c-light);
             overflow: hidden;
-            position: relative;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            justify-content: center;
         }
 
         .cat-product-img img {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
             object-fit: contain;
@@ -450,7 +451,10 @@
             -webkit-box-orient: vertical;
             -webkit-flex-direction: column;
             flex-direction: column;
-            gap: 4px;
+        }
+
+        .cat-product-body > * + * {
+            margin-top: 4px;
         }
 
         .cat-product-marca {
@@ -498,32 +502,53 @@
         }
 
         /* ── GRID DE PRODUTOS ────────────────────────────────── */
+        /* Sem "gap" em flexbox: não existe no Safari do iOS 9 (iPad Mini 1ª ger.).
+           O espaçamento é feito com margem real entre colunas, zerada na
+           última coluna de cada linha via :nth-child — assim as colunas
+           preenchem 100% da largura em qualquer breakpoint. */
         .cat-grid {
             display: -webkit-box;
             display: -webkit-flex;
             display: flex;
             -webkit-flex-wrap: wrap;
             flex-wrap: wrap;
-            margin-left: -8px;
-            margin-right: -8px;
+            margin: 0;
             padding: 0;
             list-style: none;
         }
 
         .cat-grid-item {
-            width: 50%;
-            padding: 8px;
+            width: calc(50% - 8px);
+            margin: 0 16px 16px 0;
+        }
+
+        .cat-grid-item:nth-child(2n) {
+            margin-right: 0;
         }
 
         @media (min-width: 600px) {
             .cat-grid-item {
-                width: 33.333%;
+                width: calc(33.333% - 10.667px);
+                margin-right: 16px;
+            }
+            .cat-grid-item:nth-child(2n) {
+                margin-right: 16px;
+            }
+            .cat-grid-item:nth-child(3n) {
+                margin-right: 0;
             }
         }
 
         @media (min-width: 900px) {
             .cat-grid-item {
-                width: 25%;
+                width: calc(25% - 12px);
+                margin-right: 16px;
+            }
+            .cat-grid-item:nth-child(3n) {
+                margin-right: 16px;
+            }
+            .cat-grid-item:nth-child(4n) {
+                margin-right: 0;
             }
         }
 
@@ -576,9 +601,12 @@
             display: -webkit-box;
             display: -webkit-flex;
             display: flex;
-            gap: 8px;
             padding: 0;
             white-space: nowrap;
+        }
+
+        .cat-chips > * + * {
+            margin-left: 8px;
         }
 
         .cat-chip {
@@ -588,7 +616,6 @@
             -webkit-box-align: center;
             -webkit-align-items: center;
             align-items: center;
-            gap: 6px;
             height: 38px;
             padding: 0 16px;
             background-color: var(--c-light);
@@ -605,6 +632,10 @@
             -webkit-tap-highlight-color: transparent;
             -webkit-appearance: none;
             appearance: none;
+        }
+
+        .cat-chip > * + * {
+            margin-left: 6px;
         }
 
         .cat-chip:hover,
