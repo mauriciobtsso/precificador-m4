@@ -196,7 +196,7 @@ def buscar_fuzzy():
             return jsonify([])
 
 @loja_bp.route('/')
-@cache.cached(timeout=60, query_string=True, key_prefix='index_v8')
+@cache.cached(timeout=60, query_string=True, key_prefix='index_v9')
 def index():
     termo_busca = request.args.get('q', '').strip()
     from app.produtos.configs.models import MarcaProduto
@@ -205,21 +205,50 @@ def index():
 
     if termo_busca:
         busca_like = f"%{termo_busca}%"
-        query = Produto.query.join(Produto.marca_rel).filter(
-            Produto.visivel_loja == True
-        ).filter(
-            or_(
-                Produto.nome.ilike(busca_like),
-                Produto.codigo.ilike(busca_like),
-                MarcaProduto.nome.ilike(busca_like)
+
+        try:
+            # Mesma lógica de similaridade usada no /api/buscar-fuzzy: sem isso,
+            # esta página (resultado final da busca) nunca "perdoa" erros de
+            # digitação, mesmo que o dropdown de sugestões funcione.
+            sim_nome = func.similarity(Produto.nome, termo_busca)
+            sim_marca = func.similarity(MarcaProduto.nome, termo_busca)
+            max_sim = func.greatest(sim_nome, sim_marca)
+
+            query = Produto.query.join(Produto.marca_rel).filter(
+                Produto.visivel_loja == True
+            ).filter(
+                or_(
+                    Produto.nome.ilike(busca_like),
+                    Produto.codigo.ilike(busca_like),
+                    MarcaProduto.nome.ilike(busca_like),
+                    Produto.nome.op('%')(termo_busca),
+                    MarcaProduto.nome.op('%')(termo_busca)
+                )
+            ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))
+
+            pagination = query.order_by(max_sim.desc(), Produto.criado_em.desc()).paginate(
+                page=request.args.get('page', 1, type=int),
+                per_page=12
             )
-        ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))
-        
-        pagination = query.order_by(Produto.criado_em.desc()).paginate(
-            page=request.args.get('page', 1, type=int), 
-            per_page=12
-        )
-        
+        except Exception as e:
+            current_app.logger.error(f"Erro na busca com pg_trgm na vitrine (fallback p/ ilike): {e}")
+            db.session.rollback()
+
+            query = Produto.query.join(Produto.marca_rel).filter(
+                Produto.visivel_loja == True
+            ).filter(
+                or_(
+                    Produto.nome.ilike(busca_like),
+                    Produto.codigo.ilike(busca_like),
+                    MarcaProduto.nome.ilike(busca_like)
+                )
+            ).options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))
+
+            pagination = query.order_by(Produto.criado_em.desc()).paginate(
+                page=request.args.get('page', 1, type=int),
+                per_page=12
+            )
+
         return render_template('loja/index.html', 
                                produtos=pagination.items, 
                                pagination=pagination, 
