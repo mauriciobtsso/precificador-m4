@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- 
+    DASHBOARD V2.0 - M4 TÁTICA
+    Foco: Performance, Mobile UX e Busca Global Unificada
+-->
+
+<style>
+    :root {
+        --m4-gold: #c5a059;
+        --m4-dark: #111111;
+        --m4-bg: #f0f2f5;
+    }
+
+    .dashboard-v2 {
+        background-color: var(--m4-bg);
+        margin: -1.5rem; /* Anula o padding do container-fluid do base.html para controle total */
+        padding: 1.5rem;
+        min-height: 100vh;
+    }
+
+    .v2-badge {
+        background: #ffc107;
+        color: #000;
+        font-size: 0.65rem;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 4px;
+        letter-spacing: 1px;
+        display: inline-block;
+        margin-bottom: 0.5rem;
+    }
+
+    .kpi-card-v2 {
+        border: none;
+        border-radius: 15px;
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .kpi-card-v2:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+
+    .kpi-icon-v2 {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-bottom: 0.75rem;
+    }
+
+    /* Busca Global Flutuante */
+    .search-container-v2 {
+        position: relative;
+        max-width: 600px;
+        margin: 0 auto 2rem;
+    }
+
+    .search-input-v2 {
+        border-radius: 50px !important;
+        padding: 0.75rem 1.5rem 0.75rem 3rem !important;
+        border: 2px solid transparent !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+
+    .search-input-v2:focus {
+        border-color: var(--m4-gold) !important;
+        box-shadow: 0 4px 20px rgba(197, 160, 89, 0.2) !important;
+    }
+
+    .search-icon-v2 {
+        position: absolute;
+        left: 1.2rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #adb5bd;
+        z-index: 5;
+    }
+
+    #search-results-v2 {
+        position: absolute;
+        top: 110%;
+        left: 0;
+        right: 0;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        z-index: 2000;
+        display: none;
+        overflow: hidden;
+        border: 1px solid #eee;
+    }
+
+    .search-item-v2 {
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        text-decoration: none;
+        color: #333;
+        border-bottom: 1px solid #f8f9fa;
+        transition: background 0.2s;
+    }
+
+    .search-item-v2:hover {
+        background: #f8f9fa;
+        color: var(--m4-gold);
+    }
+
+    .search-item-v2 i {
+        width: 35px;
+        height: 35px;
+        background: #f0f2f5;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+
+    /* Mobile UX */
+    @media (max-width: 768px) {
+        .dashboard-v2 { padding: 1rem; margin: -1rem; }
+        .search-container-v2 { margin-bottom: 1.5rem; }
+        .kpi-card-v2 .card-body { padding: 1rem !important; }
+        .kpi-icon-v2 { width: 36px; height: 36px; font-size: 1rem; }
+        h2 { font-size: 1.5rem; }
+    }
+
+    .doc-alert-item {
+        padding: 10px;
+        border-radius: 8px;
+        background: #fff5f5;
+        border-left: 4px solid #f87171;
+        margin-bottom: 8px;
+    }
+</style>
+
+<div class="dashboard-v2">
+    <div class="text-center mb-4">
+        <span class="v2-badge">DASHBOARD V2.0 - ATUALIZADO</span>
+        <h2 class="fw-bold text-dark">Painel Operacional M4</h2>
+        <p class="text-muted small">Gestão de Arsenal, Clientes e Documentação</p>
+    </div>
+
+    <!-- Busca Global Centralizada -->
+    <div class="search-container-v2">
+        <i class="fas fa-search search-icon-v2"></i>
+        <input type="text" id="global-search-v2" class="form-control search-input-v2" 
+               placeholder="Buscar cliente, série de arma, lote ou documento..." autocomplete="off">
+        <div id="search-results-v2"></div>
+    </div>
+
+    <!-- KPIs Rápidos -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card kpi-card-v2">
+                <div class="card-body">
+                    <div class="kpi-icon-v2 bg-dark bg-opacity-10 text-dark"><i class="fas fa-boxes"></i></div>
+                    <div class="text-muted small">Produtos</div>
+                    <div class="h5 fw-bold mb-0">{{ total_produtos }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card kpi-card-v2">
+                <div class="card-body">
+                    <div class="kpi-icon-v2 bg-primary bg-opacity-10 text-primary"><i class="fas fa-users"></i></div>
+                    <div class="text-muted small">Clientes</div>
+                    <div class="h5 fw-bold mb-0">{{ total_clientes }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card kpi-card-v2">
+                <div class="card-body">
+                    <div class="kpi-icon-v2 bg-danger bg-opacity-10 text-danger"><i class="fas fa-gun"></i></div>
+                    <div class="text-muted small">Armas</div>
+                    <div id="kpi-armas" class="h5 fw-bold mb-0">...</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card kpi-card-v2">
+                <div class="card-body">
+                    <div class="kpi-icon-v2 bg-success bg-opacity-10 text-success"><i class="fas fa-file-shield"></i></div>
+                    <div class="text-muted small">Docs OK</div>
+                    <div id="kpi-docs" class="h5 fw-bold mb-0">...</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card kpi-card-v2">
+                <div class="card-body">
+                    <div class="kpi-icon-v2 bg-info bg-opacity-10 text-info"><i class="fas fa-cash-register"></i></div>
+                    <div class="text-muted small">Vendas Mês</div>
+                    <div class="h5 fw-bold mb-0">R$ {{ "{:,.2f}".format(total_vendas_mes).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card kpi-card-v2">
+                <div class="card-body">
+                    <div class="kpi-icon-v2 bg-warning bg-opacity-10 text-warning"><i class="fas fa-chart-line"></i></div>
+                    <div class="text-muted small">Ticket Médio</div>
+                    <div class="h5 fw-bold mb-0">R$ {{ "{:,.2f}".format(ticket_medio).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Gráficos e Timeline -->
+        <div class="col-lg-8">
+            <div class="card kpi-card-v2 mb-4">
+                <div class="card-header bg-white border-0 py-3"><h6 class="fw-bold mb-0">Estoque por Categoria</h6></div>
+                <div class="card-body"><canvas id="chartArmas" style="max-height: 300px;"></canvas></div>
+            </div>
+            
+            <div class="card kpi-card-v2">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0">Atividades Recentes</h6>
+                    <button class="btn btn-sm btn-light rounded-circle" id="btnRefreshTimeline"><i class="fas fa-sync-alt"></i></button>
+                </div>
+                <div class="card-body p-0">
+                    <div id="dashboard-timeline" class="px-3 pb-3" style="max-height: 350px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas e Documentos -->
+        <div class="col-lg-4">
+            <div class="card kpi-card-v2 mb-4 border-top border-4 border-danger">
+                <div class="card-header bg-white border-0 py-3"><h6 class="fw-bold mb-0 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Documentos a Vencer (30 dias)</h6></div>
+                <div class="card-body">
+                    {% if docs_a_vencer %}
+                        {% for doc in docs_a_vencer %}
+                        <a href="/clientes/{{ doc.cliente_id }}" class="text-decoration-none">
+                            <div class="doc-alert-item">
+                                <div class="d-flex justify-content-between">
+                                    <span class="fw-bold small text-dark">{{ doc.tipo }}</span>
+                                    <span class="badge bg-danger">{{ doc.data_validade.strftime('%d/%m') }}</span>
+                                </div>
+                                <div class="text-muted" style="font-size: 0.75rem;">{{ doc.cliente.nome }}</div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3 text-muted small">Nenhum documento vencendo em breve.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card kpi-card-v2">
+                <div class="card-header bg-white border-0 py-3"><h6 class="fw-bold mb-0">Status Geral Docs</h6></div>
+                <div class="card-body text-center">
+                    <canvas id="chartDocs" style="max-height: 180px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    // BUSCA GLOBAL V2 - ES5 COMPATIBLE (XMLHttpRequest)
+    (function() {
+        var input = document.getElementById('global-search-v2');
+        var results = document.getElementById('search-results-v2');
+        var timer = null;
+
+        input.addEventListener('input', function() {
+            if (timer) clearTimeout(timer);
+            var query = this.value.trim();
+
+            if (query.length < 2) {
+                results.style.display = 'none';
+                return;
+            }
+
+            timer = setTimeout(function() {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '/dashboard/api/search?q=' + encodeURIComponent(query), true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        var data = JSON.parse(xhr.responseText);
+                        results.innerHTML = '';
+                        
+                        if (data.length === 0) {
+                            results.innerHTML = '<div class="p-3 text-muted text-center small">Nenhum registro encontrado.</div>';
+                        } else {
+                            for (var i = 0; i < data.length; i++) {
+                                var item = data[i];
+                                var icon = 'fa-search';
+                                if (item.tipo === 'cliente') icon = 'fa-user text-primary';
+                                if (item.tipo === 'arma') icon = 'fa-gun text-danger';
+                                if (item.tipo === 'municao') icon = 'fa-bullseye text-warning';
+                                if (item.tipo === 'documento') icon = 'fa-file-contract text-success';
+                                if (item.tipo === 'produto') icon = 'fa-tag text-info';
+
+                                var a = document.createElement('a');
+                                a.href = item.link;
+                                a.className = 'search-item-v2';
+                                a.innerHTML = '<i class="fas ' + icon + '"></i>' +
+                                              '<div>' +
+                                                '<div class="fw-bold small">' + item.titulo + '</div>' +
+                                                '<div class="text-muted" style="font-size: 0.7rem;">' + item.subtitulo + '</div>' +
+                                              '</div>';
+                                results.appendChild(a);
+                            }
+                        }
+                        results.style.display = 'block';
+                    }
+                };
+                xhr.send();
+            }, 300);
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !results.contains(e.target)) {
+                results.style.display = 'none';
+            }
+        });
+    })();
+
+    // Injeção de dados dinâmicos nos KPIs via API
+    (function() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/dashboard/api/resumo', true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                var data = JSON.parse(xhr.responseText);
+                document.getElementById('kpi-armas').innerText = data.total_armas || 0;
+                document.getElementById('kpi-docs').innerText = data.documentos_validos || 0;
+            }
+        };
+        xhr.send();
+    })();
+</script>
+{% endblock %}

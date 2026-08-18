@@ -98,7 +98,7 @@ def logout():
 @login_required
 def dashboard():
     context = get_dashboard_context()
-    return render_template("dashboard.html", **context)
+    return render_template("dashboard_v2.html", **context)
 
 # ============================================================
 # APIs do Dashboard (Resumo e Timeline)

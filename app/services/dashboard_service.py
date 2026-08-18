@@ -95,6 +95,15 @@ def get_dashboard_context():
         meses_nomes.append(_mes_numero_para_nome(mes_int))
         totais.append(float(total or 0))
 
+    # Documentos a vencer (próximos 30 dias)
+    from app.clientes.models import Documento
+    trinta_dias = hoje.date() + timedelta(days=30)
+    docs_a_vencer = Documento.query.filter(
+        Documento.data_validade >= hoje.date(),
+        Documento.data_validade <= trinta_dias,
+        Documento.validade_indeterminada == False
+    ).order_by(Documento.data_validade.asc()).limit(5).all()
+
     return {
         "total_produtos": total_produtos,
         "total_clientes": total_clientes,
@@ -104,6 +113,7 @@ def get_dashboard_context():
         "meses": meses_nomes,
         "totais": totais,
         "notificacoes_pendentes": notificacoes_pendentes,
+        "docs_a_vencer": docs_a_vencer
     }
 
 
@@ -186,12 +196,13 @@ def get_produtos_por_categoria():
 def global_search(termo):
     """
     Motor de busca global unificado para o dashboard.
-    Busca em Clientes, Documentos (número), Armas (série) e Produtos.
+    Busca em Clientes, Documentos, Armas, Munições e Produtos.
     """
     if not termo or len(termo) < 2:
         return []
 
     from app.clientes.models import Documento, Arma
+    from app.estoque.models import ItemEstoque
     busca_like = f"%{termo}%"
     
     resultados = []
@@ -227,7 +238,23 @@ def global_search(termo):
             "link": f"/clientes/{a.cliente_id}"
         })
 
-    # 3. Documentos (Número)
+    # 3. Munições e Lotes (ItemEstoque)
+    itens = ItemEstoque.query.filter(
+        or_(
+            ItemEstoque.lote.ilike(busca_like),
+            ItemEstoque.numero_serie.ilike(busca_like),
+            ItemEstoque.numero_selo.ilike(busca_like)
+        )
+    ).limit(5).all()
+    for i in itens:
+        resultados.append({
+            "tipo": "municao",
+            "titulo": f"{i.produto.nome}",
+            "subtitulo": f"Lote: {i.lote} | Selo: {i.numero_selo}",
+            "link": f"/produtos/{i.produto_id}/editar"
+        })
+
+    # 4. Documentos (Número)
     docs = Documento.query.filter(Documento.numero_documento.ilike(busca_like)).limit(5).all()
     for d in docs:
         resultados.append({
@@ -237,7 +264,7 @@ def global_search(termo):
             "link": f"/clientes/{d.cliente_id}"
         })
 
-    # 4. Produtos (Nome, Código)
+    # 5. Produtos (Nome, Código)
     produtos = Produto.query.filter(
         or_(
             Produto.nome.ilike(busca_like),
