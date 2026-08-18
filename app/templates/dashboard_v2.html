@@ -15,9 +15,51 @@
 
     .dashboard-v2 {
         background-color: var(--m4-bg);
-        margin: -1.5rem; /* Anula o padding do container-fluid do base.html para controle total */
-        padding: 1.5rem;
+        margin: -1.5rem -1.5rem -5rem -1.5rem; /* Expande para cobrir o padding do container pai */
+        padding: 1.5rem 1.5rem 5rem 1.5rem;
         min-height: 100vh;
+    }
+
+    /* Fix para a sidebar e container principal do base.html */
+    html, body, .d-flex, .flex-grow-1 {
+        height: 100%;
+        min-height: 100vh;
+    }
+
+    .container-fluid.p-4 {
+        background-color: var(--m4-bg);
+        min-height: 100vh;
+    }
+
+    #offcanvasSidebar, #sidebar {
+        min-height: 100vh !important;
+        height: 100% !important;
+    }
+
+    .v2-content-wrapper {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding-bottom: 2rem;
+    }
+
+    /* Estética das Atividades e Documentos */
+    .timeline-item {
+        border-left: 3px solid #e9ecef;
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 5px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: #fff;
+        border: 3px solid var(--m4-gold);
     }
 
     .v2-badge {
@@ -147,11 +189,12 @@
 </style>
 
 <div class="dashboard-v2">
-    <div class="text-center mb-4">
-        <span class="v2-badge">DASHBOARD V2.0 - ATUALIZADO</span>
-        <h2 class="fw-bold text-dark">Painel Operacional M4</h2>
-        <p class="text-muted small">Gestão de Arsenal, Clientes e Documentação</p>
-    </div>
+    <div class="v2-content-wrapper">
+        <div class="text-center mb-4">
+            <span class="v2-badge">DASHBOARD V2.0 - ATUALIZADO</span>
+            <h2 class="fw-bold text-dark">Painel Operacional M4</h2>
+            <p class="text-muted small">Gestão de Arsenal, Clientes e Documentação</p>
+        </div>
 
     <!-- Busca Global Centralizada -->
     <div class="search-container-v2">
