@@ -58,13 +58,13 @@
         for (var i = 0; i < cards.length; i++) {
             var c = cards[i];
             html += '<div class="col-6 col-md-4 col-lg-2">' +
-                    '    <div class="card kpi-card-v2">' +
-                    '        <div class="card-body p-3 text-center">' +
+                    '    <div class="card kpi-card-v2 shadow-sm">' +
+                    '        <div class="card-body p-2 text-center">' +
                     '            <div class="kpi-icon-v2 bg-' + c.color + ' bg-opacity-10 text-' + c.color + ' mx-auto">' +
                     '                <i class="fas ' + c.icon + '"></i>' +
                     '            </div>' +
-                    '            <div class="text-muted x-small">' + c.label + '</div>' +
-                    '            <div class="fw-bold">' + c.val + '</div>' +
+                    '            <div class="text-muted" style="font-size: 0.65rem; text-transform: uppercase; font-weight: 600;">' + c.label + '</div>' +
+                    '            <div class="fw-bold" style="font-size: 0.9rem;">' + c.val + '</div>' +
                     '        </div>' +
                     '    </div>' +
                     '</div>';
@@ -121,7 +121,8 @@
                 },
                 options: {
                     cutout: '70%',
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
                 }
             });
         }
@@ -146,14 +147,15 @@
                         borderRadius: 6
                     }]
                 },
-                options: {
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false }, ticks: { precision: 0 } },
-                        y: { grid: { display: false } }
+                    options: {
+                        indexAxis: 'y',
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { precision: 0, font: { size: 10 } } },
+                            y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                        }
                     }
-                }
             });
         }
     };

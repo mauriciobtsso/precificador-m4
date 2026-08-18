@@ -2,8 +2,8 @@
 {% block content %}
 
 <!-- 
-    DASHBOARD V2.1 - M4 TÁTICA
-    Correção de Layout e Grid
+    DASHBOARD V2.2 - M4 TÁTICA
+    Refatoração de Layout: Compactação e Alinhamento Visual
 -->
 
 <style>
@@ -13,64 +13,61 @@
         --m4-bg: #f8f9fa;
     }
 
+    /* Ajuste para garantir que o conteúdo não fique "solto" */
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
     .v2-badge {
         background: #ffc107;
         color: #000;
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         font-weight: 800;
         padding: 2px 8px;
         border-radius: 4px;
         letter-spacing: 1px;
         display: inline-block;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.25rem;
     }
 
     .kpi-card-v2 {
         border: none;
-        border-radius: 12px;
+        border-radius: 10px;
         background: #fff;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
         transition: transform 0.2s;
         height: 100%;
     }
 
-    .kpi-card-v2:hover {
-        transform: translateY(-3px);
-    }
-
     .kpi-icon-v2 {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
+        font-size: 1rem;
+        margin-bottom: 0.4rem;
     }
 
-    .dashboard-main-v2 {
-        background-color: var(--m4-bg);
-        min-height: 100vh;
-    }
-
-    /* Busca Global */
+    /* Busca Global Compacta */
     .search-container-v2 {
         position: relative;
-        max-width: 600px;
-        margin: 0 auto 2rem;
+        max-width: 500px;
+        margin: 0 auto 1.5rem;
     }
 
     .search-input-v2 {
         border-radius: 50px !important;
-        padding: 0.6rem 1.5rem 0.6rem 3rem !important;
+        padding: 0.5rem 1.2rem 0.5rem 2.8rem !important;
         border: 1px solid #dee2e6 !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+        font-size: 0.9rem;
     }
 
     .search-icon-v2 {
         position: absolute;
-        left: 1.2rem;
+        left: 1.1rem;
         top: 50%;
         transform: translateY(-50%);
         color: #adb5bd;
@@ -83,8 +80,8 @@
         left: 0;
         right: 0;
         background: white;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
         z-index: 2000;
         display: none;
         overflow: hidden;
@@ -92,25 +89,54 @@
     }
 
     .search-item-v2 {
-        padding: 10px 15px;
+        padding: 8px 12px;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         text-decoration: none;
         color: #333;
         border-bottom: 1px solid #f8f9fa;
+        font-size: 0.85rem;
     }
 
-    .search-item-v2:hover {
-        background: #f8f9fa;
+    /* Grid Compacto */
+    .card-dashboard {
+        margin-bottom: 1rem;
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .card-header-v2 {
+        background: white;
+        border-bottom: 1px solid #f8f9fa;
+        padding: 0.75rem 1rem;
+        border-radius: 10px 10px 0 0 !important;
+    }
+
+    .card-header-v2 h6 {
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin: 0;
     }
 
     .doc-alert-item {
-        padding: 8px;
+        padding: 6px 10px;
         border-radius: 6px;
         background: #fff5f5;
         border-left: 3px solid #f87171;
         margin-bottom: 6px;
+        transition: background 0.2s;
+    }
+
+    .doc-alert-item:hover {
+        background: #fee2e2;
+    }
+
+    .timeline-container {
+        max-height: 400px;
+        overflow-y: auto;
+        padding: 1rem;
     }
 
     .timeline-item {
@@ -118,7 +144,7 @@
         padding-left: 1rem;
         margin-bottom: 0.75rem;
         position: relative;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
     .timeline-item::before {
@@ -132,16 +158,25 @@
         background: #fff;
         border: 2px solid var(--m4-gold);
     }
+
+    .chart-container-v2 {
+        position: relative;
+        height: 250px;
+        width: 100%;
+    }
+
+    .x-small { font-size: 0.7rem; }
 </style>
 
-<div class="container-fluid py-3 dashboard-main-v2">
-    <div class="text-center mb-4">
-        <span class="v2-badge">DASHBOARD V2.1</span>
-        <h3 class="fw-bold text-dark mb-0">Painel Operacional M4</h3>
-        <p class="text-muted small">Gestão de Arsenal e Clientes</p>
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="text-center mb-3">
+        <span class="v2-badge">DASHBOARD V2.2</span>
+        <h4 class="fw-bold text-dark mb-0">Painel Operacional M4</h4>
+        <p class="text-muted x-small">Gestão de Arsenal, Clientes e Documentação</p>
     </div>
 
-    <!-- Busca Global -->
+    <!-- Busca -->
     <div class="search-container-v2">
         <i class="fas fa-search search-icon-v2"></i>
         <input type="text" id="global-search-v2" class="form-control search-input-v2" 
@@ -149,72 +184,77 @@
         <div id="search-results-v2"></div>
     </div>
 
-    <!-- KPIs (Sincronizados via JS) -->
-    <div class="row g-3 mb-4" id="dashboard-resumo">
-        <!-- Populados pelo dashboard.js -->
-        <div class="col-12 text-center py-4">
+    <!-- KPIs Rápidos -->
+    <div class="row g-2 mb-4" id="dashboard-resumo">
+        <!-- Populados pelo JS -->
+        <div class="col-12 text-center py-3">
             <div class="spinner-border spinner-border-sm text-muted" role="status"></div>
-            <span class="ms-2 text-muted small">Carregando indicadores...</span>
         </div>
     </div>
 
-    <!-- Main Content Grid -->
-    <div class="row g-4">
-        <!-- Coluna da Esquerda (8/12) -->
+    <!-- Layout Principal -->
+    <div class="row g-3">
+        <!-- Lado Esquerdo: Estoque e Atividades -->
         <div class="col-lg-8">
-            <div class="card kpi-card-v2 mb-4">
-                <div class="card-header bg-white border-0 py-3">
-                    <h6 class="fw-bold mb-0">Estoque por Categoria</h6>
+            <div class="card card-dashboard">
+                <div class="card-header-v2">
+                    <h6>Estoque por Categoria</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="chartArmas" style="max-height: 300px;"></canvas>
+                <div class="card-body py-2">
+                    <div class="chart-container-v2">
+                        <canvas id="chartArmas"></canvas>
+                    </div>
                 </div>
             </div>
             
-            <div class="card kpi-card-v2">
-                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="fw-bold mb-0">Atividades Recentes</h6>
-                    <button class="btn btn-sm btn-light rounded-circle" id="btnRefreshTimeline"><i class="fas fa-sync-alt"></i></button>
+            <div class="card card-dashboard">
+                <div class="card-header-v2 d-flex justify-content-between align-items-center">
+                    <h6>Atividades Recentes</h6>
+                    <button class="btn btn-sm btn-light p-1" id="btnRefreshTimeline"><i class="fas fa-sync-alt x-small"></i></button>
                 </div>
                 <div class="card-body p-0">
-                    <div id="dashboard-timeline" class="px-3 pb-3" style="max-height: 450px; overflow-y: auto;">
+                    <div id="dashboard-timeline" class="timeline-container">
                         <!-- JS populated -->
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Coluna da Direita (4/12) -->
+        <!-- Lado Direito: Alertas e Status -->
         <div class="col-lg-4">
-            <div class="card kpi-card-v2 mb-4 border-top border-4 border-danger">
-                <div class="card-header bg-white border-0 py-3">
-                    <h6 class="fw-bold mb-0 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Docs a Vencer (30 dias)</h6>
+            <div class="card card-dashboard border-top border-3 border-danger">
+                <div class="card-header-v2">
+                    <h6 class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Documentos a Vencer (30 dias)</h6>
                 </div>
-                <div class="card-body">
-                    {% if docs_a_vencer %}
-                        {% for doc in docs_a_vencer %}
-                        <a href="/clientes/{{ doc.cliente_id }}" class="text-decoration-none">
-                            <div class="doc-alert-item">
-                                <div class="d-flex justify-content-between">
-                                    <span class="fw-bold small text-dark">{{ doc.tipo }}</span>
-                                    <span class="badge bg-danger">{{ doc.data_validade.strftime('%d/%m') }}</span>
+                <div class="card-body py-2">
+                    <div style="max-height: 250px; overflow-y: auto;">
+                        {% if docs_a_vencer %}
+                            {% for doc in docs_a_vencer %}
+                            <a href="/clientes/{{ doc.cliente_id }}" class="text-decoration-none">
+                                <div class="doc-alert-item">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-bold x-small text-dark">{{ doc.tipo }}</span>
+                                        <span class="badge bg-danger x-small">{{ doc.data_validade.strftime('%d/%m') }}</span>
+                                    </div>
+                                    <div class="text-muted x-small">{{ doc.cliente.nome }}</div>
                                 </div>
-                                <div class="text-muted x-small">{{ doc.cliente.nome }}</div>
-                            </div>
-                        </a>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center py-3 text-muted small">Nenhum alerta de vencimento.</div>
-                    {% endif %}
+                            </a>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-2 text-muted x-small">Nenhum alerta para os próximos 30 dias.</div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
-            <div class="card kpi-card-v2">
-                <div class="card-header bg-white border-0 py-3">
-                    <h6 class="fw-bold mb-0">Status Geral Docs</h6>
+            <div class="card card-dashboard">
+                <div class="card-header-v2 text-center">
+                    <h6>Status Geral de Documentos</h6>
                 </div>
-                <div class="card-body text-center">
-                    <canvas id="chartDocs" style="max-height: 220px;"></canvas>
+                <div class="card-body py-2">
+                    <div class="chart-container-v2" style="height: 200px;">
+                        <canvas id="chartDocs"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -227,7 +267,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script>
-    // BUSCA GLOBAL V2.1
+    // BUSCA GLOBAL V2.2
     (function() {
         var input = document.getElementById('global-search-v2');
         var results = document.getElementById('search-results-v2');
@@ -236,11 +276,7 @@
         input.addEventListener('input', function() {
             if (timer) clearTimeout(timer);
             var query = this.value.trim();
-
-            if (query.length < 2) {
-                results.style.display = 'none';
-                return;
-            }
+            if (query.length < 2) { results.style.display = 'none'; return; }
 
             timer = setTimeout(function() {
                 var xhr = new XMLHttpRequest();
@@ -249,9 +285,8 @@
                     if (xhr.readyState === 4 && xhr.status === 200) {
                         var data = JSON.parse(xhr.responseText);
                         results.innerHTML = '';
-                        
                         if (data.length === 0) {
-                            results.innerHTML = '<div class="p-3 text-muted text-center small">Nenhum registro encontrado.</div>';
+                            results.innerHTML = '<div class="p-3 text-muted text-center x-small">Nada encontrado.</div>';
                         } else {
                             for (var i = 0; i < data.length; i++) {
                                 var item = data[i];
@@ -259,7 +294,6 @@
                                 if (item.tipo === 'cliente') icon = 'fa-user text-primary';
                                 if (item.tipo === 'arma') icon = 'fa-gun text-danger';
                                 if (item.tipo === 'municao') icon = 'fa-bullseye text-warning';
-                                if (item.tipo === 'documento') icon = 'fa-file-contract text-success';
                                 if (item.tipo === 'produto') icon = 'fa-tag text-info';
 
                                 var a = document.createElement('a');
@@ -267,7 +301,7 @@
                                 a.className = 'search-item-v2';
                                 a.innerHTML = '<i class="fas ' + icon + '"></i>' +
                                               '<div>' +
-                                                '<div class="fw-bold small">' + item.titulo + '</div>' +
+                                                '<div class="fw-bold">' + item.titulo + '</div>' +
                                                 '<div class="text-muted x-small">' + item.subtitulo + '</div>' +
                                               '</div>';
                                 results.appendChild(a);
@@ -281,27 +315,8 @@
         });
 
         document.addEventListener('click', function(e) {
-            if (!input.contains(e.target) && !results.contains(e.target)) {
-                results.style.display = 'none';
-            }
+            if (!input.contains(e.target) && !results.contains(e.target)) results.style.display = 'none';
         });
     })();
-
-    // KPIs Iniciais
-    (function() {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', '/dashboard/api/resumo', true);
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4 && xhr.status === 200) {
-                var data = JSON.parse(xhr.responseText);
-                document.getElementById('kpi-armas').innerText = data.total_armas || 0;
-                document.getElementById('kpi-docs').innerText = data.documentos_validos || 0;
-            }
-        };
-        xhr.send();
-    })();
 </script>
-<style>
-    .x-small { font-size: 0.75rem; }
-</style>
 {% endblock %}
