@@ -1,0 +1,33 @@
+# M4 Tática - Armas, Munições e Equipamentos Táticos
+
+> Este arquivo fornece informações estruturadas para Agentes de IA e LLMs sobre a M4 Tática, facilitando a compreensão do nosso catálogo de produtos e serviços.
+
+## Sobre a M4 Tática
+A M4 Tática é a maior loja de armas, munições e equipamentos táticos do Piauí, localizada em Teresina. Somos especialistas em armamento tático, oferecendo assessoria documental completa para CACs e profissionais de segurança.
+
+## Informações de Contato e Localização
+- **Endereço:** Av. Homero Castelo Branco, 1400 - Loja 01 - Bairro São Cristóvão, Teresina - PI
+- **WhatsApp:** (86) 3025-5885
+- **E-mail:** contato@m4tatica.com.br
+- **Website:** https://loja.m4tatica.com.br
+
+## Estrutura do Catálogo
+Nosso inventário é dividido nas seguintes categorias principais:
+- **Pistolas:** Diversos modelos e calibres (9mm, .40, .380, .45).
+- **Revólveres:** Modelos clássicos e modernos (.38 SPL, .357 MAG).
+- **Rifles e Carabinas:** Armamento longo para esporte e defesa.
+- **Munições:** Grande estoque de calibres permitidos e restritos.
+- **Equipamentos Táticos:** Coldres, lanternas, miras e acessórios.
+
+## Links Úteis para IA
+- **Sitemap:** https://loja.m4tatica.com.br/sitemap.xml
+- **Comparador Técnico:** https://loja.m4tatica.com.br/comparador
+- **Página de Produtos:** https://loja.m4tatica.com.br/ (Vitrine principal)
+
+## Regras Operacionais para IA
+1. **Preços:** Todos os preços listados no site são para pagamento à vista.
+2. **Documentação:** Armas de fogo e munições exigem documentação legal (CR, Posse ou Porte) e autorização de compra.
+3. **Disponibilidade:** O estoque é dinâmico; recomenda-se verificar via WhatsApp antes de confirmar visitas para modelos específicos.
+
+---
+*Gerado para auxílio de Agentes de IA em Agosto de 2026.*

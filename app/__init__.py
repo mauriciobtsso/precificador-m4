@@ -129,13 +129,18 @@ def create_app():
 
     @app.route('/robots.txt')
     def robots_at_root():
+        # Servir diretamente o robots.txt da raiz para evitar conflitos de blueprint
         return send_from_directory(os.path.join(app.root_path, 'static'), 'robots.txt')
 
     @app.route('/sitemap.xml')
     def sitemap_at_root():
-        # Redireciona para a rota que você já criou no blueprint da loja
-        from flask import url_for
-        return redirect(url_for('loja.sitemap'))
+        # Chama diretamente a função do blueprint para evitar o redirecionamento 302 que pode falhar em proxies
+        from app.loja.routes import sitemap
+        return sitemap()
+
+    @app.route('/llms.txt')
+    def llms_txt_at_root():
+        return send_from_directory(os.path.join(app.root_path, 'static'), 'llms.txt')
 
     # 🚀 CONFIGURAÇÃO DE CACHE DE ATIVOS (SEO & PERFORMANCE)
     @app.after_request

@@ -1,7 +1,11 @@
+# ==========================================
+# ROBOTS.TXT - M4 TÁTICA (SEO OPTIMIZED)
+# ==========================================
 User-agent: *
 Allow: /
 
-# PROTEÇÃO DE CRAWL BUDGET (Rotas que não agregam ao SEO)
+# PROTEÇÃO DE CRAWL BUDGET
+# Bloqueia áreas administrativas e rotas de sistema
 Disallow: /admin/
 Disallow: /admin-loja/
 Disallow: /login
@@ -11,23 +15,28 @@ Disallow: /checkout/
 Disallow: /minha-conta/
 Disallow: /app/
 Disallow: /catalogo/
+Disallow: /api/
 
-# PREVENÇÃO DE SOFT 404 (BLOQUEIO DE FILTROS DA LOJA)
+# PREVENÇÃO DE CONTEÚDO DUPLICADO (Filtros e Parâmetros)
+# Evita indexação de infinitas variações de filtros que diluem o SEO
 Disallow: /*?*marca=*
 Disallow: /*?*calibre=*
 Disallow: /*?*preco_max=*
 Disallow: /*?*ordenar=*
 Disallow: /*?*sort=*
 Disallow: /*?*tipo=*
+Disallow: /*?*q=*
 
-# PERMISSÃO PARA PREVIEW DE LINKS
+# OTIMIZAÇÃO PARA SOCIAL MEDIA PREVIEWS
 User-agent: facebookexternalhit
+Allow: /produto/
 Allow: /loja/produto/
 
 User-agent: WhatsApp
 Allow: /
 
-# TREINAMENTO DE IA (Scrapers)
+# AI AGENTS & LLMS (AI ENGINE OPTIMIZATION)
+# Permitimos que IAs leiam nosso catálogo para recomendações inteligentes
 User-agent: Google-Extended
 Allow: /
 User-agent: GPTBot
@@ -36,6 +45,9 @@ User-agent: CCBot
 Allow: /
 User-agent: anthropic-ai
 Allow: /
+User-agent: PerplexityBot
+Allow: /
 
-# APONTAMENTO CORRETO DO MAPA DO SITE
+# MAPA DO SITE E LLMS.TXT
 Sitemap: https://loja.m4tatica.com.br/sitemap.xml
+Sitemap: https://loja.m4tatica.com.br/llms.txt
