@@ -61,6 +61,26 @@ def _is_safe_url(target: str) -> bool:
     )
 
 
+def _validar_cpf(cpf: str) -> bool:
+    """Valida o algoritmo oficial do CPF."""
+    cpf = ''.join(filter(str.isdigit, cpf))
+    if len(cpf) != 11 or cpf == cpf[0] * 11:
+        return False
+    for i in range(9, 11):
+        soma = sum(int(cpf[num]) * ((i + 1) - num) for num in range(i))
+        digito = (soma * 10 % 11) % 10
+        if digito != int(cpf[i]):
+            return False
+    return True
+
+
+def _validar_email(email: str) -> bool:
+    """Valida formato básico de e-mail."""
+    import re
+    regex = r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
+    return bool(re.match(regex, email.lower()))
+
+
 # ──────────────────────────────────────────────────────────────────
 # CONTEXT PROCESSOR
 # ──────────────────────────────────────────────────────────────────
@@ -110,15 +130,28 @@ def cadastro():
         if not nome or not email or not cpf or not senha:
             flash('Preencha todos os campos obrigatórios.', 'warning')
             return render_template('loja/auth/cadastro.html')
+        
+        # Validações de Segurança M4
+        if not _validar_email(email):
+            flash('Por favor, informe um e-mail válido.', 'warning')
+            return render_template('loja/auth/cadastro.html')
+        
+        if not _validar_cpf(cpf):
+            flash('O CPF informado é inválido.', 'warning')
+            return render_template('loja/auth/cadastro.html')
+
         if len(senha) < 8:
             flash('A senha deve ter pelo menos 8 caracteres.', 'warning')
             return render_template('loja/auth/cadastro.html')
+        
         if senha != confirma:
             flash('As senhas não coincidem.', 'warning')
             return render_template('loja/auth/cadastro.html')
+            
         if Cliente.query.filter_by(email_login=email).first():
             flash('Este e-mail já está cadastrado.', 'warning')
             return render_template('loja/auth/cadastro.html')
+            
         cpf_digits = ''.join(filter(str.isdigit, cpf))
         cliente = Cliente.query.filter_by(documento=cpf_digits).first() if cpf_digits else None
         if cliente:
@@ -140,6 +173,14 @@ def cadastro():
         cliente.set_senha(senha)
         cliente.ativo_loja = True
         db.session.commit()
+        
+        # Envio de E-mail de Boas-vindas (Brevo)
+        try:
+            from app.utils.email_service import enviar_email_boas_vindas
+            enviar_email_boas_vindas(cliente)
+        except Exception as e:
+            current_app.logger.error(f"Erro ao disparar e-mail de boas-vindas: {e}")
+
         logar_cliente(cliente)
         flash('Conta criada com sucesso! Bem-vindo.', 'success')
         return redirect(url_for('loja.minha_conta'))
