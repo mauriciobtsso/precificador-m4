@@ -47,10 +47,11 @@ def upload_craf(cliente_id):
         return jsonify({"error": "Nenhum arquivo enviado"}), 400
 
     try:
-        caminho_r2 = _upload_to_r2(file, cliente_id, "armas")
-        
         file.seek(0)
         file_bytes = file.read()
+        file.seek(0)
+        
+        caminho_r2 = _upload_to_r2(file, cliente_id, "armas")
         
         resultado = processar_documento(file_bytes, file.filename)
         dados_raw = resultado.get("resultado", {}) or {}
@@ -92,10 +93,11 @@ def upload_cr(cliente_id):
         return jsonify({"error": "Nenhum arquivo enviado"}), 400
 
     try:
-        caminho_r2 = _upload_to_r2(file, cliente_id, "documentos")
-        
         file.seek(0)
         file_bytes = file.read()
+        file.seek(0)
+        
+        caminho_r2 = _upload_to_r2(file, cliente_id, "documentos")
 
         resultado = processar_documento(file_bytes, file.filename)
         dados = resultado.get("resultado", {})
@@ -123,10 +125,11 @@ def upload_cnh(cliente_id):
         return jsonify({"error": "Nenhum arquivo enviado"}), 400
 
     try:
-        caminho_r2 = _upload_to_r2(file, cliente_id, "documentos")
-        
         file.seek(0)
         file_bytes = file.read()
+        file.seek(0)
+        
+        caminho_r2 = _upload_to_r2(file, cliente_id, "documentos")
 
         resultado = processar_documento(file_bytes, file.filename)
         dados = resultado.get("resultado", {})
@@ -154,10 +157,11 @@ def upload_rg(cliente_id):
         return jsonify({"error": "Nenhum arquivo enviado"}), 400
 
     try:
-        caminho_r2 = _upload_to_r2(file, cliente_id, "documentos")
-        
         file.seek(0)
         file_bytes = file.read()
+        file.seek(0)
+        
+        caminho_r2 = _upload_to_r2(file, cliente_id, "documentos")
 
         resultado = processar_documento(file_bytes, file.filename)
         dados = resultado.get("resultado", {})
@@ -194,18 +198,21 @@ def upload_documento(cliente_id):
     try:
         filename = secure_filename(file.filename)
         
-        # 1. Envio Imediato ao R2 (Garante armazenamento oficial)
+        # 1. Leitura em Memória PRIMEIRO (Evita erro de arquivo fechado pelo Boto3)
+        file.seek(0)
+        file_bytes = file.read()
+        file.seek(0) # Reset para o upload
+
+        # 2. Envio ao R2
         key_r2 = None
         try:
             key_r2 = _upload_to_r2(file, cliente_id, "documentos")
             current_app.logger.info(f"[UPLOAD OCR] Arquivo enviado ao R2: {key_r2}")
         except Exception as e:
             current_app.logger.warning(f"[UPLOAD OCR] Falha ao enviar ao R2: {e}")
+            # Se falhar o R2, ainda podemos tentar retornar o OCR se for crítico, 
+            # mas aqui manteremos a consistência de erro.
             return jsonify({"error": "Falha na comunicação com o Storage R2."}), 500
-
-        # 2. Leitura em Memória para o Pipeline OCR
-        file.seek(0)
-        file_bytes = file.read()
 
         resultado = ocr_pipeline.processar_documento(file_bytes, filename)
         if not resultado:
