@@ -19,7 +19,7 @@ def index():
     Exibe o painel principal de notificações.
     (Fase inicial: apenas estrutura HTML simples)
     """
-    return render_template("notificacoes.html", titulo="Painel de Notificações")
+    return render_template("notificacoes_v2.html", titulo="Painel de Notificações")
 
 
 # -------------------------

@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- 
+    NOTIFICAÇÕES V2.0 - M4 TÁTICA
+    Design Compacto e Funcionalidade Corrigida
+-->
+
+<style>
+    .notif-card {
+        border: none;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        margin-bottom: 1.5rem;
+    }
+    
+    .notif-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #f0f2f5;
+        background: transparent;
+    }
+    
+    .notif-header h5 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+        color: #334155;
+    }
+
+    .table-notif {
+        font-size: 0.85rem;
+    }
+
+    .table-notif thead th {
+        background: #f8fafc;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.025em;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table-notif tbody td {
+        padding: 0.75rem 1rem;
+        vertical-align: middle;
+        color: #475569;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .notif-row-unread {
+        background-color: #f8fafc;
+        font-weight: 500;
+    }
+
+    .notif-row-read {
+        opacity: 0.75;
+    }
+
+    .badge-notif {
+        font-size: 0.7rem;
+        padding: 0.35em 0.65em;
+        font-weight: 600;
+        border-radius: 4px;
+    }
+
+    .btn-action-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: 4px;
+    }
+
+    .msg-truncate {
+        max-width: 400px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+    }
+
+    .filter-bar {
+        background: #fff;
+        padding: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        margin-bottom: 1.5rem;
+    }
+
+    .form-select-sm, .form-control-sm {
+        font-size: 0.8rem;
+        border-radius: 6px;
+    }
+</style>
+
+<div class="container-fluid py-2">
+    <!-- Título e Ações -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="fw-bold mb-0 text-dark">
+                <i class="fas fa-bell text-danger me-2"></i>Notificações <span class="badge bg-warning text-dark ms-2" style="font-size: 0.6rem;">V2.1</span>
+            </h5>
+            <p class="text-muted mb-0" style="font-size: 0.75rem;">Acompanhe os alertas e vencimentos do sistema</p>
+        </div>
+        <button id="btnReload" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-sync-alt me-1"></i> Atualizar
+        </button>
+    </div>
+
+    <!-- Barra de Filtros -->
+    <div class="filter-bar">
+        <form id="filtrosForm" class="row g-2 align-items-center">
+            <div class="col-md-2">
+                <select name="tipo" class="form-select form-select-sm">
+                    <option value="">Todos Tipos</option>
+                    <option value="documento">Documento</option>
+                    <option value="arma">Arma</option>
+                    <option value="cr">CR</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="nivel" class="form-select form-select-sm">
+                    <option value="">Todos Níveis</option>
+                    <option value="alto">Alto</option>
+                    <option value="médio">Médio</option>
+                    <option value="baixo">Baixo</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">Status</option>
+                    <option value="enviado">Não Lidas</option>
+                    <option value="lido">Lidas</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <input type="text" name="q" class="form-control form-control-sm" placeholder="Buscar por cliente ou mensagem...">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-dark btn-sm w-100">
+                    <i class="fas fa-filter me-1"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela de Resultados -->
+    <div class="notif-card">
+        <div class="table-responsive">
+            <table class="table table-notif mb-0" id="tabelaNotificacoes">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Data</th>
+                        <th style="width: 20%;">Cliente</th>
+                        <th style="width: 10%;">Tipo</th>
+                        <th style="width: 35%;">Mensagem</th>
+                        <th style="width: 10%;">Status</th>
+                        <th style="width: 10%;" class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <div class="spinner-border spinner-border-sm text-muted me-2"></div>
+                            <span class="text-muted">Carregando notificações...</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var tabela = document.querySelector("#tabelaNotificacoes tbody");
+    var form = document.querySelector("#filtrosForm");
+    var btnReload = document.querySelector("#btnReload");
+
+    function carregarNotificacoes() {
+        tabela.innerHTML = '<tr><td colspan="6" class="text-center py-5"><div class="spinner-border spinner-border-sm text-muted me-2"></div>Carregando...</td></tr>';
+        
+        var formData = new FormData(form);
+        var params = new URLSearchParams();
+        formData.forEach(function(value, key){ if(value) params.append(key, value); });
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/notificacoes/api?' + params.toString(), true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                var data = JSON.parse(xhr.responseText);
+                renderizarTabela(data.data);
+            }
+        };
+        xhr.send();
+    }
+
+    function renderizarTabela(notificacoes) {
+        if (!notificacoes || notificacoes.length === 0) {
+            tabela.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted"><i class="fas fa-bell-slash d-block mb-2 fa-2x"></i>Nenhuma notificação encontrada.</td></tr>';
+            return;
+        }
+
+        var html = '';
+        for (var i = 0; i < notificacoes.length; i++) {
+            var n = notificacoes[i];
+            var isLido = n.status === 'lido';
+            var rowClass = isLido ? 'notif-row-read' : 'notif-row-unread';
+            var badgeClass = isLido ? 'bg-light text-muted' : (n.nivel === 'alto' ? 'bg-danger' : 'bg-warning text-dark');
+            
+            html += '<tr class="' + rowClass + '" data-id="' + n.id + '">' +
+                    '    <td class="text-nowrap">' + n.data_envio + '</td>' +
+                    '    <td class="fw-bold">' + (n.cliente_nome || '-') + '</td>' +
+                    '    <td><span class="badge badge-notif bg-secondary bg-opacity-10 text-secondary text-uppercase">' + n.tipo + '</span></td>' +
+                    '    <td><span class="msg-truncate" title="' + n.mensagem + '">' + n.mensagem + '</span></td>' +
+                    '    <td><span class="badge badge-notif ' + badgeClass + '">' + (isLido ? 'Lida' : 'Pendente') + '</span></td>' +
+                    '    <td class="text-center">' +
+                    (!isLido ? '<button class="btn btn-sm btn-success btn-action-sm btn-marcar-lida"><i class="fas fa-check"></i></button>' : '<i class="fas fa-check-double text-success"></i>') +
+                    '    </td>' +
+                    '</tr>';
+        }
+        tabela.innerHTML = html;
+
+        // Bind eventos
+        var botoes = document.querySelectorAll(".btn-marcar-lida");
+        botoes.forEach(function(btn) {
+            btn.onclick = function() {
+                var row = this.closest("tr");
+                var id = row.getAttribute("data-id");
+                marcarComoLida(id, row);
+            };
+        });
+    }
+
+    function marcarComoLida(id, row) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/notificacoes/api/' + id + '/lida', true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                row.className = 'notif-row-read';
+                row.querySelector("td:nth-child(5)").innerHTML = '<span class="badge badge-notif bg-light text-muted">Lida</span>';
+                row.querySelector("td:nth-child(6)").innerHTML = '<i class="fas fa-check-double text-success"></i>';
+                atualizarSino();
+            }
+        };
+        xhr.send();
+    }
+
+    function atualizarSino() {
+        var badge = document.querySelector("#badgeNotificacoes");
+        if (badge) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/notificacoes/api?status=enviado&per_page=1', true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    var total = data.total || 0;
+                    badge.textContent = total;
+                    if (total === 0) badge.classList.add("d-none");
+                    else badge.classList.remove("d-none");
+                }
+            };
+            xhr.send();
+        }
+    }
+
+    form.onsubmit = function(e) {
+        e.preventDefault();
+        carregarNotificacoes();
+    };
+
+    btnReload.onclick = carregarNotificacoes;
+    carregarNotificacoes();
+});
+</script>
+{% endblock %}
