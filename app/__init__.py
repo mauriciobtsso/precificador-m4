@@ -102,6 +102,7 @@ def create_app():
     csrf.exempt("app.carrinho.routes.salvar_frete_sessao")
     csrf.exempt("app.carrinho.routes.processar_pedido")
     csrf.exempt("app.carrinho.routes.webhook_pagarme")
+    csrf.exempt("app.notificacoes.routes.marcar_como_lida")
 
     # =========================================================
     # RATE LIMITER — Proteção contra força bruta

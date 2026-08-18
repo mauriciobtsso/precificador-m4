@@ -47,48 +47,20 @@ def api_listar_notificacoes():
 # -------------------------
 # 🔹 API: Marcar notificação como lida
 # -------------------------
-@notificacoes_bp.route("/api/<int:notificacao_id>/lida", methods=["PATCH"])
-@login_required
-def marcar_notificacao_lida(notificacao_id):
-    """
-    Atualiza o status da notificação para 'lido'.
-    Retorna JSON com resultado da operação.
-    """
-    from app.models import Notificacao  # import local para evitar circular
-    from app.extensions import db
-
-    notif = Notificacao.query.get(notificacao_id)
-    if not notif:
-        return jsonify({"error": "Notificação não encontrada"}), 404
-
-    notif.status = "lido"
-    db.session.commit()
-
-    return jsonify({
-        "success": True,
-        "id": notif.id,
-        "status": notif.status,
-        "data_envio": notif.data_envio.isoformat()
-    })
-
-# ======================
-# Marcar notificação como lida (AJAX)
-# ======================
-from datetime import datetime
-from flask import jsonify
-from flask_login import login_required
-from app.models import Notificacao
-from app.extensions import db
-
 @notificacoes_bp.route("/api/<int:notificacao_id>/lida", methods=["POST"])
 @login_required
 def marcar_como_lida(notificacao_id):
     """Marca uma notificação como lida e retorna JSON atualizado."""
+    from app.models import Notificacao
+    from app.extensions import db
+    
     notif = Notificacao.query.get_or_404(notificacao_id)
 
     if notif.status != "lido":
         notif.status = "lido"
-        notif.data_envio = notif.data_envio or now_local()  # <-- TROCA APLICADA
+        # Garantir que data_envio não seja nula, mas não alterar se já existir
+        if not notif.data_envio:
+            notif.data_envio = now_local()
         db.session.commit()
 
     return jsonify({
