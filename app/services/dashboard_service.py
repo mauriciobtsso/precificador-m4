@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, or_
 
 from app.extensions import db
 from app.produtos.models import Produto
@@ -36,21 +36,14 @@ def _mes_numero_para_nome(mes_num: int) -> str:
 def get_dashboard_context():
     """
     Calcula todos os dados necessários para renderizar o dashboard.html.
-
-    Retorna um dict com todas as chaves esperadas pelo template:
-      - produtos
-      - total_vendas_mes
-      - top_clientes
-      - produto_mais_vendido
-      - ticket_medio
-      - meses
-      - totais
-      - notificacoes_pendentes
+    Otimizado para performance: evita Produto.query.all() e usa agregados.
     """
     hoje = datetime.today()
 
-    # Lista de produtos
-    produtos = Produto.query.all()
+    # KPIs rápidos (Contagens)
+    total_produtos = db.session.query(func.count(Produto.id)).scalar() or 0
+    total_clientes = db.session.query(func.count(Cliente.id)).scalar() or 0
+    notificacoes_pendentes = Notificacao.query.filter_by(status="enviado").count()
 
     # Total de vendas no mês atual
     total_vendas_mes = (
@@ -61,14 +54,16 @@ def get_dashboard_context():
         or 0
     )
 
-    # Ticket médio geral
+    # Ticket médio do mês
     ticket_medio = (
         db.session.query(func.sum(Venda.valor_total) / func.count(Venda.id))
+        .filter(extract("year", Venda.data_abertura) == hoje.year)
+        .filter(extract("month", Venda.data_abertura) == hoje.month)
         .scalar()
         or 0
     )
 
-    # Top 5 clientes por valor de venda
+    # Top 5 clientes (Valor total em vendas)
     top_clientes = (
         db.session.query(Cliente.nome, func.sum(Venda.valor_total).label("total"))
         .join(Venda, Cliente.id == Venda.cliente_id)
@@ -78,18 +73,7 @@ def get_dashboard_context():
         .all()
     )
 
-    # Produto mais vendido (por quantidade)
-    produto_mais_vendido = (
-        db.session.query(
-            ItemVenda.produto_nome,
-            func.sum(ItemVenda.quantidade).label("qtd")
-        )
-        .group_by(ItemVenda.produto_nome)
-        .order_by(func.sum(ItemVenda.quantidade).desc())
-        .first()
-    )
-
-    # Vendas por mês (últimos 180 dias)
+    # Vendas por mês (últimos 6 meses)
     vendas_por_mes = (
         db.session.query(
             extract("month", Venda.data_abertura).label("mes"),
@@ -103,25 +87,19 @@ def get_dashboard_context():
 
     meses_nomes = []
     totais = []
-
     for mes_num, total in vendas_por_mes:
-        # mes_num vem como algo tipo Decimal ou float; convertemos para int
         try:
             mes_int = int(mes_num)
         except (TypeError, ValueError):
             mes_int = None
-
         meses_nomes.append(_mes_numero_para_nome(mes_int))
         totais.append(float(total or 0))
 
-    # Notificações pendentes
-    notificacoes_pendentes = Notificacao.query.filter_by(status="enviado").count()
-
     return {
-        "produtos": produtos,
+        "total_produtos": total_produtos,
+        "total_clientes": total_clientes,
         "total_vendas_mes": total_vendas_mes,
         "top_clientes": top_clientes,
-        "produto_mais_vendido": produto_mais_vendido,
         "ticket_medio": ticket_medio,
         "meses": meses_nomes,
         "totais": totais,
@@ -136,40 +114,30 @@ def get_dashboard_context():
 def get_dashboard_resumo():
     """
     Calcula os agregados usados na API /dashboard/api/resumo.
-
-    Retorna um dict serializável em JSON com:
-      - produtos_total
-      - clientes_total
-      - documentos_validos
-      - documentos_vencidos
-      - vendas_mes
-      - ticket_medio
-      - categorias: lista de {nome, total}
+    Otimizado para usar a tabela de Documentos e Armas real.
     """
-    hoje = datetime.today()
+    hoje = datetime.today().date()
 
     # Totais básicos
     total_produtos = db.session.query(func.count(Produto.id)).scalar() or 0
     total_clientes = db.session.query(func.count(Cliente.id)).scalar() or 0
 
-    # Documentos (simplificação atual baseada em Venda)
-    um_ano_atras = hoje - timedelta(days=365)
+    # Documentos reais (tabela documentos)
+    from app.clientes.models import Documento, Arma
+    
+    docs_vencidos = db.session.query(func.count(Documento.id)).filter(
+        Documento.data_validade < hoje,
+        Documento.validade_indeterminada == False
+    ).scalar() or 0
+    
+    docs_validos = db.session.query(func.count(Documento.id)).filter(
+        or_(Documento.data_validade >= hoje, Documento.validade_indeterminada == True)
+    ).scalar() or 0
 
-    documentos_validos = (
-        db.session.query(func.count(Venda.id))
-        .filter(Venda.data_fechamento >= um_ano_atras)
-        .scalar()
-        or 0
-    )
+    # Armas cadastradas
+    total_armas = db.session.query(func.count(Arma.id)).scalar() or 0
 
-    documentos_vencidos = (
-        db.session.query(func.count(Venda.id))
-        .filter(Venda.data_fechamento < um_ano_atras)
-        .scalar()
-        or 0
-    )
-
-    # Vendas e ticket médio do mês atual
+    # Vendas do mês
     vendas_mes = (
         db.session.query(func.sum(Venda.valor_total))
         .filter(extract("month", Venda.data_abertura) == hoje.month)
@@ -178,6 +146,7 @@ def get_dashboard_resumo():
         or 0
     )
 
+    # Ticket médio do mês
     ticket_medio = (
         db.session.query(func.sum(Venda.valor_total) / func.count(Venda.id))
         .filter(extract("month", Venda.data_abertura) == hoje.month)
@@ -186,9 +155,20 @@ def get_dashboard_resumo():
         or 0
     )
 
-    # Produtos por categoria
+    return {
+        "produtos_total": int(total_produtos),
+        "clientes_total": int(total_clientes),
+        "documentos_validos": int(docs_validos),
+        "documentos_vencidos": int(docs_vencidos),
+        "total_armas": int(total_armas),
+        "vendas_mes": float(vendas_mes or 0),
+        "ticket_medio": float(ticket_medio or 0),
+        "categorias": get_produtos_por_categoria()
+    }
+
+def get_produtos_por_categoria():
     try:
-        categorias_data = (
+        data = (
             db.session.query(
                 func.coalesce(CategoriaProduto.nome, "Sem categoria").label("nome"),
                 func.count(Produto.id).label("total"),
@@ -196,25 +176,83 @@ def get_dashboard_resumo():
             .outerjoin(CategoriaProduto, CategoriaProduto.id == Produto.categoria_id)
             .group_by(CategoriaProduto.nome)
             .order_by(func.count(Produto.id).desc())
+            .limit(10)
             .all()
         )
-    except Exception:
-        categorias_data = []
+        return [{"nome": n, "total": t} for n, t in data]
+    except:
+        return []
 
-    categorias = [
-        {"nome": nome or "Sem categoria", "total": int(total or 0)}
-        for nome, total in categorias_data
-    ]
+def global_search(termo):
+    """
+    Motor de busca global unificado para o dashboard.
+    Busca em Clientes, Documentos (número), Armas (série) e Produtos.
+    """
+    if not termo or len(termo) < 2:
+        return []
 
-    return {
-        "produtos_total": int(total_produtos),
-        "clientes_total": int(total_clientes),
-        "documentos_validos": int(documentos_validos),
-        "documentos_vencidos": int(documentos_vencidos),
-        "vendas_mes": float(vendas_mes or 0),
-        "ticket_medio": float(ticket_medio or 0),
-        "categorias": categorias,
-    }
+    from app.clientes.models import Documento, Arma
+    busca_like = f"%{termo}%"
+    
+    resultados = []
+
+    # 1. Clientes (Nome, CPF, Apelido)
+    clientes = Cliente.query.filter(
+        or_(
+            Cliente.nome.ilike(busca_like),
+            Cliente.documento.ilike(busca_like),
+            Cliente.apelido.ilike(busca_like)
+        )
+    ).limit(5).all()
+    for c in clientes:
+        resultados.append({
+            "tipo": "cliente",
+            "titulo": c.nome,
+            "subtitulo": f"CPF: {c.documento}",
+            "link": f"/clientes/{c.id}"
+        })
+
+    # 2. Armas (Série, Modelo)
+    armas = Arma.query.filter(
+        or_(
+            Arma.numero_serie.ilike(busca_like),
+            Arma.modelo.ilike(busca_like)
+        )
+    ).limit(5).all()
+    for a in armas:
+        resultados.append({
+            "tipo": "arma",
+            "titulo": f"{a.marca} {a.modelo}",
+            "subtitulo": f"Série: {a.numero_serie} | Cliente: {a.cliente.nome}",
+            "link": f"/clientes/{a.cliente_id}"
+        })
+
+    # 3. Documentos (Número)
+    docs = Documento.query.filter(Documento.numero_documento.ilike(busca_like)).limit(5).all()
+    for d in docs:
+        resultados.append({
+            "tipo": "documento",
+            "titulo": f"{d.tipo}: {d.numero_documento}",
+            "subtitulo": f"Cliente: {d.cliente.nome}",
+            "link": f"/clientes/{d.cliente_id}"
+        })
+
+    # 4. Produtos (Nome, Código)
+    produtos = Produto.query.filter(
+        or_(
+            Produto.nome.ilike(busca_like),
+            Produto.codigo.ilike(busca_like)
+        )
+    ).limit(5).all()
+    for p in produtos:
+        resultados.append({
+            "tipo": "produto",
+            "titulo": p.nome,
+            "subtitulo": f"Código: {p.codigo} | Preço: R$ {p.preco_a_vista:.2f}",
+            "link": f"/produtos/{p.id}/editar"
+        })
+
+    return resultados
 
 
 # ============================

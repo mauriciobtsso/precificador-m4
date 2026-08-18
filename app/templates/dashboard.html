@@ -2,163 +2,279 @@
 {% block content %}
 
 <!-- ===========================
-     CABEÇALHO DO DASHBOARD
+     ESTILOS CUSTOMIZADOS (DASHBOARD)
 =========================== -->
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-  <h2 class="fw-semibold mb-2 text-dark">
-    <i class="fas fa-chart-line text-danger me-2"></i> Painel de Controle M4
-  </h2>
+<style>
+    :root {
+        --m4-gold: #c5a059;
+        --m4-dark: #111111;
+        --m4-gray: #f8f9fa;
+    }
 
-  <div class="d-flex align-items-center gap-2 flex-wrap">
-    <div class="input-group input-group-sm" style="width: 260px; max-width: 100%;">
-      <input
-        type="text"
-        class="form-control"
-        placeholder="Buscar cliente, documento ou arma"
-        aria-label="Buscar cliente, documento ou arma"
-      >
-      <button class="btn btn-outline-secondary" title="Buscar">
-        <i class="fas fa-search"></i>
-      </button>
+    .dashboard-container {
+        padding: 1.5rem;
+        background-color: #f4f6f9;
+        min-height: 100vh;
+    }
+
+    .kpi-card {
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        background: #fff;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    }
+
+    .kpi-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .search-wrapper {
+        position: relative;
+        max-width: 500px;
+        width: 100%;
+    }
+
+    #search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        background: white;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        max-height: 400px;
+        overflow-y: auto;
+        display: none;
+    }
+
+    .search-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .search-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .search-item i {
+        width: 32px;
+        height: 32px;
+        background: #eee;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+
+    .timeline-item {
+        padding: 12px 0;
+        border-left: 2px solid #e9ecef;
+        padding-left: 20px;
+        position: relative;
+        margin-left: 10px;
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -7px;
+        top: 18px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--m4-gold);
+    }
+
+    /* Mobile Adjustments */
+    @media (max-width: 768px) {
+        .dashboard-container { padding: 1rem; }
+        .kpi-card { margin-bottom: 1rem; }
+        .search-wrapper { order: 2; margin-top: 1rem; max-width: 100%; }
+        .header-actions { order: 1; width: 100%; display: flex; justify-content: space-between; align-items: center; }
+    }
+</style>
+
+<div class="dashboard-container">
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div class="header-actions">
+            <h2 class="fw-bold text-dark mb-0">Painel Operacional</h2>
+            <div class="d-md-none">
+                <button id="toggleTheme" class="btn btn-light btn-sm rounded-circle shadow-sm">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="search-wrapper">
+            <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white border">
+                <span class="input-group-text bg-white border-0 ps-3">
+                    <i class="fas fa-search text-muted"></i>
+                </span>
+                <input type="text" id="global-search-input" class="form-control border-0 py-2 shadow-none" 
+                       placeholder="Buscar clientes, armas ou documentos..." autocomplete="off">
+                <div id="search-spinner" class="spinner-border spinner-border-sm text-gold me-3 align-self-center d-none" role="status"></div>
+            </div>
+            <div id="search-results" class="border"></div>
+        </div>
+
+        <div class="d-none d-md-flex align-items-center gap-3">
+            <button id="toggleThemeMain" class="btn btn-white shadow-sm rounded-circle">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-white shadow-sm rounded-pill px-3 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user-circle me-2"></i> {{ current_user.username }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    <li><a class="dropdown-item" href="{{ url_for('main.logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Sair</a></li>
+                </ul>
+            </div>
+        </div>
     </div>
-    <button id="toggleTheme" class="btn btn-outline-dark btn-sm" title="Alternar tema">
-      <i class="fas fa-moon"></i>
-    </button>
-  </div>
-</div>
 
-<!-- ===========================
-     SEÇÃO DE RESUMO PRINCIPAL
-=========================== -->
-<div id="dashboard-resumo" class="row g-3 mb-4">
-  <div class="col-12 text-center text-muted py-3">
-    <div class="spinner-border text-secondary me-2" role="status"></div>
-    Carregando resumo...
-  </div>
-</div>
-
-<!-- ===========================
-     SEÇÃO DE GRÁFICOS
-=========================== -->
-<div class="row g-4 mb-4">
-  <!-- Gráfico de Documentos -->
-  <div class="col-12 col-md-4">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-header bg-light py-2 d-flex align-items-center justify-content-between">
-        <h6 class="mb-0 fw-semibold small">
-          <i class="fas fa-file-medical text-success me-2"></i> Documentos
-        </h6>
-      </div>
-      <div class="card-body text-center py-3 d-flex justify-content-center align-items-center">
-        <canvas id="chartDocs" height="120" style="max-width:200px;"></canvas>
-      </div>
+    <!-- KPIs Row -->
+    <div id="dashboard-resumo" class="row g-3 mb-4">
+        <!-- Will be populated by JS -->
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-gold" role="status"></div>
+            <p class="mt-2 text-muted">Carregando indicadores...</p>
+        </div>
     </div>
-  </div>
 
-  <!-- Gráfico de Produtos -->
-  <div class="col-12 col-md-8">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-header bg-light py-2 d-flex align-items-center justify-content-between">
-        <h6 class="mb-0 fw-semibold small">
-          <i class="fas fa-chart-pie text-danger me-2"></i> Produtos por Categoria
-        </h6>
-      </div>
-      <div class="card-body py-3">
-        <canvas id="chartArmas" height="160"></canvas>
-      </div>
-    </div>
-  </div>
-</div>
+    <div class="row g-4">
+        <!-- Chart Column -->
+        <div class="col-lg-8">
+            <div class="card kpi-card shadow-sm h-100">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold text-dark">Distribuição de Estoque por Categoria</h6>
+                    <i class="fas fa-chart-bar text-muted"></i>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartArmas" style="max-height: 350px;"></canvas>
+                </div>
+            </div>
+        </div>
 
-<!-- ===========================
-     SEÇÃO DE ATIVIDADES RECENTES
-=========================== -->
-<div class="card shadow-sm border-0 mb-4">
-  <div class="card-header bg-light py-2 d-flex align-items-center justify-content-between flex-wrap">
-    <h6 class="mb-0 fw-semibold small">
-      <i class="fas fa-stream text-primary me-2"></i> Atividades Recentes
-    </h6>
-    <button class="btn btn-sm btn-outline-secondary mt-2 mt-sm-0" id="btnAtualizarTimeline" title="Atualizar agora">
-      <i class="fas fa-sync-alt fa-sm"></i>
-    </button>
-  </div>
-  <div class="card-body py-2 small" id="dashboard-timeline"
-       style="max-height: 280px; overflow-y: auto;">
-    <div class="text-center text-muted py-2">
-      <div class="spinner-border text-secondary me-2" role="status" style="width: 1rem; height: 1rem;"></div>
-      Carregando eventos...
-    </div>
-  </div>
-</div>
+        <!-- Sidebar Column -->
+        <div class="col-lg-4">
+            <!-- Documents Card -->
+            <div class="card kpi-card shadow-sm mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="mb-0 fw-bold text-dark">Status de Documentação</h6>
+                </div>
+                <div class="card-body text-center">
+                    <canvas id="chartDocs" style="max-height: 200px;"></canvas>
+                </div>
+            </div>
 
-<!-- ===========================
-     SEÇÃO DE ALERTAS
-=========================== -->
-<div class="card shadow-sm border-0 mb-5">
-  <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center flex-wrap">
-    <h6 class="mb-0 fw-semibold small">
-      <i class="fas fa-bell text-danger me-2"></i> Alertas do Sistema
-    </h6>
-    <button class="btn btn-sm btn-outline-secondary mt-2 mt-sm-0" id="btnAtualizarAlertas" title="Atualizar agora">
-      <i class="fas fa-sync-alt fa-sm"></i>
-    </button>
-  </div>
-  <div class="card-body py-3 small" id="dashboard-alertas">
-    <div class="text-center text-muted py-2">
-      <div class="spinner-border text-secondary me-2" role="status" style="width: 1rem; height: 1rem;"></div>
-      Carregando alertas...
+            <!-- Recent Activity -->
+            <div class="card kpi-card shadow-sm">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold text-dark">Atividades Recentes</h6>
+                    <button class="btn btn-link btn-sm text-gold p-0" id="btnAtualizarTimeline">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div id="dashboard-timeline" style="max-height: 400px; overflow-y: auto; padding: 0 1.25rem 1.25rem;">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 {% endblock %}
 
 {% block scripts %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    // Script de Busca Global Unificada
+    (function() {
+        const input = document.getElementById('global-search-input');
+        const results = document.getElementById('search-results');
+        const spinner = document.getElementById('search-spinner');
+        let debounceTimer;
 
-<style>
-/* ============================
-   AJUSTES VISUAIS GERAIS
-============================ */
-@media (max-width: 768px) {
-  h2.fw-semibold {
-    font-size: 1.2rem;
-  }
+        input.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const query = this.value.trim();
 
-  #dashboard-resumo .card {
-    margin-bottom: 0.5rem;
-  }
+            if (query.length < 2) {
+                results.style.display = 'none';
+                return;
+            }
 
-  .card-header h6 {
-    font-size: 0.9rem !important;
-  }
+            debounceTimer = setTimeout(() => {
+                spinner.classList.remove('d-none');
+                fetch(`/dashboard/api/search?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        spinner.classList.add('d-none');
+                        results.innerHTML = '';
+                        
+                        if (data.length === 0) {
+                            results.innerHTML = '<div class="p-3 text-muted text-center small">Nenhum resultado encontrado.</div>';
+                        } else {
+                            data.forEach(item => {
+                                const iconMap = {
+                                    'cliente': 'fa-user text-primary',
+                                    'arma': 'fa-gun text-danger',
+                                    'documento': 'fa-file-contract text-success',
+                                    'produto': 'fa-tag text-warning'
+                                };
+                                
+                                const div = document.createElement('a');
+                                div.href = item.link;
+                                div.className = 'search-item';
+                                div.innerHTML = `
+                                    <i class="fas ${iconMap[item.tipo] || 'fa-search'}"></i>
+                                    <div>
+                                        <div class="fw-bold small">${item.titulo}</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">${item.subtitulo}</div>
+                                    </div>
+                                `;
+                                results.appendChild(div);
+                            });
+                        }
+                        results.style.display = 'block';
+                    })
+                    .catch(err => {
+                        spinner.classList.add('d-none');
+                        console.error('Erro na busca:', err);
+                    });
+            }, 300);
+        });
 
-  .card-body {
-    padding: 0.75rem !important;
-  }
-
-  #chartDocs {
-    max-width: 160px !important;
-    height: 100px !important;
-  }
-
-  #dashboard-timeline {
-    max-height: 220px !important;
-  }
-}
-
-/* Scrollbar suave na timeline */
-#dashboard-timeline::-webkit-scrollbar {
-  width: 6px;
-}
-#dashboard-timeline::-webkit-scrollbar-thumb {
-  background-color: #b5b5b5;
-  border-radius: 4px;
-}
-#dashboard-timeline::-webkit-scrollbar-thumb:hover {
-  background-color: #888;
-}
-</style>
+        // Fechar resultados ao clicar fora
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !results.contains(e.target)) {
+                results.style.display = 'none';
+            }
+        });
+    })();
+</script>
 {% endblock %}

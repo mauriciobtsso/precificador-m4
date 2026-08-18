@@ -33,7 +33,8 @@ from app.clientes.models import Cliente
 from app.services.dashboard_service import (
     get_dashboard_context,
     get_dashboard_resumo,
-    get_dashboard_timeline
+    get_dashboard_timeline,
+    global_search
 )
 from app.extensions import limiter
 
@@ -125,6 +126,18 @@ def dashboard_api_timeline():
     except Exception as e:
         current_app.logger.error(f"Erro no dashboard_api_timeline: {e}")
         return jsonify({"error": "Erro interno ao carregar timeline."}), 500
+
+
+@main.route("/dashboard/api/search")
+@login_required
+def dashboard_api_search():
+    termo = request.args.get("q", "")
+    try:
+        resultados = global_search(termo)
+        return jsonify(resultados)
+    except Exception as e:
+        current_app.logger.error(f"Erro no dashboard_api_search: {e}")
+        return jsonify([]), 500
 
 
 # ===========================================================
