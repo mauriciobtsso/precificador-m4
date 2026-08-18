@@ -390,26 +390,23 @@
                                 <label class="form-label fw-bold">TIPO</label>
                                 <select name="tipo" id="arma_tipo" class="form-select form-select-sm">
                                     <option value="">Selecione...</option>
-                                    <option value="Pistola">Pistola</option>
-                                    <option value="Revólver">Revólver</option>
-                                    <option value="Rifle">Rifle</option>
-                                    <option value="Carabina">Carabina</option>
-                                    <option value="Espingarda">Espingarda</option>
-                                    <option value="Submetralhadora">Submetralhadora</option>
-                                    <option value="Outro">Outro</option>
+                                    <option value="pistola">Pistola</option>
+                                    <option value="revolver">Revólver</option>
+                                    <option value="rifle">Rifle</option>
+                                    <option value="carabina_fuzil">Carabina / Fuzil</option>
+                                    <option value="espingarda">Espingarda</option>
+                                    <option value="garruncha">Garruncha</option>
+                                    <option value="outros">Outro</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">FUNCIONAMENTO</label>
                                 <select name="funcionamento" id="arma_func" class="form-select form-select-sm">
                                     <option value="">Selecione...</option>
-                                    <option value="Semiautomático">Semiautomático</option>
-                                    <option value="Automático">Automático</option>
-                                    <option value="Revólver">Revólver</option>
-                                    <option value="Pump">Pump</option>
-                                    <option value="Ferrolho">Ferrolho</option>
-                                    <option value="Alavanca">Alavanca</option>
-                                    <option value="Outro">Outro</option>
+                                    <option value="repeticao">Repetição</option>
+                                    <option value="semi_automatica">Semiautomática</option>
+                                    <option value="automatica">Automática</option>
+                                    <option value="outros">Outro</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
@@ -446,10 +443,9 @@
                                 <label class="form-label fw-bold">EMISSOR DO CRAF</label>
                                 <select name="emissor_craf" id="arma_emissor" class="form-select form-select-sm">
                                     <option value="">Selecione...</option>
-                                    <option value="Exército">Exército</option>
-                                    <option value="PF">Polícia Federal</option>
-                                    <option value="SIGMA">SIGMA</option>
-                                    <option value="Outro">Outro</option>
+                                    <option value="sigma">Sigma</option>
+                                    <option value="sinarm">Sinarm</option>
+                                    <option value="sinarm_cac">Sinarm-CAC</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -512,6 +508,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── LÓGICA OCR (M4 INTELIGENTE) ──
     const clienteId = "{{ cliente_loja.id }}";
 
+    function formatarDataParaInput(dataBr) {
+        if (!dataBr || !dataBr.includes('/')) return dataBr;
+        const partes = dataBr.split('/');
+        if (partes.length !== 3) return dataBr;
+        return partes[2] + '-' + partes[1] + '-' + partes[0];
+    }
+
     function realizarOCR(tipo) {
         const input = document.getElementById(tipo === 'doc' ? 'input-arquivo-doc' : 'input-arquivo-arma');
         const loading = document.getElementById(tipo === 'doc' ? 'ocr-loading' : 'ocr-loading-arma');
@@ -542,22 +545,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (tipo === 'doc') {
                     if (res.categoria) document.getElementById('doc_tipo').value = res.categoria;
                     if (res.numero_documento) document.getElementById('doc_numero').value = res.numero_documento;
-                    if (res.data_emissao) document.getElementById('doc_emissao').value = res.data_emissao;
-                    if (res.data_validade) document.getElementById('doc_validade').value = res.data_validade;
+                    if (res.data_emissao) document.getElementById('doc_emissao').value = formatarDataParaInput(res.data_emissao);
+                    if (res.data_validade) document.getElementById('doc_validade').value = formatarDataParaInput(res.data_validade);
                     if (res.validade_indeterminada) {
                         document.getElementById('doc_indet').checked = true;
                         document.getElementById('doc_validade').disabled = true;
                     }
                 } else {
-                    if (res.tipo_arma) document.getElementById('arma_tipo').value = res.tipo_arma;
+                    // Mapeamento corrigido para CRAF (keys do parser)
+                    if (res.tipo) document.getElementById('arma_tipo').value = res.tipo;
                     if (res.funcionamento) document.getElementById('arma_func').value = res.funcionamento;
                     if (res.calibre) document.getElementById('arma_calibre').value = res.calibre;
                     if (res.marca) document.getElementById('arma_marca').value = res.marca;
                     if (res.modelo) document.getElementById('arma_modelo').value = res.modelo;
                     if (res.numero_serie) document.getElementById('arma_serie').value = res.numero_serie;
                     if (res.numero_sigma) document.getElementById('arma_sigma').value = res.numero_sigma;
-                    if (res.emissor) document.getElementById('arma_emissor').value = res.emissor;
-                    if (res.data_validade) document.getElementById('craf_validade').value = res.data_validade;
+                    if (res.emissor_craf) document.getElementById('arma_emissor').value = res.emissor_craf;
+                    
+                    const valCraf = res.data_validade_craf || res.data_validade;
+                    if (valCraf) document.getElementById('craf_validade').value = formatarDataParaInput(valCraf);
+                    
                     if (res.validade_indeterminada) {
                         document.getElementById('craf_indet').checked = true;
                         document.getElementById('craf_validade').disabled = true;
