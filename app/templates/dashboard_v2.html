@@ -2,63 +2,15 @@
 {% block content %}
 
 <!-- 
-    DASHBOARD V2.0 - M4 TÁTICA
-    Foco: Performance, Mobile UX e Busca Global Unificada
+    DASHBOARD V2.1 - M4 TÁTICA
+    Correção de Layout e Grid
 -->
 
 <style>
     :root {
         --m4-gold: #c5a059;
         --m4-dark: #111111;
-        --m4-bg: #f0f2f5;
-    }
-
-    .dashboard-v2 {
-        background-color: var(--m4-bg);
-        margin: -1.5rem -1.5rem -1.5rem -1.5rem; 
-        padding: 1.5rem;
-        min-height: 100vh;
-    }
-
-    /* Fix para a sidebar e container principal do base.html */
-    html, body, .d-flex, .flex-grow-1 {
-        height: 100%;
-        min-height: 100vh;
-    }
-
-    .container-fluid.p-4 {
-        background-color: var(--m4-bg);
-        min-height: 100vh;
-    }
-
-    #offcanvasSidebar, #sidebar {
-        min-height: 100vh !important;
-        height: 100% !important;
-    }
-
-    .v2-content-wrapper {
-        max-width: 1600px;
-        margin: 0 auto;
-    }
-
-    /* Estética das Atividades e Documentos */
-    .timeline-item {
-        border-left: 3px solid #e9ecef;
-        padding-left: 1.5rem;
-        margin-bottom: 1rem;
-        position: relative;
-    }
-    
-    .timeline-item::before {
-        content: '';
-        position: absolute;
-        left: -8px;
-        top: 5px;
-        width: 13px;
-        height: 13px;
-        border-radius: 50%;
-        background: #fff;
-        border: 3px solid var(--m4-gold);
+        --m4-bg: #f8f9fa;
     }
 
     .v2-badge {
@@ -75,30 +27,34 @@
 
     .kpi-card-v2 {
         border: none;
-        border-radius: 15px;
+        border-radius: 12px;
         background: #fff;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-        transition: all 0.3s ease;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: transform 0.2s;
         height: 100%;
     }
 
     .kpi-card-v2:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
     }
 
     .kpi-icon-v2 {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2rem;
-        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
     }
 
-    /* Busca Global Flutuante */
+    .dashboard-main-v2 {
+        background-color: var(--m4-bg);
+        min-height: 100vh;
+    }
+
+    /* Busca Global */
     .search-container-v2 {
         position: relative;
         max-width: 600px;
@@ -107,16 +63,9 @@
 
     .search-input-v2 {
         border-radius: 50px !important;
-        padding: 0.75rem 1.5rem 0.75rem 3rem !important;
-        border: 2px solid transparent !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
-        font-size: 1rem;
-        transition: all 0.3s;
-    }
-
-    .search-input-v2:focus {
-        border-color: var(--m4-gold) !important;
-        box-shadow: 0 4px 20px rgba(197, 160, 89, 0.2) !important;
+        padding: 0.6rem 1.5rem 0.6rem 3rem !important;
+        border: 1px solid #dee2e6 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
     }
 
     .search-icon-v2 {
@@ -134,8 +83,8 @@
         left: 0;
         right: 0;
         background: white;
-        border-radius: 15px;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         z-index: 2000;
         display: none;
         overflow: hidden;
@@ -143,126 +92,75 @@
     }
 
     .search-item-v2 {
-        padding: 12px 20px;
+        padding: 10px 15px;
         display: flex;
         align-items: center;
-        gap: 15px;
+        gap: 12px;
         text-decoration: none;
         color: #333;
         border-bottom: 1px solid #f8f9fa;
-        transition: background 0.2s;
     }
 
     .search-item-v2:hover {
         background: #f8f9fa;
-        color: var(--m4-gold);
-    }
-
-    .search-item-v2 i {
-        width: 35px;
-        height: 35px;
-        background: #f0f2f5;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.9rem;
-    }
-
-    /* Mobile UX */
-    @media (max-width: 768px) {
-        .dashboard-v2 { padding: 1rem; margin: -1rem; }
-        .search-container-v2 { margin-bottom: 1.5rem; }
-        .kpi-card-v2 .card-body { padding: 1rem !important; }
-        .kpi-icon-v2 { width: 36px; height: 36px; font-size: 1rem; }
-        h2 { font-size: 1.5rem; }
     }
 
     .doc-alert-item {
-        padding: 10px;
-        border-radius: 8px;
+        padding: 8px;
+        border-radius: 6px;
         background: #fff5f5;
-        border-left: 4px solid #f87171;
-        margin-bottom: 8px;
+        border-left: 3px solid #f87171;
+        margin-bottom: 6px;
+    }
+
+    .timeline-item {
+        border-left: 2px solid #e9ecef;
+        padding-left: 1rem;
+        margin-bottom: 0.75rem;
+        position: relative;
+        font-size: 0.85rem;
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -6px;
+        top: 4px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid var(--m4-gold);
     }
 </style>
 
-<div class="dashboard-v2">
-    <div class="v2-content-wrapper">
-        <div class="text-center mb-4">
-            <span class="v2-badge">DASHBOARD V2.0 - ATUALIZADO</span>
-            <h2 class="fw-bold text-dark">Painel Operacional M4</h2>
-            <p class="text-muted small">Gestão de Arsenal, Clientes e Documentação</p>
-        </div>
+<div class="container-fluid py-3 dashboard-main-v2">
+    <div class="text-center mb-4">
+        <span class="v2-badge">DASHBOARD V2.1</span>
+        <h3 class="fw-bold text-dark mb-0">Painel Operacional M4</h3>
+        <p class="text-muted small">Gestão de Arsenal e Clientes</p>
+    </div>
 
-    <!-- Busca Global Centralizada -->
+    <!-- Busca Global -->
     <div class="search-container-v2">
         <i class="fas fa-search search-icon-v2"></i>
         <input type="text" id="global-search-v2" class="form-control search-input-v2" 
-               placeholder="Buscar cliente, série de arma, lote ou documento..." autocomplete="off">
+               placeholder="Buscar cliente, arma, lote ou produto..." autocomplete="off">
         <div id="search-results-v2"></div>
     </div>
 
-    <!-- KPIs Rápidos -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-md-4 col-lg-2">
-            <div class="card kpi-card-v2">
-                <div class="card-body">
-                    <div class="kpi-icon-v2 bg-dark bg-opacity-10 text-dark"><i class="fas fa-boxes"></i></div>
-                    <div class="text-muted small">Produtos</div>
-                    <div class="h5 fw-bold mb-0">{{ total_produtos }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            <div class="card kpi-card-v2">
-                <div class="card-body">
-                    <div class="kpi-icon-v2 bg-primary bg-opacity-10 text-primary"><i class="fas fa-users"></i></div>
-                    <div class="text-muted small">Clientes</div>
-                    <div class="h5 fw-bold mb-0">{{ total_clientes }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            <div class="card kpi-card-v2">
-                <div class="card-body">
-                    <div class="kpi-icon-v2 bg-danger bg-opacity-10 text-danger"><i class="fas fa-gun"></i></div>
-                    <div class="text-muted small">Armas</div>
-                    <div id="kpi-armas" class="h5 fw-bold mb-0">...</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            <div class="card kpi-card-v2">
-                <div class="card-body">
-                    <div class="kpi-icon-v2 bg-success bg-opacity-10 text-success"><i class="fas fa-file-shield"></i></div>
-                    <div class="text-muted small">Docs OK</div>
-                    <div id="kpi-docs" class="h5 fw-bold mb-0">...</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            <div class="card kpi-card-v2">
-                <div class="card-body">
-                    <div class="kpi-icon-v2 bg-info bg-opacity-10 text-info"><i class="fas fa-cash-register"></i></div>
-                    <div class="text-muted small">Vendas Mês</div>
-                    <div class="h5 fw-bold mb-0">R$ {{ "{:,.2f}".format(total_vendas_mes).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            <div class="card kpi-card-v2">
-                <div class="card-body">
-                    <div class="kpi-icon-v2 bg-warning bg-opacity-10 text-warning"><i class="fas fa-chart-line"></i></div>
-                    <div class="text-muted small">Ticket Médio</div>
-                    <div class="h5 fw-bold mb-0">R$ {{ "{:,.2f}".format(ticket_medio).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
-                </div>
-            </div>
+    <!-- KPIs (Sincronizados via JS) -->
+    <div class="row g-3 mb-4" id="dashboard-resumo">
+        <!-- Populados pelo dashboard.js -->
+        <div class="col-12 text-center py-4">
+            <div class="spinner-border spinner-border-sm text-muted" role="status"></div>
+            <span class="ms-2 text-muted small">Carregando indicadores...</span>
         </div>
     </div>
 
+    <!-- Main Content Grid -->
     <div class="row g-4">
-        <!-- Coluna Esquerda: Gráficos e Atividades -->
+        <!-- Coluna da Esquerda (8/12) -->
         <div class="col-lg-8">
             <div class="card kpi-card-v2 mb-4">
                 <div class="card-header bg-white border-0 py-3">
@@ -273,28 +171,24 @@
                 </div>
             </div>
             
-            <div class="card kpi-card-v2 mb-4">
+            <div class="card kpi-card-v2">
                 <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0">Atividades Recentes</h6>
-                    <button class="btn btn-sm btn-light rounded-circle" id="btnRefreshTimeline">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+                    <button class="btn btn-sm btn-light rounded-circle" id="btnRefreshTimeline"><i class="fas fa-sync-alt"></i></button>
                 </div>
                 <div class="card-body p-0">
-                    <div id="dashboard-timeline" class="px-3 pb-3" style="max-height: 500px; overflow-y: auto;">
-                        <!-- Timeline content here -->
+                    <div id="dashboard-timeline" class="px-3 pb-3" style="max-height: 450px; overflow-y: auto;">
+                        <!-- JS populated -->
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Coluna Direita: Alertas e Documentos -->
+        <!-- Coluna da Direita (4/12) -->
         <div class="col-lg-4">
             <div class="card kpi-card-v2 mb-4 border-top border-4 border-danger">
                 <div class="card-header bg-white border-0 py-3">
-                    <h6 class="fw-bold mb-0 text-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>Documentos a Vencer (30 dias)
-                    </h6>
+                    <h6 class="fw-bold mb-0 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Docs a Vencer (30 dias)</h6>
                 </div>
                 <div class="card-body">
                     {% if docs_a_vencer %}
@@ -305,22 +199,22 @@
                                     <span class="fw-bold small text-dark">{{ doc.tipo }}</span>
                                     <span class="badge bg-danger">{{ doc.data_validade.strftime('%d/%m') }}</span>
                                 </div>
-                                <div class="text-muted" style="font-size: 0.75rem;">{{ doc.cliente.nome }}</div>
+                                <div class="text-muted x-small">{{ doc.cliente.nome }}</div>
                             </div>
                         </a>
                         {% endfor %}
                     {% else %}
-                        <div class="text-center py-3 text-muted small">Nenhum documento vencendo em breve.</div>
+                        <div class="text-center py-3 text-muted small">Nenhum alerta de vencimento.</div>
                     {% endif %}
                 </div>
             </div>
 
-            <div class="card kpi-card-v2 mb-4">
+            <div class="card kpi-card-v2">
                 <div class="card-header bg-white border-0 py-3">
                     <h6 class="fw-bold mb-0">Status Geral Docs</h6>
                 </div>
                 <div class="card-body text-center">
-                    <canvas id="chartDocs" style="max-height: 250px;"></canvas>
+                    <canvas id="chartDocs" style="max-height: 220px;"></canvas>
                 </div>
             </div>
         </div>
@@ -333,7 +227,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script>
-    // BUSCA GLOBAL V2 - ES5 COMPATIBLE (XMLHttpRequest)
+    // BUSCA GLOBAL V2.1
     (function() {
         var input = document.getElementById('global-search-v2');
         var results = document.getElementById('search-results-v2');
@@ -374,7 +268,7 @@
                                 a.innerHTML = '<i class="fas ' + icon + '"></i>' +
                                               '<div>' +
                                                 '<div class="fw-bold small">' + item.titulo + '</div>' +
-                                                '<div class="text-muted" style="font-size: 0.7rem;">' + item.subtitulo + '</div>' +
+                                                '<div class="text-muted x-small">' + item.subtitulo + '</div>' +
                                               '</div>';
                                 results.appendChild(a);
                             }
@@ -393,7 +287,7 @@
         });
     })();
 
-    // Injeção de dados dinâmicos nos KPIs via API
+    // KPIs Iniciais
     (function() {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', '/dashboard/api/resumo', true);
@@ -407,4 +301,7 @@
         xhr.send();
     })();
 </script>
+<style>
+    .x-small { font-size: 0.75rem; }
+</style>
 {% endblock %}

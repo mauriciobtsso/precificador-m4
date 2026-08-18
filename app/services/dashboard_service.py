@@ -203,7 +203,7 @@ def global_search(termo):
 
     from app.clientes.models import Documento, Arma
     from app.estoque.models import ItemEstoque
-    from app.produtos.configs.models import MarcaProduto
+    from app.produtos.configs.models import MarcaProduto, CalibreProduto
     busca_like = f"%{termo}%"
     
     resultados = []
@@ -265,16 +265,19 @@ def global_search(termo):
             "link": f"/clientes/{d.cliente_id}"
         })
 
-    # 5. Produtos (Nome, Código, Marca) - PRIORIDADE MÁXIMA
-    # Buscamos produtos que batam com o nome, código, nome comercial ou marca
-    produtos = Produto.query.join(Produto.marca_rel, isouter=True).filter(
+    # 5. Produtos (Catálogo Geral) - PRIORIDADE MÁXIMA
+    # Buscamos em Nome, Código, Marca, Calibre e Palavras-chave
+    produtos = Produto.query.join(Produto.marca_rel, isouter=True)\
+                            .join(Produto.calibre_rel, isouter=True).filter(
         or_(
             Produto.nome.ilike(busca_like),
             Produto.codigo.ilike(busca_like),
             Produto.nome_comercial.ilike(busca_like),
-            MarcaProduto.nome.ilike(busca_like)
+            Produto.tags_palavras_chave.ilike(busca_like),
+            MarcaProduto.nome.ilike(busca_like),
+            CalibreProduto.nome.ilike(busca_like)
         )
-    ).limit(15).all()
+    ).limit(20).all()
     
     for p in produtos:
         resultados.insert(0, {

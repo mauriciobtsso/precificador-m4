@@ -46,11 +46,11 @@
         if (!elResumo) return;
         
         var cards = [
-            { icon: "fa-boxes-stacked", label: "Produtos", val: data.produtos_total, color: "dark" },
+            { icon: "fa-boxes", label: "Produtos", val: data.produtos_total, color: "dark" },
             { icon: "fa-users", label: "Clientes", val: data.clientes_total, color: "primary" },
             { icon: "fa-gun", label: "Armas", val: data.total_armas, color: "danger" },
-            { icon: "fa-file-shield", label: "Docs Válidos", val: data.documentos_validos, color: "success" },
-            { icon: "fa-hand-holding-usd", label: "Vendas (Mês)", val: formatarValor(data.vendas_mes), color: "info" },
+            { icon: "fa-file-shield", label: "Docs OK", val: data.documentos_validos, color: "success" },
+            { icon: "fa-cash-register", label: "Vendas Mês", val: formatarValor(data.vendas_mes), color: "info" },
             { icon: "fa-chart-line", label: "Ticket Médio", val: formatarValor(data.ticket_medio), color: "warning" }
         ];
 
@@ -58,13 +58,13 @@
         for (var i = 0; i < cards.length; i++) {
             var c = cards[i];
             html += '<div class="col-6 col-md-4 col-lg-2">' +
-                    '    <div class="card kpi-card-v2 shadow-sm border-0 h-100">' +
-                    '        <div class="card-body p-3">' +
-                    '            <div class="kpi-icon-v2 bg-' + c.color + ' bg-opacity-10 text-' + c.color + '">' +
+                    '    <div class="card kpi-card-v2">' +
+                    '        <div class="card-body p-3 text-center">' +
+                    '            <div class="kpi-icon-v2 bg-' + c.color + ' bg-opacity-10 text-' + c.color + ' mx-auto">' +
                     '                <i class="fas ' + c.icon + '"></i>' +
                     '            </div>' +
-                    '            <h6 class="text-muted small mb-1">' + c.label + '</h6>' +
-                    '            <h5 class="fw-bold mb-0 text-dark">' + c.val + '</h5>' +
+                    '            <div class="text-muted x-small">' + c.label + '</div>' +
+                    '            <div class="fw-bold">' + c.val + '</div>' +
                     '        </div>' +
                     '    </div>' +
                     '</div>';
