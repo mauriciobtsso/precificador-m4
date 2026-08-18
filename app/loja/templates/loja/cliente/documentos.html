@@ -256,8 +256,8 @@
    enctype multipart nos dois forms para suportar upload de arquivo
 ════════════════════════════════════════════════════════════════ #}
 <div class="modal fade" id="modalUpload" tabindex="-1">
-    <div class="modal-dialog modal-dialog-scrollable" style="margin-top:90px;">
-        <div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
 
             <div class="modal-header bg-dark text-white py-2">
                 <h6 class="modal-title fw-bold"><i class="bi bi-folder2-open me-2"></i>Adicionar</h6>
@@ -282,33 +282,48 @@
             <div id="tab-documento">
                 <form method="POST"
                       action="{{ url_for('loja.upload_documento') }}"
-                      enctype="multipart/form-data">
+                      enctype="multipart/form-data"
+                      id="form-upload-doc">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="modal-body small">
                         <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-bold">ARQUIVO * <small class="text-muted fw-normal">(PDF, JPG, PNG)</small></label>
+                                <div class="input-group input-group-sm">
+                                    <input type="file" name="arquivo" id="input-arquivo-doc" class="form-control"
+                                           accept=".pdf,.jpg,.jpeg,.png" required>
+                                    <button class="btn btn-outline-dark fw-bold" type="button" id="btn-ocr-doc">
+                                        <i class="bi bi-magic me-1"></i> LER DOC
+                                    </button>
+                                </div>
+                                <div id="ocr-loading" class="form-text text-primary d-none">
+                                    <div class="spinner-border spinner-border-sm me-1" role="status"></div>
+                                    Lendo documento com IA, aguarde...
+                                </div>
+                            </div>
+
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">TIPO DE DOCUMENTO *</label>
-                                <select name="tipo" class="form-select form-select-sm" required>
+                                <select name="tipo" id="doc_tipo" class="form-select form-select-sm" required>
                                     <option value="">Selecione...</option>
-                                    <option value="RG">RG</option>
-                                    <option value="CPF">CPF</option>
-                                    <option value="CNH">CNH</option>
                                     <option value="CR">CR (Certificado de Registro)</option>
-                                    <option value="Comprovante de Residência">Comprovante de Residência</option>
-                                    <option value="Nota Fiscal">Nota Fiscal</option>
-                                    <option value="Laudo Psicológico">Laudo Psicológico</option>
-                                    <option value="Laudo Técnico">Laudo Técnico</option>
-                                    <option value="Outro">Outro</option>
+                                    <option value="CRAF">CRAF (Certificado de Registro de Arma de Fogo)</option>
+                                    <option value="RG">RG (Registro Geral)</option>
+                                    <option value="CPF">CPF (Cadastro de Pessoa Física)</option>
+                                    <option value="CNH">CNH (Carteira de Habilitação)</option>
+                                    <option value="COMPROVANTE_RESIDENCIA">Comprovante de Residência</option>
+                                    <option value="NOTA_FISCAL">Nota Fiscal</option>
+                                    <option value="OUTRO">Outro</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Nº DO DOCUMENTO</label>
-                                <input type="text" name="numero_documento"
+                                <input type="text" name="numero_documento" id="doc_numero"
                                        class="form-control form-control-sm" placeholder="Opcional">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">DATA DE EMISSÃO</label>
-                                <input type="date" name="data_emissao" class="form-control form-control-sm">
+                                <input type="date" name="data_emissao" id="doc_emissao" class="form-control form-control-sm">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">VALIDADE</label>
@@ -323,13 +338,8 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-bold">OBSERVAÇÕES</label>
-                                <textarea name="observacoes" class="form-control form-control-sm"
+                                <textarea name="observacoes" id="doc_obs" class="form-control form-control-sm"
                                           rows="2" placeholder="Opcional"></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-bold">ARQUIVO * <small class="text-muted fw-normal">(PDF, JPG, PNG)</small></label>
-                                <input type="file" name="arquivo" class="form-control form-control-sm"
-                                       accept=".pdf,.jpg,.jpeg,.png" required>
                             </div>
                         </div>
                     </div>
@@ -346,20 +356,39 @@
             <div id="tab-arma" style="display:none;">
                 <form method="POST"
                       action="{{ url_for('loja.solicitar_arma') }}"
-                      enctype="multipart/form-data">
+                      enctype="multipart/form-data"
+                      id="form-upload-arma">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="modal-body small">
                         <div class="row g-3">
 
-                            {# Dados da arma #}
+                            {# CRAF #}
                             <div class="col-12">
+                                <p class="fw-bold text-uppercase mb-1" style="font-size:.7rem; letter-spacing:.05em;">
+                                    <i class="bi bi-file-earmark-lock2 me-1 text-gold"></i> CRAF / Leitura IA
+                                </p>
+                                <div class="input-group input-group-sm mb-2">
+                                    <input type="file" name="arquivo_craf" id="input-arquivo-arma"
+                                           class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                                    <button class="btn btn-outline-dark fw-bold" type="button" id="btn-ocr-arma">
+                                        <i class="bi bi-magic me-1"></i> LER CRAF
+                                    </button>
+                                </div>
+                                <div id="ocr-loading-arma" class="form-text text-primary d-none">
+                                    <div class="spinner-border spinner-border-sm me-1" role="status"></div>
+                                    Lendo CRAF com IA, aguarde...
+                                </div>
+                            </div>
+
+                            {# Dados da arma #}
+                            <div class="col-12 mt-2">
                                 <p class="fw-bold text-uppercase mb-1" style="font-size:.7rem; letter-spacing:.05em;">
                                     <i class="bi bi-crosshair me-1 text-gold"></i> Dados da Arma
                                 </p>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">TIPO</label>
-                                <select name="tipo" class="form-select form-select-sm">
+                                <select name="tipo" id="arma_tipo" class="form-select form-select-sm">
                                     <option value="">Selecione...</option>
                                     <option value="Pistola">Pistola</option>
                                     <option value="Revólver">Revólver</option>
@@ -372,7 +401,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">FUNCIONAMENTO</label>
-                                <select name="funcionamento" class="form-select form-select-sm">
+                                <select name="funcionamento" id="arma_func" class="form-select form-select-sm">
                                     <option value="">Selecione...</option>
                                     <option value="Semiautomático">Semiautomático</option>
                                     <option value="Automático">Automático</option>
@@ -385,43 +414,37 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">CALIBRE</label>
-                                <input type="text" name="calibre"
+                                <input type="text" name="calibre" id="arma_calibre"
                                        class="form-control form-control-sm" placeholder=".380, 9mm...">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">MARCA</label>
-                                <input type="text" name="marca"
+                                <input type="text" name="marca" id="arma_marca"
                                        class="form-control form-control-sm" placeholder="Taurus, Glock...">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">MODELO</label>
-                                <input type="text" name="modelo"
+                                <input type="text" name="modelo" id="arma_modelo"
                                        class="form-control form-control-sm" placeholder="G2C, PT938...">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Nº DE SÉRIE</label>
-                                <input type="text" name="numero_serie"
+                                <input type="text" name="numero_serie" id="arma_serie"
                                        class="form-control form-control-sm">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">DATA DE AQUISIÇÃO</label>
-                                <input type="date" name="data_aquisicao" class="form-control form-control-sm">
+                                <input type="date" name="data_aquisicao" id="arma_aquisicao" class="form-control form-control-sm">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Nº SIGMA</label>
-                                <input type="text" name="numero_sigma"
+                                <input type="text" name="numero_sigma" id="arma_sigma"
                                        class="form-control form-control-sm" placeholder="Opcional">
                             </div>
 
-                            {# CRAF #}
-                            <div class="col-12 mt-2">
-                                <p class="fw-bold text-uppercase mb-1" style="font-size:.7rem; letter-spacing:.05em;">
-                                    <i class="bi bi-file-earmark-lock2 me-1 text-gold"></i> CRAF
-                                </p>
-                            </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">EMISSOR DO CRAF</label>
-                                <select name="emissor_craf" class="form-select form-select-sm">
+                                <select name="emissor_craf" id="arma_emissor" class="form-select form-select-sm">
                                     <option value="">Selecione...</option>
                                     <option value="Exército">Exército</option>
                                     <option value="PF">Polícia Federal</option>
@@ -438,18 +461,6 @@
                                            name="validade_indeterminada" id="craf_indet"
                                            onchange="document.getElementById('craf_validade').disabled=this.checked">
                                     <label class="form-check-label small" for="craf_indet">Validade indeterminada</label>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-bold">
-                                    ARQUIVO DO CRAF
-                                    <small class="text-muted fw-normal">(PDF, JPG, PNG — opcional)</small>
-                                </label>
-                                <input type="file" name="arquivo_craf"
-                                       class="form-control form-control-sm"
-                                       accept=".pdf,.jpg,.jpeg,.png">
-                                <div class="form-text text-muted">
-                                    Envie o documento do CRAF agora ou depois, quando disponível.
                                 </div>
                             </div>
 
@@ -494,10 +505,79 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-bs-target="#modalUpload"]').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.dataset.tab || 'documento';
-            // pequeno delay para o modal terminar de abrir
             setTimeout(() => showTab(tab), 50);
         });
     });
+
+    // ── LÓGICA OCR (M4 INTELIGENTE) ──
+    const clienteId = "{{ cliente_loja.id }}";
+
+    function realizarOCR(tipo) {
+        const input = document.getElementById(tipo === 'doc' ? 'input-arquivo-doc' : 'input-arquivo-arma');
+        const loading = document.getElementById(tipo === 'doc' ? 'ocr-loading' : 'ocr-loading-arma');
+        const btn = document.getElementById(tipo === 'doc' ? 'btn-ocr-doc' : 'btn-ocr-arma');
+
+        if (!input.files || input.files.length === 0) {
+            alert("Selecione um arquivo primeiro!");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('arquivo', input.files[0]);
+
+        loading.classList.remove('d-none');
+        btn.disabled = true;
+
+        fetch(`/uploads/${clienteId}/documento`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert("Erro na leitura: " + data.error);
+            } else {
+                const res = data.dados.resultado || {};
+                if (tipo === 'doc') {
+                    if (res.categoria) document.getElementById('doc_tipo').value = res.categoria;
+                    if (res.numero_documento) document.getElementById('doc_numero').value = res.numero_documento;
+                    if (res.data_emissao) document.getElementById('doc_emissao').value = res.data_emissao;
+                    if (res.data_validade) document.getElementById('doc_validade').value = res.data_validade;
+                    if (res.validade_indeterminada) {
+                        document.getElementById('doc_indet').checked = true;
+                        document.getElementById('doc_validade').disabled = true;
+                    }
+                } else {
+                    if (res.tipo_arma) document.getElementById('arma_tipo').value = res.tipo_arma;
+                    if (res.funcionamento) document.getElementById('arma_func').value = res.funcionamento;
+                    if (res.calibre) document.getElementById('arma_calibre').value = res.calibre;
+                    if (res.marca) document.getElementById('arma_marca').value = res.marca;
+                    if (res.modelo) document.getElementById('arma_modelo').value = res.modelo;
+                    if (res.numero_serie) document.getElementById('arma_serie').value = res.numero_serie;
+                    if (res.numero_sigma) document.getElementById('arma_sigma').value = res.numero_sigma;
+                    if (res.emissor) document.getElementById('arma_emissor').value = res.emissor;
+                    if (res.data_validade) document.getElementById('craf_validade').value = res.data_validade;
+                    if (res.validade_indeterminada) {
+                        document.getElementById('craf_indet').checked = true;
+                        document.getElementById('craf_validade').disabled = true;
+                    }
+                }
+                alert("Leitura concluída! Por favor, confira os dados preenchidos.");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Falha na comunicação com o servidor de OCR.");
+        })
+        .finally(() => {
+            loading.classList.add('d-none');
+            btn.disabled = false;
+        });
+    }
+
+    document.getElementById('btn-ocr-doc').onclick = () => realizarOCR('doc');
+    document.getElementById('btn-ocr-arma').onclick = () => realizarOCR('arma');
 });
 </script>
 {% endblock %}
