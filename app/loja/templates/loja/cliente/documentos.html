@@ -69,7 +69,7 @@
                         </div>
                         <div class="d-flex justify-content-between mb-1">
                             <span>Validade:</span>
-                            <span class="text-{{ 'dark' if doc.esta_valido() else 'danger' }} fw-bold">
+                            <span class="text-{{ 'danger' if doc.esta_vencido else 'dark' }} fw-bold">
                                 {{ doc.data_validade.strftime('%d/%m/%Y') if doc.data_validade else 'Indeterminada' }}
                             </span>
                         </div>

@@ -266,6 +266,9 @@
 
                 <div class="d-flex align-items-center gap-2 order-2 order-lg-3">
                     {% if cliente_loja %}
+                        <a href="{{ url_for('loja.meus_documentos') }}" class="btn btn-outline-gold btn-sm d-none d-md-flex align-items-center fw-bold me-2" style="font-size: 11px; border-color: var(--m4-gold); color: var(--m4-gold);">
+                            <i class="bi bi-shield-shaded me-1"></i> MEU ARSENAL
+                        </a>
                         <a href="{{ url_for('loja.minha_conta') }}" class="header-icon" title="{{ cliente_loja.nome.split()[0] }}" aria-label="Minha Conta">
                             <i class="bi bi-person-check-fill" style="color: var(--m4-gold);"></i>
                         </a>
@@ -281,9 +284,17 @@
         </div>
 
         <!-- Estrutura Menu adaptada para Colapso Inteligente no Mobile -->
+        {% block header_nav %}
         <nav class="nav-departments collapse d-lg-block shadow-sm" id="navMobileMenu" aria-label="Navegação por categorias">
             <div class="container p-0 p-lg-2">
                 <ul class="nav flex-column flex-lg-row justify-content-lg-center">
+                    {% if cliente_loja %}
+                    <li class="nav-item d-lg-none border-bottom">
+                        <a class="nav-link fw-black text-gold py-3" href="{{ url_for('loja.meus_documentos') }}">
+                            <i class="bi bi-shield-shaded me-2"></i> MEU ARSENAL & DOCUMENTOS
+                        </a>
+                    </li>
+                    {% endif %}
                     {% for cat in categorias_menu if cat.exibir_no_menu %}
                         {% set subs = cat.subcategorias|selectattr("exibir_no_menu", "equalto", True)|list %}
                         <li class="nav-item {% if subs %}dropdown{% endif %}">
@@ -307,6 +318,7 @@
                 </ul>
             </div>
         </nav>
+        {% endblock %}
     </header>
 
     <main id="main-content">{% block content %}{% endblock %}</main>

@@ -36,19 +36,52 @@
     .bg-gold { background-color: #c5a059 !important; }
     .text-gold { color: #c5a059 !important; }
     
-    /* Correção do Modal "Achatado" */
+    /* Ajuste de Layout para evitar achatamento */
+    .client-area-wrapper {
+        padding-bottom: 60px;
+    }
+    .client-content-card {
+        min-height: 200px;
+    }
+    /* Modal Fix */
+    .modal {
+        background: rgba(0,0,0,0.5);
+    }
+    .modal-backdrop {
+        display: none; /* Evita conflitos de z-index na área do cliente */
+    }
     .modal-dialog-centered {
         display: flex;
         align-items: center;
-        min-height: calc(100% - 3.5rem);
+        min-height: calc(100% - 1rem);
     }
-    @media (min-width: 576px) {
-        .modal-dialog {
-            max-width: 600px;
-            margin: 1.75rem auto;
+    @media (min-width: 992px) {
+        .modal-dialog-centered {
+            min-height: calc(100% - 3.5rem);
         }
     }
 </style>
+{% endblock %}
+
+{% block header_nav %}
+<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm py-0 d-none d-lg-block">
+    <div class="container px-lg-5">
+        <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+                <a class="nav-link py-3 fw-bold text-dark" href="{{ url_for('loja.index') }}">
+                    <i class="bi bi-arrow-left me-1"></i> VOLTAR PARA A LOJA
+                </a>
+            </li>
+        </ul>
+        <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+                <a class="nav-link py-3 fw-black text-gold" href="{{ url_for('loja.meus_documentos') }}">
+                    <i class="bi bi-shield-shaded me-1"></i> ARSENAL & DOCUMENTAÇÃO
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
 {% endblock %}
 
 {% block content %}
