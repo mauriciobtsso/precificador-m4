@@ -47,27 +47,48 @@ def processar_documento(file_bytes: bytes, filename: str) -> dict:
     resultado_ia = ocr_inteligente.interpretar_documento(texto_final)
 
     # ==========================================
-    # 4️⃣ Parsing inteligente pós-IA
+    # 4️⃣ Parsing inteligente pós-IA / Fallback Local
     # ==========================================
     try:
-        from app.uploads.parsers import parse_craf
+        from app.uploads.parsers import parse_craf, parse_cr, parse_cnh, parse_rg
 
-        # Normaliza possíveis campos
+        # Se a IA falhou (retornou erro 404/401 nas observações), forçamos o fallback local
+        ia_falhou = "Erro no processamento via Groq" in (resultado_ia.get("observacoes") or "")
+        
+        # Normaliza categoria
         categoria = (resultado_ia.get("categoria") or "").upper().strip()
-        texto_extraido = (
-            resultado_ia.get("texto_extraido")
-            or resultado_ia.get("texto")
-            or texto_final
-        )
-
-        # 🔹 Aplica parser dedicado apenas se for CRAF
+        
+        # Se a IA falhou, tentamos detectar a categoria pelo texto bruto
+        if ia_falhou or categoria == "OUTRO":
+            txt_upper = texto_final.upper()
+            if "CERTIFICADO DE REGISTRO" in txt_upper and "ARMA DE FOGO" in txt_upper:
+                categoria = "CRAF"
+            elif "CERTIFICADO DE REGISTRO" in txt_upper and "EXÉRCITO" in txt_upper:
+                categoria = "CR"
+            elif "CARTEIRA NACIONAL DE HABILITAÇÃO" in txt_upper or "CNH" in txt_upper:
+                categoria = "CNH"
+            elif "REGISTRO GERAL" in txt_upper or "IDENTIDADE" in txt_upper:
+                categoria = "RG"
+        
+        # Aplica parsers dedicados baseados na categoria detectada
         if categoria == "CRAF":
-            parsed = parse_craf(texto_extraido)
-            # Faz merge dos dados do parser no resultado final
+            parsed = parse_craf(texto_final)
             resultado_ia.update(parsed)
+            resultado_ia["categoria"] = "CRAF"
+        elif categoria == "CR":
+            parsed = parse_cr(texto_final)
+            resultado_ia.update(parsed)
+            resultado_ia["categoria"] = "CR"
+        elif categoria == "CNH":
+            parsed = parse_cnh(texto_final)
+            resultado_ia.update(parsed)
+            resultado_ia["categoria"] = "CNH"
+        elif categoria == "RG":
+            parsed = parse_rg(texto_final)
+            resultado_ia.update(parsed)
+            resultado_ia["categoria"] = "RG"
 
     except Exception as e:
-        # Em caso de erro no parser, mantém resultado original (nunca quebra)
         resultado_ia["parser_error"] = str(e)
 
     # 5️⃣ Retorno padronizado

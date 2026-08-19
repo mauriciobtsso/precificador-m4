@@ -261,11 +261,18 @@
 document.addEventListener('DOMContentLoaded', function() {
     const clienteId = "{{ cliente_loja.id }}";
 
-    function formatarDataParaInput(dataBr) {
-        if (!dataBr || !dataBr.includes('/')) return dataBr;
-        const partes = dataBr.split('/');
-        if (partes.length !== 3) return dataBr;
-        return partes[2] + '-' + partes[1] + '-' + partes[0];
+    function formatarDataParaInput(data) {
+        if (!data) return '';
+        // Se já estiver no formato AAAA-MM-DD, retorna direto
+        if (/^\d{4}-\d{2}-\d{2}$/.test(data)) return data;
+        // Se estiver no formato DD/MM/AAAA, converte
+        if (data.includes('/')) {
+            const partes = data.split('/');
+            if (partes.length === 3) {
+                return partes[2] + '-' + partes[1].padStart(2, '0') + '-' + partes[0].padStart(2, '0');
+            }
+        }
+        return data;
     }
 
     function realizarOCR(tipo) {
@@ -298,32 +305,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 const res = (data.dados && data.dados.resultado) ? data.dados.resultado : (data.resultado || data);
                 
                 if (tipo === 'doc') {
-                    if (res.categoria) document.getElementById('doc_tipo').value = res.categoria.toUpperCase();
-                    if (res.numero_documento) document.getElementById('doc_numero').value = res.numero_documento;
-                    if (res.emissor) document.getElementById('doc_emissor').value = res.emissor;
-                    if (res.data_validade) document.getElementById('doc_validade').value = formatarDataParaInput(res.data_validade);
+                    const cat = res.categoria || "";
+                    if (cat) document.getElementById('doc_tipo').value = cat.toUpperCase();
+                    
+                    const num = res.numero_documento || res.numero_registro || res.numero_cr;
+                    if (num) document.getElementById('doc_numero').value = num;
+                    
+                    const emissor = res.emissor || res.orgao_emissor;
+                    if (emissor) document.getElementById('doc_emissor').value = emissor;
+                    
+                    const validade = res.data_validade || res.validade;
+                    if (validade) document.getElementById('doc_validade').value = formatarDataParaInput(validade);
+                    
                     if (res.validade_indeterminada) {
                         document.getElementById('doc_indet').checked = true;
                         document.getElementById('doc_validade').disabled = true;
                     }
                 } else {
                     // Mapeamento resiliente para CRAF
-                    const tipoArma = res.tipo || res.tipo_arma;
+                    const tipoArma = res.tipo || res.tipo_arma || "";
                     if (tipoArma) document.getElementById('arma_tipo').value = tipoArma.toLowerCase();
                     
-                    const func = res.funcionamento;
+                    const func = res.funcionamento || "";
                     if (func) document.getElementById('arma_func').value = func.toLowerCase();
                     
-                    if (res.calibre) document.getElementById('arma_calibre').value = res.calibre;
-                    if (res.marca) document.getElementById('arma_marca').value = res.marca;
-                    if (res.modelo) document.getElementById('arma_modelo').value = res.modelo;
-                    if (res.numero_serie) document.getElementById('arma_serie').value = res.numero_serie;
-                    if (res.numero_sigma) document.getElementById('arma_sigma').value = res.numero_sigma;
+                    const calibre = res.calibre || "";
+                    if (calibre) document.getElementById('arma_calibre').value = calibre;
                     
-                    const emissor = res.emissor_craf || res.emissor;
+                    const marca = res.marca || "";
+                    if (marca) document.getElementById('arma_marca').value = marca;
+                    
+                    const modelo = res.modelo || "";
+                    if (modelo) document.getElementById('arma_modelo').value = modelo;
+                    
+                    const serie = res.numero_serie || res.serie || "";
+                    if (serie) document.getElementById('arma_serie').value = serie;
+                    
+                    const sigma = res.numero_sigma || res.sigma || "";
+                    if (sigma) document.getElementById('arma_sigma').value = sigma;
+                    
+                    const emissor = res.emissor_craf || res.emissor || "";
                     if (emissor) document.getElementById('arma_emissor').value = emissor.toLowerCase();
                     
-                    const valCraf = res.data_validade_craf || res.data_validade;
+                    const valCraf = res.data_validade_craf || res.data_validade || res.validade;
                     if (valCraf) document.getElementById('craf_validade').value = formatarDataParaInput(valCraf);
                 }
                 alert("Leitura concluída! Por favor, confira os dados preenchidos.");
