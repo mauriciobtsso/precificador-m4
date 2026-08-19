@@ -315,24 +315,36 @@ function lerDocumento(inputId, context) {
 
     var formData = new FormData();
     formData.append('arquivo', fileInput.files[0]);
+    // Mantém a proteção CSRF global também nas requisições assíncronas.
+    formData.append('csrf_token', '{{ csrf_token() }}');
 
     var xhr = new XMLHttpRequest();
-    // Usamos o endpoint de CRAF que é o mais robusto para extração de dados de armas e documentos
-    xhr.open('POST', '/uploads/{{ cliente_loja.id if cliente_loja else "0" }}/craf', true);
+    var clienteId = '{{ cliente_loja.id if cliente_loja else "0" }}';
+    var endpoint = context === 'doc' ? 'documento' : 'craf';
+    xhr.open('POST', '/uploads/' + clienteId + '/' + endpoint, true);
+    xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token() }}');
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     
     xhr.onload = function() {
+        var res = {};
+        try { res = xhr.responseText ? JSON.parse(xhr.responseText) : {}; } catch (e) { res = {}; }
+
         if (xhr.status === 200) {
-            var res = JSON.parse(xhr.responseText);
-            // O endpoint /craf retorna os dados diretamente no objeto raiz
-            if (res.numero_serie || res.modelo || res.numero_sigma || res.tipo) {
-                preencherCampos(res, context);
-                if (statusDiv) statusDiv.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Leitura concluída!</span>';
+            // /craf retorna campos na raiz; /documento encapsula o resultado em dados.
+            var dados = res.dados || res.resultado || res;
+            if (dados && (dados.numero_serie || dados.modelo || dados.numero_sigma || dados.tipo || dados.categoria || dados.numero_documento)) {
+                preencherCampos(dados, context);
+                if (statusDiv) statusDiv.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Leitura concluída! Confira os dados.</span>';
             } else {
-                if (statusDiv) statusDiv.innerHTML = '<span class="text-danger fw-bold">Não foi possível extrair os dados.</span>';
+                if (statusDiv) statusDiv.innerHTML = '<span class="text-warning fw-bold">Documento lido, mas não foram encontrados campos confiáveis.</span>';
             }
         } else {
-            if (statusDiv) statusDiv.innerHTML = '<span class="text-danger fw-bold">Erro no servidor OCR.</span>';
+            var mensagem = res.error || ('Falha na leitura (HTTP ' + xhr.status + ').');
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-danger fw-bold">' + mensagem + '</span>';
         }
+    };
+    xhr.onerror = function() {
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger fw-bold">Não foi possível conectar ao serviço de leitura.</span>';
     };
     xhr.send(formData);
 }

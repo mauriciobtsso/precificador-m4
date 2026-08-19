@@ -101,9 +101,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const formData = new FormData();
         formData.append('file', file);
+        const csrfInput = document.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfInput ? csrfInput.value : '';
+        if (csrfToken) formData.append('csrf_token', csrfToken);
 
         fetch(`/uploads/${clienteId}/craf`, {
             method: 'POST',
+            headers: csrfToken ? { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' } : {},
             body: formData,
         })
         .then(response => {

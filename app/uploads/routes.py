@@ -2,7 +2,9 @@
 # UPLOADS E OCR (VERSÃO FINAL REVISADA TÁTICA M4)
 # ====================================================================
 
-from flask import Blueprint, request, jsonify, current_app
+from functools import wraps
+from flask import Blueprint, request, jsonify, current_app, session
+from flask_login import current_user
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
@@ -19,6 +21,55 @@ from app.uploads.parsers import (
 from app.utils.datetime import now_local
 
 uploads_bp = Blueprint("uploads", __name__)
+
+_ALLOWED_OCR_EXTENSIONS = frozenset({"pdf", "jpg", "jpeg", "png"})
+_MAX_OCR_FILE_SIZE = 15 * 1024 * 1024
+
+
+def _validar_arquivo_ocr(file_storage):
+    """Valida o upload antes de enviá-lo ao storage ou ao OCR."""
+    if not file_storage or not file_storage.filename:
+        return "Nenhum arquivo enviado."
+
+    nome_seguro = secure_filename(file_storage.filename)
+    if not nome_seguro or "." not in nome_seguro:
+        return "Arquivo sem extensão válida."
+
+    extensao = nome_seguro.rsplit(".", 1)[1].lower()
+    if extensao not in _ALLOWED_OCR_EXTENSIONS:
+        return "Formato não permitido. Use PDF, JPG ou PNG."
+
+    try:
+        stream = file_storage.stream
+        stream.seek(0, os.SEEK_END)
+        tamanho = stream.tell()
+        stream.seek(0)
+    except (AttributeError, OSError):
+        return "Não foi possível validar o arquivo enviado."
+
+    if tamanho <= 0:
+        return "O arquivo enviado está vazio."
+    if tamanho > _MAX_OCR_FILE_SIZE:
+        return "O arquivo excede o limite de 15 MB."
+    return None
+
+
+def _upload_autorizado(view):
+    """Permite OCR apenas ao cliente dono da sessão ou a um usuário administrativo."""
+    @wraps(view)
+    def wrapped(cliente_id, *args, **kwargs):
+        admin_autenticado = bool(getattr(current_user, "is_authenticated", False))
+        cliente_autenticado = session.get("loja_cliente_id")
+        try:
+            cliente_autenticado = int(cliente_autenticado) == int(cliente_id)
+        except (TypeError, ValueError):
+            cliente_autenticado = False
+
+        if not (admin_autenticado or cliente_autenticado):
+            return jsonify({"error": "Sessão não autorizada para este cliente."}), 403
+        return view(cliente_id, *args, **kwargs)
+    return wrapped
+
 
 # ==========================
 # Funções auxiliares
@@ -41,10 +92,12 @@ def _upload_to_r2(file_storage, cliente_id, subpasta):
 # CRAF (ARMAS)
 # ==========================
 @uploads_bp.route("/<int:cliente_id>/craf", methods=["POST"])
+@_upload_autorizado
 def upload_craf(cliente_id):
     file = request.files.get("file") or request.files.get("arquivo")
-    if not file:
-        return jsonify({"error": "Nenhum arquivo enviado"}), 400
+    erro_arquivo = _validar_arquivo_ocr(file)
+    if erro_arquivo:
+        return jsonify({"error": erro_arquivo}), 400
 
     try:
         file.seek(0)
@@ -87,10 +140,12 @@ def upload_craf(cliente_id):
 # CR
 # ==========================
 @uploads_bp.route("/<int:cliente_id>/cr", methods=["POST"])
+@_upload_autorizado
 def upload_cr(cliente_id):
     file = request.files.get("file") or request.files.get("arquivo")
-    if not file:
-        return jsonify({"error": "Nenhum arquivo enviado"}), 400
+    erro_arquivo = _validar_arquivo_ocr(file)
+    if erro_arquivo:
+        return jsonify({"error": erro_arquivo}), 400
 
     try:
         file.seek(0)
@@ -119,10 +174,12 @@ def upload_cr(cliente_id):
 # CNH
 # ==========================
 @uploads_bp.route("/<int:cliente_id>/cnh", methods=["POST"])
+@_upload_autorizado
 def upload_cnh(cliente_id):
     file = request.files.get("file") or request.files.get("arquivo")
-    if not file:
-        return jsonify({"error": "Nenhum arquivo enviado"}), 400
+    erro_arquivo = _validar_arquivo_ocr(file)
+    if erro_arquivo:
+        return jsonify({"error": erro_arquivo}), 400
 
     try:
         file.seek(0)
@@ -151,10 +208,12 @@ def upload_cnh(cliente_id):
 # RG
 # ==========================
 @uploads_bp.route("/<int:cliente_id>/rg", methods=["POST"])
+@_upload_autorizado
 def upload_rg(cliente_id):
     file = request.files.get("file") or request.files.get("arquivo")
-    if not file:
-        return jsonify({"error": "Nenhum arquivo enviado"}), 400
+    erro_arquivo = _validar_arquivo_ocr(file)
+    if erro_arquivo:
+        return jsonify({"error": erro_arquivo}), 400
 
     try:
         file.seek(0)
@@ -183,6 +242,7 @@ def upload_rg(cliente_id):
 # UPLOAD + OCR (PIPELINE COMPLETO)
 # ===============================
 @uploads_bp.route("/<int:cliente_id>/documento", methods=["POST"])
+@_upload_autorizado
 def upload_documento(cliente_id):
     """
     Refatorado M4: Lê direto da memória (RAM), processa via OCR 
@@ -192,8 +252,9 @@ def upload_documento(cliente_id):
     from app.services import ocr_pipeline
 
     file = request.files.get("arquivo") or request.files.get("file")
-    if not file:
-        return jsonify({"error": "Nenhum arquivo enviado"}), 400
+    erro_arquivo = _validar_arquivo_ocr(file)
+    if erro_arquivo:
+        return jsonify({"error": erro_arquivo}), 400
 
     try:
         filename = secure_filename(file.filename)

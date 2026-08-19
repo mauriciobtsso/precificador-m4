@@ -50,10 +50,34 @@
         border-color: #b38f4d !important;
         color: #000 !important;
     }
+    .btn-gold:focus-visible,
+    .btn-outline-gold:focus-visible {
+        outline: 3px solid #fff;
+        outline-offset: 2px;
+    }
 
-    /* Ocultar barra de departamentos pesada na área do cliente para maximizar a área útil */
+    /* Na área autenticada, o cabeçalho não deve ficar preso ao topo da viewport. */
+    header {
+        position: relative !important;
+        top: auto !important;
+    }
+
+    /* Ocultar somente a barra de departamentos pesada; o cabeçalho principal permanece disponível. */
     header .nav-departments {
         display: none !important;
+    }
+
+    /* CTA do arsenal sempre legível em fundo escuro e em telas pequenas. */
+    header .btn-outline-gold {
+        display: inline-flex !important;
+        align-items: center;
+        border: 1px solid #c5a059 !important;
+        color: #f1d58c !important;
+        background: rgba(197, 160, 89, 0.12) !important;
+    }
+    header .btn-outline-gold:hover {
+        color: #111 !important;
+        background: #c5a059 !important;
     }
     
     /* Ajuste de Layout para evitar achatamento */
