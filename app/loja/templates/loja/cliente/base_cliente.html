@@ -36,6 +36,26 @@
     .bg-gold { background-color: #c5a059 !important; }
     .text-gold { color: #c5a059 !important; }
     
+    /* Botão Gold com contraste superior e acessibilidade */
+    .btn-gold {
+        background-color: #c5a059 !important;
+        border-color: #c5a059 !important;
+        color: #111 !important;
+        font-weight: 700;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.2s ease-in-out;
+    }
+    .btn-gold:hover {
+        background-color: #b38f4d !important;
+        border-color: #b38f4d !important;
+        color: #000 !important;
+    }
+
+    /* Ocultar barra de departamentos pesada na área do cliente para maximizar a área útil */
+    header .nav-departments {
+        display: none !important;
+    }
+    
     /* Ajuste de Layout para evitar achatamento */
     .client-area-wrapper {
         padding-bottom: 60px;
