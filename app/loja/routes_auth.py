@@ -390,6 +390,29 @@ def excluir_documento(doc_id):
     return redirect(url_for('loja.meus_documentos'))
 
 
+@loja_bp.route('/meus-documentos/excluir-arma/<int:arma_id>', methods=['POST'])
+@cliente_logado_required
+def excluir_arma(arma_id):
+    cliente = get_cliente_logado()
+    arma = Arma.query.filter_by(id=arma_id, cliente_id=cliente.id).first_or_404()
+
+    caminho_para_deletar = arma.caminho_craf
+
+    try:
+        db.session.delete(arma)
+        db.session.commit()
+
+        if caminho_para_deletar:
+            deletar_arquivo(caminho_para_deletar)
+
+        flash('Arma removida do arsenal.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash('Erro ao remover arma.', 'danger')
+
+    return redirect(url_for('loja.meus_documentos'))
+
+
 # ──────────────────────────────────────────────────────────────────
 # DOCUMENTOS — download
 # ──────────────────────────────────────────────────────────────────

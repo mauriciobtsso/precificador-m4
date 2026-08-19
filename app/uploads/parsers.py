@@ -143,7 +143,7 @@ def parse_craf(texto: str) -> dict:
     m = re.search(rf"\bMODELO\b\s*[:\-]?\s*([^\n]+?)\s*(?={STOP})", texto, re.I)
     modelo_raw = _norm(m.group(1)) if m else ""
     # Limpeza profunda M4: Remove "Nº da Arma", "Série", etc. que podem ter vazado
-    modelo_clean = re.split(r"(?i)N[ºo]?\s*(?:DA\s*)?ARMA|S[ÉE]RIE|N[ºo]?\s*SIGMA", modelo_raw)[0].strip()
+    modelo_clean = re.split(r"(?i)N[ºo]?\s*(?:DA\s*)?ARMA|S[ÉE]RIE|N[ºo]?\s*SIGMA|N[ÚU]MERO|NR\b", modelo_raw)[0].strip()
     dados["modelo"] = modelo_clean.title() if modelo_clean else ""
 
     # CALIBRE

@@ -107,7 +107,7 @@
                                 {% endif %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <form action="{{ url_for('loja.excluir_arma', arma_id=arma.id) }}" method="POST" onsubmit="return confirm('Remover esta arma do seu arsenal?')">
+                                    <form action="{{ url_for('loja.excluir_arma', arma_id=item.arma.id) }}" method="POST" onsubmit="return confirm('Remover esta arma do seu arsenal?')">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash me-2"></i>Remover</button>
                                     </form>
@@ -315,13 +315,15 @@ function lerDocumento(inputId, context) {
     formData.append('arquivo', fileInput.files[0]);
 
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/uploads/api/ocr', true);
+    // Usamos o endpoint de CRAF que é o mais robusto para extração de dados de armas e documentos
+    xhr.open('POST', '/uploads/{{ cliente_loja.id if cliente_loja else "0" }}/craf', true);
     
     xhr.onload = function() {
         if (xhr.status === 200) {
             var res = JSON.parse(xhr.responseText);
-            if (res.sucesso && res.dados) {
-                preencherCampos(res.dados, context);
+            // O endpoint /craf retorna os dados diretamente no objeto raiz
+            if (res.numero_serie || res.modelo || res.numero_sigma || res.tipo) {
+                preencherCampos(res, context);
                 if (statusDiv) statusDiv.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Leitura concluída!</span>';
             } else {
                 if (statusDiv) statusDiv.innerHTML = '<span class="text-danger fw-bold">Não foi possível extrair os dados.</span>';

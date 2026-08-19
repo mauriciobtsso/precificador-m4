@@ -63,26 +63,7 @@
 </style>
 {% endblock %}
 
-{% block header_nav %}
-<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm py-0 d-none d-lg-block">
-    <div class="container px-lg-5">
-        <ul class="navbar-nav me-auto">
-            <li class="nav-item">
-                <a class="nav-link py-3 fw-bold text-dark" href="{{ url_for('loja.index') }}">
-                    <i class="bi bi-arrow-left me-1"></i> VOLTAR PARA A LOJA
-                </a>
-            </li>
-        </ul>
-        <ul class="navbar-nav ms-auto">
-            <li class="nav-item">
-                <a class="nav-link py-3 fw-black text-gold" href="{{ url_for('loja.meus_documentos') }}">
-                    <i class="bi bi-shield-shaded me-1"></i> ARSENAL & DOCUMENTAÇÃO
-                </a>
-            </li>
-        </ul>
-    </div>
-</nav>
-{% endblock %}
+{# Revertido para o header global da loja conforme solicitação do usuário #}
 
 {% block content %}
 <div class="client-area-wrapper py-4">
