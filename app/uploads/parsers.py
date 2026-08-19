@@ -27,23 +27,24 @@ def _norm(s: str) -> str:
 # MAPAS DE NORMALIZAÇÃO
 # =======================================
 TIPO_MAP = {
-    "PISTOLA": "pistola",
-    "REVOLVER": "revolver",
-    "REVÓLVER": "revolver",
-    "CARABINA": "carabina_fuzil",
-    "FUZIL": "carabina_fuzil",
-    "ESPINGARDA": "espingarda",
-    "GARRUNCHA": "garruncha",
+    "PISTOLA": "Pistola",
+    "REVOLVER": "Revolver",
+    "REVÓLVER": "Revolver",
+    "CARABINA": "Carabina",
+    "FUZIL": "Fuzil",
+    "ESPINGARDA": "Espingarda",
+    "GARRUNCHA": "Garruncha",
+    "RIFLE": "Rifle",
 }
 
 FUNCIONAMENTO_MAP = {
-    "REPETICAO": "repeticao",
-    "REPETIÇÃO": "repeticao",
-    "SEMI-AUTOMATICA": "semi_automatica",
-    "SEMI AUTOMATICA": "semi_automatica",
-    "SEMI-AUTOMÁTICA": "semi_automatica",
-    "AUTOMATICA": "automatica",
-    "AUTOMÁTICA": "automatica",
+    "REPETICAO": "REPETICAO",
+    "REPETIÇÃO": "REPETICAO",
+    "SEMI-AUTOMATICA": "SEMIAUTOMATICA",
+    "SEMI AUTOMATICA": "SEMIAUTOMATICA",
+    "SEMI-AUTOMÁTICA": "SEMIAUTOMATICA",
+    "AUTOMATICA": "AUTOMATICA",
+    "AUTOMÁTICA": "AUTOMATICA",
 }
 
 EMISSOR_MAP = {
@@ -129,12 +130,12 @@ def parse_craf(texto: str) -> dict:
             break
 
     # Regras Inteligentes de Funcionamento M4
-    tipo = dados.get("tipo", "")
+    tipo = (dados.get("tipo") or "").lower()
     if not dados.get("funcionamento"):
         if tipo == "pistola":
-            dados["funcionamento"] = "semi_automatica"
+            dados["funcionamento"] = "SEMIAUTOMATICA"
         elif tipo == "revolver":
-            dados["funcionamento"] = "repeticao"
+            dados["funcionamento"] = "REPETICAO"
 
     # MARCA / MODELO
     m = re.search(rf"\bMARCA\b\s*[:\-]?\s*([^\n]+?)\s*(?={STOP})", texto, re.I)
