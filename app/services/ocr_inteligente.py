@@ -79,21 +79,35 @@ def interpretar_documento(texto_ocr: str) -> dict:
     # Instrução do sistema
     # ============================
     prompt_sistema = (
-        "Você é um assistente especialista em leitura de documentos brasileiros "
-        "(CR, CRAF, CNH, RG, CPF, etc.). "
-        "Receberá um texto OCR e deve responder SOMENTE com um JSON válido, sem ```json``` ou explicações.\n\n"
-        "Analise cuidadosamente os campos abaixo e responda:\n"
+        "Você é um assistente especialista em leitura de documentos brasileiros (CR, CRAF, CNH, RG, CPF).\n"
+        "Analise o texto OCR e retorne um JSON estritamente válido seguindo estas regras:\n\n"
+        "1. CATEGORIAS:\n"
+        "   - CRAF: Certificado de Registro de Arma de Fogo (SINARM ou SIGMA).\n"
+        "   - CR: Certificado de Registro de Atirador/Caçador/Colecionador.\n"
+        "   - CNH: Carteira Nacional de Habilitação.\n"
+        "   - RG: Registro Geral ou Cédula de Identidade (Civil ou Militar).\n\n"
+        "2. REGRAS DE CAMPOS:\n"
+        "   - numero_documento: Número principal (Registro SINARM, SIGMA, CR, CNH ou RG).\n"
+        "   - emissor: Órgão expedidor (ex: SIGMA, SINARM, DETRAN, SSP, PMPI, EB).\n"
+        "   - uf: Sigla do estado emissor (ex: PI, SP, RJ).\n"
+        "   - tipo_arma: Apenas para CRAF (ex: Pistola, Revólver, Carabina).\n"
+        "   - marca_arma: Apenas para CRAF (ex: Taurus, Rossi, Glock).\n"
+        "   - modelo_arma: Apenas para CRAF. Extraia apenas o nome do modelo (ex: G3, TX38F). "
+        "     NUNCA inclua números de série ou rótulos como 'Nº da Arma' aqui.\n"
+        "   - serie_arma: Número de série gravado na arma.\n"
+        "   - funcionamento: Apenas para CRAF (ex: Semiautomática, Repetição).\n"
+        "   - calibre: Ex: .380, 9mm, .40.\n"
+        "   - validade_indeterminada: true se o documento não tiver validade ou for permanente.\n"
+        "   - data_validade: Se ausente em RG Militar, calcule como 10 anos após a data de emissão.\n\n"
+        "3. FORMATO DE RESPOSTA (JSON APENAS):\n"
         "{\n"
-        '  "categoria": "CR / CRAF / CNH / RG / CPF / OUTRO",\n'
-        '  "emissor": "SIGMA / SINARM / DETRAN / SSP / RECEITA FEDERAL / OUTRO",\n'
-        '  "numero_documento": "123456/2024",\n'
-        '  "data_emissao": "DD/MM/AAAA",\n'
-        '  "data_validade": "DD/MM/AAAA",\n'
-        '  "validade_indeterminada": false,\n'
+        '  "categoria": "", "emissor": "", "uf": "", "numero_documento": "",\n'
+        '  "data_emissao": "DD/MM/AAAA", "data_validade": "DD/MM/AAAA",\n'
+        '  "validade_indeterminada": false, "tipo_arma": "", "marca_arma": "",\n'
+        '  "modelo_arma": "", "serie_arma": "", "calibre": "", "funcionamento": "",\n'
         '  "observacoes": ""\n'
         "}\n\n"
-        "⚠️ Se encontrar datas, garanta que 'data_emissao' seja a mais antiga e 'data_validade' a mais recente.\n"
-        "Responda APENAS o JSON, sem comentários adicionais."
+        "Responda APENAS o JSON, sem explicações ou ```json```."
     )
 
     # ============================
@@ -152,10 +166,17 @@ def interpretar_documento(texto_ocr: str) -> dict:
         padrao = {
             "categoria": "OUTRO",
             "emissor": "",
+            "uf": "",
             "numero_documento": "",
             "data_emissao": "",
             "data_validade": "",
             "validade_indeterminada": False,
+            "tipo_arma": "",
+            "marca_arma": "",
+            "modelo_arma": "",
+            "serie_arma": "",
+            "calibre": "",
+            "funcionamento": "",
             "observacoes": ""
         }
 

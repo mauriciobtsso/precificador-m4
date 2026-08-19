@@ -348,10 +348,20 @@ def upload_documento():
         return redirect(url_for('loja.meus_documentos'))
 
     indet = bool(request.form.get('validade_indeterminada'))
+    
+    # Processa emissor e UF (opcionalmente concatenados ou separados)
+    emissor_val = (request.form.get('emissor') or '').strip()
+    uf_val = (request.form.get('uf') or '').strip()
+    if uf_val and uf_val not in emissor_val:
+        emissor_final = f"{emissor_val}/{uf_val}" if emissor_val else uf_val
+    else:
+        emissor_final = emissor_val
+
     db.session.add(Documento(
         cliente_id             = cliente.id,
         tipo                   = (request.form.get('tipo') or 'Outro').strip(),
         categoria              = CATEGORIA_LOJA,
+        emissor                = emissor_final or None,
         numero_documento       = (request.form.get('numero_documento') or '').strip() or None,
         data_emissao           = _parse_date('data_emissao'),
         data_validade          = None if indet else _parse_date('data_validade'),

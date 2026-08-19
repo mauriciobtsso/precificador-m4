@@ -70,22 +70,39 @@ def processar_documento(file_bytes: bytes, filename: str) -> dict:
             elif "REGISTRO GERAL" in txt_upper or "IDENTIDADE" in txt_upper:
                 categoria = "RG"
         
-        # Aplica parsers dedicados baseados na categoria detectada
+        # Mapeia campos do LLM para o formato esperado pelos formulários (se IA retornou algo)
+        if resultado_ia.get("tipo_arma"): resultado_ia["tipo"] = resultado_ia["tipo_arma"]
+        if resultado_ia.get("marca_arma"): resultado_ia["marca"] = resultado_ia["marca_arma"]
+        if resultado_ia.get("modelo_arma"): resultado_ia["modelo"] = resultado_ia["modelo_arma"]
+        if resultado_ia.get("serie_arma"): resultado_ia["numero_serie"] = resultado_ia["serie_arma"]
+        if resultado_ia.get("numero_documento") and categoria == "CRAF": 
+            resultado_ia["numero_sigma"] = resultado_ia["numero_documento"]
+        
+        # Aplica parsers dedicados baseados na categoria detectada (Reforço com Regex)
         if categoria == "CRAF":
             parsed = parse_craf(texto_final)
-            resultado_ia.update(parsed)
+            # IA tem prioridade em campos complexos, Regex em campos estruturados
+            for k, v in parsed.items():
+                if not resultado_ia.get(k) or k in ["numero_sigma", "numero_serie"]:
+                    resultado_ia[k] = v
             resultado_ia["categoria"] = "CRAF"
         elif categoria == "CR":
             parsed = parse_cr(texto_final)
-            resultado_ia.update(parsed)
+            for k, v in parsed.items():
+                if not resultado_ia.get(k) or k == "numero_cr":
+                    resultado_ia[k] = v
             resultado_ia["categoria"] = "CR"
         elif categoria == "CNH":
             parsed = parse_cnh(texto_final)
-            resultado_ia.update(parsed)
+            for k, v in parsed.items():
+                if not resultado_ia.get(k) or k == "registro":
+                    resultado_ia[k] = v
             resultado_ia["categoria"] = "CNH"
         elif categoria == "RG":
             parsed = parse_rg(texto_final)
-            resultado_ia.update(parsed)
+            for k, v in parsed.items():
+                if not resultado_ia.get(k) or k == "rg_numero":
+                    resultado_ia[k] = v
             resultado_ia["categoria"] = "RG"
 
     except Exception as e:

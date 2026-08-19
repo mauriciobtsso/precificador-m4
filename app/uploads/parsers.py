@@ -138,14 +138,25 @@ def parse_craf(texto: str) -> dict:
             dados["funcionamento"] = "REPETICAO"
 
     # MARCA / MODELO
-    m = re.search(rf"\bMARCA\b\s*[:\-]?\s*([^\n]+?)\s*(?={STOP})", texto, re.I)
-    dados["marca"] = _norm(m.group(1)).title() if m else ""
+    # Heurística: Marca costuma ser Taurus, Rossi, CBC, Glock, etc.
+    marca_raw = _extract(rf"\bMARCA\b\s*[:\-]?\s*([^\n]+?)\s*(?={STOP})", txt_upper)
+    if not marca_raw:
+        for m_ref in ["TAURUS", "ROSSI", "CBC", "GLOCK", "IMBEL", "SMITH & WESSON", "BERETTA", "CZ", "FORJAS TAURUS"]:
+            if m_ref in txt_upper:
+                marca_raw = m_ref
+                break
+    dados["marca"] = marca_raw.title() if marca_raw else ""
 
-    m = re.search(rf"\bMODELO\b\s*[:\-]?\s*([^\n]+?)\s*(?={STOP})", texto, re.I)
-    modelo_raw = _norm(m.group(1)) if m else ""
-    # Limpeza profunda M4: Remove "Nº da Arma", "Série", etc. que podem ter vazado
-    modelo_clean = re.split(r"(?i)N[ºo]?\s*(?:DA\s*)?ARMA|S[ÉE]RIE|N[ºo]?\s*SIGMA|N[ÚU]MERO|NR\b", modelo_raw)[0].strip()
-    dados["modelo"] = modelo_clean.title() if modelo_clean else ""
+    modelo_raw = _extract(rf"\bMODELO\b\s*[:\-]?\s*([^\n]+?)\s*(?={STOP})", txt_upper)
+    # Limpeza profunda M4: Remove ruídos adjacentes comuns no OCR
+    if modelo_raw:
+        modelo_clean = re.split(r"N[ºO]?\s*(?:DA\s*)?ARMA|S[ÉE]RIE|SIGMA|N[ÚU]MERO|NR\b", modelo_raw)[0].strip()
+        # Remove a própria marca se ela tiver vazado para o modelo
+        if dados["marca"].upper() in modelo_clean:
+            modelo_clean = modelo_clean.replace(dados["marca"].upper(), "").strip()
+        dados["modelo"] = modelo_clean.title()
+    else:
+        dados["modelo"] = ""
 
     # CALIBRE
     m = re.search(rf"\bCALIBRE\b\s*[:\-]?\s*([^\n]+?)\s*(?={STOP})", texto, re.I)
@@ -289,30 +300,47 @@ def parse_craf(texto: str) -> dict:
 
 
 def parse_cr(texto: str) -> dict:
+    txt_upper = texto.upper()
     return {
-        "numero_cr": _extract(r"\bCR\s*[:\-]?\s*([0-9]+)", texto),
-        "nome": _extract(r"(?:NOME|TITULAR)[:\s]+([A-Z\s]+)", texto, transform=str.title),
-        "cpf": _extract(r"(\d{3}\.?\d{3}\.?\d{3}-?\d{2})", texto),
-        "validade": _extract(r"VALIDADE[:\s]+(\d{2}/\d{2}/\d{4})", texto),
+        "numero_cr": _extract(r"\b(?:N[ºO]|CR)\s*[:\-]?\s*([0-9\.\-/]+)", txt_upper),
+        "nome": _extract(r"(?:NOME|TITULAR)[:\s]+([A-Z\s]+)", txt_upper, transform=str.title),
+        "cpf": _extract(r"(\d{3}\.?\d{3}\.?\d{3}-?\d{2})", txt_upper),
+        "validade": _extract(r"VALIDADE[:\s]+(\d{2}/\d{2}/\d{4})", txt_upper),
+        "emissor": _extract(r"(?:SFPC|EMISSOR)[:\s]+([^\n]+)", txt_upper),
     }
 
 
 def parse_cnh(texto: str) -> dict:
+    txt_upper = texto.upper()
+    # CNH sempre emitida pelo DETRAN
     return {
-        "nome": _extract(r"\bNOME\b[:\s]+([A-Z\s]+)", texto, transform=str.title),
-        "cpf": _extract(r"(\d{3}\.?\d{3}\.?\d{3}-?\d{2})", texto),
-        "registro": _extract(r"\bREGISTRO\b[:\s]*([0-9]+)", texto),
-        "validade": _extract(r"\bVALIDADE\b[:\s]+(\d{2}/\d{2}/\d{4})", texto),
-        "categoria": _extract(r"\bCATEGORIA\b[:\s]*([A-Z]+)", texto),
+        "nome": _extract(r"\bNOME\b[:\s]+([A-Z\s]+)", txt_upper, transform=str.title),
+        "cpf": _extract(r"(\d{3}\.?\d{3}\.?\d{3}-?\d{2})", txt_upper),
+        "registro": _extract(r"\bREGISTRO\b[:\s]*([0-9]+)", txt_upper),
+        "validade": _extract(r"\bVALIDADE\b[:\s]+(\d{2}/\d{2}/\d{4})", txt_upper),
+        "categoria": _extract(r"\bCATEGORIA\b[:\s]*([A-Z]+)", txt_upper),
+        "emissor": "DETRAN",
+        "uf": _extract(r"\b([A-Z]{2})\b\s*$", txt_upper) or _extract(r",\s*([A-Z]{2})\b", txt_upper)
     }
 
 
 def parse_rg(texto: str) -> dict:
+    txt_upper = texto.upper()
+    # Captura Emissor/UF (ex: SSP/PI, PMPI)
+    emissor_uf = _extract(r"(?:EXPEDIDOR|EMISSOR|SSP)[:\s]+([A-Z/]+)", txt_upper)
+    if not emissor_uf and "POLÍCIA MILITAR" in txt_upper:
+        emissor_uf = "PM"
+    
+    uf = _extract(r"/([A-Z]{2})\b", emissor_uf) if emissor_uf else ""
+    if not uf:
+        uf = _extract(r"\bESTADO DO\s+([A-Z\s]+)", txt_upper)
+    
     return {
-        "nome": _extract(r"\bNOME\b[:\s]+([A-Z\s]+)", texto, transform=str.title),
-        "cpf": _extract(r"(\d{3}\.?\d{3}\.?\d{3}-?\d{2})", texto),
-        "rg_numero": _extract(r"(?:\bRG\b|\bIDENTIDADE\b)[:\s]*([0-9\.A-Z\-]+)", texto),
-        "orgao_emissor": _extract(r"(?:ÓRGÃO\s+EMISSOR|SSP)[:\s]+([A-Z]+)", texto),
+        "nome": _extract(r"\bNOME\b[:\s]+([A-Z\s]+)", txt_upper, transform=str.title),
+        "cpf": _extract(r"(\d{3}\.?\d{3}\.?\d{3}-?\d{2})", txt_upper),
+        "rg_numero": _extract(r"(?:\bRG\b|\bIDENTIDADE\b)[:\s]*([0-9\.A-Z\-]+)", txt_upper),
+        "orgao_emissor": emissor_uf,
+        "uf": uf
     }
 
 # =======================================
