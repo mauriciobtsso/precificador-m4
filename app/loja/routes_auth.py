@@ -310,6 +310,7 @@ def meus_documentos():
 
     return render_template(
         'loja/cliente/documentos.html',
+        documentos=todos_docs,
         docs_cliente=docs_cliente,
         docs_admin=docs_admin,
         cr_vencido=cr_vencido,

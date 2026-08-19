@@ -1,375 +1,363 @@
-{% extends "loja/base.html" %}
+{% extends 'loja/cliente/base_cliente.html' %}
 
 {% block title %}Meus Documentos - M4 Tática{% endblock %}
 
-{% block content %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="h4 mb-0 fw-bold">MEUS DOCUMENTOS</h2>
-            <p class="text-muted small mb-0">Gerencie sua documentação e arsenal para assessoria.</p>
-        </div>
-        <button class="btn btn-dark btn-sm fw-bold px-3" data-bs-toggle="modal" data-bs-target="#modalUpload">
-            <i class="bi bi-plus-lg me-1"></i> NOVO DOCUMENTO
-        </button>
+{% block client_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-black mb-0">PASTA DIGITAL</h4>
+        <p class="text-muted mb-0 small">Gerencie seus documentos e arsenal para assessoria.</p>
     </div>
+    <button class="btn btn-dark btn-sm fw-bold px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalUpload">
+        <i class="bi bi-cloud-arrow-up me-1"></i> ADICIONAR REGISTRO
+    </button>
+</div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show small" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show small shadow-sm border-0" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
 
-    <div class="row g-3">
-        {% if documentos %}
-            {% for doc in documentos %}
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body p-3">
-                        <div class="d-flex align-items-start justify-content-between mb-2">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-light p-2 rounded me-2">
-                                    <i class="bi bi-file-earmark-text text-dark h5 mb-0"></i>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0 fw-bold text-uppercase" style="font-size: .85rem;">{{ doc.categoria }}</h6>
-                                    <span class="badge bg-{{ 'success' if doc.esta_valido() else 'danger' }} p-1" style="font-size: .65rem;">
-                                        {{ 'VÁLIDO' if doc.esta_valido() else 'VENCIDO' }}
-                                    </span>
-                                </div>
+<div class="row g-3">
+    {# DOCUMENTOS GERAIS #}
+    {% if documentos %}
+        {% for doc in documentos %}
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 border-0 shadow-sm client-content-card border-start border-gold border-4">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-start justify-content-between mb-2">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-light p-2 rounded me-2">
+                                <i class="bi bi-file-earmark-text text-dark h5 mb-0"></i>
                             </div>
-                            <div class="dropdown">
-                                <button class="btn btn-link btn-sm text-muted p-0" data-bs-toggle="dropdown">
-                                    <i class="bi bi-three-dots-vertical"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
-                                    <li><a class="dropdown-item" href="{{ gerar_link(doc.caminho_arquivo) }}" target="_blank"><i class="bi bi-eye me-2"></i>Ver Arquivo</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <form action="{{ url_for('loja.excluir_documento', doc_id=doc.id) }}" method="POST" onsubmit="return confirm('Excluir este documento?')">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash me-2"></i>Excluir</button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <div class="small text-muted mt-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span>Número:</span>
-                                <span class="text-dark fw-bold">{{ doc.numero_documento or '---' }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-1">
-                                <span>Validade:</span>
-                                <span class="text-{{ 'dark' if doc.esta_valido() else 'danger' }} fw-bold">
-                                    {{ doc.data_validade.strftime('%d/%m/%Y') if doc.data_validade else 'Indeterminada' }}
+                            <div>
+                                <h6 class="mb-0 fw-bold text-uppercase" style="font-size: .75rem;">{{ doc.tipo }}</h6>
+                                <span class="badge {% if doc.categoria == 'loja' %}bg-gold text-dark{% else %}bg-secondary{% endif %} p-1" style="font-size: .6rem;">
+                                    {{ 'ENVIADO PELA LOJA' if doc.categoria == 'loja' else 'SISTEMA INTERNO' }}
                                 </span>
                             </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-link btn-sm text-muted p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
+                                <li><a class="dropdown-item" href="{{ gerar_link(doc.caminho_arquivo) }}" target="_blank"><i class="bi bi-eye me-2"></i>Ver Arquivo</a></li>
+                                {% if doc.categoria == 'loja' %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form action="{{ url_for('loja.excluir_documento', doc_id=doc.id) }}" method="POST" onsubmit="return confirm('Excluir este documento?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash me-2"></i>Excluir</button>
+                                    </form>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="small text-muted mt-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Número:</span>
+                            <span class="text-dark fw-bold">{{ doc.numero_documento or '---' }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Validade:</span>
+                            <span class="text-{{ 'dark' if doc.esta_valido() else 'danger' }} fw-bold">
+                                {{ doc.data_validade.strftime('%d/%m/%Y') if doc.data_validade else 'Indeterminada' }}
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
-            {% endfor %}
-        {% else %}
-            <div class="col-12 text-center py-5">
-                <div class="text-muted mb-3">
-                    <i class="bi bi-folder2-open display-4 opacity-25"></i>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    {# ARMAS / CRAF #}
+    {% if armas_info %}
+        {% for item in armas_info %}
+        {% set arma = item.arma %}
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 border-0 shadow-sm client-content-card border-start border-dark border-4">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-start justify-content-between mb-2">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-dark p-2 rounded me-2">
+                                <i class="bi bi-shield-shaded text-gold h5 mb-0"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold text-uppercase" style="font-size: .75rem;">{{ arma.marca }} {{ arma.modelo }}</h6>
+                                <span class="badge bg-light text-dark border p-1" style="font-size: .6rem;">CRAF / ARMA</span>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-link btn-sm text-muted p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
+                                {% if arma.caminho_craf %}
+                                <li><a class="dropdown-item" href="{{ gerar_link(arma.caminho_craf) }}" target="_blank"><i class="bi bi-eye me-2"></i>Ver CRAF</a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form action="{{ url_for('loja.excluir_arma', arma_id=arma.id) }}" method="POST" onsubmit="return confirm('Remover esta arma do seu arsenal?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash me-2"></i>Remover</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="small text-muted mt-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Série:</span>
+                            <span class="text-dark fw-bold">{{ arma.numero_serie or '---' }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Sigma:</span>
+                            <span class="text-dark fw-bold">{{ arma.numero_sigma or '---' }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Funcionamento:</span>
+                            <span class="text-dark fw-bold">{{ arma.funcionamento or '---' }}</span>
+                        </div>
+                    </div>
                 </div>
-                <h5 class="fw-bold text-muted">Nenhum documento cadastrado</h5>
-                <p class="text-muted small">Adicione seus documentos para agilizar seus processos.</p>
             </div>
-        {% endif %}
-    </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if not documentos and not armas_info %}
+        <div class="col-12 text-center py-5 bg-white rounded-3 shadow-sm">
+            <div class="text-muted mb-3">
+                <i class="bi bi-folder2-open display-4 opacity-25"></i>
+            </div>
+            <h5 class="fw-bold text-muted">Nenhum registro encontrado</h5>
+            <p class="text-muted small">Adicione seus documentos ou armas para assessoria.</p>
+        </div>
+    {% endif %}
 </div>
 
 <!-- Modal de Upload -->
 <div class="modal fade" id="modalUpload" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-dark text-white py-2">
-                <h6 class="modal-title fw-bold"><i class="bi bi-shield-lock me-2"></i>UPLOAD DE DOCUMENTAÇÃO</h6>
+                <h6 class="modal-title fw-bold"><i class="bi bi-cloud-arrow-up me-2"></i>ADICIONAR REGISTRO</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
-            <form action="{{ url_for('loja.upload_documento') }}" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-body small">
-                    
-                    <!-- Navegação entre abas -->
-                    <ul class="nav nav-pills nav-justified mb-3 bg-light p-1 rounded-pill" id="docTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active rounded-pill py-1 fw-bold" id="pessoais-tab" data-bs-toggle="pill" data-bs-target="#pessoais" type="button" role="tab" style="font-size: .7rem;">DOC. PESSOAIS</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link rounded-pill py-1 fw-bold" id="armas-tab" data-bs-toggle="pill" data-bs-target="#armas" type="button" role="tab" style="font-size: .7rem;">CRAF / ARMAS</button>
-                        </li>
-                    </ul>
+            <div class="modal-body p-0">
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs nav-fill bg-light" id="uploadTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold py-3 small" id="doc-tab" data-bs-toggle="tab" data-bs-target="#docPanel" type="button" role="tab">
+                            <i class="bi bi-file-earmark-person me-2"></i>DOCUMENTO PESSOAL
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold py-3 small" id="arma-tab" data-bs-toggle="tab" data-bs-target="#armaPanel" type="button" role="tab">
+                            <i class="bi bi-shield-shaded me-2"></i>CRAF / ARMA
+                        </button>
+                    </li>
+                </ul>
 
-                    <div class="tab-content" id="docTabsContent">
-                        <!-- Aba Documentos Pessoais -->
-                        <div class="tab-pane fade show active" id="pessoais" role="tabpanel">
+                <!-- Tab panes -->
+                <div class="tab-content p-4">
+                    {# Painel Documento Pessoal #}
+                    <div class="tab-pane fade show active" id="docPanel" role="tabpanel">
+                        <form action="{{ url_for('loja.upload_documento') }}" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="row g-3">
-                                <div class="col-12">
-                                    <p class="fw-bold text-uppercase mb-1" style="font-size:.7rem; letter-spacing:.05em;">
-                                        <i class="bi bi-camera me-1 text-gold"></i> Arquivo / Leitura IA
-                                    </p>
-                                    <div class="input-group input-group-sm mb-2">
-                                        <input type="file" name="arquivo_doc" id="input-arquivo-doc" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
-                                        <button class="btn btn-outline-dark fw-bold" type="button" id="btn-ocr-doc">
-                                            <i class="bi bi-magic me-1"></i> LER DOC
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small">ARQUIVO (PDF, JPG, PNG)</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="file" name="arquivo" class="form-control" id="fileDoc" required>
+                                        <button type="button" class="btn btn-gold text-dark fw-bold" onclick="lerDocumento('fileDoc', 'doc')">
+                                            <i class="bi bi-cpu"></i> LER DOC
                                         </button>
                                     </div>
-                                    <div id="ocr-loading" class="form-text text-primary d-none">
-                                        <div class="spinner-border spinner-border-sm me-1" role="status"></div>
-                                        Lendo documento com IA, aguarde...
-                                    </div>
                                 </div>
-
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">TIPO</label>
-                                    <select name="categoria" id="doc_tipo" class="form-select form-select-sm">
-                                        <option value="RG">RG</option>
+                                    <label class="form-label fw-bold small">TIPO DE DOCUMENTO</label>
+                                    <select name="tipo" id="doc_tipo" class="form-select form-select-sm" required>
+                                        <option value="CR">Certificado de Registro (CR)</option>
+                                        <option value="RG">RG / Identidade</option>
                                         <option value="CPF">CPF</option>
                                         <option value="CNH">CNH</option>
-                                        <option value="CR">CR (Certificado de Registro)</option>
-                                        <option value="PORTE">Porte de Arma</option>
-                                        <option value="OUTRO">Outro</option>
+                                        <option value="Comprovante de Residência">Comprovante de Residência</option>
+                                        <option value="Outro">Outro</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">NÚMERO</label>
+                                    <label class="form-label fw-bold small">NÚMERO DO REGISTRO</label>
                                     <input type="text" name="numero_documento" id="doc_numero" class="form-control form-control-sm">
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">EMISSOR</label>
-                                    <input type="text" name="emissor" id="doc_emissor" class="form-control form-control-sm" placeholder="SSP/PI, DETRAN...">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">VALIDADE</label>
-                                    <input type="date" name="data_validade" id="doc_validade" class="form-control form-control-sm">
-                                    <div class="form-check mt-1">
-                                        <input class="form-check-input" type="checkbox" name="validade_indeterminada" id="doc_indet">
-                                        <label class="form-check-label" for="doc_indet" style="font-size: .7rem;">Indeterminada</label>
+                                    <label class="form-label fw-bold small">VALIDADE</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="date" name="data_validade" id="doc_validade" class="form-control">
+                                        <div class="input-group-text">
+                                            <input class="form-check-input mt-0" type="checkbox" name="validade_indeterminada" id="doc_indet">
+                                            <label class="ms-2 mb-0" for="doc_indet">Indet.</label>
+                                        </div>
                                     </div>
                                 </div>
+                                <div class="col-12 text-end mt-4">
+                                    <button type="button" class="btn btn-light btn-sm fw-bold border" data-bs-dismiss="modal">CANCELAR</button>
+                                    <button type="submit" class="btn btn-dark btn-sm fw-bold px-4">SALVAR DOCUMENTO</button>
+                                </div>
                             </div>
-                        </div>
+                        </form>
+                    </div>
 
-                        <!-- Aba CRAF / Armas -->
-                        <div class="tab-pane fade" id="armas" role="tabpanel">
+                    {# Painel CRAF / Arma #}
+                    <div class="tab-pane fade" id="armaPanel" role="tabpanel">
+                        <form action="{{ url_for('loja.solicitar_arma') }}" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="row g-3">
-                                <div class="col-12">
-                                    <p class="fw-bold text-uppercase mb-1" style="font-size:.7rem; letter-spacing:.05em;">
-                                        <i class="bi bi-file-earmark-lock2 me-1 text-gold"></i> CRAF / Leitura IA
-                                    </p>
-                                    <div class="input-group input-group-sm mb-2">
-                                        <input type="file" name="arquivo_craf" id="input-arquivo-arma" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
-                                        <button class="btn btn-outline-dark fw-bold" type="button" id="btn-ocr-arma">
-                                            <i class="bi bi-magic me-1"></i> LER CRAF
+                                <div class="col-md-12 mb-2">
+                                    <label class="form-label fw-bold small">FOTO DO CRAF (OPCIONAL)</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="file" name="arquivo_craf" class="form-control" id="fileCraf">
+                                        <button type="button" class="btn btn-gold text-dark fw-bold" onclick="lerDocumento('fileCraf', 'craf')">
+                                            <i class="bi bi-cpu"></i> LER CRAF
                                         </button>
                                     </div>
-                                    <div id="ocr-loading-arma" class="form-text text-primary d-none">
-                                        <div class="spinner-border spinner-border-sm me-1" role="status"></div>
-                                        Lendo CRAF com IA, aguarde...
-                                    </div>
+                                    <div id="ocr_status" class="small mt-1 d-none"></div>
                                 </div>
-
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">TIPO</label>
-                                    <select name="tipo" id="arma_tipo" class="form-select form-select-sm">
-                                        <option value="">Selecione...</option>
-                                        <option value="pistola">Pistola</option>
-                                        <option value="revolver">Revólver</option>
-                                        <option value="rifle">Rifle</option>
-                                        <option value="carabina_fuzil">Carabina / Fuzil</option>
-                                        <option value="espingarda">Espingarda</option>
-                                        <option value="garruncha">Garruncha</option>
-                                        <option value="outros">Outro</option>
+                                    <label class="form-label fw-bold small">ESPÉCIE</label>
+                                    <select name="tipo" id="arma_tipo" class="form-select form-select-sm" required>
+                                        <option value="Pistola">Pistola</option>
+                                        <option value="Revolver">Revólver</option>
+                                        <option value="Rifle">Rifle</option>
+                                        <option value="Carabina">Carabina</option>
+                                        <option value="Espingarda">Espingarda</option>
+                                        <option value="Fuzil">Fuzil</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">FUNCIONAMENTO</label>
-                                    <select name="funcionamento" id="arma_func" class="form-select form-select-sm">
-                                        <option value="">Selecione...</option>
-                                        <option value="repeticao">Repetição</option>
-                                        <option value="semi_automatica">Semiautomática</option>
-                                        <option value="automatica">Automática</option>
-                                        <option value="outros">Outro</option>
-                                    </select>
+                                    <label class="form-label fw-bold small">MARCA</label>
+                                    <input type="text" name="marca" id="arma_marca" class="form-control form-control-sm" required>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">CALIBRE</label>
-                                    <input type="text" name="calibre" id="arma_calibre" class="form-control form-control-sm">
+                                    <label class="form-label fw-bold small">MODELO</label>
+                                    <input type="text" name="modelo" id="arma_modelo" class="form-control form-control-sm" required>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">MARCA</label>
-                                    <input type="text" name="marca" id="arma_marca" class="form-control form-control-sm">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">CALIBRE</label>
+                                    <input type="text" name="calibre" id="arma_calibre" class="form-control form-control-sm" required>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">MODELO</label>
-                                    <input type="text" name="modelo" id="arma_modelo" class="form-control form-control-sm">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">Nº SÉRIE</label>
+                                    <input type="text" name="numero_serie" id="arma_serie" class="form-control form-control-sm" required>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">Nº SÉRIE</label>
-                                    <input type="text" name="numero_serie" id="arma_serie" class="form-control form-control-sm">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">Nº SIGMA</label>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">SIGMA / SINARM</label>
                                     <input type="text" name="numero_sigma" id="arma_sigma" class="form-control form-control-sm">
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">EMISSOR</label>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">EMISSOR</label>
                                     <select name="emissor_craf" id="arma_emissor" class="form-select form-select-sm">
-                                        <option value="">Selecione...</option>
-                                        <option value="sigma">Sigma</option>
-                                        <option value="sinarm">Sinarm</option>
-                                        <option value="sinarm_cac">Sinarm-CAC</option>
+                                        <option value="SIGMA">SIGMA (Exército)</option>
+                                        <option value="SINARM">SINARM (PF)</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">VALIDADE CRAF</label>
-                                    <input type="date" name="data_validade_craf" id="craf_validade" class="form-control form-control-sm">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">FUNCIONAMENTO</label>
+                                    <select name="funcionamento" id="arma_func" class="form-select form-select-sm">
+                                        <option value="SEMIAUTOMATICA">Semiautomática</option>
+                                        <option value="REPETICAO">Repetição</option>
+                                        <option value="AUTOMATICA">Automática</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">VALIDADE CRAF</label>
+                                    <input type="date" name="data_validade_craf" id="arma_validade" class="form-control form-control-sm">
+                                </div>
+                                <div class="col-12 text-end mt-4">
+                                    <button type="button" class="btn btn-light btn-sm fw-bold border" data-bs-dismiss="modal">CANCELAR</button>
+                                    <button type="submit" class="btn btn-dark btn-sm fw-bold px-4">SALVAR ARMA</button>
                                 </div>
                             </div>
-                        </div>
+                        </form>
                     </div>
                 </div>
-                <div class="modal-footer bg-light py-2">
-                    <button type="button" class="btn btn-light btn-sm fw-bold" data-bs-dismiss="modal">CANCELAR</button>
-                    <button type="submit" class="btn btn-dark btn-sm fw-bold px-4">SALVAR DOCUMENTO</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 
-<style>
-    .nav-pills .nav-link.active { background-color: #000; color: #fff; }
-    .nav-pills .nav-link { color: #666; }
-    .text-gold { color: #d4af37; }
-    .form-label { font-size: .65rem; margin-bottom: 2px; color: #666; text-transform: uppercase; letter-spacing: .02em; }
-    .modal-body { max-height: 70vh; overflow-y: auto; }
-</style>
-
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const clienteId = "{{ cliente_loja.id }}";
-
-    function formatarDataParaInput(data) {
-        if (!data) return '';
-        // Se já estiver no formato AAAA-MM-DD, retorna direto
-        if (/^\d{4}-\d{2}-\d{2}$/.test(data)) return data;
-        // Se estiver no formato DD/MM/AAAA, converte
-        if (data.includes('/')) {
-            const partes = data.split('/');
-            if (partes.length === 3) {
-                return partes[2] + '-' + partes[1].padStart(2, '0') + '-' + partes[0].padStart(2, '0');
-            }
-        }
-        return data;
+function lerDocumento(inputId, context) {
+    var fileInput = document.getElementById(inputId);
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert("Selecione um arquivo primeiro.");
+        return;
     }
 
-    function realizarOCR(tipo) {
-        const input = document.getElementById(tipo === 'doc' ? 'input-arquivo-doc' : 'input-arquivo-arma');
-        const loading = document.getElementById(tipo === 'doc' ? 'ocr-loading' : 'ocr-loading-arma');
-        const btn = document.getElementById(tipo === 'doc' ? 'btn-ocr-doc' : 'btn-ocr-arma');
-
-        if (!input.files || input.files.length === 0) {
-            alert("Selecione um arquivo primeiro!");
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('arquivo', input.files[0]);
-
-        loading.classList.remove('d-none');
-        btn.disabled = true;
-
-        fetch(`/uploads/${clienteId}/documento`, {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.error) {
-                alert("Erro na leitura: " + data.error);
-            } else {
-                // Tenta pegar o resultado tanto do objeto aninhado quanto da raiz
-                const res = (data.dados && data.dados.resultado) ? data.dados.resultado : (data.resultado || data);
-                
-                if (tipo === 'doc') {
-                    const cat = res.categoria || "";
-                    if (cat) document.getElementById('doc_tipo').value = cat.toUpperCase();
-                    
-                    const num = res.numero_documento || res.numero_registro || res.numero_cr;
-                    if (num) document.getElementById('doc_numero').value = num;
-                    
-                    const emissor = res.emissor || res.orgao_emissor;
-                    if (emissor) document.getElementById('doc_emissor').value = emissor;
-                    
-                    const validade = res.data_validade || res.validade;
-                    if (validade) document.getElementById('doc_validade').value = formatarDataParaInput(validade);
-                    
-                    if (res.validade_indeterminada) {
-                        document.getElementById('doc_indet').checked = true;
-                        document.getElementById('doc_validade').disabled = true;
-                    }
-                } else {
-                    // Mapeamento resiliente para CRAF
-                    const tipoArma = res.tipo || res.tipo_arma || "";
-                    if (tipoArma) document.getElementById('arma_tipo').value = tipoArma.toLowerCase();
-                    
-                    const func = res.funcionamento || "";
-                    if (func) document.getElementById('arma_func').value = func.toLowerCase();
-                    
-                    const calibre = res.calibre || "";
-                    if (calibre) document.getElementById('arma_calibre').value = calibre;
-                    
-                    const marca = res.marca || "";
-                    if (marca) document.getElementById('arma_marca').value = marca;
-                    
-                    const modelo = res.modelo || "";
-                    if (modelo) document.getElementById('arma_modelo').value = modelo;
-                    
-                    const serie = res.numero_serie || res.serie || "";
-                    if (serie) document.getElementById('arma_serie').value = serie;
-                    
-                    const sigma = res.numero_sigma || res.sigma || "";
-                    if (sigma) document.getElementById('arma_sigma').value = sigma;
-                    
-                    const emissor = res.emissor_craf || res.emissor || "";
-                    if (emissor) document.getElementById('arma_emissor').value = emissor.toLowerCase();
-                    
-                    const valCraf = res.data_validade_craf || res.data_validade || res.validade;
-                    if (valCraf) document.getElementById('craf_validade').value = formatarDataParaInput(valCraf);
-                }
-                alert("Leitura concluída! Por favor, confira os dados preenchidos.");
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Falha na comunicação com o servidor de OCR.");
-        })
-        .finally(() => {
-            loading.classList.add('d-none');
-            btn.disabled = false;
-        });
+    var statusDiv = document.getElementById('ocr_status');
+    if (statusDiv) {
+        statusDiv.classList.remove('d-none');
+        statusDiv.innerHTML = '<span class="text-gold fw-bold"><i class="bi bi-hourglass-split"></i> Lendo documento...</span>';
     }
 
-    document.getElementById('btn-ocr-doc').onclick = () => realizarOCR('doc');
-    document.getElementById('btn-ocr-arma').onclick = () => realizarOCR('arma');
+    var formData = new FormData();
+    formData.append('arquivo', fileInput.files[0]);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/uploads/api/ocr', true);
     
-    // Toggle de validade indeterminada
-    document.getElementById('doc_indet').onchange = function() {
-        document.getElementById('doc_validade').disabled = this.checked;
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            var res = JSON.parse(xhr.responseText);
+            if (res.sucesso && res.dados) {
+                preencherCampos(res.dados, context);
+                if (statusDiv) statusDiv.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Leitura concluída!</span>';
+            } else {
+                if (statusDiv) statusDiv.innerHTML = '<span class="text-danger fw-bold">Não foi possível extrair os dados.</span>';
+            }
+        } else {
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-danger fw-bold">Erro no servidor OCR.</span>';
+        }
     };
-});
+    xhr.send(formData);
+}
+
+function preencherCampos(dados, context) {
+    function formatarData(d) {
+        if (!d) return "";
+        if (d.indexOf('/') > -1) {
+            var pts = d.split('/');
+            if (pts.length === 3) return pts[2] + "-" + pts[1] + "-" + pts[0];
+        }
+        return d;
+    }
+
+    if (context === 'doc') {
+        if (dados.tipo) document.getElementById('doc_tipo').value = dados.tipo;
+        if (dados.numero_documento || dados.numero) document.getElementById('doc_numero').value = dados.numero_documento || dados.numero;
+        if (dados.data_validade || dados.validade) document.getElementById('doc_validade').value = formatarData(dados.data_validade || dados.validade);
+    } else {
+        if (dados.tipo) document.getElementById('arma_tipo').value = dados.tipo;
+        if (dados.marca) document.getElementById('arma_marca').value = dados.marca;
+        if (dados.modelo) document.getElementById('arma_modelo').value = dados.modelo;
+        if (dados.calibre) document.getElementById('arma_calibre').value = dados.calibre;
+        if (dados.numero_serie || dados.serie) document.getElementById('arma_serie').value = dados.numero_serie || dados.serie;
+        if (dados.numero_sigma || dados.sigma) document.getElementById('arma_sigma').value = dados.numero_sigma || dados.sigma;
+        if (dados.emissor_craf || dados.emissor) document.getElementById('arma_emissor').value = (dados.emissor_craf || dados.emissor).toUpperCase();
+        if (dados.funcionamento) document.getElementById('arma_func').value = dados.funcionamento.toUpperCase();
+        if (dados.data_validade_craf || dados.validade) document.getElementById('arma_validade').value = formatarData(dados.data_validade_craf || dados.validade);
+    }
+}
 </script>
 {% endblock %}

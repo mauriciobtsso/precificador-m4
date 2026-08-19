@@ -110,7 +110,7 @@ def parse_craf(texto: str) -> dict:
         return lst[0] if lst else None
 
     dados = {}
-    STOP = r"(?:TIPO|MARCA|MODELO|CALIBRE|FUNCIONAMENTO|EMISSOR|N[ºo]?\s*(?:DE\s*)?S[ÉE]RIE|N[ºo]?\s+SIGMA|N[ºo]?\s+(?:REGISTRO|CRAF)|VALIDADE|CATEGORIA|DATA|EXPEDIÇÃO|\n|$)"
+    STOP = r"(?:TIPO|MARCA|MODELO|CALIBRE|FUNCIONAMENTO|EMISSOR|N[ºo]?\s*(?:DE\s*)?(?:S[ÉE]RIE|ARMA)|N[ºo]?\s+SIGMA|N[ºo]?\s+(?:REGISTRO|CRAF)|VALIDADE|CATEGORIA|DATA|EXPEDIÇÃO|\n|$)"
     txt_upper = _norm(texto).upper()
 
     # TIPO
@@ -128,12 +128,23 @@ def parse_craf(texto: str) -> dict:
             dados["funcionamento"] = val
             break
 
+    # Regras Inteligentes de Funcionamento M4
+    tipo = dados.get("tipo", "")
+    if not dados.get("funcionamento"):
+        if tipo == "pistola":
+            dados["funcionamento"] = "semi_automatica"
+        elif tipo == "revolver":
+            dados["funcionamento"] = "repeticao"
+
     # MARCA / MODELO
     m = re.search(rf"\bMARCA\b\s*[:\-]?\s*([^\n]+?)\s*(?={STOP})", texto, re.I)
     dados["marca"] = _norm(m.group(1)).title() if m else ""
 
     m = re.search(rf"\bMODELO\b\s*[:\-]?\s*([^\n]+?)\s*(?={STOP})", texto, re.I)
-    dados["modelo"] = _norm(m.group(1)).title() if m else ""
+    modelo_raw = _norm(m.group(1)) if m else ""
+    # Limpeza profunda M4: Remove "Nº da Arma", "Série", etc. que podem ter vazado
+    modelo_clean = re.split(r"(?i)N[ºo]?\s*(?:DA\s*)?ARMA|S[ÉE]RIE|N[ºo]?\s*SIGMA", modelo_raw)[0].strip()
+    dados["modelo"] = modelo_clean.title() if modelo_clean else ""
 
     # CALIBRE
     m = re.search(rf"\bCALIBRE\b\s*[:\-]?\s*([^\n]+?)\s*(?={STOP})", texto, re.I)

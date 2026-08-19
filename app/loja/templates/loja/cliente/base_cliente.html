@@ -1,0 +1,102 @@
+{% extends "loja/base.html" %}
+
+{% block extra_css %}
+<style>
+    /* Estética de Dashboard M4 Tática */
+    .client-area-wrapper {
+        min-height: 80vh;
+        background-color: #f8f9fa;
+    }
+    .client-sidebar .card {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .client-sidebar .list-group-item {
+        border: none;
+        padding: 12px 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .client-sidebar .list-group-item:hover {
+        background-color: #f1f1f1;
+        color: var(--m4-gold-text);
+        padding-left: 25px;
+    }
+    .client-sidebar .list-group-item.active {
+        background-color: #1a1a1a !important;
+        color: #fff !important;
+    }
+    .client-content-card {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .fw-black { font-weight: 900; }
+    .bg-gold { background-color: #c5a059 !important; }
+    .text-gold { color: #c5a059 !important; }
+    
+    /* Correção do Modal "Achatado" */
+    .modal-dialog-centered {
+        display: flex;
+        align-items: center;
+        min-height: calc(100% - 3.5rem);
+    }
+    @media (min-width: 576px) {
+        .modal-dialog {
+            max-width: 600px;
+            margin: 1.75rem auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="client-area-wrapper py-4">
+    <div class="container-fluid px-lg-5">
+        <div class="row">
+            {# SIDEBAR COMPARTILHADA #}
+            <div class="col-lg-3 mb-4 client-sidebar">
+                <div class="card border-0 shadow-sm">
+                    <div class="bg-dark p-4 text-center">
+                        <div class="rounded-circle bg-gold mx-auto d-flex align-items-center justify-content-center shadow-sm"
+                             style="width:60px;height:60px;">
+                            <i class="bi bi-person-fill fs-3 text-dark"></i>
+                        </div>
+                        <h6 class="text-white fw-bold mt-3 mb-0 text-uppercase">{{ cliente_loja.nome.split(' ')[0] }}</h6>
+                        <p class="text-white-50 mb-0 small">{{ cliente_loja.email_login }}</p>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('loja.minha_conta') }}" class="list-group-item list-group-item-action {% if request.endpoint == 'loja.minha_conta' %}active{% endif %}">
+                            <i class="bi bi-grid-1x2-fill me-2"></i> RESUMO
+                        </a>
+                        <a href="{{ url_for('loja.meus_pedidos') }}" class="list-group-item list-group-item-action {% if 'pedidos' in request.endpoint %}active{% endif %}">
+                            <i class="bi bi-box-seam me-2"></i> MEUS PEDIDOS
+                            {% if cliente_loja.vendas %}
+                            <span class="badge bg-gold text-dark ms-1">{{ cliente_loja.vendas|length }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('loja.meus_enderecos') }}" class="list-group-item list-group-item-action {% if 'enderecos' in request.endpoint %}active{% endif %}">
+                            <i class="bi bi-geo-alt me-2"></i> ENDEREÇOS
+                        </a>
+                        <a href="{{ url_for('loja.meus_documentos') }}" class="list-group-item list-group-item-action {% if 'documentos' in request.endpoint %}active{% endif %}">
+                            <i class="bi bi-file-earmark-lock2 me-2"></i> DOCUMENTOS
+                            {% if not cliente_loja.cr %}
+                            <i class="bi bi-exclamation-circle text-warning ms-1"></i>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('loja.logout') }}" class="list-group-item list-group-item-action text-danger border-top">
+                            <i class="bi bi-box-arrow-left me-2"></i> SAIR
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# CONTEÚDO DINÂMICO #}
+            <div class="col-lg-9">
+                {% block client_content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
