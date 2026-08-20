@@ -7,8 +7,16 @@
     var cart = {
         debounceTimer: null,
         
-        add: function(produtoId) {
+        add: function(produtoId, btn) {
             var self = this;
+            var originalHtml = '';
+            
+            if (btn) {
+                originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>AGUARDE...';
+            }
+
             // Se o usuário clicar várias vezes, reinicia o timer (Debounce de 150ms)
             if (this.debounceTimer) {
                 clearTimeout(this.debounceTimer);
@@ -22,6 +30,11 @@
                 
                 xhr.onreadystatechange = function() {
                     if (xhr.readyState === 4) {
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = originalHtml;
+                        }
+                        
                         if (xhr.status === 200) {
                             try {
                                 var data = JSON.parse(xhr.responseText);
@@ -64,7 +77,16 @@
     };
 
     // Define a função global que os botões já usam
-    window.adicionarAoCarrinho = function(id) {
-        cart.add(id);
+    window.adicionarAoCarrinho = function(id, btn) {
+        // Se btn não for passado, tenta pegar do evento global (compatibilidade ES5/Legado)
+        var target = btn;
+        if (!target && window.event) {
+            target = window.event.currentTarget || window.event.srcElement;
+            // Se o clique foi no ícone dentro do botão, sobe até o botão
+            while (target && target.tagName !== 'BUTTON' && target.tagName !== 'A') {
+                target = target.parentNode;
+            }
+        }
+        cart.add(id, target);
     };
 })();

@@ -319,7 +319,7 @@
             </div>
 
             <div class="d-grid gap-3">
-                <button type="button" class="btn btn-cart-m4 btn-buy-now shadow-sm" onclick="adicionarAoCarrinho({{ produto.id }})">
+                <button type="button" class="btn btn-cart-m4 btn-buy-now shadow-sm" onclick="adicionarAoCarrinho({{ produto.id }}, this)">
                     <i class="bi bi-cart-plus-fill me-2"></i> ADICIONAR AO CARRINHO
                 </button>
                 <a href="https://wa.me/558630255885?text=Olá M4 Tática! Tenho interesse no produto: {{ produto.nome_comercial if produto.nome_comercial else produto.nome }} (Ref: {{ produto.codigo }})"

@@ -1,3 +1,5 @@
+import uuid
+import sqlalchemy as sa
 from app import db
 from datetime import datetime
 from app.utils.datetime import now_local
@@ -52,6 +54,7 @@ class CarrinhoItem(db.Model):
 class Pedido(db.Model):
     __tablename__ = 'pedidos'
     id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(36), unique=True, index=True, default=lambda: str(uuid.uuid4()))
     
     # Rastreabilidade do cliente administrativo (legado) e da loja pública
     usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)

@@ -208,9 +208,9 @@ def meus_pedidos():
     
     return render_template('loja/cliente/pedidos.html', pedidos=pedidos)
 
-@loja_bp.route('/meus-pedidos/<string:public_id>')
+@loja_bp.route('/meus-pedidos/<int:pedido_id>')
 @cliente_logado_required
-def detalhe_pedido(public_id):
+def detalhe_pedido(pedido_id):
     cliente = get_cliente_logado()
     has_cliente_id = False
     try:
@@ -218,7 +218,7 @@ def detalhe_pedido(public_id):
         has_cliente_id = True
     except Exception: db.session.rollback()
 
-    query = db.session.query(Pedido).filter(Pedido.public_id == public_id)
+    query = db.session.query(Pedido).filter(Pedido.id == pedido_id)
     if has_cliente_id:
         pedido = query.filter(Pedido.cliente_id == cliente.id).first_or_404()
     else:

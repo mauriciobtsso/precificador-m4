@@ -55,7 +55,7 @@
                         R$ {{ "{:,.2f}".format(pedido.total_pedido or 0).replace(',','X').replace('.',',').replace('X','.') }}
                     </h5>
                 </div>
-                <a href="{{ url_for('loja.detalhe_pedido', pedido_id=pedido.id) }}"
+                <a href="{{ url_for('loja.detalhe_pedido', public_id=pedido.public_id) }}"
                    class="btn btn-dark btn-sm fw-bold px-4 shadow-sm">
                     <i class="bi bi-eye me-2"></i> DETALHES
                 </a>

@@ -39,12 +39,17 @@ def _opcao_retirada_na_loja():
     }
 
 
+# Cache global para evitar consultas repetidas de schema ao banco
+_HAS_CLIENTE_ID_CACHE = None
+
 # --- FUNÇÃO DE APOIO: IDENTIFICAÇÃO DO CLIENTE ---
-def get_or_create_carrinho():
+def get_or_create_carrinho(do_commit=True):
     """
     Recupera ou cria um carrinho vinculado à sessão ou ao cliente autenticado.
     Versão ultra-resiliente para lidar com migrations pendentes.
     """
+    global _HAS_CLIENTE_ID_CACHE
+    
     if 'cart_session_id' not in session:
         session['cart_session_id'] = str(uuid.uuid4())
 
@@ -52,13 +57,16 @@ def get_or_create_carrinho():
     cliente = get_cliente_logado()
     uid = current_user.id if current_user.is_authenticated else None
 
-    # Verifica se a coluna cliente_id existe para decidir a estratégia de consulta
-    has_cliente_id = False
-    try:
-        db.session.execute(sa.text("SELECT cliente_id FROM carrinhos LIMIT 1"))
-        has_cliente_id = True
-    except Exception:
-        db.session.rollback()
+    # Verifica se a coluna cliente_id existe para decidir a estratégia de consulta (Cacheado)
+    if _HAS_CLIENTE_ID_CACHE is None:
+        try:
+            db.session.execute(sa.text("SELECT cliente_id FROM carrinhos LIMIT 1"))
+            _HAS_CLIENTE_ID_CACHE = True
+        except Exception:
+            db.session.rollback()
+            _HAS_CLIENTE_ID_CACHE = False
+    
+    has_cliente_id = _HAS_CLIENTE_ID_CACHE
 
     carrinho = None
     anonimo = None
@@ -117,10 +125,11 @@ def get_or_create_carrinho():
             db.session.add(carrinho)
 
     carrinho.session_id = sid
-    try:
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
+    if do_commit:
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
     return carrinho
 
 # --- ROTAS PRINCIPAIS DO CARRINHO ---
@@ -151,10 +160,15 @@ def index():
 @carrinho_bp.route('/add/<int:produto_id>', methods=['POST'])
 def adicionar(produto_id):
     """Adiciona um produto ao arsenal (via AJAX)."""
-    carrinho = get_or_create_carrinho()
-    produto = Produto.query.get_or_404(produto_id)
+    # do_commit=False para evitar commit duplo (um no helper e outro aqui)
+    carrinho = get_or_create_carrinho(do_commit=False)
     
-    item = CarrinhoItem.query.filter_by(carrinho_id=carrinho.id, produto_id=produto.id).first()
+    # Eager load para evitar query extra no cart_count
+    produto = db.session.query(Produto).filter_by(id=produto_id).first()
+    if not produto:
+        return jsonify({"success": False, "message": "Produto não encontrado"}), 404
+    
+    item = db.session.query(CarrinhoItem).filter_by(carrinho_id=carrinho.id, produto_id=produto.id).first()
     
     if item:
         item.quantidade += 1
@@ -167,7 +181,12 @@ def adicionar(produto_id):
         )
         db.session.add(item)
     
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": "Erro ao salvar no banco."}), 500
+        
     nome_exibicao = produto.nome_comercial or produto.nome
     
     return jsonify({
@@ -418,14 +437,14 @@ def processar_pedido():
         session.pop('frete_prazo', None)
         session.pop('frete_cep', None)
 
-        return jsonify({"success": True, "pedido_id": pedido.id, "redirect": url_for('carrinho.sucesso', pedido_id=pedido.id)})
+        return jsonify({"success": True, "pedido_id": pedido.public_id, "redirect": url_for('carrinho.sucesso', public_id=pedido.public_id)})
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
-@carrinho_bp.route('/sucesso/<int:pedido_id>')
-def sucesso(pedido_id):
-    """Tela de confirmação do pedido."""
+@carrinho_bp.route('/sucesso/<string:public_id>')
+def sucesso(public_id):
+    """Tela de confirmação do pedido usando ID público seguro."""
     # Busca resiliente do pedido
     has_pedido_cliente_id = False
     try:
@@ -433,7 +452,7 @@ def sucesso(pedido_id):
         has_pedido_cliente_id = True
     except Exception: db.session.rollback()
 
-    query = db.session.query(Pedido).filter(Pedido.id == pedido_id)
+    query = db.session.query(Pedido).filter(Pedido.public_id == public_id)
     if not has_pedido_cliente_id:
         query = query.options(sa.orm.defer(Pedido.cliente_id))
     
