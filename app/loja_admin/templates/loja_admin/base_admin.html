@@ -40,6 +40,11 @@
                             <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if 'pedidos' in request.endpoint }}" href="{{ url_for('loja_admin.pedidos') }}">
+                            <i class="bi bi-cart-check"></i> Pedidos da Loja
+                        </a>
+                    </li>
 
                     <li class="nav-section-label mt-2">Conteúdo</li>
                     <li class="nav-item">

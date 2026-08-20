@@ -9,6 +9,7 @@ from app.produtos.models import Produto
 from app.loja_admin import loja_admin_bp
 from app.loja.models_admin import Banner, PaginaInstitucional
 from app.models import Configuracao
+from app.carrinho.models import Pedido
 from app.extensions import db
 from app.utils.r2_helpers import upload_file_to_r2, gerar_link_r2
 from werkzeug.utils import secure_filename
@@ -30,7 +31,16 @@ def inject_helpers():
 def index():
     total_banners = Banner.query.count()
     total_paginas = PaginaInstitucional.query.count()
-    return render_template('loja_admin/index.html', total_banners=total_banners, total_paginas=total_paginas)
+    
+    # Estatísticas de Pedidos
+    total_pedidos = Pedido.query.count()
+    pedidos_pendentes = Pedido.query.filter_by(status='pendente').count()
+    
+    return render_template('loja_admin/index.html', 
+                           total_banners=total_banners, 
+                           total_paginas=total_paginas,
+                           total_pedidos=total_pedidos,
+                           pedidos_pendentes=pedidos_pendentes)
 
 # =========================================================
 # GERENCIAR BANNERS (LISTAGEM, CRIAÇÃO E EDIÇÃO)
@@ -323,4 +333,48 @@ def testar_integracao():
         except Exception as e:
             return jsonify({"success": False, "message": str(e)})
 
-    return jsonify({"success": False, "message": "Serviço não reconhecido."})
+        return jsonify({"success": False, "message": "Serviço não reconhecido."})
+
+# =========================================================
+# GERENCIAR PEDIDOS DA LOJA
+# =========================================================
+
+@loja_admin_bp.route('/pedidos')
+@login_required
+def pedidos():
+    """Listagem de pedidos realizados na vitrine pública."""
+    status = request.args.get('status')
+    query = Pedido.query.order_by(Pedido.criado_em.desc())
+    
+    if status:
+        query = query.filter_by(status=status)
+        
+    lista_pedidos = query.all()
+    return render_template('loja_admin/pedidos/lista.html', pedidos=lista_pedidos, status_filtro=status)
+
+@loja_admin_bp.route('/pedidos/<int:id>')
+@login_required
+def detalhe_pedido(id):
+    """Detalhes de um pedido específico."""
+    pedido = Pedido.query.get_or_404(id)
+    return render_template('loja_admin/pedidos/detalhe.html', pedido=pedido)
+
+@loja_admin_bp.route('/pedidos/<int:id>/status', methods=['POST'])
+@login_required
+def atualizar_status_pedido(id):
+    """Atualiza o status de um pedido (Pendente, Pago, Enviado, Cancelado)."""
+    pedido = Pedido.query.get_or_404(id)
+    novo_status = request.form.get('status')
+    
+    if novo_status in ['pendente', 'pago', 'enviado', 'cancelado', 'concluido']:
+        pedido.status = novo_status
+        if novo_status == 'pago' and not pedido.pago_em:
+            from app.utils.datetime import now_local
+            pedido.pago_em = now_local()
+        
+        db.session.commit()
+        flash(f"Status do pedido #{pedido.id} atualizado para {novo_status.upper()}.", "success")
+    else:
+        flash("Status inválido.", "danger")
+        
+    return redirect(url_for('loja_admin.detalhe_pedido', id=pedido.id))

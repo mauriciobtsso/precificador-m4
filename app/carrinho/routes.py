@@ -8,6 +8,7 @@ from app.produtos.models import Produto
 from app.utils.datetime import now_local
 from app.utils.r2_helpers import gerar_link_r2
 from app.loja.auth_loja import get_cliente_logado
+from app.alertas.notificacoes import registrar_notificacao
 import requests
 import json
 import uuid
@@ -327,6 +328,17 @@ def processar_pedido():
         # Limpa o carrinho
         for item in list(carrinho.items): db.session.delete(item)
         db.session.commit()
+
+        # Notifica o administrador sobre o novo pedido
+        try:
+            registrar_notificacao(
+                tipo='venda',
+                nivel='info',
+                mensagem=f"Novo pedido #{pedido.id} realizado por {pedido.nome_cliente} (R$ {pedido.total_pedido:,.2f})",
+                cliente_id=cliente_id
+            )
+        except Exception as e:
+            current_app.logger.error(f"Erro ao registrar notificação de pedido: {e}")
 
         session.pop('frete_valor', None)
         session.pop('frete_nome', None)
