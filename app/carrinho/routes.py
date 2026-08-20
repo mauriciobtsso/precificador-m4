@@ -11,6 +11,7 @@ from app.loja.auth_loja import get_cliente_logado
 import requests
 import json
 import uuid
+import sqlalchemy as sa
 
 # --- FUNÇÃO DE APOIO: IDENTIFICAÇÃO DO CLIENTE ---
 def get_or_create_carrinho():
@@ -30,14 +31,18 @@ def get_or_create_carrinho():
     if cliente:
         # Tenta buscar por cliente_id, mas falha graciosamente se a migration ainda não rodou
         try:
-            carrinho = Carrinho.query.filter_by(cliente_id=cliente.id).first()
-            anonimo = Carrinho.query.filter_by(
-                session_id=sid, cliente_id=None
-            ).first()
+            # Usamos raw SQL para evitar que o SQLAlchemy tente mapear colunas inexistentes na classe
+            res = db.session.execute(sa.text("SELECT id FROM carrinhos WHERE cliente_id = :cid LIMIT 1"), {"cid": cliente.id}).fetchone()
+            carrinho = Carrinho.query.get(res[0]) if res else None
+            
+            res_anon = db.session.execute(sa.text("SELECT id FROM carrinhos WHERE session_id = :sid AND cliente_id IS NULL LIMIT 1"), {"sid": sid}).fetchone()
+            anonimo = Carrinho.query.get(res_anon[0]) if res_anon else None
         except Exception:
             db.session.rollback()
             carrinho = None
-            anonimo = Carrinho.query.filter_by(session_id=sid, usuario_id=None).first()
+            # Fallback seguro para anonimo sem tocar em cliente_id
+            res_anon = db.session.execute(sa.text("SELECT id FROM carrinhos WHERE session_id = :sid AND usuario_id IS NULL LIMIT 1"), {"sid": sid}).fetchone()
+            anonimo = Carrinho.query.get(res_anon[0]) if res_anon else None
 
         if carrinho and anonimo and carrinho.id != anonimo.id:
             # Mescla o carrinho criado antes do login no carrinho persistente.
@@ -57,17 +62,18 @@ def get_or_create_carrinho():
         elif not carrinho and anonimo:
             carrinho = anonimo
             try:
-                carrinho.cliente_id = cliente.id
+                db.session.execute(sa.text("UPDATE carrinhos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente.id, "id": carrinho.id})
             except Exception:
                 db.session.rollback()
 
         if not carrinho:
             carrinho = Carrinho(session_id=sid)
+            db.session.add(carrinho)
+            db.session.flush()
             try:
-                carrinho.cliente_id = cliente.id
+                db.session.execute(sa.text("UPDATE carrinhos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente.id, "id": carrinho.id})
             except Exception:
                 db.session.rollback()
-            db.session.add(carrinho)
 
     elif uid:
         carrinho = Carrinho.query.filter_by(usuario_id=uid).first()
@@ -75,9 +81,13 @@ def get_or_create_carrinho():
             carrinho = Carrinho(session_id=sid, usuario_id=uid)
             db.session.add(carrinho)
     else:
-        carrinho = Carrinho.query.filter_by(
-            session_id=sid, cliente_id=None, usuario_id=None
-        ).first()
+        try:
+            res = db.session.execute(sa.text("SELECT id FROM carrinhos WHERE session_id = :sid AND cliente_id IS NULL AND usuario_id IS NULL LIMIT 1"), {"sid": sid}).fetchone()
+            carrinho = Carrinho.query.get(res[0]) if res else None
+        except Exception:
+            db.session.rollback()
+            carrinho = Carrinho.query.filter_by(session_id=sid, usuario_id=None).first()
+
         if not carrinho:
             carrinho = Carrinho(session_id=sid)
             db.session.add(carrinho)
@@ -361,16 +371,13 @@ def processar_pedido():
         }
         
         # Tenta adicionar cliente_id se a coluna existir
-        try:
-            pedido_kwargs["cliente_id"] = cliente_id
-        except Exception:
-            pass
-
         novo_pedido = Pedido(**pedido_kwargs)
         db.session.add(novo_pedido)
+        db.session.flush()
         
         try:
-            carrinho.cliente_id = cliente_id
+            db.session.execute(sa.text("UPDATE pedidos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente_id, "id": novo_pedido.id})
+            db.session.execute(sa.text("UPDATE carrinhos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente_id, "id": carrinho.id})
         except Exception:
             db.session.rollback()
         

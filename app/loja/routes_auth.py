@@ -2,9 +2,10 @@
 import os
 from datetime import date
 from urllib.parse import urlparse, urljoin
-from flask import render_template, request, redirect, url_for, flash, send_file
+from flask import render_template, request, redirect, url_for, flash, send_file, abort
 from werkzeug.utils import secure_filename
 from app import db
+import sqlalchemy as sa
 from app.loja import loja_bp
 from app.clientes.models import Cliente, EnderecoCliente, ContatoCliente, Documento, Arma
 from app.carrinho.models import Pedido
@@ -209,10 +210,9 @@ def minha_conta():
 def meus_pedidos():
     cliente = get_cliente_logado()
     try:
-        pedidos = (Pedido.query
-                   .filter_by(cliente_id=cliente.id)
-                   .order_by(Pedido.criado_em.desc(), Pedido.id.desc())
-                   .all())
+        # Usamos raw SQL para evitar falha no mapeamento de coluna inexistente
+        res = db.session.execute(sa.text("SELECT id FROM pedidos WHERE cliente_id = :cid ORDER BY criado_em DESC, id DESC"), {"cid": cliente.id}).fetchall()
+        pedidos = [Pedido.query.get(r[0]) for r in res]
     except Exception:
         db.session.rollback()
         # Fallback: busca por e-mail se a coluna cliente_id não existir
@@ -228,9 +228,10 @@ def meus_pedidos():
 def detalhe_pedido(pedido_id):
     cliente = get_cliente_logado()
     try:
-        pedido = (Pedido.query
-                  .filter_by(id=pedido_id, cliente_id=cliente.id)
-                  .first_or_404())
+        res = db.session.execute(sa.text("SELECT id FROM pedidos WHERE id = :pid AND cliente_id = :cid LIMIT 1"), {"pid": pedido_id, "cid": cliente.id}).fetchone()
+        if not res:
+            abort(404)
+        pedido = Pedido.query.get(res[0])
     except Exception:
         db.session.rollback()
         # Fallback: busca por ID e e-mail se a coluna cliente_id não existir
