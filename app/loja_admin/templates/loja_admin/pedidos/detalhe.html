@@ -115,6 +115,12 @@
                             <option value="concluido" {% if pedido.status == 'concluido' %}selected{% endif %}>Concluído</option>
                         </select>
                     </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="enviar_email" name="enviar_email" value="1" checked>
+                        <label class="form-check-label small text-muted" for="enviar_email">
+                            Notificar cliente por e-mail
+                        </label>
+                    </div>
                     <button type="submit" class="btn btn-dark w-100">Atualizar Status</button>
                 </form>
             </div>

@@ -392,6 +392,7 @@ def atualizar_status_pedido(id):
     """Atualiza o status de um pedido (Pendente, Pago, Enviado, Cancelado)."""
     pedido = Pedido.query.get_or_404(id)
     novo_status = request.form.get('status')
+    enviar_email = request.form.get('enviar_email') == '1'
     
     if novo_status in ['pendente', 'pago', 'enviado', 'cancelado', 'concluido']:
         pedido.status = novo_status
@@ -400,6 +401,14 @@ def atualizar_status_pedido(id):
             pedido.pago_em = now_local()
         
         db.session.commit()
+
+        if enviar_email:
+            try:
+                from app.utils.email_service import enviar_email_status_pedido
+                enviar_email_status_pedido(pedido)
+            except Exception as e:
+                current_app.logger.error(f"Erro ao enviar e-mail de alteração de status: {e}")
+
         flash(f"Status do pedido #{pedido.id} atualizado para {novo_status.upper()}.", "success")
     else:
         flash("Status inválido.", "danger")

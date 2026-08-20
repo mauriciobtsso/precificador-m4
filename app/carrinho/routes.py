@@ -340,6 +340,13 @@ def processar_pedido():
         except Exception as e:
             current_app.logger.error(f"Erro ao registrar notificação de pedido: {e}")
 
+        # Dispara e-mail de confirmação / pagamento para o cliente
+        try:
+            from app.utils.email_service import enviar_email_novo_pedido
+            enviar_email_novo_pedido(pedido)
+        except Exception as e:
+            current_app.logger.error(f"Erro ao enviar e-mail de novo pedido: {e}")
+
         session.pop('frete_valor', None)
         session.pop('frete_nome', None)
         session.pop('frete_prazo', None)
