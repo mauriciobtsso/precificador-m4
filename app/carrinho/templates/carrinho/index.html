@@ -246,22 +246,27 @@ if (btnFrete) {
                             var limit = Math.min(data.opcoes.length, 5);
                             for(var i=0; i<limit; i++) {
                                 var op = data.opcoes[i];
+                                var empresa = op.company && op.company.name ? op.company.name : 'Transportadora';
+                                var nomeOpcao = op.name || 'Frete';
+                                var valorOpcao = parseFloat(op.price || 0);
+                                var prazoOpcao = op.custom ? 'Retirada na loja' : 'Prazo: até ' + ((op.delivery_range && op.delivery_range.max) || '-') + ' dias úteis';
+                                var nomeCompleto = empresa + ' – ' + nomeOpcao;
                                 html += '<label class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary" style="cursor:pointer;">' +
                                         '<div class="d-flex align-items-center gap-2">' +
                                         '<input type="radio" name="frete_opcao" class="form-check-input mt-0" ' +
-                                        'value="' + op.price + '" ' +
-                                        'data-nome="' + op.company.name + ' – ' + op.name + '" ' +
-                                        'data-prazo="Prazo: até ' + op.delivery_range.max + ' dias úteis" ' +
+                                        'value="' + valorOpcao + '" ' +
+                                        'data-nome="' + nomeCompleto.replace(/"/g, '&quot;') + '" ' +
+                                        'data-prazo="' + prazoOpcao.replace(/"/g, '&quot;') + '" ' +
                                         'data-cep="' + cep + '" ' +
                                         'onchange="selecionarFrete(this)">' +
                                         '<div>' +
-                                        '<span class="small fw-bold text-white">' + op.company.name + '</span>' +
-                                        '<span class="text-white-50 small"> (' + op.name + ')</span>' +
-                                        '<span class="d-block text-white-50" style="font-size:11px">até ' + op.delivery_range.max + ' dias úteis</span>' +
+                                        '<span class="small fw-bold text-white">' + empresa + '</span>' +
+                                        '<span class="text-white-50 small"> (' + nomeOpcao + ')</span>' +
+                                        '<span class="d-block text-white-50" style="font-size:11px">' + prazoOpcao + '</span>' +
                                         '</div>' +
                                         '</div>' +
                                         '<span class="fw-bold text-success small ms-2 text-nowrap">' +
-                                        'R$ ' + parseFloat(op.price).toFixed(2).replace('.', ',') +
+                                        'R$ ' + valorOpcao.toFixed(2).replace('.', ',') +
                                         '</span>' +
                                         '</label>';
                             }
@@ -287,10 +292,10 @@ if (btnFrete) {
 
 // ── SELECIONAR FRETE ──────────────────────────────────────────────────
 function selecionarFrete(radio) {
-    var valor = parseFloat(radio.value);
-    var nome  = radio.dataset.nome;
-    var prazo = radio.dataset.prazo;
-    var cep   = radio.dataset.cep;
+    var valor = parseFloat(radio.value || 0);
+    var nome  = radio.getAttribute('data-nome') || '';
+    var prazo = radio.getAttribute('data-prazo') || '';
+    var cep   = radio.getAttribute('data-cep') || '';
 
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/carrinho/api/frete/salvar', true);

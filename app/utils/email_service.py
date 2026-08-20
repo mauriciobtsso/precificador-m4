@@ -1,8 +1,19 @@
 import os
 import requests
 import logging
+from html import escape
 from flask import current_app
 from app.models import Configuracao
+
+
+def _moeda_brl(valor):
+    """Formata valores monetários para leitura correta no e-mail."""
+    try:
+        numero = float(valor or 0)
+    except (TypeError, ValueError):
+        numero = 0.0
+    return 'R$ ' + format(numero, ',.2f').replace(',', 'X').replace('.', ',').replace('X', '.')
+
 
 def enviar_email_brevo(destinatario_email, destinatario_nome, assunto, html_content):
     """
@@ -82,9 +93,10 @@ def enviar_email_novo_pedido(pedido):
     assunto = f"Pedido #{pedido.id} Realizado - M4 Tática"
     
     itens_html = ""
-    for item in pedido.itens:
+    for item in pedido.items:
         prod_nome = item.produto.nome if item.produto else 'Produto'
-        itens_html += f"<tr><td style='padding: 8px; border-bottom: 1px solid #eee;'>{prod_nome} (x{item.quantidade})</td><td style='padding: 8px; border-bottom: 1px solid #eee; text-align: right;'>R$ {float(item.preco_unitario_historico * item.quantidade):,.2f}</td></tr>"
+        subtotal_item = float(item.preco_unitario_historico or 0) * int(item.quantidade or 0)
+        itens_html += f"<tr><td style='padding: 8px; border-bottom: 1px solid #eee;'>{escape(str(prod_nome))} (x{item.quantidade})</td><td style='padding: 8px; border-bottom: 1px solid #eee; text-align: right;'>{_moeda_brl(subtotal_item)}</td></tr>"
 
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px;">
@@ -92,7 +104,7 @@ def enviar_email_novo_pedido(pedido):
             <h2 style="color: #c5a059;">M4 TÁTICA</h2>
             <p style="font-size: 14px; color: #666;">Pedido #{pedido.id} registrado com sucesso!</p>
         </div>
-        <p>Olá, <strong>{pedido.nome_cliente}</strong>,</p>
+        <p>Olá, <strong>{escape(str(pedido.nome_cliente or 'Cliente'))}</strong>,</p>
         <p>Recebemos seu pedido e ele já está na etapa de <strong>pagamento</strong>.</p>
         
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
@@ -108,11 +120,11 @@ def enviar_email_novo_pedido(pedido):
             <tfoot>
                 <tr>
                     <td style="padding: 8px; font-weight: bold;">Frete:</td>
-                    <td style="padding: 8px; text-align: right;">R$ {float(pedido.total_frete):,.2f}</td>
+                    <td style="padding: 8px; text-align: right;">{_moeda_brl(pedido.total_frete)}</td>
                 </tr>
                 <tr style="font-size: 16px; color: #c5a059;">
                     <td style="padding: 8px; font-weight: bold;">Total:</td>
-                    <td style="padding: 8px; text-align: right; font-weight: bold;">R$ {float(pedido.total_pedido):,.2f}</td>
+                    <td style="padding: 8px; text-align: right; font-weight: bold;">{_moeda_brl(pedido.total_pedido)}</td>
                 </tr>
             </tfoot>
         </table>
@@ -139,7 +151,7 @@ def enviar_email_status_pedido(pedido):
             <h2 style="color: #c5a059;">M4 TÁTICA</h2>
             <p style="font-size: 14px; color: #666;">Atualização do Pedido #{pedido.id}</p>
         </div>
-        <p>Olá, <strong>{pedido.nome_cliente}</strong>,</p>
+        <p>Olá, <strong>{escape(str(pedido.nome_cliente or 'Cliente'))}</strong>,</p>
         <p>O status do seu pedido foi atualizado para:</p>
         
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">

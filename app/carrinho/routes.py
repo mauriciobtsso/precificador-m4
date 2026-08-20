@@ -14,6 +14,31 @@ import json
 import uuid
 import sqlalchemy as sa
 
+
+def _cep_apenas_digitos(valor):
+    """Normaliza um CEP sem confiar no formato enviado pelo navegador."""
+    return ''.join(ch for ch in str(valor or '') if ch.isdigit())
+
+
+def _mesma_faixa_cidade(cep_origem, cep_destino):
+    """Usa os cinco primeiros dígitos do CEP para identificar a faixa postal local."""
+    origem = _cep_apenas_digitos(cep_origem)
+    destino = _cep_apenas_digitos(cep_destino)
+    return len(origem) == 8 and len(destino) == 8 and origem[:5] == destino[:5]
+
+
+def _opcao_retirada_na_loja():
+    """Formato compatível com as opções retornadas pelo Melhor Envio."""
+    return {
+        'id': 'retirada_na_loja',
+        'name': 'Retirar na Loja',
+        'price': 0.0,
+        'company': {'name': 'M4 Tática'},
+        'delivery_range': {'min': 0, 'max': 0},
+        'custom': True,
+    }
+
+
 # --- FUNÇÃO DE APOIO: IDENTIFICAÇÃO DO CLIENTE ---
 def get_or_create_carrinho():
     """
@@ -188,8 +213,8 @@ def atualizar_quantidade(item_id):
 def api_calcular_frete():
     """Integração com a API do Melhor Envio."""
     data = request.get_json() or {}
-    cep_destino = data.get('cep', '').replace('-', '')
-    if not cep_destino or len(cep_destino) < 8:
+    cep_destino = _cep_apenas_digitos(data.get('cep'))
+    if len(cep_destino) != 8:
         return jsonify({"success": False, "message": "CEP inválido"}), 400
         
     carrinho = get_or_create_carrinho()
@@ -201,13 +226,21 @@ def api_calcular_frete():
     TOKEN_MELHOR_ENVIO = cfg_token.valor if cfg_token and cfg_token.valor else ''
     CEP_ORIGEM         = cfg_cep.valor   if cfg_cep   and cfg_cep.valor   else '64000000'
     USE_SANDBOX        = cfg_sandbox and cfg_sandbox.valor == '1'
+    retirada_local = _mesma_faixa_cidade(CEP_ORIGEM, cep_destino)
+
+    # A retirada local não depende do token do Melhor Envio.
+    if not TOKEN_MELHOR_ENVIO and retirada_local:
+        return jsonify({"success": True, "opcoes": [_opcao_retirada_na_loja()]})
 
     if not TOKEN_MELHOR_ENVIO:
         return jsonify({"success": False, "message": "Token do Melhor Envio não configurado."}), 503
 
     service = MelhorEnvioService(TOKEN_MELHOR_ENVIO, sandbox=USE_SANDBOX)
-    resultado = service.calcular_frete(CEP_ORIGEM, cep_destino, carrinho.items)
-    
+    resultado = service.calcular_frete(CEP_ORIGEM, cep_destino, carrinho.items) or []
+
+    if retirada_local:
+        resultado.insert(0, _opcao_retirada_na_loja())
+
     if resultado:
         return jsonify({"success": True, "opcoes": resultado})
     return jsonify({"success": False, "message": "Não foi possível calcular o frete."}), 400
@@ -216,10 +249,15 @@ def api_calcular_frete():
 def salvar_frete_sessao():
     """Salva o frete escolhido na sessão."""
     data = request.get_json() or {}
-    session['frete_valor'] = float(data.get('valor', 0))
-    session['frete_nome'] = data.get('nome', '')
-    session['frete_prazo'] = data.get('prazo', '')
-    session['frete_cep'] = data.get('cep', '')
+    try:
+        valor = max(0.0, float(data.get('valor', 0) or 0))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Valor de frete inválido."}), 400
+
+    session['frete_valor'] = valor
+    session['frete_nome'] = str(data.get('nome') or '').strip()
+    session['frete_prazo'] = str(data.get('prazo') or '').strip()
+    session['frete_cep'] = _cep_apenas_digitos(data.get('cep'))
     session.modified = True
     return jsonify({"success": True})
 
@@ -279,8 +317,36 @@ def processar_pedido():
         if not all([nome_cliente, email_cliente, documento, cep, logradouro, numero, bairro, cidade, estado]):
             return jsonify({"success": False, "message": "Preencha todos os campos obrigatórios."}), 400
 
-        valor_frete = float(data.get('valor_frete') or 0)
-        parcelas = int(data.get('parcelas') or 1)
+        nome_frete = texto('nome_frete')
+        nome_frete_sessao = str(session.get('frete_nome') or '').strip()
+        cep_frete_sessao = _cep_apenas_digitos(session.get('frete_cep'))
+        if not nome_frete or not nome_frete_sessao:
+            return jsonify({"success": False, "message": "Selecione uma opção de frete ou retirada na loja antes de finalizar."}), 400
+        if cep_frete_sessao != cep:
+            return jsonify({"success": False, "message": "O frete precisa ser recalculado para o CEP informado."}), 400
+
+        # O valor efetivo vem da sessão assinada, não de um campo hidden manipulável.
+        nome_frete = nome_frete_sessao
+        try:
+            valor_frete = float(session.get('frete_valor') or 0)
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "Valor de frete inválido."}), 400
+
+        if valor_frete < 0:
+            return jsonify({"success": False, "message": "Valor de frete inválido."}), 400
+
+        if 'retirar na loja' in nome_frete.strip().lower():
+            from app.models import Configuracao
+            cfg_cep_origem = Configuracao.query.filter_by(chave='integ_melhorenvio_cep_origem').first()
+            cep_origem = cfg_cep_origem.valor if cfg_cep_origem and cfg_cep_origem.valor else '64000000'
+            if not _mesma_faixa_cidade(cep_origem, cep):
+                return jsonify({"success": False, "message": "A retirada na loja está disponível apenas para CEPs da cidade de origem."}), 400
+            valor_frete = 0.0
+
+        try:
+            parcelas = max(1, int(data.get('parcelas') or 1))
+        except (TypeError, ValueError):
+            parcelas = 1
 
         # Verifica se a coluna cliente_id existe no Pedido
         has_pedido_cliente_id = False

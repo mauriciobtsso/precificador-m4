@@ -270,9 +270,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            var formData = new FormData(formCheckout);
+            var nomeFreteAtual = document.getElementById('input_nome_frete').value || '';
+            if (!nomeFreteAtual.replace(/^\s+|\s+$/g, '')) {
+                checkoutError.textContent = 'Selecione uma opção de frete ou "Retirar na Loja" antes de finalizar.';
+                checkoutError.classList.remove('d-none');
+                document.getElementById('area_frete').classList.remove('d-none');
+                document.getElementById('area_frete').scrollIntoView();
+                return;
+            }
+
             var payload = {};
-            formData.forEach(function (value, key) { payload[key] = value; });
+            var campos = formCheckout.elements;
+            var indiceCampo;
+            var campo;
+            for (indiceCampo = 0; indiceCampo < campos.length; indiceCampo++) {
+                campo = campos[indiceCampo];
+                if (!campo.name || campo.disabled) continue;
+                if ((campo.type === 'checkbox' || campo.type === 'radio') && !campo.checked) continue;
+                payload[campo.name] = campo.value;
+            }
             payload.metodo_pagamento = document.getElementById('metodo_pagamento').value || 'pix';
 
             btnFinalizar.disabled = true;
@@ -282,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
             xhr.open('POST', formCheckout.action, true);
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.setRequestHeader('Accept', 'application/json');
-            xhr.setRequestHeader('X-CSRFToken', formData.get('csrf_token') || '');
+            xhr.setRequestHeader('X-CSRFToken', payload.csrf_token || '');
             
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
@@ -385,17 +401,23 @@ function calcularFrete(cep) {
                         var html = '';
                         for(var i=0; i<data.opcoes.length; i++) {
                             var op = data.opcoes[i];
+                            var empresa = op.company && op.company.name ? op.company.name : 'Transportadora';
+                            var nomeOpcao = op.name || 'Frete';
+                            var valorOpcao = parseFloat(op.price || 0);
+                            var prazo = op.custom ? 'Retirada na loja' : 'Prazo: ' + ((op.delivery_range && op.delivery_range.max) || '-') + ' dias úteis';
+                            var nomeCompleto = empresa + ' – ' + nomeOpcao;
                             html += '<label class="list-group-item d-flex justify-content-between align-items-center list-group-item-action">' +
                                     '<div>' +
                                     '<input class="form-check-input me-2" type="radio" name="frete_radio" ' +
-                                    'value="' + op.price + '" ' +
-                                    'data-nome="' + op.company.name + ' – ' + op.name + '" ' +
+                                    'value="' + valorOpcao + '" ' +
+                                    'data-nome="' + nomeCompleto.replace(/"/g, '&quot;') + '" ' +
+                                    'data-prazo="' + prazo.replace(/"/g, '&quot;') + '" ' +
                                     'onchange="atualizarFrete(this)">' +
-                                    '<strong>' + op.company.name + '</strong> ' +
-                                    '<span class="small text-muted">(' + op.name + ')</span>' +
-                                    '<div class="small text-muted">Prazo: ' + op.delivery_range.max + ' dias úteis</div>' +
+                                    '<strong>' + empresa + '</strong> ' +
+                                    '<span class="small text-muted">(' + nomeOpcao + ')</span>' +
+                                    '<div class="small text-muted">' + prazo + '</div>' +
                                     '</div>' +
-                                    '<span class="badge bg-success rounded-pill">R$ ' + parseFloat(op.price).toFixed(2).replace('.', ',') + '</span>' +
+                                    '<span class="badge bg-success rounded-pill">R$ ' + valorOpcao.toFixed(2).replace('.', ',') + '</span>' +
                                     '</label>';
                         }
                         listaFretes.innerHTML = html;
@@ -414,24 +436,32 @@ function calcularFrete(cep) {
 }
 
 function atualizarFrete(radio) {
-    const valor = parseFloat(radio.value);
-    const nome  = radio.dataset.nome;
-    freteAtual  = valor;
+    var valor = parseFloat(radio.value || 0);
+    var nome = radio.getAttribute('data-nome') || '';
+    var prazo = radio.getAttribute('data-prazo') || '';
+    var total;
+    var csrf = document.querySelector('input[name="csrf_token"]');
+    var xhr;
 
+    freteAtual = valor;
     document.getElementById('input_valor_frete').value = valor;
-    document.getElementById('input_nome_frete').value  = nome;
+    document.getElementById('input_nome_frete').value = nome;
 
-    const total = SUBTOTAL + valor;
+    total = SUBTOTAL + valor;
     document.getElementById('valor_frete_display').textContent = 'R$ ' + valor.toFixed(2).replace('.', ',');
     document.getElementById('total_final_display').textContent =
         'R$ ' + total.toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
 
-    // Salva na sessão também
-    fetch('/carrinho/api/frete/salvar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ valor, nome, prazo: '', cep: document.getElementById('cep_checkout').value })
-    });
+    xhr = new XMLHttpRequest();
+    xhr.open('POST', '/carrinho/api/frete/salvar', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    if (csrf) xhr.setRequestHeader('X-CSRFToken', csrf.value);
+    xhr.send(JSON.stringify({
+        valor: valor,
+        nome: nome,
+        prazo: prazo,
+        cep: document.getElementById('cep_checkout').value
+    }));
 }
 </script>
 {% endblock %}
