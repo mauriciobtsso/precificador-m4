@@ -248,11 +248,16 @@ CHAVES_INTEGRACAO = [
     'integ_pagarme_secret_key',
     'integ_pagarme_public_key',
     'integ_pagarme_sandbox',
+    'integ_pix_chave',
+    'integ_pix_beneficiario',
+    'integ_pix_cidade',
     'integ_smtp_host',
     'integ_smtp_port',
     'integ_smtp_from',
     'integ_smtp_user',
     'integ_smtp_password',
+    'integ_brevo_api_key',
+    'integ_whatsapp_numero',
 ]
 
 @loja_admin_bp.route('/integracoes', methods=['GET'])

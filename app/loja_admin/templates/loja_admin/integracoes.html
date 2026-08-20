@@ -304,6 +304,34 @@
                 </div>
             </div>
         </div>
+
+        <!-- Chave PIX Manual -->
+        <div class="card border-0 shadow-sm mt-3" style="background: #fffbeb;">
+            <div class="card-body p-3">
+                <h6 class="fw-bold mb-2 small text-warning-emphasis"><i class="bi bi-qr-code me-2"></i>Chave PIX Manual (Fallback)</h6>
+                <p class="text-muted small mb-3">Caso o Pagar.me esteja desativado ou para exibição de chave direta no sucesso da compra.</p>
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <label class="form-label x-small fw-bold mb-1">Chave PIX</label>
+                        <input type="text" name="integ_pix_chave" class="form-control form-control-integ"
+                               placeholder="CNPJ, E-mail ou Chave Aleatória"
+                               value="{{ configs.get('integ_pix_chave', '') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label x-small fw-bold mb-1">Beneficiário</label>
+                        <input type="text" name="integ_pix_beneficiario" class="form-control form-control-integ"
+                               placeholder="Nome da Empresa"
+                               value="{{ configs.get('integ_pix_beneficiario', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label x-small fw-bold mb-1">Cidade</label>
+                        <input type="text" name="integ_pix_cidade" class="form-control form-control-integ"
+                               placeholder="Cidade"
+                               value="{{ configs.get('integ_pix_cidade', '') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     {# ── NOTIFICAÇÕES ──────────────────────────────────────────────────── #}
@@ -363,6 +391,29 @@
                         </button>
                     </div>
                 </div>
+                
+                <div class="col-12 mt-3 pt-3 border-top">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Brevo API Key (opcional)</label>
+                            <div class="input-group">
+                                <input type="password" name="integ_brevo_api_key" id="integ_brevo_api_key"
+                                       class="form-control form-control-integ"
+                                       placeholder="xkeysib-..."
+                                       value="{{ configs.get('integ_brevo_api_key', '') }}">
+                                <button type="button" class="toggle-secret border border-start-0 rounded-end" onclick="toggleSecret('integ_brevo_api_key', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">WhatsApp Business (Número)</label>
+                            <input type="text" name="integ_whatsapp_numero" class="form-control form-control-integ"
+                                   placeholder="5511999999999"
+                                   value="{{ configs.get('integ_whatsapp_numero', '') }}">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -396,46 +447,43 @@ function toggleSecret(fieldId, btn) {
     }
 }
 
-// Testar conexão com Melhor Envio
-async function testarConexao(servico) {
-    const resultDiv = document.getElementById(`resultado_teste_${servico}`);
-    const statusBadge = document.getElementById(`status_${servico}`);
+// Testar conexão com Melhor Envio (ES5)
+function testarConexao(servico) {
+    var resultDiv = document.getElementById('resultado_teste_' + servico);
+    var statusBadge = document.getElementById('status_' + servico);
+    var csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
     resultDiv.innerHTML = '<div class="text-muted small"><i class="bi bi-hourglass-split me-1"></i>Testando conexão...</div>';
     resultDiv.classList.remove('d-none');
 
-    try {
-        const resp = await fetch('/admin-loja/integracoes/testar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ servico })
-        });
-        const data = await resp.json();
-
-        if (data.success) {
-            resultDiv.innerHTML = `
-                <div class="alert alert-success py-2 small mb-0">
-                    <i class="bi bi-check-circle-fill me-1"></i>
-                    <strong>Conexão OK!</strong> ${data.message || ''}
-                </div>`;
-            if (statusBadge) {
-                statusBadge.className = 'status-badge status-ok';
-                statusBadge.textContent = 'Ativo';
-            }
-        } else {
-            resultDiv.innerHTML = `
-                <div class="alert alert-danger py-2 small mb-0">
-                    <i class="bi bi-x-circle-fill me-1"></i>
-                    <strong>Falha:</strong> ${data.message || 'Verifique o token e tente novamente.'}
-                </div>`;
-            if (statusBadge) {
-                statusBadge.className = 'status-badge status-erro';
-                statusBadge.textContent = 'Erro';
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/admin-loja/integracoes/testar', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('X-CSRFToken', csrfToken);
+    
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                var data = JSON.parse(xhr.responseText);
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="alert alert-success py-2 small mb-0"><i class="bi bi-check-circle-fill me-1"></i><strong>Conexão OK!</strong> ' + (data.message || '') + '</div>';
+                    if (statusBadge) {
+                        statusBadge.className = 'status-badge status-ok';
+                        statusBadge.textContent = 'Ativo';
+                    }
+                } else {
+                    resultDiv.innerHTML = '<div class="alert alert-danger py-2 small mb-0"><i class="bi bi-x-circle-fill me-1"></i><strong>Falha:</strong> ' + (data.message || 'Verifique o token e tente novamente.') + '</div>';
+                    if (statusBadge) {
+                        statusBadge.className = 'status-badge status-erro';
+                        statusBadge.textContent = 'Erro';
+                    }
+                }
+            } else {
+                resultDiv.innerHTML = '<div class="alert alert-danger py-2 small mb-0">Erro de conexão com o servidor.</div>';
             }
         }
-    } catch (e) {
-        resultDiv.innerHTML = '<div class="alert alert-danger py-2 small mb-0">Erro de conexão com o servidor.</div>';
-    }
+    };
+    xhr.send(JSON.stringify({ servico: servico }));
 }
 </script>
 {% endblock %}
