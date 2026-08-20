@@ -104,6 +104,7 @@
                 </div>
                 
                 <form action="{{ url_for('loja_admin.atualizar_status_pedido', id=pedido.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label for="status" class="form-label small fw-bold">Alterar Status para:</label>
                         <select name="status" id="status" class="form-select">
