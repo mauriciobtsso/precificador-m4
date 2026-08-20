@@ -1,56 +1,70 @@
 /**
- * M4 TÁTICA - Arsenal Cart Handler
+ * M4 TÁTICA - Arsenal Cart Handler (ES5 Version)
  * Centraliza a lógica AJAX do carrinho e protege o servidor contra spam de cliques.
+ * Compatível com navegadores antigos (iOS 9, etc).
  */
-(() => {
-    const cart = {
+(function() {
+    var cart = {
         debounceTimer: null,
         
-        async add(produtoId) {
+        add: function(produtoId) {
+            var self = this;
             // Se o usuário clicar várias vezes, reinicia o timer (Debounce de 150ms)
-            clearTimeout(this.debounceTimer);
+            if (this.debounceTimer) {
+                clearTimeout(this.debounceTimer);
+            }
             
-            this.debounceTimer = setTimeout(async () => {
-                try {
-                    const response = await fetch(`/carrinho/add/${produtoId}`, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
+            this.debounceTimer = setTimeout(function() {
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/carrinho/add/' + produtoId, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            try {
+                                var data = JSON.parse(xhr.responseText);
+                                if (data.success) {
+                                    self.updateUI(data);
+                                }
+                            } catch (e) {
+                                console.error('Erro ao processar resposta do carrinho:', e);
+                            }
+                        } else {
+                            console.error('Erro ao comunicar com o Arsenal:', xhr.status);
                         }
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        this.updateUI(data);
                     }
-                } catch (error) {
-                    console.error('Erro ao comunicar com o Arsenal:', error);
-                }
+                };
+                xhr.send();
             }, 150);
         },
 
-        updateUI(data) {
+        updateUI: function(data) {
             // Atualiza o contador (Badge)
-            const badge = document.getElementById('cart-badge');
+            var badge = document.getElementById('cart-badge');
             if (badge) {
                 badge.textContent = data.cart_count;
-                badge.classList.remove('d-none');
+                badge.className = badge.className.replace(/\bd-none\b/g, '');
             }
 
             // Dispara o alerta visual (Toast)
-            const toastEl = document.getElementById('cartToast');
-            const msgEl = document.getElementById('toastMessage');
+            var toastEl = document.getElementById('cartToast');
+            var msgEl = document.getElementById('toastMessage');
             
             if (toastEl && msgEl) {
                 msgEl.textContent = data.message;
-                const toast = new bootstrap.Toast(toastEl);
-                toast.show();
+                // Bootstrap 5 Toast (Assume-se que o vendor está carregado)
+                if (window.bootstrap && window.bootstrap.Toast) {
+                    var toast = new bootstrap.Toast(toastEl);
+                    toast.show();
+                }
             }
         }
     };
 
     // Define a função global que os botões já usam
-    window.adicionarAoCarrinho = (id) => cart.add(id);
+    window.adicionarAoCarrinho = function(id) {
+        cart.add(id);
+    };
 })();

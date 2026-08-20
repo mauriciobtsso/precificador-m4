@@ -1,6 +1,6 @@
 """Associate storefront carts and orders with loja Cliente.
 
-Revision ID: 20260820_storefront_orders_cliente
+Revision ID: aefc868
 Revises: eb1852596428
 Create Date: 2026-08-20
 """
@@ -8,7 +8,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = '20260820_storefront_orders_cliente'
+revision = 'aefc868'
 down_revision = 'eb1852596428'
 branch_labels = None
 depends_on = None

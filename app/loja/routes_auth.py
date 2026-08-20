@@ -208,10 +208,18 @@ def minha_conta():
 @cliente_logado_required
 def meus_pedidos():
     cliente = get_cliente_logado()
-    pedidos = (Pedido.query
-               .filter_by(cliente_id=cliente.id)
-               .order_by(Pedido.criado_em.desc(), Pedido.id.desc())
-               .all())
+    try:
+        pedidos = (Pedido.query
+                   .filter_by(cliente_id=cliente.id)
+                   .order_by(Pedido.criado_em.desc(), Pedido.id.desc())
+                   .all())
+    except Exception:
+        db.session.rollback()
+        # Fallback: busca por e-mail se a coluna cliente_id não existir
+        pedidos = (Pedido.query
+                   .filter_by(email_cliente=cliente.email_login)
+                   .order_by(Pedido.criado_em.desc(), Pedido.id.desc())
+                   .all())
     return render_template('loja/cliente/pedidos.html', pedidos=pedidos)
 
 
@@ -219,9 +227,16 @@ def meus_pedidos():
 @cliente_logado_required
 def detalhe_pedido(pedido_id):
     cliente = get_cliente_logado()
-    pedido = (Pedido.query
-              .filter_by(id=pedido_id, cliente_id=cliente.id)
-              .first_or_404())
+    try:
+        pedido = (Pedido.query
+                  .filter_by(id=pedido_id, cliente_id=cliente.id)
+                  .first_or_404())
+    except Exception:
+        db.session.rollback()
+        # Fallback: busca por ID e e-mail se a coluna cliente_id não existir
+        pedido = (Pedido.query
+                  .filter_by(id=pedido_id, email_cliente=cliente.email_login)
+                  .first_or_404())
     return render_template('loja/cliente/pedido_detalhe.html', pedido=pedido)
 
 

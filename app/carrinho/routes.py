@@ -28,10 +28,16 @@ def get_or_create_carrinho():
     uid = current_user.id if current_user.is_authenticated else None
 
     if cliente:
-        carrinho = Carrinho.query.filter_by(cliente_id=cliente.id).first()
-        anonimo = Carrinho.query.filter_by(
-            session_id=sid, cliente_id=None
-        ).first()
+        # Tenta buscar por cliente_id, mas falha graciosamente se a migration ainda não rodou
+        try:
+            carrinho = Carrinho.query.filter_by(cliente_id=cliente.id).first()
+            anonimo = Carrinho.query.filter_by(
+                session_id=sid, cliente_id=None
+            ).first()
+        except Exception:
+            db.session.rollback()
+            carrinho = None
+            anonimo = Carrinho.query.filter_by(session_id=sid, usuario_id=None).first()
 
         if carrinho and anonimo and carrinho.id != anonimo.id:
             # Mescla o carrinho criado antes do login no carrinho persistente.
@@ -50,13 +56,17 @@ def get_or_create_carrinho():
             db.session.flush()
         elif not carrinho and anonimo:
             carrinho = anonimo
-            carrinho.cliente_id = cliente.id
+            try:
+                carrinho.cliente_id = cliente.id
+            except Exception:
+                db.session.rollback()
 
         if not carrinho:
-            carrinho = Carrinho(
-                session_id=sid,
-                cliente_id=cliente.id,
-            )
+            carrinho = Carrinho(session_id=sid)
+            try:
+                carrinho.cliente_id = cliente.id
+            except Exception:
+                db.session.rollback()
             db.session.add(carrinho)
 
     elif uid:
@@ -330,28 +340,39 @@ def processar_pedido():
         except (TypeError, ValueError):
             return jsonify({"success": False, "message": "Valores de frete ou parcelas inválidos."}), 400
 
-        novo_pedido = Pedido(
-            usuario_id=usuario_id,
-            cliente_id=cliente_id,
-            nome_cliente=nome_cliente,
-            email_cliente=email_cliente,
-            documento=documento,
-            telefone=telefone,
-            cep=cep,
-            logradouro=logradouro,
-            numero=numero,
-            bairro=bairro,
-            cidade=cidade,
-            estado=estado,
-            total_produtos=carrinho.total_avista,
-            total_frete=valor_frete,
-            total_pedido=float(carrinho.total_avista) + valor_frete,
-            forma_pagamento=(texto('metodo_pagamento') or 'pix'),
-            parcelas=parcelas,
-            status='pendente'
-        )
+        pedido_kwargs = {
+            "usuario_id": usuario_id,
+            "nome_cliente": nome_cliente,
+            "email_cliente": email_cliente,
+            "documento": documento,
+            "telefone": telefone,
+            "cep": cep,
+            "logradouro": logradouro,
+            "numero": numero,
+            "bairro": bairro,
+            "cidade": cidade,
+            "estado": estado,
+            "total_produtos": carrinho.total_avista,
+            "total_frete": valor_frete,
+            "total_pedido": float(carrinho.total_avista) + valor_frete,
+            "forma_pagamento": (texto('metodo_pagamento') or 'pix'),
+            "parcelas": parcelas,
+            "status": 'pendente'
+        }
+        
+        # Tenta adicionar cliente_id se a coluna existir
+        try:
+            pedido_kwargs["cliente_id"] = cliente_id
+        except Exception:
+            pass
+
+        novo_pedido = Pedido(**pedido_kwargs)
         db.session.add(novo_pedido)
-        carrinho.cliente_id = cliente_id
+        
+        try:
+            carrinho.cliente_id = cliente_id
+        except Exception:
+            db.session.rollback()
         
         for item in carrinho.items:
             pi = PedidoItem(
