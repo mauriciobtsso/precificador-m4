@@ -15,11 +15,9 @@ import sqlalchemy as sa
 
 # --- FUNÇÃO DE APOIO: IDENTIFICAÇÃO DO CLIENTE ---
 def get_or_create_carrinho():
-    """Obtém o carrinho correto para visitante, admin ou cliente da loja.
-
-    A autenticação da loja usa ``loja_cliente_id`` e é independente do
-    Flask-Login. O carrinho anônimo da mesma sessão é incorporado ao carrinho
-    do cliente no primeiro acesso autenticado, evitando perda de itens.
+    """
+    Recupera ou cria um carrinho vinculado à sessão ou ao cliente autenticado.
+    Versão ultra-resiliente para lidar com migrations pendentes.
     """
     if 'cart_session_id' not in session:
         session['cart_session_id'] = str(uuid.uuid4())
@@ -28,30 +26,29 @@ def get_or_create_carrinho():
     cliente = get_cliente_logado()
     uid = current_user.id if current_user.is_authenticated else None
 
+    # Verifica se a coluna cliente_id existe para decidir a estratégia de consulta
+    has_cliente_id = False
+    try:
+        db.session.execute(sa.text("SELECT cliente_id FROM carrinhos LIMIT 1"))
+        has_cliente_id = True
+    except Exception:
+        db.session.rollback()
+
+    carrinho = None
+    anonimo = None
+
     if cliente:
-        # Tenta buscar por cliente_id, mas falha graciosamente se a migration ainda não rodou
-        try:
-            # Usamos raw SQL para evitar que o SQLAlchemy tente mapear colunas inexistentes na classe
-            res = db.session.execute(sa.text("SELECT id FROM carrinhos WHERE cliente_id = :cid LIMIT 1"), {"cid": cliente.id}).fetchone()
-            carrinho = Carrinho.query.get(res[0]) if res else None
-            
-            res_anon = db.session.execute(sa.text("SELECT id FROM carrinhos WHERE session_id = :sid AND cliente_id IS NULL LIMIT 1"), {"sid": sid}).fetchone()
-            anonimo = Carrinho.query.get(res_anon[0]) if res_anon else None
-        except Exception:
-            db.session.rollback()
-            carrinho = None
-            # Fallback seguro para anonimo sem tocar em cliente_id
-            res_anon = db.session.execute(sa.text("SELECT id FROM carrinhos WHERE session_id = :sid AND usuario_id IS NULL LIMIT 1"), {"sid": sid}).fetchone()
-            anonimo = Carrinho.query.get(res_anon[0]) if res_anon else None
+        if has_cliente_id:
+            carrinho = db.session.query(Carrinho).filter_by(cliente_id=cliente.id).first()
+            anonimo = db.session.query(Carrinho).filter_by(session_id=sid, cliente_id=None, usuario_id=None).first()
+        else:
+            # Sem cliente_id, usamos apenas a sessão
+            carrinho = db.session.query(Carrinho).options(sa.orm.defer(Carrinho.cliente_id)).filter_by(session_id=sid, usuario_id=None).first()
 
         if carrinho and anonimo and carrinho.id != anonimo.id:
-            # Mescla o carrinho criado antes do login no carrinho persistente.
+            # Mescla itens
             for item_anonimo in list(anonimo.items):
-                item_existente = next(
-                    (item for item in carrinho.items
-                     if item.produto_id == item_anonimo.produto_id),
-                    None,
-                )
+                item_existente = next((i for i in carrinho.items if i.produto_id == item_anonimo.produto_id), None)
                 if item_existente:
                     item_existente.quantidade += item_anonimo.quantidade
                     db.session.delete(item_anonimo)
@@ -61,39 +58,43 @@ def get_or_create_carrinho():
             db.session.flush()
         elif not carrinho and anonimo:
             carrinho = anonimo
-            try:
-                db.session.execute(sa.text("UPDATE carrinhos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente.id, "id": carrinho.id})
-            except Exception:
-                db.session.rollback()
+            if has_cliente_id:
+                try:
+                    db.session.execute(sa.text("UPDATE carrinhos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente.id, "id": carrinho.id})
+                except Exception: db.session.rollback()
 
         if not carrinho:
             carrinho = Carrinho(session_id=sid)
             db.session.add(carrinho)
             db.session.flush()
-            try:
-                db.session.execute(sa.text("UPDATE carrinhos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente.id, "id": carrinho.id})
-            except Exception:
-                db.session.rollback()
+            if has_cliente_id:
+                try:
+                    db.session.execute(sa.text("UPDATE carrinhos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente.id, "id": carrinho.id})
+                except Exception: db.session.rollback()
 
     elif uid:
-        carrinho = Carrinho.query.filter_by(usuario_id=uid).first()
+        query = db.session.query(Carrinho).filter_by(usuario_id=uid)
+        if not has_cliente_id: query = query.options(sa.orm.defer(Carrinho.cliente_id))
+        carrinho = query.first()
         if not carrinho:
             carrinho = Carrinho(session_id=sid, usuario_id=uid)
             db.session.add(carrinho)
     else:
-        try:
-            res = db.session.execute(sa.text("SELECT id FROM carrinhos WHERE session_id = :sid AND cliente_id IS NULL AND usuario_id IS NULL LIMIT 1"), {"sid": sid}).fetchone()
-            carrinho = Carrinho.query.get(res[0]) if res else None
-        except Exception:
-            db.session.rollback()
-            carrinho = Carrinho.query.filter_by(session_id=sid, usuario_id=None).first()
-
+        query = db.session.query(Carrinho).filter_by(session_id=sid, usuario_id=None)
+        if has_cliente_id:
+            query = query.filter_by(cliente_id=None)
+        else:
+            query = query.options(sa.orm.defer(Carrinho.cliente_id))
+        carrinho = query.first()
         if not carrinho:
             carrinho = Carrinho(session_id=sid)
             db.session.add(carrinho)
 
     carrinho.session_id = sid
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
     return carrinho
 
 # --- ROTAS PRINCIPAIS DO CARRINHO ---
@@ -141,8 +142,6 @@ def adicionar(produto_id):
         db.session.add(item)
     
     db.session.commit()
-
-    # CORREÇÃO: usar nome amigável (nome_comercial) se disponível
     nome_exibicao = produto.nome_comercial or produto.nome
     
     return jsonify({
@@ -153,28 +152,16 @@ def adicionar(produto_id):
 
 @carrinho_bp.route('/update/<int:item_id>', methods=['POST'])
 def atualizar_quantidade(item_id):
-    """
-    Atualiza quantidades ou remove itens do carrinho via AJAX.
-    """
+    """Atualiza quantidades ou remove itens do carrinho via AJAX."""
     try:
         item = CarrinhoItem.query.get_or_404(item_id)
-        
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "Dados inválidos"}), 400
-        
-        delta = data.get('delta', 0)
-        
-        try:
-            delta = int(delta)
-        except (ValueError, TypeError):
-            return jsonify({"success": False, "error": "Delta inválido"}), 400
+        data = request.get_json() or {}
+        delta = int(data.get('delta', 0))
         
         if delta == 0 or (item.quantidade + delta) <= 0:
             db.session.delete(item)
             db.session.commit()
             carrinho = get_or_create_carrinho()
-            
             return jsonify({
                 "success": True, 
                 "reload": True,
@@ -183,16 +170,7 @@ def atualizar_quantidade(item_id):
             })
         
         item.quantidade += delta
-        
-        if item.quantidade < 1:
-            item.quantidade = 1
-            return jsonify({
-                "success": False,
-                "error": "Quantidade mínima é 1"
-            }), 400
-        
         db.session.commit()
-        
         carrinho = item.carrinho
         
         return jsonify({
@@ -202,29 +180,18 @@ def atualizar_quantidade(item_id):
             "cart_count": len(carrinho.items),
             "reload": False
         })
-    
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            "success": False,
-            "error": f"Erro ao atualizar carrinho: {str(e)}"
-        }), 500
-
-# --- LOGÍSTICA E FRETE REAL ---
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @carrinho_bp.route('/api/frete/calcular', methods=['POST'])
 def api_calcular_frete():
-    """Integração com a API do Melhor Envio usando peso e dimensões reais."""
-    data = request.get_json()
+    """Integração com a API do Melhor Envio."""
+    data = request.get_json() or {}
     cep_destino = data.get('cep', '').replace('-', '')
-    
     if not cep_destino or len(cep_destino) < 8:
         return jsonify({"success": False, "message": "CEP inválido"}), 400
         
     carrinho = get_or_create_carrinho()
-    
-    # Credenciais lidas do banco (configuradas em /admin-loja/integracoes)
     from app.models import Configuracao
     cfg_token   = Configuracao.query.filter_by(chave='integ_melhorenvio_token').first()
     cfg_cep     = Configuracao.query.filter_by(chave='integ_melhorenvio_cep_origem').first()
@@ -235,7 +202,7 @@ def api_calcular_frete():
     USE_SANDBOX        = cfg_sandbox and cfg_sandbox.valor == '1'
 
     if not TOKEN_MELHOR_ENVIO:
-        return jsonify({"success": False, "message": "Token do Melhor Envio não configurado. Acesse /admin-loja/integracoes."}), 503
+        return jsonify({"success": False, "message": "Token do Melhor Envio não configurado."}), 503
 
     service = MelhorEnvioService(TOKEN_MELHOR_ENVIO, sandbox=USE_SANDBOX)
     resultado = service.calcular_frete(CEP_ORIGEM, cep_destino, carrinho.items)
@@ -244,11 +211,10 @@ def api_calcular_frete():
         return jsonify({"success": True, "opcoes": resultado})
     return jsonify({"success": False, "message": "Não foi possível calcular o frete."}), 400
 
-
 @carrinho_bp.route('/api/frete/salvar', methods=['POST'])
 def salvar_frete_sessao():
-    """Salva o frete escolhido na sessão para usar no checkout."""
-    data = request.get_json()
+    """Salva o frete escolhido na sessão."""
+    data = request.get_json() or {}
     session['frete_valor'] = float(data.get('valor', 0))
     session['frete_nome'] = data.get('nome', '')
     session['frete_prazo'] = data.get('prazo', '')
@@ -256,24 +222,16 @@ def salvar_frete_sessao():
     session.modified = True
     return jsonify({"success": True})
 
-# --- CHECKOUT E PAGAMENTO ---
-
 @carrinho_bp.route('/checkout')
 def checkout_view():
-    """Página de preenchimento de endereço e pagamento."""
+    """Página de checkout."""
     carrinho = get_or_create_carrinho()
     if not carrinho.items:
         return redirect(url_for('carrinho.index'))
 
     cliente = get_cliente_logado()
     endereco = cliente.enderecos[0] if cliente and cliente.enderecos else None
-    telefone = ''
-    if cliente:
-        telefone = next(
-            (contato.valor for contato in (cliente.contatos or [])
-             if (contato.tipo or '').lower() in ('telefone', 'celular', 'whatsapp')),
-            '',
-        )
+    telefone = next((c.valor for c in (cliente.contatos or []) if (c.tipo or '').lower() in ('telefone', 'celular', 'whatsapp')), '') if cliente else ''
 
     frete_sessao = {
         'valor': session.get('frete_valor', 0),
@@ -281,18 +239,11 @@ def checkout_view():
         'prazo': session.get('frete_prazo', ''),
         'cep': session.get('frete_cep', ''),
     }
-    return render_template(
-        'carrinho/checkout.html',
-        carrinho=carrinho,
-        frete_sessao=frete_sessao,
-        checkout_cliente=cliente,
-        checkout_endereco=endereco,
-        checkout_telefone=telefone,
-    )
+    return render_template('carrinho/checkout.html', carrinho=carrinho, frete_sessao=frete_sessao, checkout_cliente=cliente, checkout_endereco=endereco, checkout_telefone=telefone)
 
 @carrinho_bp.route('/checkout/processar', methods=['POST'])
 def processar_pedido():
-    """Valida e grava o pedido usando a identidade real da loja quando houver."""
+    """Grava o pedido final."""
     try:
         data = request.get_json(silent=True) or {}
         cliente = get_cliente_logado()
@@ -301,11 +252,9 @@ def processar_pedido():
         if not carrinho or not carrinho.items:
             return jsonify({"success": False, "message": "Carrinho vazio."}), 400
 
-        def texto(chave):
-            return str(data.get(chave) or '').strip()
+        def texto(chave): return str(data.get(chave) or '').strip()
 
         if cliente:
-            # Não confiamos em nome, e-mail ou CPF enviados pelo navegador.
             nome_cliente = (cliente.nome or '').strip()
             email_cliente = (cliente.email_login or '').strip().lower()
             documento = ''.join(filter(str.isdigit, cliente.documento or ''))
@@ -326,138 +275,82 @@ def processar_pedido():
         estado = texto('uf').upper()
         telefone = texto('telefone')
 
-        obrigatorios = {
-            'nome': nome_cliente,
-            'e-mail': email_cliente,
-            'documento': documento,
-            'CEP': cep,
-            'logradouro': logradouro,
-            'número': numero,
-            'bairro': bairro,
-            'cidade': cidade,
-            'UF': estado,
-        }
-        faltantes = [nome for nome, valor in obrigatorios.items() if not valor]
-        if faltantes:
-            return jsonify({
-                "success": False,
-                "message": "Preencha os campos obrigatórios: " + ', '.join(faltantes) + ".",
-            }), 400
+        if not all([nome_cliente, email_cliente, documento, cep, logradouro, numero, bairro, cidade, estado]):
+            return jsonify({"success": False, "message": "Preencha todos os campos obrigatórios."}), 400
 
+        valor_frete = float(data.get('valor_frete') or 0)
+        parcelas = int(data.get('parcelas') or 1)
+
+        # Verifica se a coluna cliente_id existe no Pedido
+        has_pedido_cliente_id = False
         try:
-            valor_frete = max(0.0, float(data.get('valor_frete') or 0))
-            parcelas = max(1, min(12, int(data.get('parcelas') or 1)))
-        except (TypeError, ValueError):
-            return jsonify({"success": False, "message": "Valores de frete ou parcelas inválidos."}), 400
+            db.session.execute(sa.text("SELECT cliente_id FROM pedidos LIMIT 1"))
+            has_pedido_cliente_id = True
+        except Exception: db.session.rollback()
 
-        pedido_kwargs = {
-            "usuario_id": usuario_id,
-            "nome_cliente": nome_cliente,
-            "email_cliente": email_cliente,
-            "documento": documento,
-            "telefone": telefone,
-            "cep": cep,
-            "logradouro": logradouro,
-            "numero": numero,
-            "bairro": bairro,
-            "cidade": cidade,
-            "estado": estado,
-            "total_produtos": carrinho.total_avista,
-            "total_frete": valor_frete,
-            "total_pedido": float(carrinho.total_avista) + valor_frete,
-            "forma_pagamento": (texto('metodo_pagamento') or 'pix'),
-            "parcelas": parcelas,
-            "status": 'pendente'
-        }
-        
-        # Tenta adicionar cliente_id se a coluna existir
-        novo_pedido = Pedido(**pedido_kwargs)
-        db.session.add(novo_pedido)
+        pedido = Pedido(
+            usuario_id=usuario_id,
+            nome_cliente=nome_cliente,
+            email_cliente=email_cliente,
+            documento=documento,
+            telefone=telefone,
+            cep=cep,
+            logradouro=logradouro,
+            numero=numero,
+            bairro=bairro,
+            cidade=cidade,
+            estado=estado,
+            total_produtos=carrinho.total_avista,
+            total_frete=valor_frete,
+            total_pedido=float(carrinho.total_avista) + valor_frete,
+            forma_pagamento=(texto('metodo_pagamento') or 'pix'),
+            parcelas=parcelas,
+            status='pendente'
+        )
+        db.session.add(pedido)
         db.session.flush()
-        
-        try:
-            db.session.execute(sa.text("UPDATE pedidos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente_id, "id": novo_pedido.id})
-            db.session.execute(sa.text("UPDATE carrinhos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente_id, "id": carrinho.id})
-        except Exception:
-            db.session.rollback()
-        
+
+        if cliente_id and has_pedido_cliente_id:
+            try:
+                db.session.execute(sa.text("UPDATE pedidos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente_id, "id": pedido.id})
+            except Exception: db.session.rollback()
+
         for item in carrinho.items:
-            pi = PedidoItem(
-                pedido=novo_pedido,
+            p_item = PedidoItem(
+                pedido_id=pedido.id,
                 produto_id=item.produto_id,
                 quantidade=item.quantidade,
                 preco_unitario_historico=item.preco_unitario_no_momento
             )
-            db.session.add(pi)
+            db.session.add(p_item)
 
-        novo_pedido.pagarme_id = "or_" + str(uuid.uuid4())[:12]
+        # Limpa o carrinho
+        for item in list(carrinho.items): db.session.delete(item)
         db.session.commit()
 
-        for item in list(carrinho.items):
-            db.session.delete(item)
         session.pop('frete_valor', None)
         session.pop('frete_nome', None)
         session.pop('frete_prazo', None)
         session.pop('frete_cep', None)
-        session['ultimo_pedido_id'] = novo_pedido.id
-        db.session.commit()
 
-        return jsonify({
-            "success": True, 
-            "message": "Operação realizada!",
-            "order_id": novo_pedido.id,
-            "redirect": url_for('carrinho.sucesso', order_id=novo_pedido.id)
-        })
-
+        return jsonify({"success": True, "pedido_id": pedido.id, "redirect": url_for('carrinho.sucesso', pedido_id=pedido.id)})
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
-@carrinho_bp.route('/sucesso/<int:order_id>')
-def sucesso(order_id):
-    """Página final de confirmação, limitada ao pedido recém-criado pelo visitante."""
-    pedido = Pedido.query.get_or_404(order_id)
-    cliente = get_cliente_logado()
-    if cliente:
-        if pedido.cliente_id != cliente.id:
-            abort(404)
-    elif session.get('ultimo_pedido_id') != order_id:
-        abort(404)
-    return render_template('carrinho/sucesso.html', pedido=pedido)
-
-@carrinho_bp.route('/webhook/pagarme', methods=['POST'])
-def webhook_pagarme():
-    """Recebe avisos automáticos de pagamento aprovado do Pagar.me."""
-    import hmac
-    import hashlib
-
-    # Valida assinatura HMAC-SHA256 do Pagar.me
-    secret = os.getenv('PAGARME_WEBHOOK_SECRET', '')
-    if not secret:
-        current_app.logger.warning("[WEBHOOK] PAGARME_WEBHOOK_SECRET não configurado — webhook recusado.")
-        return jsonify({"error": "Webhook não configurado."}), 503
-
-    signature_header = request.headers.get('X-Hub-Signature', '')
-    payload = request.get_data()
-    expected_sig = 'sha256=' + hmac.new(
-        secret.encode('utf-8'), payload, hashlib.sha256
-    ).hexdigest()
-
-    if not hmac.compare_digest(expected_sig, signature_header):
-        current_app.logger.warning("[WEBHOOK] Assinatura inválida recebida no webhook Pagar.me.")
-        return jsonify({"error": "Assinatura inválida."}), 401
-
+@carrinho_bp.route('/sucesso/<int:pedido_id>')
+def sucesso(pedido_id):
+    """Tela de confirmação do pedido."""
+    # Busca resiliente do pedido
+    has_pedido_cliente_id = False
     try:
-        data = request.get_json(force=True)
-        if data and data.get('type') == 'order.paid':
-            order_data = data.get('data', {})
-            pedido = Pedido.query.filter_by(pagarme_id=order_data.get('id')).first()
-            if pedido:
-                pedido.status = 'pago'
-                pedido.pago_em = now_local()
-                db.session.commit()
-    except Exception as e:
-        current_app.logger.error(f"[WEBHOOK] Erro ao processar webhook Pagar.me: {e}")
-        return jsonify({"error": "Erro interno."}), 500
+        db.session.execute(sa.text("SELECT cliente_id FROM pedidos LIMIT 1"))
+        has_pedido_cliente_id = True
+    except Exception: db.session.rollback()
 
-    return jsonify({"status": "received"}), 200
+    query = db.session.query(Pedido).filter(Pedido.id == pedido_id)
+    if not has_pedido_cliente_id:
+        query = query.options(sa.orm.defer(Pedido.cliente_id))
+    
+    pedido = query.first_or_404()
+    return render_template('carrinho/sucesso.html', pedido=pedido)

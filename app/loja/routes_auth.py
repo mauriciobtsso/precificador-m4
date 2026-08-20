@@ -2,7 +2,7 @@
 import os
 from datetime import date
 from urllib.parse import urlparse, urljoin
-from flask import render_template, request, redirect, url_for, flash, send_file, abort
+from flask import render_template, request, redirect, url_for, flash, send_file, abort, current_app
 from werkzeug.utils import secure_filename
 from app import db
 import sqlalchemy as sa
@@ -28,10 +28,8 @@ _MAGIC = {
     b'\x89PNG':      'png',
 }
 
-
 def _ext_ok(nome: str) -> bool:
     return '.' in nome and nome.rsplit('.', 1)[1].lower() in EXTENSOES_OK
-
 
 def _magic_ok(fileobj) -> bool:
     """Verifica a assinatura real dos primeiros bytes do arquivo."""
@@ -42,14 +40,12 @@ def _magic_ok(fileobj) -> bool:
             return True
     return False
 
-
 def _parse_date(campo):
     val = (request.form.get(campo) or '').strip()
     try:
         return date.fromisoformat(val) if val else None
     except ValueError:
         return None
-
 
 def _is_safe_url(target: str) -> bool:
     """Valida que o redirect 'next' aponta apenas para o próprio domínio."""
@@ -61,7 +57,6 @@ def _is_safe_url(target: str) -> bool:
         test_url.scheme in ('http', 'https')
         and ref_url.netloc == test_url.netloc
     )
-
 
 def _validar_cpf(cpf: str) -> bool:
     """Valida o algoritmo oficial do CPF."""
@@ -75,13 +70,11 @@ def _validar_cpf(cpf: str) -> bool:
             return False
     return True
 
-
 def _validar_email(email: str) -> bool:
     """Valida formato básico de e-mail."""
     import re
     regex = r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
     return bool(re.match(regex, email.lower()))
-
 
 # ──────────────────────────────────────────────────────────────────
 # CONTEXT PROCESSOR
@@ -89,7 +82,6 @@ def _validar_email(email: str) -> bool:
 @loja_bp.app_context_processor
 def inject_cliente_loja():
     return {'cliente_loja': get_cliente_logado()}
-
 
 # ──────────────────────────────────────────────────────────────────
 # LOGIN / CADASTRO / LOGOUT
@@ -118,7 +110,6 @@ def login():
             return redirect(url_for('loja.minha_conta'))
     return render_template('loja/auth/login.html')
 
-
 @loja_bp.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
     if get_cliente_logado():
@@ -133,7 +124,6 @@ def cadastro():
             flash('Preencha todos os campos obrigatórios.', 'warning')
             return render_template('loja/auth/cadastro.html')
         
-        # Validações de Segurança M4
         if not _validar_email(email):
             flash('Por favor, informe um e-mail válido.', 'warning')
             return render_template('loja/auth/cadastro.html')
@@ -176,7 +166,6 @@ def cadastro():
         cliente.ativo_loja = True
         db.session.commit()
         
-        # Envio de E-mail de Boas-vindas (Brevo)
         try:
             from app.utils.email_service import enviar_email_boas_vindas
             enviar_email_boas_vindas(cliente)
@@ -188,13 +177,11 @@ def cadastro():
         return redirect(url_for('loja.minha_conta'))
     return render_template('loja/auth/cadastro.html')
 
-
 @loja_bp.route('/logout')
 def logout():
     deslogar_cliente()
     flash('Você saiu da sua conta.', 'info')
     return redirect(url_for('loja.index'))
-
 
 # ──────────────────────────────────────────────────────────────────
 # MINHA CONTA / PEDIDOS
@@ -204,42 +191,40 @@ def logout():
 def minha_conta():
     return render_template('loja/cliente/dashboard.html')
 
-
 @loja_bp.route('/meus-pedidos')
 @cliente_logado_required
 def meus_pedidos():
     cliente = get_cliente_logado()
+    has_cliente_id = False
     try:
-        # Usamos raw SQL para evitar falha no mapeamento de coluna inexistente
-        res = db.session.execute(sa.text("SELECT id FROM pedidos WHERE cliente_id = :cid ORDER BY criado_em DESC, id DESC"), {"cid": cliente.id}).fetchall()
-        pedidos = [Pedido.query.get(r[0]) for r in res]
-    except Exception:
-        db.session.rollback()
-        # Fallback: busca por e-mail se a coluna cliente_id não existir
-        pedidos = (Pedido.query
-                   .filter_by(email_cliente=cliente.email_login)
-                   .order_by(Pedido.criado_em.desc(), Pedido.id.desc())
-                   .all())
-    return render_template('loja/cliente/pedidos.html', pedidos=pedidos)
+        db.session.execute(sa.text("SELECT cliente_id FROM pedidos LIMIT 1"))
+        has_cliente_id = True
+    except Exception: db.session.rollback()
 
+    if has_cliente_id:
+        pedidos = Pedido.query.filter_by(cliente_id=cliente.id).order_by(Pedido.criado_em.desc()).all()
+    else:
+        pedidos = Pedido.query.options(sa.orm.defer(Pedido.cliente_id)).filter_by(email_cliente=cliente.email_login).order_by(Pedido.criado_em.desc()).all()
+    
+    return render_template('loja/cliente/pedidos.html', pedidos=pedidos)
 
 @loja_bp.route('/meus-pedidos/<int:pedido_id>')
 @cliente_logado_required
 def detalhe_pedido(pedido_id):
     cliente = get_cliente_logado()
+    has_cliente_id = False
     try:
-        res = db.session.execute(sa.text("SELECT id FROM pedidos WHERE id = :pid AND cliente_id = :cid LIMIT 1"), {"pid": pedido_id, "cid": cliente.id}).fetchone()
-        if not res:
-            abort(404)
-        pedido = Pedido.query.get(res[0])
-    except Exception:
-        db.session.rollback()
-        # Fallback: busca por ID e e-mail se a coluna cliente_id não existir
-        pedido = (Pedido.query
-                  .filter_by(id=pedido_id, email_cliente=cliente.email_login)
-                  .first_or_404())
-    return render_template('loja/cliente/pedido_detalhe.html', pedido=pedido)
+        db.session.execute(sa.text("SELECT cliente_id FROM pedidos LIMIT 1"))
+        has_cliente_id = True
+    except Exception: db.session.rollback()
 
+    query = db.session.query(Pedido).filter(Pedido.id == pedido_id)
+    if has_cliente_id:
+        pedido = query.filter(Pedido.cliente_id == cliente.id).first_or_404()
+    else:
+        pedido = query.options(sa.orm.defer(Pedido.cliente_id)).filter(Pedido.email_cliente == cliente.email_login).first_or_404()
+    
+    return render_template('loja/cliente/pedido_detalhe.html', pedido=pedido)
 
 # ──────────────────────────────────────────────────────────────────
 # ENDEREÇOS
@@ -249,7 +234,6 @@ def detalhe_pedido(pedido_id):
 def meus_enderecos():
     cliente = get_cliente_logado()
     return render_template('loja/cliente/enderecos.html', enderecos=cliente.enderecos or [])
-
 
 @loja_bp.route('/meus-enderecos/novo', methods=['POST'])
 @cliente_logado_required
@@ -270,7 +254,6 @@ def novo_endereco():
     flash('Endereço adicionado!', 'success')
     return redirect(url_for('loja.meus_enderecos'))
 
-
 @loja_bp.route('/meus-enderecos/<int:endereco_id>/editar', methods=['POST'])
 @cliente_logado_required
 def editar_endereco(endereco_id):
@@ -288,7 +271,6 @@ def editar_endereco(endereco_id):
     flash('Endereço atualizado.', 'success')
     return redirect(url_for('loja.meus_enderecos'))
 
-
 @loja_bp.route('/meus-enderecos/<int:endereco_id>/excluir', methods=['POST'])
 @cliente_logado_required
 def excluir_endereco(endereco_id):
@@ -299,237 +281,110 @@ def excluir_endereco(endereco_id):
     flash('Endereço removido.', 'info')
     return redirect(url_for('loja.meus_enderecos'))
 
-
 # ──────────────────────────────────────────────────────────────────
-# DOCUMENTOS — listar
+# DOCUMENTOS
 # ──────────────────────────────────────────────────────────────────
 @loja_bp.route('/meus-documentos')
 @cliente_logado_required
 def meus_documentos():
     cliente = get_cliente_logado()
     hoje    = date.today()
-
     todos_docs  = (Documento.query
                    .filter_by(cliente_id=cliente.id)
                    .order_by(Documento.created_at.desc())
                    .all())
     docs_cliente = [d for d in todos_docs if d.categoria == CATEGORIA_LOJA]
     docs_admin   = [d for d in todos_docs if d.categoria != CATEGORIA_LOJA]
-
     cr_vencido = bool(cliente.data_validade_cr and hoje > cliente.data_validade_cr)
-    armas_info = [
-        {
-            'arma': arma,
-            'craf_vencido': bool(
-                arma.data_validade_craf
-                and not arma.validade_indeterminada
-                and hoje > arma.data_validade_craf
-            )
-        }
-        for arma in (cliente.armas or [])
-    ]
-
-    return render_template(
-        'loja/cliente/documentos.html',
-        documentos=todos_docs,
-        docs_cliente=docs_cliente,
-        docs_admin=docs_admin,
-        cr_vencido=cr_vencido,
-        armas_info=armas_info,
-    )
-
-
-# ──────────────────────────────────────────────────────────────────
-# DOCUMENTOS — upload de documento genérico
-# ──────────────────────────────────────────────────────────────────
-@loja_bp.route('/meus-documentos/upload', methods=['POST'])
-@cliente_logado_required
-def upload_documento():
-    cliente = get_cliente_logado()
-    arquivo = request.files.get('arquivo')
-    if not arquivo or arquivo.filename == '':
-        flash('Selecione um arquivo.', 'warning')
-        return redirect(url_for('loja.meus_documentos'))
-    if not _ext_ok(arquivo.filename):
-        flash('Formato não permitido. Use PDF, JPG ou PNG.', 'warning')
-        return redirect(url_for('loja.meus_documentos'))
-    if not _magic_ok(arquivo.stream):
-        flash('Arquivo inválido: o conteúdo não corresponde ao formato declarado.', 'danger')
-        return redirect(url_for('loja.meus_documentos'))
-
-    # 🛰️ Nome único e envio direto para o R2 (bucket privado m4-clientes-docs).
-    # Nada mais é salvo em disco local — o disco do Render é efêmero.
-    nome_seguro = secure_filename(arquivo.filename)
-    timestamp   = now_local().strftime('%Y%m%d%H%M%S')
-    arquivo.filename = f"{timestamp}_{nome_seguro}"
-
-    caminho_r2 = upload_file_to_r2(arquivo, folder=f"clientes/{cliente.id}/documentos")
-    if not caminho_r2:
-        flash('Erro ao enviar o arquivo para o storage. Tente novamente.', 'danger')
-        return redirect(url_for('loja.meus_documentos'))
-
-    indet = bool(request.form.get('validade_indeterminada'))
-    
-    # Processa emissor e UF (opcionalmente concatenados ou separados)
-    emissor_val = (request.form.get('emissor') or '').strip()
-    uf_val = (request.form.get('uf') or '').strip()
-    if uf_val and uf_val not in emissor_val:
-        emissor_final = f"{emissor_val}/{uf_val}" if emissor_val else uf_val
-    else:
-        emissor_final = emissor_val
-
-    db.session.add(Documento(
-        cliente_id             = cliente.id,
-        tipo                   = (request.form.get('tipo') or 'Outro').strip(),
-        categoria              = CATEGORIA_LOJA,
-        emissor                = emissor_final or None,
-        numero_documento       = (request.form.get('numero_documento') or '').strip() or None,
-        data_emissao           = _parse_date('data_emissao'),
-        data_validade          = None if indet else _parse_date('data_validade'),
-        validade_indeterminada = indet,
-        observacoes            = (request.form.get('observacoes') or '').strip() or None,
-        nome_original          = nome_seguro,
-        caminho_arquivo        = caminho_r2,
-        mime_type              = arquivo.mimetype,
-    ))
-    db.session.commit()
-    flash('Documento enviado com sucesso!', 'success')
-    return redirect(url_for('loja.meus_documentos'))
-
-
-# ──────────────────────────────────────────────────────────────────
-# DOCUMENTOS — excluir (só os do próprio cliente)
-# ──────────────────────────────────────────────────────────────────
-@loja_bp.route('/meus-documentos/<int:doc_id>/excluir', methods=['POST'])
-@cliente_logado_required
-def excluir_documento(doc_id):
-    cliente = get_cliente_logado()
-    doc = Documento.query.filter_by(
-        id=doc_id, cliente_id=cliente.id, categoria=CATEGORIA_LOJA
-    ).first_or_404()
-
-    caminho_para_deletar = doc.caminho_arquivo
-
-    db.session.delete(doc)
-    db.session.commit()
-
-    # 🛰️ Exclusão no R2 (não é mais arquivo local)
-    if caminho_para_deletar:
-        deletar_arquivo(caminho_para_deletar)
-
-    flash('Documento removido.', 'info')
-    return redirect(url_for('loja.meus_documentos'))
-
+    armas_info = [{'arma': a, 'craf_vencido': bool(a.data_validade_craf and not a.validade_indeterminada and hoje > a.data_validade_craf)} for a in (cliente.armas or [])]
+    return render_template('loja/cliente/documentos.html', documentos=todos_docs, docs_cliente=docs_cliente, docs_admin=docs_admin, cr_vencido=cr_vencido, armas_info=armas_info)
 
 @loja_bp.route('/meus-documentos/excluir-arma/<int:arma_id>', methods=['POST'])
 @cliente_logado_required
 def excluir_arma(arma_id):
     cliente = get_cliente_logado()
     arma = Arma.query.filter_by(id=arma_id, cliente_id=cliente.id).first_or_404()
-
-    caminho_para_deletar = arma.caminho_craf
-
-    try:
-        db.session.delete(arma)
-        db.session.commit()
-
-        if caminho_para_deletar:
-            deletar_arquivo(caminho_para_deletar)
-
-        flash('Arma removida do arsenal.', 'info')
-    except Exception as e:
-        db.session.rollback()
-        flash('Erro ao remover arma.', 'danger')
-
+    db.session.delete(arma)
+    db.session.commit()
+    flash('Arma removida do arsenal.', 'info')
     return redirect(url_for('loja.meus_documentos'))
 
-
-# ──────────────────────────────────────────────────────────────────
-# DOCUMENTOS — download
-# ──────────────────────────────────────────────────────────────────
-@loja_bp.route('/meus-documentos/<int:doc_id>/baixar')
+@loja_bp.route('/meus-documentos/upload', methods=['POST'])
 @cliente_logado_required
-def baixar_documento(doc_id):
+def upload_documento():
     cliente = get_cliente_logado()
-    doc = Documento.query.filter_by(id=doc_id, cliente_id=cliente.id).first_or_404()
-
-    if not doc.caminho_arquivo:
-        flash('Arquivo não encontrado.', 'danger')
+    arquivo = request.files.get('arquivo')
+    if not arquivo or not _ext_ok(arquivo.filename):
+        flash('Selecione um arquivo válido (PDF, JPG, PNG).', 'warning')
         return redirect(url_for('loja.meus_documentos'))
-
-    # 🛰️ Gera link assinado do R2 em vez de servir arquivo local
-    link = gerar_link_r2(doc.caminho_arquivo)
-    if not link:
-        flash('Erro ao gerar o link do arquivo.', 'danger')
+    if not _magic_ok(arquivo):
+        flash('O conteúdo do arquivo é inválido ou está corrompido.', 'danger')
         return redirect(url_for('loja.meus_documentos'))
+    
+    caminho = upload_file_to_r2(arquivo, folder=f"clientes/{cliente.id}/docs")
+    if not caminho:
+        flash('Erro ao enviar arquivo para o storage.', 'danger')
+        return redirect(url_for('loja.meus_documentos'))
+    
+    doc = Documento(
+        cliente_id=cliente.id,
+        nome=request.form.get('nome') or arquivo.filename,
+        tipo=request.form.get('tipo') or 'Outros',
+        caminho=caminho,
+        categoria=CATEGORIA_LOJA,
+        data_validade=_parse_date('data_validade'),
+        created_at=now_local(), updated_at=now_local()
+    )
+    db.session.add(doc)
+    db.session.commit()
+    flash('Documento enviado com sucesso!', 'success')
+    return redirect(url_for('loja.meus_documentos'))
 
-    return redirect(link)
-
-
-# ──────────────────────────────────────────────────────────────────
-# ARMAS — solicitar registro
-#
-# Campos reais do modelo Arma (sem 'observacoes'):
-#   tipo, funcionamento, marca, modelo, calibre, numero_serie,
-#   emissor_craf, numero_sigma, categoria_adquirente,
-#   validade_indeterminada, data_validade_craf, caminho_craf,
-#   data_aquisicao
-#
-# O arquivo do CRAF é salvo em caminho_craf (campo existente).
-# O form deve ser multipart/form-data para aceitar o arquivo.
-# ──────────────────────────────────────────────────────────────────
-@loja_bp.route('/meus-documentos/solicitar-arma', methods=['POST'])
+@loja_bp.route('/meus-documentos/<int:doc_id>/excluir', methods=['POST'])
 @cliente_logado_required
-def solicitar_arma():
+def excluir_documento(doc_id):
     cliente = get_cliente_logado()
+    doc = Documento.query.filter_by(id=doc_id, cliente_id=cliente.id, categoria=CATEGORIA_LOJA).first_or_404()
+    deletar_arquivo(doc.caminho)
+    db.session.delete(doc)
+    db.session.commit()
+    flash('Documento removido.', 'info')
+    return redirect(url_for('loja.meus_documentos'))
 
-    # ── arquivo do CRAF (opcional) — agora enviado direto pro R2 ──
-    caminho_craf = None
+@loja_bp.route('/meus-documentos/arma/nova', methods=['POST'])
+@cliente_logado_required
+def nova_arma():
+    cliente = get_cliente_logado()
     arquivo_craf = request.files.get('arquivo_craf')
-    if arquivo_craf and arquivo_craf.filename:
-        if not _ext_ok(arquivo_craf.filename):
-            flash('Formato do arquivo CRAF inválido. Use PDF, JPG ou PNG.', 'warning')
+    caminho_craf = None
+    if arquivo_craf and _ext_ok(arquivo_craf.filename):
+        if not _magic_ok(arquivo_craf):
+            flash('Arquivo de CRAF inválido.', 'danger')
             return redirect(url_for('loja.meus_documentos'))
-        if not _magic_ok(arquivo_craf.stream):
-            flash('Arquivo CRAF inválido: o conteúdo não corresponde ao formato declarado.', 'danger')
-            return redirect(url_for('loja.meus_documentos'))
-
-        nome_seguro_craf = secure_filename(arquivo_craf.filename)
-        timestamp_craf   = now_local().strftime('%Y%m%d%H%M%S')
-        arquivo_craf.filename = f"craf_{timestamp_craf}_{nome_seguro_craf}"
-
         caminho_craf = upload_file_to_r2(arquivo_craf, folder=f"clientes/{cliente.id}/armas")
-        if not caminho_craf:
-            flash('Erro ao enviar o arquivo do CRAF para o storage. Tente novamente.', 'danger')
-            return redirect(url_for('loja.meus_documentos'))
 
-    # ── número de série — evita violação de unique=True ─────────
     numero_serie = (request.form.get('numero_serie') or '').strip() or None
     if numero_serie and Arma.query.filter_by(numero_serie=numero_serie).first():
-        flash(f'Já existe uma arma cadastrada com o nº de série "{numero_serie}". Verifique os dados.', 'warning')
+        flash(f'Já existe uma arma com o nº de série "{numero_serie}".', 'warning')
         return redirect(url_for('loja.meus_documentos'))
 
     indet = bool(request.form.get('validade_indeterminada'))
-
-    # ── cria o registro usando apenas os campos que existem no modelo ──
     arma = Arma(
-        cliente_id             = cliente.id,
-        tipo                   = (request.form.get('tipo') or '').strip() or None,
-        funcionamento          = (request.form.get('funcionamento') or '').strip() or None,
-        marca                  = (request.form.get('marca') or '').strip() or None,
-        modelo                 = (request.form.get('modelo') or '').strip() or None,
-        calibre                = (request.form.get('calibre') or '').strip() or None,
-        numero_serie           = numero_serie,
-        emissor_craf           = (request.form.get('emissor_craf') or '').strip() or None,
-        numero_sigma           = (request.form.get('numero_sigma') or '').strip() or None,
-        data_aquisicao         = _parse_date('data_aquisicao'),
-        validade_indeterminada = indet,
-        data_validade_craf     = None if indet else _parse_date('data_validade_craf'),
-        caminho_craf           = caminho_craf,   # chave R2 do CRAF (ou None)
+        cliente_id=cliente.id,
+        tipo=(request.form.get('tipo') or '').strip() or None,
+        funcionamento=(request.form.get('funcionamento') or '').strip() or None,
+        marca=(request.form.get('marca') or '').strip() or None,
+        modelo=(request.form.get('modelo') or '').strip() or None,
+        calibre=(request.form.get('calibre') or '').strip() or None,
+        numero_serie=numero_serie,
+        emissor_craf=(request.form.get('emissor_craf') or '').strip() or None,
+        numero_sigma=(request.form.get('numero_sigma') or '').strip() or None,
+        data_aquisicao=_parse_date('data_aquisicao'),
+        validade_indeterminada=indet,
+        data_validade_craf=None if indet else _parse_date('data_validade_craf'),
+        caminho_craf=caminho_craf
     )
-
     db.session.add(arma)
     db.session.commit()
-
-    flash('Arma registrada com sucesso! Nossa equipe irá verificar os dados em breve.', 'success')
+    flash('Arma registrada com sucesso!', 'success')
     return redirect(url_for('loja.meus_documentos'))
