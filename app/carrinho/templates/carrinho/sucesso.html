@@ -55,7 +55,7 @@
             {% endif %}
 
             <div class="d-grid gap-2">
-                <a href="{{ url_for('produtos.index') }}" class="btn btn-orange btn-lg fw-bold">Voltar para a Loja</a>
+                <a href="{{ url_for('loja.index') }}" class="btn btn-warning text-dark btn-lg fw-bold">Voltar para a Loja</a>
                 <button class="btn btn-outline-dark" onclick="window.print()"><i class="fas fa-print me-2"></i>Imprimir Comprovante</button>
             </div>
         </div>
@@ -63,14 +63,17 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
 <script>
     function copyPix() {
-        var copyText = document.getElementById("pix_copy");
+        var copyText = document.getElementById('pix_copy');
+        if (!copyText) { return; }
+        copyText.focus();
         copyText.select();
         copyText.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(copyText.value);
-        alert("Chave PIX copiada para a área de transferência!");
+        var sucesso = false;
+        try { sucesso = document.execCommand('copy'); } catch (erro) { sucesso = false; }
+        alert(sucesso ? 'Chave PIX copiada para a área de transferência!' : 'Selecione e copie a chave PIX manualmente.');
     }
 </script>
 {% endblock %}

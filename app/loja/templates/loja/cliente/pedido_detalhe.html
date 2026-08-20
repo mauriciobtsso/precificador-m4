@@ -1,6 +1,6 @@
 {% extends 'loja/cliente/base_cliente.html' %}
 
-{% block title %}Detalhes do Pedido #{{ venda.id }} - M4 Tática{% endblock %}
+{% block title %}Detalhes do Pedido #{{ pedido.id }} - M4 Tática{% endblock %}
 
 {% block client_content %}
 <div class="mb-4 d-flex justify-content-between align-items-center">
@@ -8,15 +8,15 @@
         <a href="{{ url_for('loja.meus_pedidos') }}" class="text-muted small text-decoration-none fw-bold">
             <i class="bi bi-arrow-left"></i> VOLTAR AOS PEDIDOS
         </a>
-        <h4 class="fw-black mb-0 mt-2 text-uppercase">PEDIDO #{{ venda.id }}</h4>
+        <h4 class="fw-black mb-0 mt-2 text-uppercase">PEDIDO #{{ pedido.id }}</h4>
     </div>
     <span class="badge px-3 py-2 fw-bold shadow-sm
-        {% if (venda.status or '').lower().startswith('aber') %}bg-warning text-dark
-        {% elif (venda.status or '').lower().startswith('fech') or (venda.status or '').lower().startswith('concl') %}bg-success
-        {% elif (venda.status or '').lower().startswith('canc') %}bg-danger
-        {% elif (venda.status or '').lower().startswith('env') %}bg-info text-dark
+        {% if (pedido.status or '').lower().startswith('aber') %}bg-warning text-dark
+        {% elif (pedido.status or '').lower().startswith('fech') or (pedido.status or '').lower().startswith('concl') %}bg-success
+        {% elif (pedido.status or '').lower().startswith('canc') %}bg-danger
+        {% elif (pedido.status or '').lower().startswith('env') %}bg-info text-dark
         {% else %}bg-secondary{% endif %}">
-        {{ (venda.status or 'N/A')|upper }}
+        {{ (pedido.status or 'N/A')|upper }}
     </span>
 </div>
 
@@ -36,17 +36,18 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for item in venda.itens %}
+                            {% for item in pedido.items %}
+                            {% set preco = item.preco_unitario_historico or 0 %}
                             <tr class="border-bottom small">
                                 <td>
-                                    <div class="fw-bold text-dark">{{ item.produto_nome }}</div>
-                                    {% if item.sku %}
-                                    <small class="text-muted">Ref: {{ item.sku }}</small>
+                                    <div class="fw-bold text-dark">{{ (item.produto.nome_comercial or item.produto.nome) if item.produto else 'Produto indisponível' }}</div>
+                                    {% if item.produto and item.produto.codigo %}
+                                    <small class="text-muted">Ref: {{ item.produto.codigo }}</small>
                                     {% endif %}
                                 </td>
                                 <td class="text-center fw-bold">{{ item.quantidade }}</td>
-                                <td class="text-end text-muted">R$ {{ "{:,.2f}".format(item.valor_unitario or 0).replace(',','X').replace('.',',').replace('X','.') }}</td>
-                                <td class="text-end fw-bold text-dark">R$ {{ "{:,.2f}".format(item.valor_total or 0).replace(',','X').replace('.',',').replace('X','.') }}</td>
+                                <td class="text-end text-muted">R$ {{ "{:,.2f}".format(preco).replace(',','X').replace('.',',').replace('X','.') }}</td>
+                                <td class="text-end fw-bold text-dark">R$ {{ "{:,.2f}".format(preco * item.quantidade).replace(',','X').replace('.',',').replace('X','.') }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -54,15 +55,7 @@
                 </div>
             </div>
         </div>
-        
-        {% if venda.observacoes %}
-        <div class="card border-0 shadow-sm client-content-card">
-            <div class="card-body p-4">
-                <h6 class="fw-black mb-2 text-uppercase small">Observações</h6>
-                <p class="mb-0 small text-muted">{{ venda.observacoes }}</p>
-            </div>
-        </div>
-        {% endif %}
+
     </div>
 
     <div class="col-lg-4">
@@ -70,18 +63,16 @@
             <div class="card-body p-4">
                 <h6 class="fw-black mb-3 text-uppercase small">Resumo Financeiro</h6>
                 <div class="d-flex justify-content-between mb-2 small">
-                    <span class="text-muted">Subtotal:</span>
-                    <span class="fw-bold">R$ {{ "{:,.2f}".format(venda.valor_total or 0).replace(',','X').replace('.',',').replace('X','.') }}</span>
+                    <span class="text-muted">Produtos:</span>
+                    <span class="fw-bold">R$ {{ "{:,.2f}".format(pedido.total_produtos or 0).replace(',','X').replace('.',',').replace('X','.') }}</span>
                 </div>
-                {% if venda.desconto_valor %}
                 <div class="d-flex justify-content-between mb-2 small">
-                    <span class="text-muted">Descontos:</span>
-                    <span class="text-success fw-bold">- R$ {{ "{:,.2f}".format(venda.desconto_valor).replace(',','X').replace('.',',').replace('X','.') }}</span>
+                    <span class="text-muted">Frete:</span>
+                    <span class="fw-bold">R$ {{ "{:,.2f}".format(pedido.total_frete or 0).replace(',','X').replace('.',',').replace('X','.') }}</span>
                 </div>
-                {% endif %}
                 <div class="d-flex justify-content-between border-top pt-3 mt-3">
                     <h6 class="fw-black mb-0">TOTAL:</h6>
-                    <h5 class="fw-black mb-0 text-gold">R$ {{ "{:,.2f}".format(venda.valor_total or 0).replace(',','X').replace('.',',').replace('X','.') }}</h5>
+                    <h5 class="fw-black mb-0 text-gold">R$ {{ "{:,.2f}".format(pedido.total_pedido or 0).replace(',','X').replace('.',',').replace('X','.') }}</h5>
                 </div>
             </div>
         </div>
@@ -89,15 +80,11 @@
         <div class="card border-0 shadow-sm client-content-card">
             <div class="card-body p-4">
                 <h6 class="fw-black mb-3 text-uppercase small">Dados de Entrega</h6>
-                <p class="mb-1 fw-bold small text-dark">{{ cliente_loja.nome }}</p>
-                {% if cliente_loja.enderecos %}
-                    {% set end = cliente_loja.enderecos[0] %}
-                    <p class="mb-0 small text-muted">{{ end.logradouro }}, {{ end.numero }}</p>
-                    <p class="mb-0 small text-muted">{{ end.bairro }}</p>
-                    <p class="mb-0 small text-muted">{{ end.cidade }} / {{ end.estado }}</p>
-                {% else %}
-                    <p class="text-muted small italic">Endereço não informado.</p>
-                {% endif %}
+                <p class="mb-1 fw-bold small text-dark">{{ pedido.nome_cliente }}</p>
+                <p class="mb-0 small text-muted">{{ pedido.logradouro }}, {{ pedido.numero }}</p>
+                <p class="mb-0 small text-muted">{{ pedido.bairro }}</p>
+                <p class="mb-0 small text-muted">{{ pedido.cidade }} / {{ pedido.estado }}</p>
+                <p class="mb-0 small text-muted">CEP {{ pedido.cep }}</p>
             </div>
         </div>
     </div>

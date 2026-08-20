@@ -1,8 +1,39 @@
 {% extends "loja/base.html" %}
 
+{% block extra_css %}
+<style>
+    /* Ações críticas: contraste AA/AAA e legibilidade sem depender de hover. */
+    #btnFinalizar,
+    .checkout-action {
+        background: #f0a000 !important;
+        border: 2px solid #f0a000 !important;
+        color: #111 !important;
+        text-shadow: none !important;
+        opacity: 1 !important;
+    }
+    #btnFinalizar:hover,
+    #btnFinalizar:focus-visible,
+    .checkout-action:hover,
+    .checkout-action:focus-visible {
+        background: #ffc247 !important;
+        border-color: #ffc247 !important;
+        color: #111 !important;
+        box-shadow: 0 0 0 .2rem rgba(240, 160, 0, .28) !important;
+    }
+    #btnFinalizar:disabled {
+        background: #b6b6b6 !important;
+        border-color: #b6b6b6 !important;
+        color: #222 !important;
+        cursor: wait;
+    }
+    #checkout_error { white-space: pre-line; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-5">
-    <form id="formCheckout" class="needs-validation" novalidate>
+    <form id="formCheckout" class="needs-validation" method="post" action="{{ url_for('carrinho.processar_pedido') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="row">
             <div class="col-lg-8">
 
@@ -15,19 +46,23 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Nome Completo</label>
-                                <input type="text" class="form-control" name="nome" required placeholder="Como no documento">
+                                <input type="text" class="form-control" name="nome" required placeholder="Como no documento"
+                                       value="{{ checkout_cliente.nome|e if checkout_cliente else '' }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">E-mail</label>
-                                <input type="email" class="form-control" name="email" required placeholder="Para envio da nota fiscal">
+                                <input type="email" class="form-control" name="email" required placeholder="Para envio da nota fiscal"
+                                       value="{{ checkout_cliente.email_login|e if checkout_cliente else '' }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">CPF / CNPJ</label>
-                                <input type="text" class="form-control val-mask-doc" name="documento" required>
+                                <input type="text" class="form-control val-mask-doc" name="documento" required
+                                       value="{{ checkout_cliente.documento|e if checkout_cliente and checkout_cliente.documento else '' }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Telefone / WhatsApp</label>
-                                <input type="text" class="form-control val-mask-phone" name="telefone" required placeholder="(86) 9....">
+                                <input type="text" class="form-control val-mask-phone" name="telefone" required placeholder="(86) 9...."
+                                       value="{{ checkout_telefone|e if checkout_telefone else '' }}">
                             </div>
                         </div>
                     </div>
@@ -44,29 +79,34 @@
                                 <label class="form-label fw-semibold">CEP</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control val-mask-cep" id="cep_checkout" name="cep" required
-                                           value="{{ frete_sessao.cep if frete_sessao.cep else '' }}">
+                                           value="{{ (checkout_endereco.cep if checkout_endereco and checkout_endereco.cep else frete_sessao.cep) if (checkout_endereco and checkout_endereco.cep) or frete_sessao.cep else '' }}">
                                     <button class="btn btn-dark" type="button" id="btnBuscarCEP">Buscar</button>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Rua/Logradouro</label>
-                                <input type="text" class="form-control" id="rua" name="logradouro" required>
+                                <input type="text" class="form-control" id="rua" name="logradouro" required
+                                       value="{{ checkout_endereco.logradouro|e if checkout_endereco and checkout_endereco.logradouro else '' }}">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label fw-semibold">Nº</label>
-                                <input type="text" class="form-control" name="numero" required>
+                                <input type="text" class="form-control" name="numero" required
+                                       value="{{ checkout_endereco.numero|e if checkout_endereco and checkout_endereco.numero else '' }}">
                             </div>
                             <div class="col-md-5">
                                 <label class="form-label fw-semibold">Bairro</label>
-                                <input type="text" class="form-control" id="bairro" name="bairro" required>
+                                <input type="text" class="form-control" id="bairro" name="bairro" required
+                                       value="{{ checkout_endereco.bairro|e if checkout_endereco and checkout_endereco.bairro else '' }}">
                             </div>
                             <div class="col-md-5">
                                 <label class="form-label fw-semibold">Cidade</label>
-                                <input type="text" class="form-control" id="cidade" name="cidade" required readonly>
+                                <input type="text" class="form-control" id="cidade" name="cidade" required readonly
+                                       value="{{ checkout_endereco.cidade|e if checkout_endereco and checkout_endereco.cidade else '' }}">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label fw-semibold">UF</label>
-                                <input type="text" class="form-control" id="uf" name="uf" required readonly>
+                                <input type="text" class="form-control" id="uf" name="uf" required readonly
+                                       value="{{ checkout_endereco.estado|e if checkout_endereco and checkout_endereco.estado else '' }}">
                             </div>
                         </div>
 
@@ -110,12 +150,12 @@
                     <div class="card-body">
                         <ul class="nav nav-pills mb-3 p-1 bg-light rounded" id="pills-tab" role="tablist">
                             <li class="nav-item w-50" role="presentation">
-                                <button class="nav-link active w-100" data-bs-toggle="pill" data-bs-target="#pay-pix">
+                                <button type="button" class="nav-link active w-100" data-payment-method="pix" data-bs-toggle="pill" data-bs-target="#pay-pix">
                                     <i class="fas fa-qrcode me-2"></i>PIX
                                 </button>
                             </li>
                             <li class="nav-item w-50" role="presentation">
-                                <button class="nav-link w-100" data-bs-toggle="pill" data-bs-target="#pay-card">
+                                <button type="button" class="nav-link w-100" data-payment-method="credit_card" data-bs-toggle="pill" data-bs-target="#pay-card">
                                     <i class="fas fa-credit-card me-2"></i>Cartão
                                 </button>
                             </li>
@@ -195,8 +235,10 @@
                             </span>
                         </div>
 
-                        <button type="submit" class="btn btn-orange btn-lg w-100 fw-bold py-3 shadow-sm" id="btnFinalizar">
-                            FINALIZAR COMPRA
+                        <input type="hidden" name="metodo_pagamento" id="metodo_pagamento" value="pix">
+                        <div id="checkout_error" class="alert alert-danger d-none small mb-3" role="alert" aria-live="polite"></div>
+                        <button type="submit" class="btn btn-orange checkout-action btn-lg w-100 fw-bold py-3 shadow-sm" id="btnFinalizar">
+                            <span class="checkout-label">FINALIZAR COMPRA</span>
                         </button>
                     </div>
                 </div>
@@ -213,6 +255,60 @@ const SUBTOTAL = {{ carrinho.total_avista }};
 let freteAtual = {{ frete_sessao.valor if frete_sessao.valor else 0 }};
 
 document.addEventListener('DOMContentLoaded', () => {
+    const formCheckout = document.getElementById('formCheckout');
+    const btnFinalizar = document.getElementById('btnFinalizar');
+    const checkoutError = document.getElementById('checkout_error');
+
+    if (formCheckout) {
+        formCheckout.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            checkoutError.classList.add('d-none');
+
+            if (!formCheckout.checkValidity()) {
+                formCheckout.classList.add('was-validated');
+                formCheckout.reportValidity();
+                return;
+            }
+
+            const formData = new FormData(formCheckout);
+            const payload = {};
+            formData.forEach(function (value, key) { payload[key] = value; });
+            payload.metodo_pagamento = document.getElementById('metodo_pagamento').value || 'pix';
+
+            btnFinalizar.disabled = true;
+            btnFinalizar.querySelector('.checkout-label').textContent = 'PROCESSANDO...';
+
+            try {
+                const response = await fetch(formCheckout.action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRFToken': formData.get('csrf_token') || ''
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || 'Não foi possível finalizar o pedido.');
+                }
+                window.location.assign(result.redirect);
+            } catch (error) {
+                checkoutError.textContent = error.message || 'Erro de comunicação. Tente novamente.';
+                checkoutError.classList.remove('d-none');
+                btnFinalizar.disabled = false;
+                btnFinalizar.querySelector('.checkout-label').textContent = 'FINALIZAR COMPRA';
+            }
+        });
+    }
+    // Mantém o método de pagamento alinhado ao painel visual escolhido.
+    document.querySelectorAll('[data-payment-method]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            document.getElementById('metodo_pagamento').value = button.getAttribute('data-payment-method');
+        });
+    });
+
     // Máscaras
     const docEl = document.querySelector('.val-mask-doc');
     const phoneEl = document.querySelector('.val-mask-phone');

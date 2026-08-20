@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, session, redirect, url_for, abort
+from flask import render_template, request, jsonify, session, redirect, url_for, abort, current_app
 from flask_login import current_user
 from app import db
 from . import carrinho_bp
@@ -7,29 +7,73 @@ from .models import Carrinho, CarrinhoItem, Pedido, PedidoItem
 from app.produtos.models import Produto
 from app.utils.datetime import now_local
 from app.utils.r2_helpers import gerar_link_r2
+from app.loja.auth_loja import get_cliente_logado
 import requests
 import json
 import uuid
 
 # --- FUNÇÃO DE APOIO: IDENTIFICAÇÃO DO CLIENTE ---
 def get_or_create_carrinho():
-    """
-    Recupera o carrinho pela sessão (browser) ou pelo usuário logado.
-    Garante que o cliente não perca os itens ao navegar.
+    """Obtém o carrinho correto para visitante, admin ou cliente da loja.
+
+    A autenticação da loja usa ``loja_cliente_id`` e é independente do
+    Flask-Login. O carrinho anônimo da mesma sessão é incorporado ao carrinho
+    do cliente no primeiro acesso autenticado, evitando perda de itens.
     """
     if 'cart_session_id' not in session:
         session['cart_session_id'] = str(uuid.uuid4())
-    
+
     sid = session['cart_session_id']
+    cliente = get_cliente_logado()
     uid = current_user.id if current_user.is_authenticated else None
-    
-    # Busca carrinho vinculado à sessão ou ao ID do usuário
-    carrinho = Carrinho.query.filter((Carrinho.session_id == sid) | (Carrinho.usuario_id == uid)).first()
-    
-    if not carrinho:
-        carrinho = Carrinho(session_id=sid, usuario_id=uid)
-        db.session.add(carrinho)
-        db.session.commit()
+
+    if cliente:
+        carrinho = Carrinho.query.filter_by(cliente_id=cliente.id).first()
+        anonimo = Carrinho.query.filter_by(
+            session_id=sid, cliente_id=None
+        ).first()
+
+        if carrinho and anonimo and carrinho.id != anonimo.id:
+            # Mescla o carrinho criado antes do login no carrinho persistente.
+            for item_anonimo in list(anonimo.items):
+                item_existente = next(
+                    (item for item in carrinho.items
+                     if item.produto_id == item_anonimo.produto_id),
+                    None,
+                )
+                if item_existente:
+                    item_existente.quantidade += item_anonimo.quantidade
+                    db.session.delete(item_anonimo)
+                else:
+                    item_anonimo.carrinho = carrinho
+            db.session.delete(anonimo)
+            db.session.flush()
+        elif not carrinho and anonimo:
+            carrinho = anonimo
+            carrinho.cliente_id = cliente.id
+
+        if not carrinho:
+            carrinho = Carrinho(
+                session_id=sid,
+                cliente_id=cliente.id,
+            )
+            db.session.add(carrinho)
+
+    elif uid:
+        carrinho = Carrinho.query.filter_by(usuario_id=uid).first()
+        if not carrinho:
+            carrinho = Carrinho(session_id=sid, usuario_id=uid)
+            db.session.add(carrinho)
+    else:
+        carrinho = Carrinho.query.filter_by(
+            session_id=sid, cliente_id=None, usuario_id=None
+        ).first()
+        if not carrinho:
+            carrinho = Carrinho(session_id=sid)
+            db.session.add(carrinho)
+
+    carrinho.session_id = sid
+    db.session.commit()
     return carrinho
 
 # --- ROTAS PRINCIPAIS DO CARRINHO ---
@@ -200,43 +244,114 @@ def checkout_view():
     carrinho = get_or_create_carrinho()
     if not carrinho.items:
         return redirect(url_for('carrinho.index'))
+
+    cliente = get_cliente_logado()
+    endereco = cliente.enderecos[0] if cliente and cliente.enderecos else None
+    telefone = ''
+    if cliente:
+        telefone = next(
+            (contato.valor for contato in (cliente.contatos or [])
+             if (contato.tipo or '').lower() in ('telefone', 'celular', 'whatsapp')),
+            '',
+        )
+
     frete_sessao = {
         'valor': session.get('frete_valor', 0),
         'nome': session.get('frete_nome', ''),
         'prazo': session.get('frete_prazo', ''),
         'cep': session.get('frete_cep', ''),
     }
-    return render_template('carrinho/checkout.html', carrinho=carrinho, frete_sessao=frete_sessao)
+    return render_template(
+        'carrinho/checkout.html',
+        carrinho=carrinho,
+        frete_sessao=frete_sessao,
+        checkout_cliente=cliente,
+        checkout_endereco=endereco,
+        checkout_telefone=telefone,
+    )
 
 @carrinho_bp.route('/checkout/processar', methods=['POST'])
 def processar_pedido():
-    """Gera o pedido no banco e processa a transação no Pagar.me."""
+    """Valida e grava o pedido usando a identidade real da loja quando houver."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
+        cliente = get_cliente_logado()
         carrinho = get_or_create_carrinho()
 
         if not carrinho or not carrinho.items:
-            return jsonify({"success": False, "message": "Carrinho vazio"}), 400
+            return jsonify({"success": False, "message": "Carrinho vazio."}), 400
+
+        def texto(chave):
+            return str(data.get(chave) or '').strip()
+
+        if cliente:
+            # Não confiamos em nome, e-mail ou CPF enviados pelo navegador.
+            nome_cliente = (cliente.nome or '').strip()
+            email_cliente = (cliente.email_login or '').strip().lower()
+            documento = ''.join(filter(str.isdigit, cliente.documento or ''))
+            cliente_id = cliente.id
+            usuario_id = None
+        else:
+            nome_cliente = texto('nome')
+            email_cliente = texto('email').lower()
+            documento = ''.join(filter(str.isdigit, texto('documento')))
+            cliente_id = None
+            usuario_id = current_user.id if current_user.is_authenticated else None
+
+        cep = ''.join(filter(str.isdigit, texto('cep')))
+        logradouro = texto('logradouro')
+        numero = texto('numero')
+        bairro = texto('bairro')
+        cidade = texto('cidade')
+        estado = texto('uf').upper()
+        telefone = texto('telefone')
+
+        obrigatorios = {
+            'nome': nome_cliente,
+            'e-mail': email_cliente,
+            'documento': documento,
+            'CEP': cep,
+            'logradouro': logradouro,
+            'número': numero,
+            'bairro': bairro,
+            'cidade': cidade,
+            'UF': estado,
+        }
+        faltantes = [nome for nome, valor in obrigatorios.items() if not valor]
+        if faltantes:
+            return jsonify({
+                "success": False,
+                "message": "Preencha os campos obrigatórios: " + ', '.join(faltantes) + ".",
+            }), 400
+
+        try:
+            valor_frete = max(0.0, float(data.get('valor_frete') or 0))
+            parcelas = max(1, min(12, int(data.get('parcelas') or 1)))
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "Valores de frete ou parcelas inválidos."}), 400
 
         novo_pedido = Pedido(
-            usuario_id=current_user.id if current_user.is_authenticated else None,
-            nome_cliente=data.get('nome'),
-            email_cliente=data.get('email'),
-            documento=data.get('documento', '').replace('.', '').replace('-', '').replace('/', ''),
-            telefone=data.get('telefone'),
-            cep=data.get('cep'),
-            logradouro=data.get('logradouro'),
-            numero=data.get('numero'),
-            bairro=data.get('bairro'),
-            cidade=data.get('cidade'),
-            estado=data.get('uf'),
+            usuario_id=usuario_id,
+            cliente_id=cliente_id,
+            nome_cliente=nome_cliente,
+            email_cliente=email_cliente,
+            documento=documento,
+            telefone=telefone,
+            cep=cep,
+            logradouro=logradouro,
+            numero=numero,
+            bairro=bairro,
+            cidade=cidade,
+            estado=estado,
             total_produtos=carrinho.total_avista,
-            total_frete=float(data.get('valor_frete', 0)),
-            total_pedido=float(carrinho.total_avista) + float(data.get('valor_frete', 0)),
-            forma_pagamento=data.get('metodo_pagamento'),
+            total_frete=valor_frete,
+            total_pedido=float(carrinho.total_avista) + valor_frete,
+            forma_pagamento=(texto('metodo_pagamento') or 'pix'),
+            parcelas=parcelas,
             status='pendente'
         )
         db.session.add(novo_pedido)
+        carrinho.cliente_id = cliente_id
         
         for item in carrinho.items:
             pi = PedidoItem(
@@ -250,8 +365,13 @@ def processar_pedido():
         novo_pedido.pagarme_id = "or_" + str(uuid.uuid4())[:12]
         db.session.commit()
 
-        for item in carrinho.items:
+        for item in list(carrinho.items):
             db.session.delete(item)
+        session.pop('frete_valor', None)
+        session.pop('frete_nome', None)
+        session.pop('frete_prazo', None)
+        session.pop('frete_cep', None)
+        session['ultimo_pedido_id'] = novo_pedido.id
         db.session.commit()
 
         return jsonify({
@@ -267,8 +387,14 @@ def processar_pedido():
 
 @carrinho_bp.route('/sucesso/<int:order_id>')
 def sucesso(order_id):
-    """Página final de confirmação com QR Code (PIX) ou status do cartão."""
+    """Página final de confirmação, limitada ao pedido recém-criado pelo visitante."""
     pedido = Pedido.query.get_or_404(order_id)
+    cliente = get_cliente_logado()
+    if cliente:
+        if pedido.cliente_id != cliente.id:
+            abort(404)
+    elif session.get('ultimo_pedido_id') != order_id:
+        abort(404)
     return render_template('carrinho/sucesso.html', pedido=pedido)
 
 @carrinho_bp.route('/webhook/pagarme', methods=['POST'])

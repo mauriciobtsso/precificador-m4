@@ -5,56 +5,57 @@
 {% block client_content %}
 <div class="mb-4">
     <h4 class="fw-black mb-0">HISTÓRICO DE PEDIDOS</h4>
-    <p class="text-muted mb-0 small">Acompanhe o status e detalhes de suas compras.</p>
+    <p class="text-muted mb-0 small">Acompanhe o status e os detalhes das suas compras.</p>
 </div>
 
-{% if vendas %}
+{% if pedidos %}
 <div class="d-flex flex-column gap-3">
-    {% for venda in vendas %}
+    {% for pedido in pedidos %}
     <div class="card border-0 shadow-sm client-content-card">
         <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                 <div>
-                    <h6 class="fw-black mb-0">PEDIDO #{{ venda.id }}</h6>
-                    <small class="text-muted">{{ venda.data_abertura.strftime('%d/%m/%Y às %H:%M') }}</small>
+                    <h6 class="fw-black mb-0">PEDIDO #{{ pedido.id }}</h6>
+                    <small class="text-muted">
+                        {{ pedido.criado_em.strftime('%d/%m/%Y às %H:%M') if pedido.criado_em else 'Data não informada' }}
+                    </small>
                 </div>
                 <span class="badge px-3 py-2 fw-bold shadow-sm
-                    {% if (venda.status or '').lower().startswith('aber') %}bg-warning text-dark
-                    {% elif (venda.status or '').lower().startswith('fech') or (venda.status or '').lower().startswith('concl') %}bg-success
-                    {% elif (venda.status or '').lower().startswith('canc') %}bg-danger
-                    {% elif (venda.status or '').lower().startswith('env') %}bg-info text-dark
-                    {% else %}bg-secondary{% endif %}">
-                    {{ (venda.status or 'N/A')|upper }}
+                    {% if pedido.status == 'pago' %}bg-success
+                    {% elif pedido.status in ['cancelado', 'estornado'] %}bg-danger
+                    {% elif pedido.status == 'enviado' %}bg-info text-dark
+                    {% else %}bg-warning text-dark{% endif %}">
+                    {{ (pedido.status or 'pendente')|upper }}
                 </span>
             </div>
 
-            {% if venda.itens %}
+            {% if pedido.items %}
             <div class="border-top border-bottom py-3 mb-3">
-                {% for item in venda.itens[:3] %}
-                <div class="d-flex justify-content-between py-1 small">
+                {% for item in pedido.items[:3] %}
+                <div class="d-flex justify-content-between py-1 small gap-3">
                     <span>
                         <strong class="text-dark">{{ item.quantidade }}×</strong>
-                        {{ item.produto_nome }}
+                        {{ (item.produto.nome_comercial or item.produto.nome) if item.produto else 'Produto indisponível' }}
                     </span>
-                    <span class="fw-bold text-dark">
-                        R$ {{ "{:,.2f}".format(item.valor_total or 0).replace(',','X').replace('.',',').replace('X','.') }}
+                    <span class="fw-bold text-dark text-nowrap">
+                        R$ {{ "{:,.2f}".format((item.preco_unitario_historico or 0) * item.quantidade).replace(',','X').replace('.',',').replace('X','.') }}
                     </span>
                 </div>
                 {% endfor %}
-                {% if venda.itens|length > 3 %}
-                <p class="text-muted small mb-0 mt-2">+ {{ venda.itens|length - 3 }} item(s) — veja os detalhes completos</p>
+                {% if pedido.items|length > 3 %}
+                <p class="text-muted small mb-0 mt-2">+ {{ pedido.items|length - 3 }} item(ns) — veja os detalhes completos</p>
                 {% endif %}
             </div>
             {% endif %}
 
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center gap-3">
                 <div>
                     <span class="text-muted small fw-bold">VALOR TOTAL</span>
                     <h5 class="fw-black mb-0 text-gold">
-                        R$ {{ "{:,.2f}".format(venda.valor_total or 0).replace(',','X').replace('.',',').replace('X','.') }}
+                        R$ {{ "{:,.2f}".format(pedido.total_pedido or 0).replace(',','X').replace('.',',').replace('X','.') }}
                     </h5>
                 </div>
-                <a href="{{ url_for('loja.detalhe_pedido', venda_id=venda.id) }}"
+                <a href="{{ url_for('loja.detalhe_pedido', pedido_id=pedido.id) }}"
                    class="btn btn-dark btn-sm fw-bold px-4 shadow-sm">
                     <i class="bi bi-eye me-2"></i> DETALHES
                 </a>
@@ -63,7 +64,6 @@
     </div>
     {% endfor %}
 </div>
-
 {% else %}
 <div class="text-center py-5 bg-white rounded-3 shadow-sm">
     <div class="text-muted mb-3">

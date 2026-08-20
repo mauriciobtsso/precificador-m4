@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.loja import loja_bp
 from app.clientes.models import Cliente, EnderecoCliente, ContatoCliente, Documento, Arma
+from app.carrinho.models import Pedido
 from app.loja.auth_loja import logar_cliente, deslogar_cliente, get_cliente_logado, cliente_logado_required
 from app.utils.datetime import now_local
 from app.extensions import limiter
@@ -207,17 +208,21 @@ def minha_conta():
 @cliente_logado_required
 def meus_pedidos():
     cliente = get_cliente_logado()
-    vendas  = sorted(cliente.vendas or [], key=lambda v: v.data_abertura, reverse=True)
-    return render_template('loja/cliente/pedidos.html', vendas=vendas)
+    pedidos = (Pedido.query
+               .filter_by(cliente_id=cliente.id)
+               .order_by(Pedido.criado_em.desc(), Pedido.id.desc())
+               .all())
+    return render_template('loja/cliente/pedidos.html', pedidos=pedidos)
 
 
-@loja_bp.route('/meus-pedidos/<int:venda_id>')
+@loja_bp.route('/meus-pedidos/<int:pedido_id>')
 @cliente_logado_required
-def detalhe_pedido(venda_id):
-    from app.vendas.models import Venda
+def detalhe_pedido(pedido_id):
     cliente = get_cliente_logado()
-    venda   = Venda.query.filter_by(id=venda_id, cliente_id=cliente.id).first_or_404()
-    return render_template('loja/cliente/pedido_detalhe.html', venda=venda)
+    pedido = (Pedido.query
+              .filter_by(id=pedido_id, cliente_id=cliente.id)
+              .first_or_404())
+    return render_template('loja/cliente/pedido_detalhe.html', pedido=pedido)
 
 
 # ──────────────────────────────────────────────────────────────────

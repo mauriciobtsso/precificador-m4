@@ -5,7 +5,8 @@ from app.utils.datetime import now_local
 class Carrinho(db.Model):
     __tablename__ = 'carrinhos'
     id = db.Column(db.Integer, primary_key=True)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True) # Opcional se for visitante
+    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True) # Compatibilidade com o admin
+    cliente_id = db.Column(db.Integer, db.ForeignKey('clientes.id', ondelete='SET NULL'), nullable=True, index=True)
     session_id = db.Column(db.String(100), index=True) # Identificador para usuários não logados
     criado_em = db.Column(db.DateTime, default=now_local)
     atualizado_em = db.Column(db.DateTime, onupdate=now_local)
@@ -52,8 +53,9 @@ class Pedido(db.Model):
     __tablename__ = 'pedidos'
     id = db.Column(db.Integer, primary_key=True)
     
-    # Rastreabilidade do Cliente
+    # Rastreabilidade do cliente administrativo (legado) e da loja pública
     usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey('clientes.id', ondelete='SET NULL'), nullable=True, index=True)
     nome_cliente = db.Column(db.String(100), nullable=False)
     email_cliente = db.Column(db.String(100), nullable=False)
     documento = db.Column(db.String(20), nullable=False) # CPF/CNPJ
@@ -82,6 +84,7 @@ class Pedido(db.Model):
     criado_em = db.Column(db.DateTime, default=now_local)
     pago_em = db.Column(db.DateTime, nullable=True)  # Campo adicionado para rastreamento de pagamento
     items = db.relationship('PedidoItem', backref='pedido', cascade="all, delete-orphan")
+    cliente = db.relationship('Cliente', foreign_keys=[cliente_id], lazy='joined')
 
 class PedidoItem(db.Model):
     __tablename__ = 'pedido_items'
