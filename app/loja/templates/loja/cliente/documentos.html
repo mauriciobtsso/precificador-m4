@@ -323,7 +323,6 @@ function lerDocumento(inputId, context) {
 
     var formData = new FormData();
     formData.append('arquivo', fileInput.files[0]);
-    // Mantém a proteção CSRF global também nas requisições assíncronas.
     formData.append('csrf_token', '{{ csrf_token() }}');
 
     var xhr = new XMLHttpRequest();
@@ -333,26 +332,24 @@ function lerDocumento(inputId, context) {
     xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token() }}');
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     
-    xhr.onload = function() {
-        var res = {};
-        try { res = xhr.responseText ? JSON.parse(xhr.responseText) : {}; } catch (e) { res = {}; }
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            var res = {};
+            try { res = JSON.parse(xhr.responseText); } catch (e) { res = {}; }
 
-        if (xhr.status === 200) {
-            // /craf retorna campos na raiz; /documento encapsula o resultado em dados.
-            var dados = res.dados || res.resultado || res;
-            if (dados && (dados.numero_serie || dados.modelo || dados.numero_sigma || dados.tipo || dados.categoria || dados.numero_documento)) {
-                preencherCampos(dados, context);
-                if (statusDiv) statusDiv.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Leitura concluída! Confira os dados.</span>';
+            if (xhr.status === 200) {
+                var dados = res.dados || res.resultado || res;
+                if (dados && (dados.numero_serie || dados.modelo || dados.numero_sigma || dados.tipo || dados.categoria || dados.numero_documento)) {
+                    preencherCampos(dados, context);
+                    if (statusDiv) statusDiv.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Leitura concluída! Confira os dados.</span>';
+                } else {
+                    if (statusDiv) statusDiv.innerHTML = '<span class="text-warning fw-bold">Documento lido, mas não foram encontrados campos confiáveis.</span>';
+                }
             } else {
-                if (statusDiv) statusDiv.innerHTML = '<span class="text-warning fw-bold">Documento lido, mas não foram encontrados campos confiáveis.</span>';
+                var mensagem = res.error || ('Falha na leitura (HTTP ' + xhr.status + ').');
+                if (statusDiv) statusDiv.innerHTML = '<span class="text-danger fw-bold">' + mensagem + '</span>';
             }
-        } else {
-            var mensagem = res.error || ('Falha na leitura (HTTP ' + xhr.status + ').');
-            if (statusDiv) statusDiv.innerHTML = '<span class="text-danger fw-bold">' + mensagem + '</span>';
         }
-    };
-    xhr.onerror = function() {
-        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger fw-bold">Não foi possível conectar ao serviço de leitura.</span>';
     };
     xhr.send(formData);
 }
@@ -377,7 +374,6 @@ function preencherCampos(dados, context) {
         if (dados.uf) document.getElementById('doc_uf').value = dados.uf;
     } else {
         if (dados.tipo) {
-            // Normaliza para Title Case se necessário
             var tipo = dados.tipo.charAt(0).toUpperCase() + dados.tipo.slice(1).toLowerCase();
             var select = document.getElementById('arma_tipo');
             for(var i=0; i<select.options.length; i++) {

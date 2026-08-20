@@ -185,175 +185,205 @@
 {% block extra_js %}
 <script>
 // ── ESTADO ────────────────────────────────────────────────────────────
-const SUBTOTAL = {{ carrinho.total_avista }};
-let freteAtual = {{ frete_sessao.valor if frete_sessao.valor else 0 }};
+var SUBTOTAL = {{ carrinho.total_avista }};
+var freteAtual = {{ frete_sessao.valor if frete_sessao.valor else 0 }};
 
 // ── HELPERS ───────────────────────────────────────────────────────────
 function atualizarTotalDisplay() {
-    const total = SUBTOTAL + freteAtual;
-    // Formata como pt-BR sem depender de Intl
-    const partes = total.toFixed(2).split('.');
-    const inteiro = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    var total = SUBTOTAL + freteAtual;
+    var partes = total.toFixed(2).split('.');
+    var inteiro = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     document.getElementById('total_com_frete').textContent = 'R$ ' + inteiro + ',' + partes[1];
 }
 
 // ── MÁSCARA CEP ───────────────────────────────────────────────────────
-const cepInput = document.getElementById('cep_carrinho');
-cepInput?.addEventListener('input', function () {
-    let v = this.value.replace(/\D/g, '').slice(0, 8);
-    if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
-    this.value = v;
-});
-cepInput?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('btnFreteCarrinho')?.click();
-});
+var cepInput = document.getElementById('cep_carrinho');
+if (cepInput) {
+    cepInput.addEventListener('input', function () {
+        var v = this.value.replace(/\D/g, '').slice(0, 8);
+        if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
+        this.value = v;
+    });
+    cepInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            var btn = document.getElementById('btnFreteCarrinho');
+            if (btn) btn.click();
+        }
+    });
+}
 
 // ── CALCULAR FRETE ────────────────────────────────────────────────────
-document.getElementById('btnFreteCarrinho')?.addEventListener('click', async function () {
-    const cep = (cepInput?.value || '').replace(/\D/g, '');
-    const loading  = document.getElementById('frete_loading');
-    const erro     = document.getElementById('frete_erro');
-    const area     = document.getElementById('area_opcoes_frete');
-    const lista    = document.getElementById('lista_opcoes_frete');
+var btnFrete = document.getElementById('btnFreteCarrinho');
+if (btnFrete) {
+    btnFrete.addEventListener('click', function () {
+        var cep = (cepInput ? cepInput.value : '').replace(/\D/g, '');
+        var loading  = document.getElementById('frete_loading');
+        var erro     = document.getElementById('frete_erro');
+        var area     = document.getElementById('area_opcoes_frete');
+        var lista    = document.getElementById('lista_opcoes_frete');
 
-    if (cep.length !== 8) {
-        erro.textContent = 'Digite um CEP válido (8 dígitos).';
-        erro.classList.remove('d-none');
-        return;
-    }
-
-    erro.classList.add('d-none');
-    area.classList.add('d-none');
-    loading.classList.remove('d-none');
-
-    try {
-        const resp = await fetch('/carrinho/api/frete/calcular', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cep })
-        });
-        const data = await resp.json();
-        loading.classList.add('d-none');
-
-        if (data.success && data.opcoes.length > 0) {
-            lista.innerHTML = data.opcoes.slice(0, 5).map(op => `
-                <label class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary" style="cursor:pointer;">
-                    <div class="d-flex align-items-center gap-2">
-                        <input type="radio" name="frete_opcao" class="form-check-input mt-0"
-                               value="${op.price}"
-                               data-nome="${op.company.name} – ${op.name}"
-                               data-prazo="Prazo: até ${op.delivery_range.max} dias úteis"
-                               data-cep="${cep}"
-                               onchange="selecionarFrete(this)">
-                        <div>
-                            <span class="small fw-bold text-white">${op.company.name}</span>
-                            <span class="text-white-50 small"> (${op.name})</span>
-                            <span class="d-block text-white-50" style="font-size:11px">até ${op.delivery_range.max} dias úteis</span>
-                        </div>
-                    </div>
-                    <span class="fw-bold text-success small ms-2 text-nowrap">
-                        R$ ${parseFloat(op.price).toFixed(2).replace('.', ',')}
-                    </span>
-                </label>
-            `).join('');
-            area.classList.remove('d-none');
-        } else {
-            erro.textContent = 'Frete indisponível para este CEP.';
+        if (cep.length !== 8) {
+            erro.textContent = 'Digite um CEP válido (8 dígitos).';
             erro.classList.remove('d-none');
+            return;
         }
-    } catch {
-        loading.classList.add('d-none');
-        erro.textContent = 'Erro de conexão. Tente novamente.';
-        erro.classList.remove('d-none');
-    }
-});
+
+        erro.classList.add('d-none');
+        area.classList.add('d-none');
+        loading.classList.remove('d-none');
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/carrinho/api/frete/calcular', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                loading.classList.add('d-none');
+                if (xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data.success && data.opcoes.length > 0) {
+                            var html = '';
+                            var limit = Math.min(data.opcoes.length, 5);
+                            for(var i=0; i<limit; i++) {
+                                var op = data.opcoes[i];
+                                html += '<label class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary" style="cursor:pointer;">' +
+                                        '<div class="d-flex align-items-center gap-2">' +
+                                        '<input type="radio" name="frete_opcao" class="form-check-input mt-0" ' +
+                                        'value="' + op.price + '" ' +
+                                        'data-nome="' + op.company.name + ' – ' + op.name + '" ' +
+                                        'data-prazo="Prazo: até ' + op.delivery_range.max + ' dias úteis" ' +
+                                        'data-cep="' + cep + '" ' +
+                                        'onchange="selecionarFrete(this)">' +
+                                        '<div>' +
+                                        '<span class="small fw-bold text-white">' + op.company.name + '</span>' +
+                                        '<span class="text-white-50 small"> (' + op.name + ')</span>' +
+                                        '<span class="d-block text-white-50" style="font-size:11px">até ' + op.delivery_range.max + ' dias úteis</span>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '<span class="fw-bold text-success small ms-2 text-nowrap">' +
+                                        'R$ ' + parseFloat(op.price).toFixed(2).replace('.', ',') +
+                                        '</span>' +
+                                        '</label>';
+                            }
+                            lista.innerHTML = html;
+                            area.classList.remove('d-none');
+                        } else {
+                            erro.textContent = 'Frete indisponível para este CEP.';
+                            erro.classList.remove('d-none');
+                        }
+                    } catch(e) {
+                        erro.textContent = 'Erro ao processar frete.';
+                        erro.classList.remove('d-none');
+                    }
+                } else {
+                    erro.textContent = 'Erro ao conectar com servidor de frete.';
+                    erro.classList.remove('d-none');
+                }
+            }
+        };
+        xhr.send(JSON.stringify({ cep: cep }));
+    });
+}
 
 // ── SELECIONAR FRETE ──────────────────────────────────────────────────
-async function selecionarFrete(radio) {
-    const valor = parseFloat(radio.value);
-    const nome  = radio.dataset.nome;
-    const prazo = radio.dataset.prazo;
-    const cep   = radio.dataset.cep;
+function selecionarFrete(radio) {
+    var valor = parseFloat(radio.value);
+    var nome  = radio.dataset.nome;
+    var prazo = radio.dataset.prazo;
+    var cep   = radio.dataset.cep;
 
-    // Salva na sessão Flask
-    await fetch('/carrinho/api/frete/salvar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ valor, nome, prazo, cep })
-    });
-
-    freteAtual = valor;
-
-    // Atualiza painel do frete escolhido
-    document.getElementById('frete_nome_display').textContent  = nome;
-    document.getElementById('frete_prazo_display').textContent = prazo;
-    document.getElementById('frete_valor_display').textContent = 'R$ ' + valor.toFixed(2).replace('.', ',');
-
-    const display = document.getElementById('frete_escolhido_display');
-    display.classList.remove('d-none');
-    display.style.display = 'flex';
-
-    // Fecha lista
-    document.getElementById('area_opcoes_frete').classList.add('d-none');
-
-    atualizarTotalDisplay();
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/carrinho/api/frete/salvar', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (data.success) {
+                    freteAtual = valor;
+                    document.getElementById('area_opcoes_frete').classList.add('d-none');
+                    var display = document.getElementById('frete_escolhido_display');
+                    if (display) {
+                        display.classList.remove('d-none');
+                        display.style.display = 'flex';
+                    }
+                    document.getElementById('frete_nome_display').textContent = nome;
+                    document.getElementById('frete_prazo_display').textContent = prazo;
+                    document.getElementById('frete_valor_display').textContent = 'R$ ' + valor.toFixed(2).replace('.', ',');
+                    atualizarTotalDisplay();
+                }
+            } catch(e) {}
+        }
+    };
+    xhr.send(JSON.stringify({ valor: valor, nome: nome, prazo: prazo, cep: cep }));
 }
 
 // ── LIMPAR FRETE ──────────────────────────────────────────────────────
-document.getElementById('btnLimparFrete')?.addEventListener('click', async function () {
-    await fetch('/carrinho/api/frete/salvar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ valor: 0, nome: '', prazo: '', cep: '' })
+var btnLimpar = document.getElementById('btnLimparFrete');
+if (btnLimpar) {
+    btnLimpar.addEventListener('click', function () {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/carrinho/api/frete/salvar', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                freteAtual = 0;
+                document.getElementById('frete_escolhido_display').classList.add('d-none');
+                document.getElementById('area_opcoes_frete').classList.add('d-none');
+                if (cepInput) cepInput.value = '';
+                atualizarTotalDisplay();
+            }
+        };
+        xhr.send(JSON.stringify({ valor: 0, nome: '', prazo: '', cep: '' }));
     });
-    freteAtual = 0;
-    document.getElementById('frete_escolhido_display').classList.add('d-none');
-    document.getElementById('area_opcoes_frete').classList.add('d-none');
-    if (cepInput) cepInput.value = '';
-    atualizarTotalDisplay();
-});
+}
 
-// ── ATUALIZAR QUANTIDADE ──────────────────────────────────────────────
-async function updateQty(itemId, delta) {
-    const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
+// ── ATUALIZAR QTD ─────────────────────────────────────────────────────
+function updateQty(itemId, delta) {
+    var row = document.querySelector('tr[data-item-id="' + itemId + '"]');
     if (!row) return;
 
-    try {
-        const btns = row.querySelectorAll('button[onclick*="updateQty"]');
-        btns.forEach(b => b.disabled = true);
+    var btns = row.querySelectorAll('button[onclick*="updateQty"]');
+    for(var i=0; i<btns.length; i++) btns[i].disabled = true;
 
-        const resp = await fetch(`/carrinho/update/${itemId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ delta })
-        });
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/carrinho/update/' + itemId, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                try {
+                    var result = JSON.parse(xhr.responseText);
+                    if (result.success) {
+                        if (result.reload) { window.location.reload(); return; }
+                        
+                        var input = row.querySelector('.qty-input');
+                        if (input) input.value = parseInt(input.value) + delta;
 
-        if (!resp.ok) throw new Error();
-        const result = await resp.json();
+                        var sub = row.querySelector('.item-subtotal');
+                        if (sub && result.item_subtotal) sub.textContent = result.item_subtotal;
 
-        if (!result.success) { alert('Erro ao atualizar o carrinho.'); btns.forEach(b => b.disabled = false); return; }
-        if (result.reload)   { window.location.reload(); return; }
+                        var ct = document.getElementById('cart-total-display');
+                        if (ct && result.cart_total) ct.textContent = result.cart_total;
 
-        const input = row.querySelector('.qty-input');
-        if (input) input.value = parseInt(input.value) + delta;
-
-        const sub = row.querySelector('.item-subtotal');
-        if (sub && result.item_subtotal) sub.textContent = result.item_subtotal;
-
-        const ct = document.getElementById('cart-total-display');
-        if (ct && result.cart_total) ct.textContent = result.cart_total;
-
-        const badge = document.getElementById('cart-badge');
-        if (badge && result.cart_count !== undefined) {
-            badge.textContent = result.cart_count;
-            result.cart_count > 0 ? badge.classList.remove('d-none') : badge.classList.add('d-none');
+                        var badge = document.getElementById('cart-badge');
+                        if (badge && result.cart_count !== undefined) {
+                            badge.textContent = result.cart_count;
+                            result.cart_count > 0 ? badge.classList.remove('d-none') : badge.classList.add('d-none');
+                        }
+                    } else {
+                        alert('Erro ao atualizar o carrinho.');
+                    }
+                } catch(e) {
+                    alert('Erro ao processar atualização.');
+                }
+            } else {
+                alert('Erro de conexão. Tente novamente.');
+            }
+            for(var j=0; j<btns.length; j++) btns[j].disabled = false;
         }
-
-        btns.forEach(b => b.disabled = false);
-    } catch {
-        alert('Erro de conexão. Tente novamente.');
-        row.querySelectorAll('button[onclick*="updateQty"]').forEach(b => b.disabled = false);
-    }
+    };
+    xhr.send(JSON.stringify({ delta: delta }));
 }
 
 // Garante total correto ao carregar

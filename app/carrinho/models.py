@@ -84,7 +84,7 @@ class Pedido(db.Model):
     criado_em = db.Column(db.DateTime, default=now_local)
     pago_em = db.Column(db.DateTime, nullable=True)  # Campo adicionado para rastreamento de pagamento
     items = db.relationship('PedidoItem', backref='pedido', cascade="all, delete-orphan")
-    cliente = db.relationship('Cliente', foreign_keys=[cliente_id], lazy='joined')
+    cliente = db.relationship('Cliente', foreign_keys=[cliente_id], lazy='select')
 
 class PedidoItem(db.Model):
     __tablename__ = 'pedido_items'

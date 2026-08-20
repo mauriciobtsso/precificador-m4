@@ -251,16 +251,16 @@
 {% block extra_js %}
 <script src="https://unpkg.com/imask"></script>
 <script>
-const SUBTOTAL = {{ carrinho.total_avista }};
-let freteAtual = {{ frete_sessao.valor if frete_sessao.valor else 0 }};
+var SUBTOTAL = {{ carrinho.total_avista }};
+var freteAtual = {{ frete_sessao.valor if frete_sessao.valor else 0 }};
 
-document.addEventListener('DOMContentLoaded', () => {
-    const formCheckout = document.getElementById('formCheckout');
-    const btnFinalizar = document.getElementById('btnFinalizar');
-    const checkoutError = document.getElementById('checkout_error');
+document.addEventListener('DOMContentLoaded', function() {
+    var formCheckout = document.getElementById('formCheckout');
+    var btnFinalizar = document.getElementById('btnFinalizar');
+    var checkoutError = document.getElementById('checkout_error');
 
     if (formCheckout) {
-        formCheckout.addEventListener('submit', async function (event) {
+        formCheckout.addEventListener('submit', function (event) {
             event.preventDefault();
             checkoutError.classList.add('d-none');
 
@@ -270,82 +270,93 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const formData = new FormData(formCheckout);
-            const payload = {};
+            var formData = new FormData(formCheckout);
+            var payload = {};
             formData.forEach(function (value, key) { payload[key] = value; });
             payload.metodo_pagamento = document.getElementById('metodo_pagamento').value || 'pix';
 
             btnFinalizar.disabled = true;
             btnFinalizar.querySelector('.checkout-label').textContent = 'PROCESSANDO...';
 
-            try {
-                const response = await fetch(formCheckout.action, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRFToken': formData.get('csrf_token') || ''
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-                if (!response.ok || !result.success) {
-                    throw new Error(result.message || 'Não foi possível finalizar o pedido.');
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', formCheckout.action, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.setRequestHeader('X-CSRFToken', formData.get('csrf_token') || '');
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    var result = {};
+                    try { result = JSON.parse(xhr.responseText); } catch(e) {}
+                    
+                    if (xhr.status === 200 && result.success) {
+                        window.location.assign(result.redirect);
+                    } else {
+                        checkoutError.textContent = result.message || 'Erro ao finalizar pedido (HTTP ' + xhr.status + ')';
+                        checkoutError.classList.remove('d-none');
+                        btnFinalizar.disabled = false;
+                        btnFinalizar.querySelector('.checkout-label').textContent = 'FINALIZAR COMPRA';
+                    }
                 }
-                window.location.assign(result.redirect);
-            } catch (error) {
-                checkoutError.textContent = error.message || 'Erro de comunicação. Tente novamente.';
-                checkoutError.classList.remove('d-none');
-                btnFinalizar.disabled = false;
-                btnFinalizar.querySelector('.checkout-label').textContent = 'FINALIZAR COMPRA';
-            }
+            };
+            xhr.send(JSON.stringify(payload));
         });
     }
-    // Mantém o método de pagamento alinhado ao painel visual escolhido.
-    document.querySelectorAll('[data-payment-method]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            document.getElementById('metodo_pagamento').value = button.getAttribute('data-payment-method');
+
+    var paymentBtns = document.querySelectorAll('[data-payment-method]');
+    for(var i=0; i<paymentBtns.length; i++) {
+        paymentBtns[i].addEventListener('click', function() {
+            document.getElementById('metodo_pagamento').value = this.getAttribute('data-payment-method');
         });
-    });
+    }
 
     // Máscaras
-    const docEl = document.querySelector('.val-mask-doc');
-    const phoneEl = document.querySelector('.val-mask-phone');
-    const cepEl = document.querySelector('.val-mask-cep');
+    var docEl = document.querySelector('.val-mask-doc');
+    var phoneEl = document.querySelector('.val-mask-phone');
+    var cepEl = document.querySelector('.val-mask-cep');
 
     if (docEl)   IMask(docEl,   { mask: [{ mask: '000.000.000-00' }, { mask: '00.000.000/0000-00' }] });
     if (phoneEl) IMask(phoneEl, { mask: '(00) 00000-0000' });
     if (cepEl)   IMask(cepEl,   { mask: '00000-000' });
 
-    const cardExpiry = document.getElementById('card_expiry');
-    const cardNumber = document.getElementById('card_number');
+    var cardExpiry = document.getElementById('card_expiry');
+    var cardNumber = document.getElementById('card_number');
     if (cardExpiry) IMask(cardExpiry, { mask: '00/00' });
     if (cardNumber) IMask(cardNumber, { mask: '0000 0000 0000 0000' });
 
-    // Busca CEP
-    document.getElementById('btnBuscarCEP')?.addEventListener('click', async () => {
-        const cep = document.getElementById('cep_checkout').value.replace(/\D/g, '');
-        if (cep.length !== 8) return;
+    var btnBuscarCEP = document.getElementById('btnBuscarCEP');
+    if (btnBuscarCEP) {
+        btnBuscarCEP.addEventListener('click', function() {
+            var cep = document.getElementById('cep_checkout').value.replace(/\D/g, '');
+            if (cep.length !== 8) return;
 
-        try {
-            const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-            const data = await resp.json();
-            if (!data.erro) {
-                document.getElementById('rua').value    = data.logradouro || '';
-                document.getElementById('bairro').value = data.bairro || '';
-                document.getElementById('cidade').value = data.localidade || '';
-                document.getElementById('uf').value     = data.uf || '';
-                calcularFrete(cep);
-            }
-        } catch (e) { console.error('Erro ViaCEP:', e); }
-    });
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', 'https://viacep.com.br/ws/' + cep + '/json/', true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (!data.erro) {
+                            document.getElementById('rua').value    = data.logradouro || '';
+                            document.getElementById('bairro').value = data.bairro || '';
+                            document.getElementById('cidade').value = data.localidade || '';
+                            document.getElementById('uf').value     = data.uf || '';
+                            calcularFrete(cep);
+                        }
+                    } catch(e) {}
+                }
+            };
+            xhr.send();
+        });
+    }
 });
 
-// Mostrar opções ao clicar "Trocar"
 function mostrarOutraOpcaoFrete() {
-    const cep = document.getElementById('cep_checkout').value.replace(/\D/g, '');
-    document.getElementById('frete_pre_selecionado')?.classList.add('d-none');
+    var cepInput = document.getElementById('cep_checkout');
+    var cep = cepInput ? cepInput.value.replace(/\D/g, '') : '';
+    var preSel = document.getElementById('frete_pre_selecionado');
+    if (preSel) preSel.classList.add('d-none');
+    
     if (cep.length === 8) {
         calcularFrete(cep);
     } else {
@@ -355,42 +366,51 @@ function mostrarOutraOpcaoFrete() {
     }
 }
 
-async function calcularFrete(cep) {
-    const areaFrete   = document.getElementById('area_frete');
-    const listaFretes = document.getElementById('lista_fretes');
+function calcularFrete(cep) {
+    var areaFrete   = document.getElementById('area_frete');
+    var listaFretes = document.getElementById('lista_fretes');
 
     listaFretes.innerHTML = '<div class="text-center p-3 text-muted small"><i class="fas fa-spinner fa-spin me-2"></i>Cotando melhores preços...</div>';
     areaFrete.classList.remove('d-none');
 
-    try {
-        const response = await fetch('/carrinho/api/frete/calcular', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cep })
-        });
-        const data = await response.json();
-
-        if (data.success && data.opcoes.length > 0) {
-            listaFretes.innerHTML = data.opcoes.map(op => `
-                <label class="list-group-item d-flex justify-content-between align-items-center list-group-item-action">
-                    <div>
-                        <input class="form-check-input me-2" type="radio" name="frete_radio"
-                               value="${op.price}"
-                               data-nome="${op.company.name} – ${op.name}"
-                               onchange="atualizarFrete(this)">
-                        <strong>${op.company.name}</strong>
-                        <span class="small text-muted">(${op.name})</span>
-                        <div class="small text-muted">Prazo: ${op.delivery_range.max} dias úteis</div>
-                    </div>
-                    <span class="badge bg-success rounded-pill">R$ ${parseFloat(op.price).toFixed(2).replace('.', ',')}</span>
-                </label>
-            `).join('');
-        } else {
-            listaFretes.innerHTML = '<div class="alert alert-secondary small p-2">Frete indisponível para este CEP.</div>';
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/carrinho/api/frete/calcular', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    if (data.success && data.opcoes.length > 0) {
+                        var html = '';
+                        for(var i=0; i<data.opcoes.length; i++) {
+                            var op = data.opcoes[i];
+                            html += '<label class="list-group-item d-flex justify-content-between align-items-center list-group-item-action">' +
+                                    '<div>' +
+                                    '<input class="form-check-input me-2" type="radio" name="frete_radio" ' +
+                                    'value="' + op.price + '" ' +
+                                    'data-nome="' + op.company.name + ' – ' + op.name + '" ' +
+                                    'onchange="atualizarFrete(this)">' +
+                                    '<strong>' + op.company.name + '</strong> ' +
+                                    '<span class="small text-muted">(' + op.name + ')</span>' +
+                                    '<div class="small text-muted">Prazo: ' + op.delivery_range.max + ' dias úteis</div>' +
+                                    '</div>' +
+                                    '<span class="badge bg-success rounded-pill">R$ ' + parseFloat(op.price).toFixed(2).replace('.', ',') + '</span>' +
+                                    '</label>';
+                        }
+                        listaFretes.innerHTML = html;
+                    } else {
+                        listaFretes.innerHTML = '<div class="alert alert-secondary small p-2">Frete indisponível para este CEP.</div>';
+                    }
+                } catch(e) {
+                    listaFretes.innerHTML = '<div class="alert alert-danger small p-2">Erro ao processar frete.</div>';
+                }
+            } else {
+                listaFretes.innerHTML = '<div class="alert alert-danger small p-2">Erro ao calcular frete.</div>';
+            }
         }
-    } catch {
-        listaFretes.innerHTML = '<div class="alert alert-danger small p-2">Erro ao calcular frete.</div>';
-    }
+    };
+    xhr.send(JSON.stringify({ cep: cep }));
 }
 
 function atualizarFrete(radio) {
