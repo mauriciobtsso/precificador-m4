@@ -311,6 +311,28 @@ def testar_integracao():
     data = request.get_json()
     servico = data.get('servico')
 
+    if servico == 'brevo':
+        api_key = Configuracao.query.filter_by(chave='integ_brevo_api_key').first()
+        if not api_key or not api_key.valor:
+            return jsonify({"success": False, "message": "Chave API da Brevo não configurada."})
+        
+        url = "https://api.brevo.com/v3/account"
+        try:
+            resp = req_lib.get(url, headers={
+                "api-key": api_key.valor,
+                "Accept": "application/json"
+            }, timeout=8)
+            
+            if resp.status_code == 200:
+                acc = resp.json()
+                email = acc.get('email', 'Desconhecido')
+                return jsonify({"success": True, "message": f"Conectado com sucesso! Conta: {email}"})
+            else:
+                msg = resp.json().get('message', 'Erro desconhecido')
+                return jsonify({"success": False, "message": f"Erro na Brevo: {msg}"})
+        except Exception as e:
+            return jsonify({"success": False, "message": f"Falha na conexão: {str(e)}"})
+
     if servico == 'melhorenvio':
         token = Configuracao.query.filter_by(chave='integ_melhorenvio_token').first()
         sandbox = Configuracao.query.filter_by(chave='integ_melhorenvio_sandbox').first()

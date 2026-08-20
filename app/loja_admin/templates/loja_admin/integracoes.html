@@ -235,7 +235,8 @@
                     </div>
                 </div>
             </div>
-
+            
+            <div id="resultado_teste_brevo" class="mt-3 d-none"></div>
             <div id="resultado_teste_melhorenvio" class="mt-3 d-none"></div>
         </div>
     </div>
@@ -346,9 +347,14 @@
                     <div class="fw-normal text-muted" style="font-size:0.75rem;">Confirmações de pedido e notificações</div>
                 </div>
             </div>
-            <span class="status-badge {% if configs.get('integ_smtp_host') %}status-ok{% else %}status-pendente{% endif %}">
-                {% if configs.get('integ_smtp_host') %}Configurado{% else %}Pendente{% endif %}
-            </span>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="test-btn" onclick="testarConexao('brevo')">
+                    <i class="bi bi-plug me-1"></i>Testar
+                </button>
+                <span id="status_brevo" class="status-badge {% if configs.get('integ_brevo_api_key') %}status-ok{% else %}status-pendente{% endif %}">
+                    {% if configs.get('integ_brevo_api_key') %}Configurado{% else %}Pendente{% endif %}
+                </span>
+            </div>
         </div>
         <div class="integ-body">
             <p class="integ-description">
