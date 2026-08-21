@@ -33,7 +33,17 @@ def adicionar_config_geral(tabela):
 
     try:
         # 1. Criamos a instância
-        novo_item = Model(nome=nome, descricao=descricao)
+        if tabela == 'categoria':
+            pai_id = request.form.get("pai_id") or (request.json.get("pai_id") if request.is_json else None)
+            icone_loja = request.form.get("icone_loja") or (request.json.get("icone_loja") if request.is_json else None)
+            novo_item = Model(
+                nome=nome, 
+                descricao=descricao, 
+                pai_id=int(pai_id) if pai_id and str(pai_id).isdigit() else None,
+                icone_loja=icone_loja
+            )
+        else:
+            novo_item = Model(nome=nome, descricao=descricao)
 
         # 2. Lógica de Logo exclusiva para Marcas
         if tabela == "marca":

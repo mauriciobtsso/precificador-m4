@@ -57,6 +57,19 @@
             method: "POST",
             body: formData // O navegador define o Content-Type automaticamente para FormData
           });
+        } else if (tabela === "categoria") {
+          // --- LÓGICA ESPECIAL PARA CATEGORIA ---
+          const payload = { 
+            nome: nome,
+            pai_id: document.getElementById("nc_pai")?.value || null,
+            icone_loja: document.getElementById("nc_icone")?.value || "",
+            descricao: document.getElementById("nc_descricao")?.value || ""
+          };
+          response = await fetch(`/produtos/configs/adicionar/categoria`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
         } else {
           // --- LÓGICA PADRÃO PARA OUTROS (JSON) ---
           response = await fetch(`/produtos/configs/adicionar/${tabela}`, {
@@ -66,7 +79,15 @@
           });
         }
 
-        const data = await response.json();
+        let data;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          data = await response.json();
+        } else {
+          const text = await response.text();
+          console.error("[M4] Resposta não-JSON recebida:", text);
+          throw new Error("O servidor retornou um erro inesperado (HTML). Verifique se você ainda está logado.");
+        }
         
         if (!response.ok) {
           throw new Error(data.error || "Erro ao salvar no servidor.");
