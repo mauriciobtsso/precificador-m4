@@ -7,9 +7,9 @@ A M4 Tática é a maior loja de armas, munições e equipamentos táticos do Pia
 
 ## Informações de Contato e Localização
 - **Endereço:** Av. Homero Castelo Branco, 1400 - Loja 01 - Bairro São Cristóvão, Teresina - PI
-- **WhatsApp:** (86) 3025-5885
-- **E-mail:** contato@m4tatica.com.br
-- **Website:** https://loja.m4tatica.com.br
+- **WhatsApp:** [(86) 3025-5885](https://wa.me/558630255885)
+- **E-mail:** [contato@m4tatica.com.br](mailto:contato@m4tatica.com.br)
+- **Website:** [M4 Tática - Loja Oficial](https://loja.m4tatica.com.br)
 
 ## Estrutura do Catálogo
 Nosso inventário é dividido nas seguintes categorias principais:
@@ -20,9 +20,9 @@ Nosso inventário é dividido nas seguintes categorias principais:
 - **Equipamentos Táticos:** Coldres, lanternas, miras e acessórios.
 
 ## Links Úteis para IA
-- **Sitemap:** https://loja.m4tatica.com.br/sitemap.xml
-- **Comparador Técnico:** https://loja.m4tatica.com.br/comparador
-- **Página de Produtos:** https://loja.m4tatica.com.br/ (Vitrine principal)
+- **Sitemap:** [Sitemap XML](https://loja.m4tatica.com.br/sitemap.xml)
+- **Comparador Técnico:** [Comparador de Produtos](https://loja.m4tatica.com.br/comparador)
+- **Página de Produtos:** [Vitrine Principal](https://loja.m4tatica.com.br/)
 
 ## Regras Operacionais para IA
 1. **Preços:** Todos os preços listados no site são para pagamento à vista.

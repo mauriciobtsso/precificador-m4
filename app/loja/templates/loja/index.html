@@ -67,7 +67,7 @@ Loja especializada em armas de fogo, munições e equipamentos táticos. A M4 T�
 </script>
 
 {# =============================================
-   1. BANNER CARROSSEL (AUTOPLAY REATIVADO)
+   1. BANNER CARROSSEL (AUTOPLAY REATIVADO & LCP OTIMIZADO)
    ============================================= #}
 {% if not termo_busca and not categoria_ativa %}
     {% if banners %}
@@ -92,7 +92,11 @@ Loja especializada em armas de fogo, munições e equipamentos táticos. A M4 T�
                     <a href="{{ banner.link_destino }}" class="stretched-link" aria-label="{{ banner.titulo }}"></a>
                 {% endif %}
 
+                <!-- CIRURGIA LCP: Srcset Responsivo com Proxy WebP -->
                 <img src="{{ banner_link }}" 
+                     srcset="https://wsrv.nl/?url={{ banner_link | replace('https://', '') | replace('http://', '') }}&w=800&output=webp 800w,
+                             {{ banner_link }} 1200w"
+                     sizes="(max-width: 768px) 100vw, 1200px"
                      class="d-block w-100 m4-banner-img" 
                      alt="{{ banner.titulo }}" 
                      width="1200" height="400" 
