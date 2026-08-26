@@ -660,6 +660,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let selecionados = [];
     let timeout = null;
+    const buscarProdutosUrl = "{{ url_for('loja.buscar_produtos') }}";
+    const compararProdutosUrl = "{{ url_for('loja.comparar_produtos') }}";
     
     function formatarPreco(v) {
         return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -679,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function buscar(termo) {
         try {
-            const res = await fetch(`/loja/api/produtos/buscar?q=${encodeURIComponent(termo)}`);
+            const res = await fetch(`${buscarProdutosUrl}?q=${encodeURIComponent(termo)}`);
             const data = await res.json();
             
             if (data.produtos && data.produtos.length > 0) {
@@ -781,7 +783,7 @@ document.addEventListener('DOMContentLoaded', function() {
         resultado.style.display = 'none';
         
         try {
-            const res = await fetch('/loja/api/comparar', {
+            const res = await fetch(compararProdutosUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ produto_ids: ids })
