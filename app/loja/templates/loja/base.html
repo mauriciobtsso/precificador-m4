@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
 
     {# ── PRECONNECTS OTIMIZADOS (WPO) ── #}
+    <link rel="preconnect" href="https://cdn.m4tatica.com.br" crossorigin>
+    <link rel="preconnect" href="https://www.googletagmanager.com">
     <link rel="dns-prefetch" href="https://cdn.m4tatica.com.br">
     <link rel="dns-prefetch" href="https://www.googletagmanager.com">
-    <link rel="dns-prefetch" href="https://1202e2896f1ad48f3caa5d520ab29ff0.r2.cloudflarestorage.com">
 
     {# ── PRELOADS CRÍTICOS (LCP) ── #}
     <link rel="preload" as="image" href="{{ url_for('static', filename='img/logo.webp') }}" fetchpriority="high">
@@ -28,13 +30,13 @@
     <meta property="og:site_name" content="M4 Tática">
     <meta property="og:title" content="{{ title if title else 'M4 Tática | Armas, Munições e Acessórios' }}">
     <meta property="og:description" content="{{ meta_desc if meta_desc else 'A maior variedade de armas e munições com a qualidade M4 Tática.' }}">
-    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:url" content="{{ request.base_url }}">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="{{ url_for('static', filename='img/logo-social.png', _external=True) }}">
+    <meta property="og:image" content="{{ url_for('static', filename='img/logo.webp', _external=True) }}">
     <meta name="twitter:card" content="summary_large_image">
     {% endblock %}
 
-    <link rel="canonical" href="{{ request.url }}">
+    <link rel="canonical" href="{{ request.base_url }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
 
     {# ── CSS CRÍTICO INLINE (evita render-blocking) ── #}
@@ -200,8 +202,11 @@
     <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}"></noscript>
 
-    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}"></noscript>
+    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons-loja.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons-loja.css') }}"></noscript>
+
+    <link rel="preload" href="{{ url_for('static', filename='css/loja-card.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='css/loja-card.css') }}"></noscript>
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -218,7 +223,7 @@
     "@type": "ListItem",
     "position": 1,
     "name": "Início",
-    "item": "https://app.m4tatica.com.br/loja/"
+    "item": "{{ url_for('loja.index', _external=True) }}"
   }
   {% if categoria_ativa %}
   ,{
@@ -233,7 +238,7 @@
     "@type": "ListItem",
     "position": 3,
     "name": "{{ produto.nome }}",
-    "item": "{{ request.url }}"
+    "item": "{{ request.base_url }}"
   }
   {% endif %}]
 }
@@ -251,7 +256,7 @@
                     <a href="{{ url_for('loja.index') }}" class="navbar-brand m-0" aria-label="M4 Tática - Página Inicial">
                         <picture>
                             <source srcset="{{ url_for('static', filename='img/logo.webp') }}" type="image/webp">
-                            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo M4 Tática" class="logo-img" width="160" height="55" fetchpriority="high">
+                            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo M4 Tática" class="logo-img" width="160" height="55" fetchpriority="high" decoding="async">
                         </picture>
                     </a>
                 </div>
@@ -443,7 +448,7 @@
                 var url = productBaseURL + item.slug;
                 
                 // CIRURGIA 2: Proteção contra WebP para garantir compatibilidade
-                var fotoSegura = item.foto ? 'https://wsrv.nl/?url=' + item.foto.replace('https://', '').replace('http://', '') + '&output=jpg&w=100' : fallbackSvg;
+                var fotoSegura = item.foto || fallbackSvg;
 
                 html += '<a href="' + url + '" class="search-result-item">' +
                         '<img src="' + fotoSegura + '" class="search-result-img" alt="' + item.nome + '" onerror="this.src=\'' + fallbackSvg + '\';">' +

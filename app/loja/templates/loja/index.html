@@ -2,8 +2,8 @@
 
 {% block title %}Armas de Fogo, Pistolas e Munições | M4 Tática - Loja Oficial{% endblock %}
 
-{% block meta_description %}
-Loja especializada em armas de fogo, munições e equipamentos táticos. A M4 Tática oferece assessoria completa para CR e posse legal. Acesse o catálogo!
+{% block seo_meta %}
+<meta name="description" content="Loja especializada em armas de fogo, munições e equipamentos táticos. A M4 Tática oferece assessoria completa para CR e posse legal. Acesse o catálogo!">
 {% endblock %}
 
 {% block content %}
@@ -15,10 +15,10 @@ Loja especializada em armas de fogo, munições e equipamentos táticos. A M4 T�
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "M4 Tática",
-    "url": "https://app.m4tatica.com.br/loja/",
+    "url": "{{ url_for('loja.index', _external=True) }}",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://app.m4tatica.com.br/loja/?q={search_term_string}",
+      "target": "{{ url_for('loja.index', _external=True) }}?q={search_term_string}",
       "query-input": "required name=search_term_string"
     }
   },
@@ -26,8 +26,8 @@ Loja especializada em armas de fogo, munições e equipamentos táticos. A M4 T�
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "M4 Tática",
-    "url": "https://app.m4tatica.com.br/loja/",
-    "logo": "https://app.m4tatica.com.br/static/img/logo.png",
+    "url": "{{ url_for('loja.index', _external=True) }}",
+    "logo": "{{ url_for('static', filename='img/logo.webp', _external=True) }}",
     "contactPoint": {
       "@type": "ContactPoint",
       "telephone": "+55-86-3025-5885",
@@ -47,19 +47,19 @@ Loja especializada em armas de fogo, munições e equipamentos táticos. A M4 T�
         "@type": "ListItem",
         "position": 1,
         "name": "Pistolas",
-        "url": "https://app.m4tatica.com.br/loja/categoria/pistola"
+        "url": "{{ url_for('loja.categoria', slug_categoria='pistola', _external=True) }}"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Revólveres",
-        "url": "https://app.m4tatica.com.br/loja/categoria/revolver"
+        "url": "{{ url_for('loja.categoria', slug_categoria='revolver', _external=True) }}"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": "Munições",
-        "url": "https://app.m4tatica.com.br/loja/categoria/municoes"
+        "url": "{{ url_for('loja.categoria', slug_categoria='municoes', _external=True) }}"
       }
     ]
   }
@@ -92,11 +92,10 @@ Loja especializada em armas de fogo, munições e equipamentos táticos. A M4 T�
                     <a href="{{ banner.link_destino }}" class="stretched-link" aria-label="{{ banner.titulo }}"></a>
                 {% endif %}
 
-                <!-- CIRURGIA LCP: Srcset Responsivo com Proxy WebP -->
+                <!-- LCP: imagem CDN estável com dimensões reservadas -->
                 <img src="{{ banner_link }}" 
-                     srcset="https://wsrv.nl/?url={{ banner_link | replace('https://', '') | replace('http://', '') }}&w=800&output=webp 800w,
-                             {{ banner_link }} 1200w"
-                     sizes="(max-width: 768px) 100vw, 1200px"
+                     srcset="{{ banner_link }} 1200w"
+                     sizes="100vw"
                      class="d-block w-100 m4-banner-img" 
                      alt="{{ banner.titulo }}" 
                      width="1200" height="400" 

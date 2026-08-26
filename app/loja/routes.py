@@ -182,7 +182,7 @@ def buscar_fuzzy():
                 'nome': p.nome_comercial or p.nome,
                 'slug': p.slug,
                 'preco': float(precos.get('preco_a_vista', 0)),
-                'foto': get_thumb_url(p.foto_url, size='small') if p.foto_url else url_for('static', filename='img/sem-foto.jpg')
+                'foto': normalizar_foto_loja(p.foto_url) if p.foto_url else url_for('static', filename='img/sem-foto.jpg')
             })
         return resultados
 
@@ -233,8 +233,19 @@ def buscar_fuzzy():
             db.session.rollback()
             return jsonify([])
 
+def _index_cache_key():
+    """Mantém cache por URL e identidade da sessão da loja.
+
+    A home compartilha o template com o estado de login; sem essa variação,
+    uma resposta anonimizada poderia ser servida a um cliente autenticado.
+    """
+    caminho = request.full_path.rstrip('?')
+    cliente_id = session.get('loja_cliente_id') or 'anon'
+    return f"loja:index:v10:{caminho}:cliente:{cliente_id}"
+
+
 @loja_bp.route('/')
-@cache.cached(timeout=60, query_string=True, key_prefix='index_v9')
+@cache.cached(timeout=60, make_cache_key=_index_cache_key)
 def index():
     termo_busca = request.args.get('q', '').strip()
     from app.produtos.configs.models import MarcaProduto
@@ -300,13 +311,6 @@ def index():
             .order_by(Produto.criado_em.desc()).limit(4).all()
         cache.set('lancamentos_home_v5', lancamentos, timeout=300)
 
-    destaques = cache.get('destaques_home_v5')
-    if destaques is None:
-        destaques = Produto.query.filter_by(visivel_loja=True)\
-            .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
-            .order_by(Produto.id.desc()).limit(4).all()
-        cache.set('destaques_home_v5', destaques, timeout=300)
-
     prateleiras = cache.get('prateleiras_home_v9')
     if prateleiras is None:
         def get_smart_cat(termo, limite=4):
@@ -349,7 +353,6 @@ def index():
 
     return render_template('loja/index.html', 
                            lancamentos=lancamentos, 
-                           destaques=destaques, 
                            prateleiras=prateleiras, 
                            banners=banners, 
                            marcas=marcas_home, 

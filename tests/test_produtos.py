@@ -1,5 +1,8 @@
-from app.models import Produto
+from app.produtos.models import Produto
+from app.produtos.categorias.models import CategoriaProduto
+from app.produtos.configs.models import TipoProduto
 from app import db
+
 
 def test_listar_produtos_vazio(client):
     resp = client.get("/produtos/")
@@ -7,11 +10,21 @@ def test_listar_produtos_vazio(client):
     text = resp.get_data(as_text=True)
     assert "Nenhum produto cadastrado" in text or "produtos" in text.lower()
 
+
 def test_criar_editar_excluir_produto(client, app):
-    # Criar
-    resp = client.post("/produtos/novo", data={
-        "sku": "TEST123",
+    with app.app_context():
+        categoria = CategoriaProduto(nome="Categoria Teste")
+        tipo = TipoProduto(nome="Tipo Teste")
+        db.session.add_all([categoria, tipo])
+        db.session.commit()
+        categoria_id = categoria.id
+        tipo_id = tipo.id
+
+    payload = {
+        "codigo": "TEST123",
         "nome": "Produto Teste",
+        "categoria_id": str(categoria_id),
+        "tipo_id": str(tipo_id),
         "preco_fornecedor": "1000",
         "desconto_fornecedor": "0",
         "margem": "20",
@@ -19,32 +32,30 @@ def test_criar_editar_excluir_produto(client, app):
         "ipi_tipo": "%",
         "difal": "5",
         "frete": "50",
-        "imposto_venda": "0"
-    }, follow_redirects=True)
+        "imposto_venda": "0",
+    }
+
+    # Criar
+    resp = client.post("/produtos/novo", data=payload, follow_redirects=True)
     assert resp.status_code == 200
     assert "Produto salvo com sucesso" in resp.get_data(as_text=True)
 
     with app.app_context():
-        produto = Produto.query.filter_by(sku="TEST123").first()
+        produto = Produto.query.filter_by(codigo="TEST123").first()
         assert produto is not None
         produto_id = produto.id
 
     # Editar
-    resp = client.post(f"/produtos/editar/{produto_id}", data={
-        "sku": "TEST123",
-        "nome": "Produto Alterado",
-        "preco_fornecedor": "1200",
-        "margem": "25",
-        "ipi": "12",
-        "ipi_tipo": "%",
-        "difal": "5",
-        "frete": "70",
-        "imposto_venda": "0"
-    }, follow_redirects=True)
+    payload["nome"] = "Produto Alterado"
+    payload["preco_fornecedor"] = "1200"
+    payload["margem"] = "25"
+    payload["ipi"] = "12"
+    payload["frete"] = "70"
+    resp = client.post(f"/produtos/{produto_id}/editar", data=payload, follow_redirects=True)
     assert resp.status_code == 200
     assert "Produto salvo com sucesso" in resp.get_data(as_text=True)
 
-    # Excluir
-    resp = client.get(f"/produtos/excluir/{produto_id}", follow_redirects=True)
+    # Excluir — a rota atual aceita POST, como o formulário administrativo.
+    resp = client.post(f"/produtos/{produto_id}/excluir", follow_redirects=True)
     assert resp.status_code == 200
-    assert "Produto excluído com sucesso" in resp.get_data(as_text=True)
+    assert "foi excluído com sucesso" in resp.get_data(as_text=True)

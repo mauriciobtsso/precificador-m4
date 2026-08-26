@@ -114,11 +114,29 @@ def create_app():
     # HEADERS DE SEGURANÇA HTTP (Flask-Talisman)
     # =========================================================
     from flask_talisman import Talisman
+    # Política compatível com os scripts inline legados e os CDNs realmente
+    # utilizados pela aplicação. O HTTPS continua sendo terminado no proxy.
+    loja_csp = {
+        'default-src': ["'self'"],
+        'base-uri': ["'self'"],
+        'form-action': ["'self'", 'https:'],
+        'frame-ancestors': ["'self'"],
+        'frame-src': ["'self'", 'https:'],
+        'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+        'font-src': ["'self'", 'data:', 'https:'],
+        'style-src': ["'self'", "'unsafe-inline'", 'https:'],
+        'script-src': ["'self'", "'unsafe-inline'", 'https:'],
+        'connect-src': ["'self'", 'https:'],
+        'object-src': ["'none'"],
+        'upgrade-insecure-requests': [],
+    }
     Talisman(
         app,
-        content_security_policy=False,   # Desativado inicialmente; ativar gradualmente
+        content_security_policy=loja_csp,
         force_https=False,               # Gerenciado pelo Cloudflare/proxy
-        strict_transport_security=False, # Idem
+        strict_transport_security=True,
+        strict_transport_security_max_age=31536000,
+        strict_transport_security_include_subdomains=True,
         frame_options='SAMEORIGIN',      # Anti-clickjacking
         referrer_policy='strict-origin-when-cross-origin',
         x_content_type_options=True,     # Anti-MIME sniffing
@@ -152,6 +170,10 @@ def create_app():
         if request.path.startswith('/static/'):
             response.cache_control.max_age = 31536000  # 1 ano em segundos
             response.cache_control.public = True
+        # Isola a janela/opener sem impedir fluxos legítimos que usam pop-ups
+        # (pagamentos e autenticação externa).
+        response.headers.setdefault('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')
+        response.headers.setdefault('Permissions-Policy', 'browsing-topics=()')
         return response
 
     # =========================================================
