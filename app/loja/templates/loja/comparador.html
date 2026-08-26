@@ -345,6 +345,30 @@
     }
     
     /* ESTILOS PARA O MARKDOWN GERADO PELA IA */
+    .analise-content-pro h1,
+    .analise-content-pro h2,
+    .analise-content-pro h3,
+    .analise-content-pro h4 {
+        color: #1a1a1a;
+        font-weight: 800;
+        line-height: 1.3;
+        margin-bottom: 15px;
+    }
+
+    .analise-content-pro h1 {
+        font-size: 22px;
+        margin-top: 0;
+        border-bottom: 3px solid var(--m4-gold);
+        padding-bottom: 12px;
+    }
+
+    .analise-content-pro h2 {
+        font-size: 18px;
+        margin-top: 32px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 8px;
+    }
+
     .analise-content-pro h3, .analise-content-pro h4 {
         color: #1a1a1a;
         font-weight: 800;
@@ -356,13 +380,35 @@
         padding-bottom: 8px;
     }
     
-    .analise-content-pro h3:first-child, .analise-content-pro h4:first-child {
+    .analise-content-pro h1:first-child,
+    .analise-content-pro h2:first-child,
+    .analise-content-pro h3:first-child,
+    .analise-content-pro h4:first-child {
         margin-top: 0;
     }
     
     .analise-content-pro strong {
         color: #000;
         font-weight: 700;
+    }
+
+    .analise-content-pro p {
+        margin: 0 0 15px;
+    }
+
+    .analise-content-pro blockquote {
+        margin: 0 0 20px;
+        padding: 14px 18px;
+        background: #fffaf0;
+        border-left: 4px solid var(--m4-gold);
+        color: #555;
+    }
+
+    .analise-content-pro code {
+        padding: 2px 5px;
+        background: #f1f1f1;
+        border-radius: 3px;
+        font-size: 0.9em;
     }
     
     /* Estilo para as Tabelas que a IA gera (Responsivas) */
@@ -399,6 +445,11 @@
     
     .analise-content-pro li {
         margin-bottom: 8px;
+    }
+
+    .analise-content-pro li::marker {
+        color: var(--m4-gold-text);
+        font-weight: 800;
     }
     
     /* Badge de credibilidade */
@@ -629,13 +680,13 @@
                 </h3>
             </div>
             <div class="analise-content-pro">
-                <div id="analise-texto"></div>
+                <div id="analise-texto" aria-live="polite"></div>
                 
                 <div class="badge-ia">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: 8px;">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
-                    <span>Laudo processado por Inteligência Artificial (Modelo: Llama 3.1)</span>
+                    <span id="badge-modelo">Laudo processado por Inteligência Artificial</span>
                 </div>
             </div>
         </div>
@@ -699,7 +750,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderResultados(produtos) {
         resultsDropdown.innerHTML = produtos.map(p => `
             <div class="result-item-pro" data-id="${p.id}">
-                <img src="${p.foto}" alt="${p.nome}" onerror="this.src='/static/img/sem-foto.jpg'">
+                <img src="${p.foto}" data-fallback="${p.foto_fallback || ''}" alt="${p.nome}" onerror="if(this.dataset.fallback && !this.dataset.fallbackUsed){this.dataset.fallbackUsed='1';this.src=this.dataset.fallback;}else{this.onerror=null;this.src='/static/img/sem-foto.jpg';}">
                 <div class="result-info-pro">
                     <div class="result-name-pro">${p.nome}</div>
                     <div class="result-meta-pro">Cód: ${p.codigo} | ${p.categoria} | Cal: ${p.calibre}</div>
@@ -757,7 +808,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="col-6 col-md-4 mb-3">
                     <div class="produto-card-pro">
                         <button class="btn-remove-pro" onclick="remover(${p.id})">&times;</button>
-                        <img src="${p.foto}" alt="${p.nome}" onerror="this.src='/static/img/sem-foto.jpg'">
+                        <img src="${p.foto}" data-fallback="${p.foto_fallback || ''}" alt="${p.nome}" onerror="if(this.dataset.fallback && !this.dataset.fallbackUsed){this.dataset.fallbackUsed='1';this.src=this.dataset.fallback;}else{this.onerror=null;this.src='/static/img/sem-foto.jpg';}">
                         <strong class="d-block mb-1" style="font-size: 13px; line-height: 1.3;">${p.nome}</strong>
                         <div class="text-muted small mb-1" style="font-size: 11px;">Cód: ${p.codigo}</div>
                         <div class="text-muted small mb-2" style="font-weight: 600; font-size: 11px;">Calibre: ${p.calibre}</div>
@@ -813,7 +864,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let html = '<thead><tr><th style="width: 220px; background: #000;">Especificação</th>';
         produtos.forEach(p => {
             html += `<th class="header-produto">
-                        <img src="${p.foto_url}" alt="${p.nome}" onerror="this.src='/static/img/sem-foto.jpg'">
+                        <img src="${p.foto_url}" data-fallback="${p.foto_url_fallback || ''}" alt="${p.nome}" onerror="if(this.dataset.fallback && !this.dataset.fallbackUsed){this.dataset.fallbackUsed='1';this.src=this.dataset.fallback;}else{this.onerror=null;this.src='/static/img/sem-foto.jpg';}">
                         <strong>${p.nome}</strong>
                      </th>`;
         });
@@ -845,7 +896,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         html += '</tbody>';
         document.getElementById('tabela').innerHTML = html;
-        
+
+        const badgeModelo = document.getElementById('badge-modelo');
+        if (badgeModelo) {
+            badgeModelo.textContent = `Laudo processado por Inteligência Artificial (Modelo: ${data.modelo_ia || 'análise local'})`;
+        }
         document.getElementById('analise-texto').innerHTML = marked.parse(analise);
         
         resultado.style.display = 'block';

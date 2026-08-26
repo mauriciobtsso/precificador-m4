@@ -14,6 +14,7 @@ import app.utils.parcelamento as parcelamento_logic
 from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload, subqueryload
 import os
+import re
 from datetime import datetime
 import pytz
 
@@ -86,6 +87,43 @@ def limpar_caminho_r2(caminho):
     if "#" in caminho_limpo:
         caminho_limpo = caminho_limpo.split("#")[0]
     return caminho_limpo
+
+
+def _limpar_foto_para_fallback(caminho):
+    """Retorna uma URL original segura para a segunda tentativa do navegador."""
+    if not caminho:
+        return ""
+
+    valor = str(caminho).strip().split("%23", 1)[0].split("#", 1)[0]
+    if valor.startswith(("http://", "https://", "/", "data:image/")):
+        return valor
+    return ""
+
+
+def normalizar_foto_loja(caminho):
+    """Converte formatos antigos de foto em uma URL pública estável."""
+    fallback = url_for("static", filename="img/sem-foto.jpg")
+    if not caminho:
+        return fallback
+
+    valor = str(caminho).strip()
+    if not valor:
+        return fallback
+
+    # Fragmentos como ``#arquivo.png`` são usados em uploads temporários e
+    # nunca devem ser enviados ao CDN como parte da chave do objeto.
+    valor = valor.split("%23", 1)[0].split("#", 1)[0]
+
+    # Preserva recursos internos que já são URLs válidas da aplicação.
+    if valor.startswith(("/static/", "/catalogo/image-proxy/", "data:image/")):
+        return valor
+
+    try:
+        url_publica = gerar_link_r2(limpar_caminho_r2(valor))
+        return url_publica or fallback
+    except Exception as e:
+        current_app.logger.warning("Não foi possível normalizar a foto %s: %s", valor, e)
+        return fallback
 
 # ============================================================
 # CONTEXT PROCESSOR: DISPONIBILIZA CATEGORIAS EM TODA A LOJA
@@ -573,7 +611,7 @@ def buscar_produtos():
 
     resultado = []
     for p in produtos:
-        foto = p.foto_url if p.foto_url and (p.foto_url.startswith('http') or p.foto_url.startswith('/')) else url_for('static', filename='img/sem-foto.jpg')
+        foto = normalizar_foto_loja(p.foto_url)
         resultado.append({
             'id': p.id,
             'nome': p.nome_comercial or p.nome,
@@ -581,7 +619,8 @@ def buscar_produtos():
             'categoria': p.categoria.nome if p.categoria else 'N/A',
             'calibre': p.calibre_rel.nome if p.calibre_rel else 'N/A',
             'preco': float(p.preco_a_vista or 0),
-            'foto': foto
+            'foto': foto,
+            'foto_fallback': _limpar_foto_para_fallback(p.foto_url)
         })
     return jsonify({'produtos': resultado})
 
@@ -598,53 +637,156 @@ def comparar_produtos():
         if len(produtos) != len(produto_ids): return jsonify({'erro': 'Produto não encontrado'}), 404
         
         produtos_data = [p.to_compare_dict() for p in produtos]
+        for produto_data, produto in zip(produtos_data, produtos):
+            produto_data['foto_url_fallback'] = _limpar_foto_para_fallback(produto.foto_url)
+            produto_data['foto_url'] = normalizar_foto_loja(produto.foto_url)
+
         analise_ia = gerar_analise_comparativa(produtos_data)
+        modelo_ia = os.getenv('GROQ_MODEL', 'openai/gpt-oss-120b') if os.getenv('GROQ_API_KEY') else 'análise local'
         
         return jsonify({
             'produtos': produtos_data,
-            'analise_ia': analise_ia
+            'analise_ia': analise_ia,
+            'modelo_ia': modelo_ia
         })
     except Exception as e:
         current_app.logger.error(f'Erro no comparador: {str(e)}')
         db.session.rollback()
         return jsonify({'erro': f'Erro ao processar comparação: {str(e)}'}), 500
 
+def _formatar_brl(valor):
+    """Formata valores monetários no padrão brasileiro para o laudo."""
+    try:
+        numero = float(valor or 0)
+    except (TypeError, ValueError):
+        numero = 0.0
+    return f"R$ {numero:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _valor_especificacao(produto, chave):
+    especificacoes = produto.get('especificacoes') or {}
+    valor = especificacoes.get(chave)
+    return valor if valor and valor != 'N/A' else 'Não informado'
+
+
 def gerar_analise_local(produtos_data):
-    mais_barato = min(produtos_data, key=lambda x: x['preco_vista'])
-    mais_caro = max(produtos_data, key=lambda x: x['preco_vista'])
-    
-    analise = f"ANÁLISE COMPARATIVA TÉCNICA\n\nMELHOR CUSTO-BENEFÍCIO\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n{mais_barato['nome']}\nPreço: R$ {mais_barato['preco_vista']:,.2f}\nMarca: {mais_barato['especificacoes']['marca']}\n\nEste produto oferece o menor investimento inicial entre os comparados.\n\nCOMPARAÇÃO DETALHADA POR PREÇO\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-    for i, p in enumerate(sorted(produtos_data, key=lambda x: x['preco_vista']), 1):
-        analise += f"\n{i}. {p['nome']}\n   Preço: R$ {p['preco_vista']:,.2f}\n   {p['calibre']} | {p['especificacoes']['marca']}\n"
-    
-    if len(produtos_data) > 1:
-        diferenca = mais_caro['preco_vista'] - mais_barato['preco_vista']
-        economia_pct = (diferenca / mais_caro['preco_vista']) * 100
-        analise += f"\nANÁLISE FINANCEIRA\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nEscolhendo o produto mais acessível, você economiza:\n• Valor: R$ {diferenca:,.2f}\n• Percentual: {economia_pct:.1f}%\n"
-    return analise
+    """Gera um parecer completo e legível quando a LLM não está disponível."""
+    mais_barato = min(produtos_data, key=lambda x: x.get('preco_vista') or 0)
+    mais_caro = max(produtos_data, key=lambda x: x.get('preco_vista') or 0)
+    diferenca = max((mais_caro.get('preco_vista') or 0) - (mais_barato.get('preco_vista') or 0), 0)
+    preco_caro = mais_caro.get('preco_vista') or 0
+    economia_pct = (diferenca / preco_caro * 100) if preco_caro else 0
+
+    linhas_tabela = [
+        '| Armamento | Fabricante | Calibre | Tipo | Preço à vista |',
+        '|---|---|---|---|---:|',
+    ]
+    for produto in produtos_data:
+        linhas_tabela.append(
+            f"| {produto.get('nome', 'Produto')} | "
+            f"{_valor_especificacao(produto, 'marca')} | "
+            f"{produto.get('calibre') or 'Não informado'} | "
+            f"{_valor_especificacao(produto, 'tipo')} | "
+            f"{_formatar_brl(produto.get('preco_vista'))} |"
+        )
+
+    linhas_tecnicas = []
+    for produto in produtos_data:
+        linhas_tecnicas.append(
+            f"### {produto.get('nome', 'Produto')}\n"
+            f"- **Ação/sistema:** {_valor_especificacao(produto, 'funcionamento')}\n"
+            f"- **Peso:** {_valor_especificacao(produto, 'peso')}\n"
+            f"- **Comprimento:** {_valor_especificacao(produto, 'comprimento')}\n"
+            f"- **Leitura técnica:** equipamento da categoria **{produto.get('categoria') or 'não informada'}**, "
+            f"em calibre **{produto.get('calibre') or 'não informado'}**, com preço à vista de "
+            f"**{_formatar_brl(produto.get('preco_vista'))}**."
+        )
+
+    return "\n\n".join([
+        '# Análise comparativa técnica',
+        '> Parecer gerado com base exclusivamente nos dados cadastrados no catálogo.\n> Campos não informados não foram inferidos.',
+        '## Resumo executivo',
+        f"Entre os produtos comparados, **{mais_barato.get('nome', 'o produto de menor preço')}** apresenta o menor investimento inicial, "
+        f"com valor de **{_formatar_brl(mais_barato.get('preco_vista'))}**. A diferença para o produto de maior preço é de "
+        f"**{_formatar_brl(diferenca)}** ({economia_pct:.1f}%). O menor preço, isoladamente, não substitui a avaliação de calibre, "
+        'configuração, documentação e finalidade legal de uso.',
+        '## Comparação objetiva',
+        '\n'.join(linhas_tabela),
+        '## Leitura técnica dos produtos',
+        '\n\n'.join(linhas_tecnicas),
+        '## Custo-benefício',
+        f"A opção de menor preço é **{mais_barato.get('nome', 'não informado')}**, da marca **{_valor_especificacao(mais_barato, 'marca')}**. "
+        f"Em relação ao produto de maior preço, a economia nominal é de **{_formatar_brl(diferenca)}**. "
+        'Essa conclusão é financeira e deve ser complementada pela conferência das especificações e da disponibilidade comercial.',
+        '## Conclusão',
+        'A escolha deve considerar o conjunto de especificações, a adequação ao perfil documentado do comprador, a disponibilidade e o atendimento à legislação vigente. Este parecer é informativo e não substitui orientação técnica, jurídica ou do fabricante.',
+    ])
+
+def normalizar_markdown_analise(texto):
+    """Remove cercas de código e garante uma apresentação Markdown consistente."""
+    if not texto:
+        return ''
+
+    texto = str(texto).strip()
+    texto = re.sub(r'^```(?:markdown|md)?\s*', '', texto, flags=re.IGNORECASE)
+    texto = re.sub(r'\s*```$', '', texto)
+    if not re.search(r'(?m)^#{1,6}\s+', texto):
+        texto = f"## Parecer técnico\n\n{texto}"
+    return texto
+
 
 def gerar_analise_comparativa(produtos_data):
     api_key = os.getenv('GROQ_API_KEY')
-    model_name = os.getenv('GROQ_MODEL', 'llama-3.1-8b-instant')
-    
-    if not api_key: return gerar_analise_local(produtos_data)
-    
+    model_name = os.getenv('GROQ_MODEL', 'openai/gpt-oss-120b')
+
+    if not api_key:
+        return gerar_analise_local(produtos_data)
+
     try:
         from groq import Groq
         client = Groq(api_key=api_key)
-        produtos_info = "\n\n".join([f"[ARMAMENTO: {p['nome'].upper()}]\nCategoria: {p['categoria']}\nCalibre: {p['calibre']}\nPreço: R$ {p['preco_vista']:.2f}\nMarca: {p['especificacoes']['marca']}" for p in produtos_data])
-        
-        prompt = f"Atue como um Engenheiro de Armamento e Instrutor Tático de nível Sênior. Abaixo estão os dados de armamentos. Utilize sua base de conhecimento real sobre os modelos para preencher dimensões, peso e capacidade padrão.\n\nDADOS COMERCIAIS:\n{produtos_info}\n\nESTRUTURA: 1. Resumo Técnico | 2. Comparação de Desempenho | 3. Adequação Operacional | 4. Veredito. Limite-se a 450 palavras. Não use emojis. Use os nomes reais das armas."
-        
+        produtos_info = "\n\n".join([
+            f"[ARMAMENTO: {p.get('nome', '').upper()}]\n"
+            f"Categoria: {p.get('categoria') or 'Não informado'}\n"
+            f"Calibre: {p.get('calibre') or 'Não informado'}\n"
+            f"Preço à vista: {_formatar_brl(p.get('preco_vista'))}\n"
+            f"Fabricante: {_valor_especificacao(p, 'marca')}\n"
+            f"Tipo: {_valor_especificacao(p, 'tipo')}\n"
+            f"Ação/sistema: {_valor_especificacao(p, 'funcionamento')}\n"
+            f"Peso: {_valor_especificacao(p, 'peso')}\n"
+            f"Comprimento: {_valor_especificacao(p, 'comprimento')}"
+            for p in produtos_data
+        ])
+
+        prompt = f"""Produza um parecer comparativo técnico, aprofundado e objetivo sobre os armamentos abaixo.
+
+DADOS CADASTRADOS:
+{produtos_info}
+
+REGRAS OBRIGATÓRIAS:
+1. Responda exclusivamente em Markdown válido, sem cercas de código e sem emojis.
+2. Use exatamente estas seções: `# Análise comparativa técnica`, `## Resumo executivo`, `## Comparação objetiva`, `## Avaliação técnica`, `## Custo-benefício` e `## Conclusão`.
+3. Inclua uma tabela Markdown comparando fabricante, calibre, tipo, ação/sistema, peso, comprimento e preço.
+4. Não invente especificações, capacidades, dimensões ou desempenho. Quando um dado não estiver informado, escreva `Não informado`.
+5. Diferencie claramente fatos presentes no cadastro de observações qualitativas. Não faça promessa de desempenho.
+6. Compare os produtos individualmente e depois apresente um veredito equilibrado. O texto deve ter entre 550 e 750 palavras, em PT-BR formal.
+7. Considere apenas uso legal, documentação e orientação do fabricante; não forneça instruções de emprego operacional.
+"""
+
         chat_completion = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": "Você é um perito em armamento tático. Responda em PT-BR, tom estritamente formal. Não use emojis."},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": "Você é um redator técnico especializado em fichas comparativas de produtos controlados. Seja preciso, formal e transparente sobre dados ausentes.",
+                },
+                {"role": "user", "content": prompt},
             ],
             model=model_name,
-            temperature=0.3,
-            max_tokens=1024,
+            temperature=0.2,
+            max_tokens=1800,
         )
-        return chat_completion.choices[0].message.content
-    except Exception:
+        resposta = chat_completion.choices[0].message.content
+        return normalizar_markdown_analise(resposta) or gerar_analise_local(produtos_data)
+    except Exception as e:
+        current_app.logger.warning("Falha na análise Groq; usando parecer local: %s", e)
         return gerar_analise_local(produtos_data)
