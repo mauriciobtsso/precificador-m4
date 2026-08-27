@@ -255,11 +255,17 @@
 	<div class="img-main-container rounded shadow-sm">
 	                {% set imagem = produto.foto_url or produto.imagem_principal %}
 	                {% if imagem %}
-	                    <img src="{{ gerar_link(imagem) }}" 
+                        {% set url_detalhe_original = gerar_link(imagem) %}
+                        {% set url_detalhe = imagem_otimizada(url_detalhe_original, 1200) %}
+                        {% set url_detalhe_media = imagem_otimizada(url_detalhe_original, 800) %}
+	                    <img src="{{ url_detalhe_media }}"
+                             srcset="{{ url_detalhe_media }} 800w, {{ url_detalhe }} 1200w"
+                             sizes="(max-width: 991px) 100vw, 58vw"
 	                         alt="{{ produto.nome_comercial or produto.nome }}" 
+                             width="800" height="600"
 	                         loading="eager" 
 	                         decoding="async" 
-	                         onerror="this.onerror=null; this.src='/static/img/placeholder.jpg';">
+                             onerror="this.onerror=null; this.src='{{ url_detalhe_original }}';">
 	                {% else %}
                     <div class="text-center text-muted opacity-50">
                         <i class="bi bi-image fs-1 d-block mb-2"></i>

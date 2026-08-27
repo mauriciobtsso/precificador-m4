@@ -7,15 +7,17 @@
 
     {# ── PRECONNECTS OTIMIZADOS (WPO) ── #}
     <link rel="preconnect" href="https://cdn.m4tatica.com.br" crossorigin>
-    <link rel="preconnect" href="https://www.googletagmanager.com">
     <link rel="dns-prefetch" href="https://cdn.m4tatica.com.br">
-    <link rel="dns-prefetch" href="https://www.googletagmanager.com">
 
     {# ── PRELOADS CRÍTICOS (LCP) ── #}
     <link rel="preload" as="image" href="{{ url_for('static', filename='img/logo.webp') }}" fetchpriority="high">
 
     {% if request.endpoint == 'loja.index' and banners %}
-        <link rel="preload" as="image" href="{{ gerar_link(banners[0].imagem_url) }}" fetchpriority="high">
+        {% set banner_preload_original = gerar_link(banners[0].imagem_url) %}
+        <link rel="preload" as="image"
+              href="{{ imagem_otimizada(banner_preload_original, 1200) }}"
+              imagesrcset="{{ imagem_otimizada(banner_preload_original, 640) }} 640w, {{ imagem_otimizada(banner_preload_original, 1200) }} 1200w"
+              imagesizes="100vw" fetchpriority="high">
     {% endif %}
 
     <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
@@ -48,6 +50,15 @@
         }
 
         @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 900; font-display: swap; src: local('Inter'); }
+
+        /* Reserva o espaço do hero antes de qualquer imagem/script. */
+        #heroCarousel { aspect-ratio: 3 / 1; min-height: 400px; background: #000; }
+        #heroCarousel .carousel-inner, #heroCarousel .carousel-item { height: 100%; }
+        .m4-banner-img { width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; display: block; }
+        .bi, [class^="bi-"], [class*=" bi-"] { display: inline-block; width: 1em; height: 1em; min-width: 1em; }
+        @media (max-width: 768px) {
+            #heroCarousel { aspect-ratio: 3 / 2; min-height: 0; }
+        }
 
         *, *::before, *::after { box-sizing: border-box; }
         body { font-family: 'Inter', system-ui, sans-serif; background-color: #fff; color: var(--m4-text); margin: 0; overflow-x: hidden; }
@@ -198,22 +209,14 @@
         }
     </style>
 
-    {# ── CSS NÃO-BLOQUEANTE: Bootstrap + ícones carregam após render ── #}
-    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}"></noscript>
-
-    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons-loja.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons-loja.css') }}"></noscript>
-
-    <link rel="preload" href="{{ url_for('static', filename='css/loja-card.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='css/loja-card.css') }}"></noscript>
+    {# ── CSS BASE: aplicado antes do layout para evitar CLS por reflow ── #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons-loja.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/loja-card.css') }}">
 
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    {# GTM noscript #}
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W786W67Z" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-
     <header>
 <script type="application/ld+json">
 {
@@ -394,26 +397,26 @@
     <script>
 (function() {
     var gtmLoaded = false;
+    var gtmTimer = null;
     function injectGTM() {
         if (gtmLoaded) return;
         gtmLoaded = true;
+        if (gtmTimer) clearTimeout(gtmTimer);
         (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
         var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
         j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
         f.parentNode.insertBefore(j,f);
         })(window,document,'script','dataLayer','GTM-W786W67Z');
     }
-
-    function scheduleGTM() {
-        if ('requestIdleCallback' in window) {
-            requestIdleCallback(function() { injectGTM(); }, { timeout: 3000 });
-        } else {
-            setTimeout(injectGTM, 3000);
-        }
+    function scheduleGTM(delay) {
+        if (gtmLoaded || gtmTimer) return;
+        gtmTimer = setTimeout(injectGTM, delay || 10000);
     }
-
-    ['scroll','touchstart','keydown','mouseover'].forEach(function(evt) {
-        window.addEventListener(evt, scheduleGTM, {once: true, passive: true});
+    // Analytics não compete com o primeiro carregamento; uma interação real
+    // do usuário ainda habilita o GTM rapidamente.
+    window.addEventListener('load', function() { scheduleGTM(10000); }, {once: true, passive: true});
+    ['scroll','touchstart','keydown','pointerdown'].forEach(function(evt) {
+        window.addEventListener(evt, function() { scheduleGTM(350); }, {once: true, passive: true});
     });
 })();
     </script>

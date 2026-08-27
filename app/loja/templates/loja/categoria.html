@@ -137,9 +137,7 @@
             {% if produtos %}
             <div class="row row-cols-2 row-cols-md-3 g-3 g-lg-4">
                 {% for produto in produtos %}
-                    {% with priority = "high" if loop.index <= 2 else "lazy" %}
-                        {% include 'loja/_card_produto.html' %}
-                    {% endwith %}
+                    {% include 'loja/_card_produto.html' %}
                 {% endfor %}
             </div>
 

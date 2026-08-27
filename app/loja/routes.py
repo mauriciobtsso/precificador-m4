@@ -10,6 +10,7 @@ from app.produtos.categorias.models import CategoriaProduto
 from app.models import Taxa, Configuracao
 from app.utils.r2_helpers import gerar_link_r2
 from app.utils.thumbnail_utils import get_thumb_url
+from app.catalogo.image_url_helper import convert_resized_url
 import app.utils.parcelamento as parcelamento_logic
 from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload, subqueryload
@@ -161,7 +162,10 @@ def inject_loja_data():
 
 @loja_bp.app_context_processor
 def inject_thumb_helper():
-    return dict(get_thumb_url=get_thumb_url)
+    return dict(
+        get_thumb_url=get_thumb_url,
+        imagem_otimizada=convert_resized_url,
+    )
 
 # ============================================================
 # VITRINE PRINCIPAL (CIRURGIA A LASER: OPTIMIZED GET_SMART_CAT)
@@ -182,7 +186,7 @@ def buscar_fuzzy():
                 'nome': p.nome_comercial or p.nome,
                 'slug': p.slug,
                 'preco': float(precos.get('preco_a_vista', 0)),
-                'foto': normalizar_foto_loja(p.foto_url) if p.foto_url else url_for('static', filename='img/sem-foto.jpg')
+                'foto': convert_resized_url(normalizar_foto_loja(p.foto_url), 80) if p.foto_url else url_for('static', filename='img/sem-foto.jpg')
             })
         return resultados
 

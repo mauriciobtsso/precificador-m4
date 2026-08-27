@@ -73,7 +73,7 @@
     {% if banners %}
     <div id="heroCarousel" class="carousel slide" 
          data-bs-ride="carousel" 
-         style="min-height: 400px; background: #000; contain-intrinsic-size: 1200px 400px; content-visibility: auto;">
+         style="background: #000;">
         
         {% if banners|length > 1 %}
         <div class="carousel-indicators">
@@ -87,20 +87,23 @@
             {% for banner in banners %}
             <div class="carousel-item {{ 'active' if loop.first }}" data-bs-interval="5000">
                 {% set banner_link = gerar_link(banner.imagem_url) %}
+                {% set banner_640 = imagem_otimizada(banner_link, 640) %}
+                {% set banner_1200 = imagem_otimizada(banner_link, 1200) %}
                 
                 {% if banner.link_destino %}
                     <a href="{{ banner.link_destino }}" class="stretched-link" aria-label="{{ banner.titulo }}"></a>
                 {% endif %}
 
                 <!-- LCP: imagem CDN estável com dimensões reservadas -->
-                <img src="{{ banner_link }}" 
-                     srcset="{{ banner_link }} 1200w"
+                <img src="{{ banner_1200 }}"
+                     srcset="{{ banner_640 }} 640w, {{ banner_1200 }} 1200w"
                      sizes="100vw"
                      class="d-block w-100 m4-banner-img" 
                      alt="{{ banner.titulo }}" 
                      width="1200" height="400" 
                      {% if loop.first %}fetchpriority="high" loading="eager"{% else %}loading="lazy"{% endif %}
-                     decoding="async">
+                     decoding="async"
+                     onerror="this.onerror=null; this.src='{{ banner_link }}';">
             </div>
             {% endfor %}
         </div>
@@ -120,8 +123,8 @@
 {% endif %}
 
 <style>
-    .m4-banner-img { width: 100%; height: auto; aspect-ratio: 1200 / 400; object-fit: cover; }
-    @media (max-width: 768px) { .m4-banner-img { aspect-ratio: 3 / 2; } }
+    .m4-banner-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
     .carousel-control-prev-icon, .carousel-control-next-icon { filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5)); }
 </style>
 
@@ -140,7 +143,7 @@
                         <div class="brand-card bg-white p-2 rounded shadow-sm border d-flex align-items-center justify-content-center"
                              style="height:80px;width:140px;overflow:hidden;">
                             {% if marca.logo_url %}
-                                <img src="{{ get_thumb_url(marca.logo_url, 't80') }}"
+                                <img src="{{ imagem_otimizada(marca.logo_url, 80) }}"
                                      alt="{{ marca.nome }}"
                                      class="brand-img"
                                      loading="lazy"
@@ -171,9 +174,7 @@
             </div>
             <div class="row row-cols-2 row-cols-md-4 g-4">
                 {% for produto in lancamentos %}
-                    {% with priority = "high" if loop.index <= 2 else "lazy" %}
-                        {% include 'loja/_card_produto.html' %}
-                    {% endwith %}
+                    {% include 'loja/_card_produto.html' %}
                 {% endfor %}
             </div>
         </section>
@@ -218,9 +219,7 @@
                     </div>
                     <div class="row row-cols-2 row-cols-md-4 g-4">
                         {% for produto in prods %}
-                            {% with priority = "lazy" %}
-                                {% include 'loja/_card_produto.html' %}
-                            {% endwith %}
+                            {% include 'loja/_card_produto.html' %}
                         {% endfor %}
                     </div>
                 </section>

@@ -150,7 +150,68 @@ def _convert_image_format(image_bytes: bytes, output_format: str = 'jpeg') -> by
         raise
 
 
-def get_image_with_fallback(image_path: str, accept_header: str = '') -> tuple:
+def _resize_image(image_bytes: bytes, width: int, output_format: str = 'webp', quality: int = 82) -> bytes:
+    """Redimensiona mantendo proporção para a entrega pública responsiva."""
+    if not 40 <= width <= 1600:
+        raise ValueError("Largura de imagem fora do intervalo permitido")
+    if output_format not in {'webp', 'jpeg'}:
+        raise ValueError("Formato de saída inválido")
+
+    with Image.open(io.BytesIO(image_bytes)) as img:
+        img.load()
+        img.thumbnail((width, width), Image.Resampling.LANCZOS)
+
+        if output_format == 'jpeg':
+            if img.mode in ('RGBA', 'LA', 'P'):
+                rgba = img.convert('RGBA')
+                background = Image.new('RGB', rgba.size, (255, 255, 255))
+                background.paste(rgba, mask=rgba.getchannel('A'))
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+
+        buffer = io.BytesIO()
+        save_kwargs = {
+            'format': 'WEBP' if output_format == 'webp' else 'JPEG',
+            'quality': max(50, min(95, quality)),
+            'method': 4,
+        }
+        if output_format == 'jpeg':
+            save_kwargs['optimize'] = True
+        img.save(buffer, **save_kwargs)
+        return buffer.getvalue()
+
+
+def _get_cache_backend():
+    """Retorna a instância de cache da loja, sem depender de internals do Flask."""
+    try:
+        from app.loja.routes import cache as loja_cache
+        if hasattr(loja_cache, 'get') and hasattr(loja_cache, 'set'):
+            return loja_cache
+    except Exception:
+        pass
+    return None
+
+
+def _get_resized_image(image_path: str, accept_header: str, width: int, quality: int) -> tuple:
+    """Baixa, redimensiona e cacheia uma imagem para o tamanho solicitado."""
+    output_format = 'webp' if _accepts_webp(accept_header) else 'jpeg'
+    cache_key = _get_cache_key(f"{image_path}:{width}:{quality}", output_format)
+    cache = _get_cache_backend()
+
+    if cache:
+        cached_image = cache.get(cache_key)
+        if cached_image:
+            return cached_image, f'image/{output_format}', output_format
+
+    image_bytes = _download_image_from_cdn(image_path)
+    resized_bytes = _resize_image(image_bytes, width, output_format, quality)
+    if cache:
+        cache.set(cache_key, resized_bytes, timeout=CACHE_TIMEOUT)
+    return resized_bytes, f'image/{output_format}', output_format
+
+
+def get_image_with_fallback(image_path: str, accept_header: str = '', width: int = None, quality: int = 82) -> tuple:
     """
     Retorna a imagem com fallback automático para JPEG se necessário.
     
@@ -166,7 +227,12 @@ def get_image_with_fallback(image_path: str, accept_header: str = '') -> tuple:
         tuple (image_bytes, content_type, output_format)
     """
     
-    # Se cliente aceita WebP, retorna URL original (sem conversão)
+    # Quando há largura, o proxy entrega uma imagem realmente menor. Sem
+    # largura, preservamos o contrato anterior e redirecionamos WebP.
+    if width:
+        return _get_resized_image(image_path, accept_header, width, quality)
+
+    # Se cliente aceita WebP, retorna URL original do CDN (sem proxy)
     if _accepts_webp(accept_header):
         logger.debug(f"[IMAGE_PROXY] Cliente suporta WebP: {image_path}")
         url = f"{CDN_URL}/{image_path.lstrip('/')}"
@@ -197,7 +263,7 @@ def get_image_with_fallback(image_path: str, accept_header: str = '') -> tuple:
         
         # Armazena no cache
         try:
-            cache = current_app.extensions.get('cache')
+            cache = _get_cache_backend()
             if cache:
                 cache.set(cache_key, converted_bytes, timeout=CACHE_TIMEOUT)
                 logger.info(f"[IMAGE_PROXY] Imagem cacheada: {cache_key}")
@@ -236,9 +302,21 @@ def serve_image_with_fallback(image_path: str) -> any:
         raise BadRequest("Caminho inválido")
     
     accept_header = request.headers.get('Accept', '')
+    width_raw = request.args.get('w')
+    quality_raw = request.args.get('q', '82')
+    width = None
+    quality = 82
+    if width_raw is not None:
+        try:
+            width = int(width_raw)
+            quality = int(quality_raw)
+        except (TypeError, ValueError):
+            raise BadRequest("Parâmetros de imagem inválidos")
+        if not 40 <= width <= 1600 or not 50 <= quality <= 95:
+            raise BadRequest("Parâmetros de imagem fora do intervalo permitido")
     
     try:
-        result = get_image_with_fallback(image_path, accept_header)
+        result = get_image_with_fallback(image_path, accept_header, width, quality)
         
         # Se for URL (cliente suporta WebP), redireciona
         if isinstance(result[0], str):
@@ -248,12 +326,17 @@ def serve_image_with_fallback(image_path: str) -> any:
         # Se for bytes (cliente não suporta WebP), serve a imagem convertida
         image_bytes, content_type, output_format = result
         
-        return send_file(
+        response = send_file(
             io.BytesIO(image_bytes),
             mimetype=content_type,
             as_attachment=False,
             download_name=f"image.{output_format}"
         )
+        response.cache_control.public = True
+        response.cache_control.max_age = CACHE_TIMEOUT
+        response.cache_control.no_cache = False
+        response.headers['Vary'] = 'Accept'
+        return response
     
     except NotFound:
         logger.warning(f"[IMAGE_PROXY] Imagem não encontrada: {image_path}")

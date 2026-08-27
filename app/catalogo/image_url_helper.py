@@ -63,6 +63,23 @@ def convert_image_url(cdn_url: str, size_key: str = None) -> str:
     return f"/catalogo/image-proxy/{image_path}"
 
 
+def convert_resized_url(original_url: str, width: int = 280, quality: int = 82) -> str:
+    """Retorna uma URL local que entrega a imagem redimensionada sob demanda."""
+    if not original_url:
+        return ''
+    if original_url.startswith(('/static/', 'data:image/')):
+        return original_url
+
+    if original_url.startswith('/catalogo/image-proxy/'):
+        proxy_url = original_url
+    else:
+        proxy_url = convert_image_url(original_url)
+
+    if not proxy_url.startswith('/catalogo/image-proxy/'):
+        return proxy_url
+    return f"{proxy_url}?w={int(width)}&q={int(quality)}"
+
+
 def convert_thumb_url(original_url: str, size_key: str = 't280') -> str:
     """
     Atalho para converter URLs de thumbnails.
