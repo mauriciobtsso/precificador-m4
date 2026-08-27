@@ -169,9 +169,10 @@ def gerar_pdf_pedido(pedido: PedidoCompra) -> str:
         fornecedor_endereco=fornecedor_endereco,
         fornecedor_cr=fornecedor_cr,
         fornecedor_contato=fornecedor_contato,
+        output_path=str(filepath),
     )
 
-    # Salva
-    salvar_pdf(pdf_obj or "pedido_m4.pdf", filepath)
+    # Mantém a gravação atômica e compatibilidade com o adaptador existente.
+    salvar_pdf(pdf_obj or str(filepath), filepath)
 
     return str(filepath)

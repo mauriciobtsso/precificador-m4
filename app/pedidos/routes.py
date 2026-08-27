@@ -7,6 +7,22 @@ from app.clientes.models import Cliente
 from app.utils.number_helpers import parse_brl, parse_pct
 from app.pedidos import pedidos_bp
 from sqlalchemy import func, desc
+import re
+
+
+def _documento_digitos(valor):
+    return re.sub(r"\D", "", str(valor or ""))
+
+
+def _cliente_eh_cnpj(cliente):
+    """Identifica CNPJ mesmo quando salvo formatado ou sem pontuação."""
+    return len(_documento_digitos(getattr(cliente, "documento", None))) == 14
+
+
+def _fornecedores_com_cnpj():
+    """Lista somente pessoas jurídicas cadastradas como fornecedores."""
+    fornecedores = [c for c in Cliente.query.all() if _cliente_eh_cnpj(c)]
+    return sorted(fornecedores, key=lambda c: (c.nome or "").casefold())
 
 
 # ---------------------------------------------------
@@ -17,6 +33,14 @@ from sqlalchemy import func, desc
 def novo_pedido():
     if request.method == "POST":
         fornecedor_id = request.form.get("fornecedor")
+        try:
+            fornecedor = db.session.get(Cliente, int(fornecedor_id)) if fornecedor_id else None
+        except (TypeError, ValueError):
+            fornecedor = None
+        if not fornecedor or not _cliente_eh_cnpj(fornecedor):
+            flash("Selecione um fornecedor cadastrado com CNPJ.", "warning")
+            return redirect(url_for("pedidos.novo_pedido"))
+
         cond_pagto = request.form.get("cond_pagto")
         modo = request.form.get("modo_desconto")
 
@@ -69,10 +93,7 @@ def novo_pedido():
         flash("Pedido criado com sucesso!", "success")
         return redirect(url_for("pedidos.listar_pedidos"))
 
-    fornecedores = [
-        c for c in Cliente.query.all()
-        if getattr(c, "documento", None) and (len(c.documento) > 11) # Filtra PJ
-    ]
+    fornecedores = _fornecedores_com_cnpj()
     return render_template("pedidos/novo.html", fornecedores=fornecedores)
 
 
@@ -125,7 +146,7 @@ def editar_pedido(id):
         flash("Pedido atualizado com sucesso!", "success")
         return redirect(url_for("pedidos.listar_pedidos"))
 
-    fornecedores = Cliente.query.all()
+    fornecedores = _fornecedores_com_cnpj()
     return render_template("pedidos/novo.html", pedido=pedido, fornecedores=fornecedores)
 
 
