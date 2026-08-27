@@ -36,7 +36,7 @@ def format_brl(value: float) -> str:
         number = float(value or 0)
     except (TypeError, ValueError):
         number = 0.0
-    return f"R$ {number:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"R$ {number:,.4f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def format_pct(value: float) -> str:

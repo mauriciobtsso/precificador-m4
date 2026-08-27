@@ -2,7 +2,10 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from app.pedidos.routes import _cliente_eh_cnpj
-from app.utils.gerar_pedidos import gerar_pedido_m4
+from app.utils.gerar_pedidos import format_brl, gerar_pedido_m4
+
+
+TEMPLATE = Path(__file__).parents[1] / "app/templates/pedidos/novo.html"
 
 
 def test_fornecedor_com_cnpj_formatado_eh_aceito():
@@ -12,12 +15,25 @@ def test_fornecedor_com_cnpj_formatado_eh_aceito():
     assert not _cliente_eh_cnpj(SimpleNamespace(documento=None))
 
 
+def test_formulario_de_valores_usa_quatro_casas_decimais():
+    conteudo = TEMPLATE.read_text(encoding="utf-8")
+
+    assert "('%.4f' % (item.valor_unitario or 0))" in conteudo
+    assert "scale:4" in conteudo
+    assert "minimumFractionDigits:4" in conteudo
+    assert "maximumFractionDigits:4" in conteudo
+
+
+def test_formatacao_monetaria_preserva_quatro_casas():
+    assert format_brl(1.1111) == "R$ 1,1111"
+
+
 def test_gerador_pdf_cria_documento_comercial_no_caminho_informado(tmp_path):
     destino = tmp_path / "pedido-teste.pdf"
     caminho = gerar_pedido_m4(
-        itens=[("SKU-01", "Rifle de teste", 2, 1000.0)],
+        itens=[("SKU-01", "Rifle de teste", 2, 1.1111)],
         cond_pagto="30 dias",
-        perc_armas=-5,
+        perc_armas=0,
         perc_municoes=-3,
         modo="por_tipo",
         numero_pedido="20260001",
