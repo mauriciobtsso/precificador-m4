@@ -183,7 +183,7 @@ def gerar_pedido_m4(
         Paragraph(f"CR: {_safe(fornecedor_cr)}", styles["M4SmallDark"]),
     ]
     supplier_contact = [
-        Paragraph("<b>CONTATO E ENTREGA</b>", styles["M4Section"]),
+        Paragraph("<b>ENDEREÇO E CONTATO DO FORNECEDOR</b>", styles["M4Section"]),
         Paragraph(f"{_safe(fornecedor_endereco)}", styles["M4SmallDark"]),
         Paragraph(f"Contato: {_safe(fornecedor_contato)}", styles["M4SmallDark"]),
     ]
@@ -269,7 +269,7 @@ def gerar_pedido_m4(
         ("TOPPADDING", (0, 0), (-1, -1), 2 * mm),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 2 * mm),
     ]))
-    story.extend([totals, Spacer(1, 5 * mm), Paragraph("Documento comercial sujeito à conferência de disponibilidade, valores, condição de pagamento e demais condições acordadas entre as partes. Não substitui nota fiscal.", styles["M4Small"])])
+    story.extend([totals, Spacer(1, 5 * mm), Paragraph("Solicitação de compra emitida pela M4 Tática. Valores e condições sujeitos à confirmação do fornecedor.", styles["M4Small"])])
 
     doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
     return output_path

@@ -28,6 +28,15 @@ def test_formatacao_monetaria_preserva_quatro_casas():
     assert format_brl(1.1111) == "R$ 1,1111"
 
 
+def test_pdf_usa_linguagem_de_solicitacao_de_compra():
+    conteudo = (Path(__file__).parents[1] / "app/utils/gerar_pedidos.py").read_text(encoding="utf-8")
+
+    assert "ENDEREÇO E CONTATO DO FORNECEDOR" in conteudo
+    assert "Solicitação de compra emitida pela M4 Tática" in conteudo
+    assert "CONTATO E ENTREGA" not in conteudo
+    assert "Não substitui nota fiscal" not in conteudo
+
+
 def test_gerador_pdf_cria_documento_comercial_no_caminho_informado(tmp_path):
     destino = tmp_path / "pedido-teste.pdf"
     caminho = gerar_pedido_m4(
