@@ -457,7 +457,36 @@
         {{ produto.descricao | safe }}
     </div>
     {% endif %}
-</div>
+
+    <!-- CTA: Google Fontes Preferidas -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="google-follow-card p-4 rounded text-center shadow-sm" style="background-color: var(--m4-gray-bg); border: 1px solid #e5e5e5;">
+                <i class="bi bi-google mb-3 d-block" style="font-size: 2rem; color: #4285F4;"></i>
+                <p class="fw-bold mb-2 h5" style="color: var(--m4-text);">Priorize a M4 Tática no Google</p>
+                <p class="text-muted small mb-4 mx-auto" style="max-width: 550px;">
+                    Não perca nossos estoques de munição e lançamentos. Marque nossa loja como sua fonte preferida no Google e garanta que nossas ofertas e artigos técnicos apareçam no topo das suas pesquisas.
+                </p>
+                <a href="https://www.google.com/preferences/source?hl=pt-br" 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   class="btn fw-bold px-4 py-2" 
+                   style="background-color: #4285F4; color: #fff; transition: 0.3s; border-radius: 4px;">
+                    <i class="bi bi-star-fill me-2" aria-hidden="true"></i> Definir como Fonte Preferida
+                </a>
+            </div>
+        </div>
+    </div>
+    <style>
+        .google-follow-card a.btn:hover {
+            background-color: #3367d6 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.25);
+        }
+    </style>
+    <!-- FIM CTA -->
+
+</div> <!-- Fim Detail Container -->
 
 <style>
     .border-bottom-dashed { border-bottom: 1px dashed #dee2e6 !important; }
