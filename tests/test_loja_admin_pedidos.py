@@ -35,3 +35,20 @@ def test_layout_do_admin_reduz_fonte_e_bloqueia_overflow_horizontal():
     assert "font-size: 0.9rem" in conteudo
     assert "overflow-x: hidden" in conteudo
     assert "main { min-width: 0; }" in conteudo
+
+
+def test_valores_do_admin_usam_filtro_de_moeda_brasileira():
+    lista = (ROOT / "app/loja_admin/templates/loja_admin/pedidos/lista.html").read_text(encoding="utf-8")
+    detalhe = DETAIL.read_text(encoding="utf-8")
+    imprimir = PRINT.read_text(encoding="utf-8")
+    assert "pedido.total_pedido|currency" in lista
+    assert "pedido.total_pedido|currency" in detalhe
+    assert "item.preco_unitario_historico|currency" in detalhe
+    assert "pedido.total_pedido|currency" in imprimir
+
+
+def test_novo_pedido_quantiza_totais_antes_de_persistir():
+    rotas = (ROOT / "app/carrinho/routes.py").read_text(encoding="utf-8")
+    assert "from decimal import Decimal, ROUND_HALF_UP" in rotas
+    assert "total_pedido = (total_produtos + total_frete).quantize" in rotas
+    assert "total_pedido=total_pedido" in rotas

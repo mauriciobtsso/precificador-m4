@@ -41,23 +41,23 @@
                                 <div class="small text-muted">Código: {{ item.produto.codigo if item.produto and item.produto.codigo else '-' }}</div>
                             </td>
                             <td class="text-center">{{ item.quantidade }}</td>
-                            <td class="text-end">R$ {{ "%.2f"|format(item.preco_unitario_historico) }}</td>
-                            <td class="text-end px-4 fw-bold">R$ {{ "%.2f"|format(item.quantidade * item.preco_unitario_historico) }}</td>
+                            <td class="text-end">{{ item.preco_unitario_historico|currency }}</td>
+                            <td class="text-end px-4 fw-bold">{{ (item.quantidade * item.preco_unitario_historico)|currency }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot class="bg-light fw-bold">
                         <tr>
                             <td colspan="3" class="text-end px-4">Produtos:</td>
-                            <td class="text-end px-4">R$ {{ "%.2f"|format(pedido.total_produtos) }}</td>
+                            <td class="text-end px-4">{{ pedido.total_produtos|currency }}</td>
                         </tr>
                         <tr>
                             <td colspan="3" class="text-end px-4">Frete:</td>
-                            <td class="text-end px-4">R$ {{ "%.2f"|format(pedido.total_frete) }}</td>
+                            <td class="text-end px-4">{{ pedido.total_frete|currency }}</td>
                         </tr>
                         <tr class="text-primary fs-5">
                             <td colspan="3" class="text-end px-4">TOTAL:</td>
-                            <td class="text-end px-4">R$ {{ "%.2f"|format(pedido.total_pedido) }}</td>
+                            <td class="text-end px-4">{{ pedido.total_pedido|currency }}</td>
                         </tr>
                     </tfoot>
                 </table>

@@ -13,6 +13,7 @@ import requests
 import json
 import uuid
 import sqlalchemy as sa
+from decimal import Decimal, ROUND_HALF_UP
 
 
 def _cep_apenas_digitos(valor):
@@ -362,6 +363,10 @@ def processar_pedido():
                 return jsonify({"success": False, "message": "A retirada na loja está disponível apenas para CEPs da cidade de origem."}), 400
             valor_frete = 0.0
 
+        total_produtos = Decimal(str(carrinho.total_avista or 0)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        total_frete = Decimal(str(valor_frete or 0)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        total_pedido = (total_produtos + total_frete).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
         try:
             parcelas = max(1, int(data.get('parcelas') or 1))
         except (TypeError, ValueError):
@@ -386,9 +391,9 @@ def processar_pedido():
             bairro=bairro,
             cidade=cidade,
             estado=estado,
-            total_produtos=carrinho.total_avista,
-            total_frete=valor_frete,
-            total_pedido=float(carrinho.total_avista) + valor_frete,
+            total_produtos=total_produtos,
+            total_frete=total_frete,
+            total_pedido=total_pedido,
             forma_pagamento=(texto('metodo_pagamento') or 'pix'),
             parcelas=parcelas,
             status='pendente'

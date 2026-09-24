@@ -41,8 +41,8 @@
     <h2>Itens do pedido</h2>
     <table>
         <thead><tr><th>Código</th><th>Produto</th><th class="center">Quantidade</th><th class="right">Unitário</th><th class="right">Subtotal</th></tr></thead>
-        <tbody>{% for item in pedido.items %}<tr><td>{{ item.produto.codigo if item.produto and item.produto.codigo else '-' }}</td><td>{{ item.produto.nome if item.produto else 'Produto removido' }}</td><td class="center">{{ item.quantidade }}</td><td class="right">R$ {{ '%.2f'|format(item.preco_unitario_historico) }}</td><td class="right">R$ {{ '%.2f'|format(item.quantidade * item.preco_unitario_historico) }}</td></tr>{% else %}<tr><td colspan="5">Nenhum item registrado.</td></tr>{% endfor %}</tbody>
+        <tbody>{% for item in pedido.items %}<tr><td>{{ item.produto.codigo if item.produto and item.produto.codigo else '-' }}</td><td>{{ item.produto.nome if item.produto else 'Produto removido' }}</td><td class="center">{{ item.quantidade }}</td><td class="right">{{ item.preco_unitario_historico|currency }}</td><td class="right">{{ (item.quantidade * item.preco_unitario_historico)|currency }}</td></tr>{% else %}<tr><td colspan="5">Nenhum item registrado.</td></tr>{% endfor %}</tbody>
     </table>
-    <div class="totals"><div><span>Produtos</span><span>R$ {{ '%.2f'|format(pedido.total_produtos) }}</span></div><div><span>Frete</span><span>R$ {{ '%.2f'|format(pedido.total_frete) }}</span></div><div class="total"><span>Total</span><span>R$ {{ '%.2f'|format(pedido.total_pedido) }}</span></div></div>
+    <div class="totals"><div><span>Produtos</span><span>{{ pedido.total_produtos|currency }}</span></div><div><span>Frete</span><span>{{ pedido.total_frete|currency }}</span></div><div class="total"><span>Total</span><span>{{ pedido.total_pedido|currency }}</span></div></div>
 </body>
 </html>
