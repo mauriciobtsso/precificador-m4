@@ -11,6 +11,7 @@
 <div class="card border-0 shadow-sm">
     <div class="card-body p-4 p-lg-5">
         <form method="POST" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="row g-4">
                 <div class="col-12">
                     <label for="titulo" class="form-label fw-semibold">Título <span class="text-danger">*</span></label>

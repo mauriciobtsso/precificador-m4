@@ -31,8 +31,9 @@
                     <td class="text-end text-nowrap">
                         <a href="{{ url_for('loja_admin.gerenciar_link_util', id=link.id) }}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="bi bi-pencil"></i></a>
                         <form method="POST" action="{{ url_for('loja_admin.excluir_link_util', id=link.id) }}" class="d-inline" onsubmit="return confirm('Excluir este link útil?');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>
-                        </form>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>
+</form>
                     </td>
                 </tr>
             {% else %}
