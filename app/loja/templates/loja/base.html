@@ -338,6 +338,7 @@
                     <h2 class="footer-title">Conteúdo</h2>
                     <ul class="list-unstyled">
                         <li><a href="{{ url_for('loja.fale_conosco') }}">Fale Conosco</a></li>
+                        <li><a href="{{ url_for('loja.links_uteis') }}">Links úteis</a></li>
                         {% for p in paginas_rodape %}<li><a href="{{ url_for('loja.exibir_pagina', slug=p.slug) }}">{{ p.titulo }}</a></li>{% endfor %}
                     </ul>
                 </div>

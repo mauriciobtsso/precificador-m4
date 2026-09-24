@@ -1,0 +1,45 @@
+{% extends 'loja_admin/base_admin.html' %}
+
+{% block title %}Links úteis | M4 Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <div class="text-muted small text-uppercase fw-bold">Conteúdo da loja</div>
+        <h1 class="h3 fw-bold mb-1">Links úteis</h1>
+        <p class="text-muted mb-0">Acessos publicados no rodapé da vitrine.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('loja.links_uteis') }}" target="_blank" class="btn btn-outline-secondary"><i class="bi bi-eye me-1"></i>Ver página</a>
+        <a href="{{ url_for('loja_admin.gerenciar_link_util') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo link</a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Ordem</th><th>Título</th><th>Resumo</th><th>Status</th><th class="text-end">Ações</th></tr>
+            </thead>
+            <tbody>
+            {% for link in links %}
+                <tr>
+                    <td class="fw-bold text-muted">{{ link.ordem }}</td>
+                    <td><div class="fw-semibold">{{ link.titulo }}</div><a href="{{ link.url }}" target="_blank" rel="noopener" class="small text-break">{{ link.url }}</a></td>
+                    <td class="text-muted">{% if link.resumo %}{{ link.resumo }}{% else %}<span class="fst-italic">Sem resumo</span>{% endif %}</td>
+                    <td>{% if link.ativo %}<span class="badge text-bg-success">Publicado</span>{% else %}<span class="badge text-bg-secondary">Oculto</span>{% endif %}</td>
+                    <td class="text-end text-nowrap">
+                        <a href="{{ url_for('loja_admin.gerenciar_link_util', id=link.id) }}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="bi bi-pencil"></i></a>
+                        <form method="POST" action="{{ url_for('loja_admin.excluir_link_util', id=link.id) }}" class="d-inline" onsubmit="return confirm('Excluir este link útil?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-link-45deg fs-2 d-block mb-2"></i>Nenhum link cadastrado.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

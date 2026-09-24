@@ -1,4 +1,4 @@
-# Correção do ciclo de vida das promoções de produtos
+# Registro de manutenções da aplicação M4 Tática
 
 ## Contexto
 
@@ -36,3 +36,26 @@ Os novos testes cobrem a conversão de `R$ 2.050,00`, a interpretação do horá
 ## Entrega
 
 A alteração foi preparada para commit e envio na branch `main` do repositório `mauriciobtsso/precificador-m4`.
+
+## Nova tarefa planejada — Links úteis
+
+Será implementada uma área pública de **Links úteis** na loja, com acesso discreto pelo rodapé, e uma área administrativa para cadastrar, editar, excluir, ordenar e controlar a publicação desses links. Cada link poderá ter título, URL, resumo opcional e status de publicação. A página pública será responsiva, organizada e visualmente consistente com o design atual da loja; resumos vazios não serão renderizados nem exibidos como `None`.
+
+## Links úteis — execução concluída
+
+Foi criada a tabela `loja_links_uteis`, com migração Alembic `b7c4d91f2a10_criar_links_uteis_da_loja.py`. O modelo suporta título, URL, resumo opcional, ordem de exibição, status de publicação e timestamps.
+
+Na administração da loja, foram adicionados o menu lateral, o indicador no dashboard e o CRUD completo em `/admin-loja/links-uteis`. É possível criar, editar, publicar, ocultar, ordenar e excluir links. URLs externas são validadas para aceitar somente `http://` e `https://`; caminhos internos iniciados por `/` também são aceitos. Resumos são normalizados para `NULL` quando vazios.
+
+Na loja pública, foi criada a página `/loja/links-uteis`, que no modo de vitrine pública fica disponível em `/links-uteis`. A página exibe somente registros ativos, ordenados pelo campo configurado, abre links externos em nova aba e possui layout responsivo com cards alinhados ao visual escuro e dourado da M4 Tática. O acesso foi incluído discretamente no bloco “Conteúdo” do rodapé.
+
+A rota também foi adicionada ao sitemap público da loja.
+
+O template público condiciona a renderização do resumo ao seu preenchimento; portanto, resumos vazios não geram texto, `None` ou espaços reservados visíveis.
+
+### Validação da funcionalidade de links úteis
+
+- `pytest -q tests/test_links_uteis.py` — **2 testes aprovados**.
+- `python3 -m py_compile app/loja/models_admin.py app/loja/routes.py app/loja_admin/routes.py migrations/versions/b7c4d91f2a10_criar_links_uteis_da_loja.py` — aprovado.
+- `git diff --check` — aprovado.
+- Verificação do grafo de migrações — `b7c4d91f2a10` identificado como head único.

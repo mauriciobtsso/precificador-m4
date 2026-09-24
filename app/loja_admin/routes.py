@@ -1,13 +1,14 @@
 import os
 import re
 import unicodedata
+from urllib.parse import urlparse
 from flask import render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
 # IMPORTANTE: Adicionado o and_ aqui
 from sqlalchemy import or_, and_ 
 from app.produtos.models import Produto
 from app.loja_admin import loja_admin_bp
-from app.loja.models_admin import Banner, PaginaInstitucional
+from app.loja.models_admin import Banner, PaginaInstitucional, LinkUtil
 from app.models import Configuracao
 from app.carrinho.models import Pedido
 from app.extensions import db
@@ -31,6 +32,7 @@ def inject_helpers():
 def index():
     total_banners = Banner.query.count()
     total_paginas = PaginaInstitucional.query.count()
+    total_links_uteis = LinkUtil.query.count()
     
     # Estatísticas de Pedidos
     total_pedidos = Pedido.query.count()
@@ -39,6 +41,7 @@ def index():
     return render_template('loja_admin/index.html', 
                            total_banners=total_banners, 
                            total_paginas=total_paginas,
+                           total_links_uteis=total_links_uteis,
                            total_pedidos=total_pedidos,
                            pedidos_pendentes=pedidos_pendentes)
 
@@ -163,6 +166,67 @@ def excluir_pagina(id):
     db.session.commit()
     flash("Página excluída!", "success")
     return redirect(url_for('loja_admin.paginas'))
+
+# =========================================================
+# GERENCIAR LINKS ÚTEIS
+# =========================================================
+def _url_link_util_valida(valor):
+    """Aceita links externos HTTP(S) e caminhos internos da própria loja."""
+    url = (valor or '').strip()
+    if url.startswith('/'):
+        return url
+    parsed = urlparse(url)
+    if parsed.scheme in ('http', 'https') and parsed.netloc:
+        return url
+    return None
+
+
+@loja_admin_bp.route('/links-uteis')
+@login_required
+def links_uteis():
+    links = LinkUtil.query.order_by(LinkUtil.ordem.asc(), LinkUtil.titulo.asc()).all()
+    return render_template('loja_admin/links_uteis/lista.html', links=links)
+
+
+@loja_admin_bp.route('/links-uteis/novo', methods=['GET', 'POST'])
+@loja_admin_bp.route('/links-uteis/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def gerenciar_link_util(id=None):
+    link = LinkUtil.query.get(id) if id else LinkUtil()
+    if request.method == 'POST':
+        titulo = (request.form.get('titulo') or '').strip()
+        url = _url_link_util_valida(request.form.get('url'))
+        resumo = (request.form.get('resumo') or '').strip() or None
+
+        if not titulo:
+            flash('Informe um título para o link.', 'danger')
+            return render_template('loja_admin/links_uteis/form.html', link=link)
+        if not url:
+            flash('Informe uma URL válida, começando por http://, https:// ou /.', 'danger')
+            return render_template('loja_admin/links_uteis/form.html', link=link)
+
+        link.titulo = titulo
+        link.url = url
+        link.resumo = resumo
+        link.ordem = request.form.get('ordem', 0, type=int) or 0
+        link.ativo = 'ativo' in request.form
+        if not id:
+            db.session.add(link)
+        db.session.commit()
+        flash(f"Link {'atualizado' if id else 'criado'} com sucesso!", 'success')
+        return redirect(url_for('loja_admin.links_uteis'))
+
+    return render_template('loja_admin/links_uteis/form.html', link=link)
+
+
+@loja_admin_bp.route('/links-uteis/excluir/<int:id>', methods=['POST'])
+@login_required
+def excluir_link_util(id):
+    link = LinkUtil.query.get_or_404(id)
+    db.session.delete(link)
+    db.session.commit()
+    flash('Link útil excluído!', 'success')
+    return redirect(url_for('loja_admin.links_uteis'))
 
 # =========================================================
 # CONFIGURAÇÕES DA LOJA (VERSÃO INTELIGENTE: CRIA CHAVES NOVAS)

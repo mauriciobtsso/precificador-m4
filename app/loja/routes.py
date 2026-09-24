@@ -4,7 +4,7 @@ from flask import render_template, abort, request, url_for, send_from_directory,
 from flask_login import login_required
 from app.loja import loja_bp
 from app import db
-from app.loja.models_admin import Banner, PaginaInstitucional
+from app.loja.models_admin import Banner, PaginaInstitucional, LinkUtil
 from app.produtos.models import Produto
 from app.produtos.categorias.models import CategoriaProduto
 from app.models import Taxa, Configuracao
@@ -488,6 +488,11 @@ def exibir_pagina(slug):
     pagina = PaginaInstitucional.query.filter_by(slug=slug).first_or_404()
     return render_template('loja/pagina_institucional.html', pagina=pagina)
 
+@loja_bp.route('/links-uteis')
+def links_uteis():
+    links = LinkUtil.query.filter_by(ativo=True).order_by(LinkUtil.ordem.asc(), LinkUtil.titulo.asc()).all()
+    return render_template('loja/links_uteis.html', links=links)
+
 @loja_bp.route('/fale-conosco')
 @cache.cached(timeout=3600)
 def fale_conosco():
@@ -511,6 +516,7 @@ def sitemap():
     
     # 2. Rota Principal (Home)
     xml.append(f'  <url>\n    <loc>{base_url}/</loc>\n    <lastmod>{hoje}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>')
+    xml.append(f'  <url>\n    <loc>{base_url}/links-uteis</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.5</priority>\n  </url>')
     
     # 3. Rotas de Categorias
     categorias = CategoriaProduto.query.with_entities(CategoriaProduto.slug).all()

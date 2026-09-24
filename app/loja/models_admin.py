@@ -33,3 +33,23 @@ class PaginaInstitucional(db.Model):
 
     def __repr__(self):
         return f"<Pagina {self.titulo}>"
+
+# =========================
+# Links Úteis
+# =========================
+class LinkUtil(db.Model):
+    """Link editorial controlado pela administração e exibido na loja pública."""
+
+    __tablename__ = "loja_links_uteis"
+
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(120), nullable=False)
+    url = db.Column(db.String(1000), nullable=False)
+    resumo = db.Column(db.String(500), nullable=True)
+    ativo = db.Column(db.Boolean, nullable=False, default=True, index=True)
+    ordem = db.Column(db.Integer, nullable=False, default=0, index=True)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    atualizado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<LinkUtil {self.titulo}>"

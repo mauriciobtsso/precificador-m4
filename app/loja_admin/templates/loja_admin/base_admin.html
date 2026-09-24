@@ -63,6 +63,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ 'active' if 'link_util' in (request.endpoint or '') }}" href="{{ url_for('loja_admin.links_uteis') }}">
+                            <i class="bi bi-link-45deg"></i> Links úteis
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ 'active' if 'auditoria_loja' in request.endpoint }}" href="{{ url_for('loja_admin.auditoria_loja') }}">
                             <i class="bi bi-clipboard-check"></i> Auditoria de Dados
                         </a>
