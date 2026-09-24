@@ -12,6 +12,8 @@ import re
 from app import db
 from app.produtos.models import Produto
 from app.produtos.utils.historico_helper import registrar_historico
+from app.utils.parsing import parse_decimal, parse_form_datetime
+from app.utils.datetime import now_local
 
 # Importamos o Blueprint principal do módulo
 from .. import produtos_bp 
@@ -35,36 +37,7 @@ def _parse_decimal(valor):
     o formato brasileiro (ponto como milhar, vírgula como decimal).
     Ex: "R$ 9.750,50" -> Decimal('9750.50')
     """
-    if valor is None or valor == "":
-        return None
-    
-    if isinstance(valor, (int, float, Decimal)):
-        return valor
-
-    try:
-        valor_str = str(valor)
-        
-        # 1. Remove símbolos não numéricos (R$, %, espaços, etc.) exceto . , e -
-        valor_limpo = re.sub(r'[^\d.,-]', '', valor_str)
-        
-        if not valor_limpo:
-            return None
-        
-        # 2. CRÍTICO: Trata o separador de milhar (ponto) e o separador decimal (vírgula)
-        # Se houver ponto E vírgula, remove o ponto (milhar) e troca a vírgula (decimal) por ponto.
-        if '.' in valor_limpo and ',' in valor_limpo:
-            # Ex: 1.000,00 -> 1000,00 -> 1000.00
-            valor_limpo = valor_limpo.replace('.', '')
-            valor_limpo = valor_limpo.replace(',', '.')
-        elif ',' in valor_limpo:
-            # Se só houver vírgula, troca por ponto. Ex: 100,00 -> 100.00
-            valor_limpo = valor_limpo.replace(',', '.')
-        # Se só houver ponto (ou nenhum), Decimal(valor_limpo) funciona. Ex: 100.00 (US) ou 1000 (sem separador).
-
-        return Decimal(valor_limpo)
-    except (InvalidOperation, ValueError):
-        # Em caso de falha na conversão final, retorna None para não quebrar a transação.
-        return None
+    return parse_decimal(valor)
 
 @produtos_bp.route("/autosave/<int:produto_id>", methods=["POST"])
 @login_required
@@ -99,7 +72,7 @@ def autosave_produto(produto_id):
             produto.meta_title = valor_novo
             valor_final = valor_novo
         elif campo in CAMPOS_DATAS:
-            valor_final = None if not valor_novo else valor_novo
+            valor_final = parse_form_datetime(valor_novo)
         else:
             if isinstance(valor_novo, str):
                 valor_final = valor_novo.strip()
@@ -118,7 +91,7 @@ def autosave_produto(produto_id):
     if hasattr(produto, 'calcular_precos'):
         produto.calcular_precos()
 
-    produto.atualizado_em = datetime.utcnow()
+    produto.atualizado_em = now_local()
     registrar_historico(produto, current_user, "autosave", alteracoes)
 
     try:
@@ -154,6 +127,8 @@ def autosave_lote():
                 valor_final = _parse_decimal(valor_novo)
             elif campo == "promo_ativada":
                 valor_final = str(valor_novo).lower() in ['true', 'on', '1']
+            elif campo in CAMPOS_DATAS:
+                valor_final = parse_form_datetime(valor_novo)
             else:
                 valor_final = valor_novo
                 if isinstance(valor_final, str):
@@ -171,7 +146,7 @@ def autosave_lote():
         if alteracoes:
             if hasattr(produto, 'calcular_precos'):
                 produto.calcular_precos()
-            produto.atualizado_em = datetime.utcnow()
+            produto.atualizado_em = now_local()
             registrar_historico(produto, current_user, "autosave", alteracoes)
             resultados.append(produto.id)
 

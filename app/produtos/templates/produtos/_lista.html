@@ -18,16 +18,14 @@
                 <span class="d-block text-truncate">{{ produto.nome }}</span>
                 
                 {# Lógica de Badge de Promoção #}
-                {% if produto.promo_ativada and produto.promo_data_fim %}
-                    {# 'agora' vem do contexto (injetado em main.py) #}
-                    {% if produto.promo_data_inicio and produto.promo_data_fim and produto.promo_data_inicio <= agora <= produto.promo_data_fim %}
+                {% set preco_atual = precos_atuais[produto.id] %}
+                {% if preco_atual.em_oferta %}
                         <span class="badge bg-warning text-dark ms-1 rounded-pill" style="font-size: 0.7rem;">
                             <i class="fas fa-clock"></i> Promo até {{ produto.promo_data_fim.strftime('%d/%m') }}
                         </span>
-                    {% endif %}
                 {% endif %}
             </td>
-            <td class="text-end fw-semibold text-dark">{{ produto.preco_a_vista|currency }}</td>
+            <td class="text-end fw-semibold text-dark">{{ preco_atual.preco_a_vista|currency }}</td>
             <td class="text-center">
               <div class="acoes-produto">
                 <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}" class="btn btn-light btn-sm" title="Parcelar">
@@ -80,18 +78,17 @@
                   <i class="fas fa-box-open me-1 text-dark"></i>{{ produto.nome }}
                 </h6>
                 {# Badge Mobile #}
-                {% if produto.promo_ativada and produto.promo_data_fim %}
-                    {% if produto.promo_data_inicio and produto.promo_data_fim and produto.promo_data_inicio <= agora <= produto.promo_data_fim %}
+                {% set preco_atual = precos_atuais[produto.id] %}
+                {% if preco_atual.em_oferta %}
                         <small class="badge bg-warning text-dark mt-1 w-auto align-self-start">
                             Promo: {{ produto.promo_data_fim.strftime('%d/%m') }}
                         </small>
-                    {% endif %}
                 {% endif %}
             </div>
             <span class="badge bg-light text-dark border fw-semibold small">{{ produto.codigo or '-' }}</span>
           </div>
-          <p class="mb-2 text-primary fw-semibold small">
-            <i class="fas fa-money-bill-wave me-1"></i> {{ produto.preco_a_vista|currency }}
+            <p class="mb-2 text-primary fw-semibold small">
+            <i class="fas fa-money-bill-wave me-1"></i> {{ preco_atual.preco_a_vista|currency }}
           </p>
           <div class="d-flex justify-content-between flex-wrap gap-2">
             <a href="{{ url_for('main.parcelamento', produto_id=produto.id) }}" class="btn btn-sm btn-outline-dark flex-fill">

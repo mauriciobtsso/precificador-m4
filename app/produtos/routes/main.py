@@ -19,7 +19,8 @@ from app.produtos.configs.models import (
 
 from app.models import Taxa
 import app.utils.parcelamento as parc
-from app.utils.datetime import now_local 
+from app.utils.datetime import now_local
+from app.utils.parsing import parse_decimal, parse_form_datetime
 
 from urllib.parse import urlparse
 from app.produtos.routes.utils import _key_from_url
@@ -124,23 +125,25 @@ def index():
     has_any_filter = any([bool(termo), bool(tipo), bool(categoria), bool(marca), bool(calibre)])
 
     agora = now_local()
+    precos_atuais = {produto.id: produto.calcular_precos() for produto in produtos}
 
     if wants_fragment:
-        if not has_any_filter:
-            cached = _get_cached_fragment(page, per_page, ordenar)
-            if cached:
-                resp = make_response(cached)
-                resp.headers["Cache-Control"] = "no-store"
-                return resp
-
-        html = render_template("produtos/_lista.html", produtos=produtos, pagination=pagination, per_page=per_page, request=request, agora=agora)
-        if not has_any_filter:
-            _set_cached_fragment(page, per_page, ordenar, html)
+        # Preços de promoção dependem do instante atual; não reutilizar HTML
+        # armazenado para evitar exibir uma promoção depois do seu término.
+        html = render_template(
+            "produtos/_lista.html", produtos=produtos, pagination=pagination,
+            per_page=per_page, request=request, agora=agora,
+            precos_atuais=precos_atuais,
+        )
         resp = make_response(html)
         resp.headers["Cache-Control"] = "no-store"
         return resp
 
-    return render_template("produtos/index.html", produtos=produtos, pagination=pagination, tipos=tipos, categorias=categorias, marcas=marcas, calibres=calibres, per_page=per_page, agora=agora)
+    return render_template(
+        "produtos/index.html", produtos=produtos, pagination=pagination,
+        tipos=tipos, categorias=categorias, marcas=marcas, calibres=calibres,
+        per_page=per_page, agora=agora, precos_atuais=precos_atuais,
+    )
 
 
 # ============================================================
@@ -205,18 +208,15 @@ def gerenciar_produto(produto_id=None):
             except ValueError: return None
 
         def to_decimal(value):
-            if not value: return Decimal(0)
-            try:
-                val_str = str(value).replace("R$", "").replace("%", "").strip().replace(",", ".") 
-                return Decimal(val_str)
-            except InvalidOperation: return Decimal(0)
+            return parse_decimal(value) or Decimal(0)
 
         campos_auditados = [
             "codigo", "nome", "nome_comercial", "slug", "descricao", "descricao_comercial", "descricao_longa",
             "categoria_id", "marca_id", "calibre_id", "tipo_id", "funcionamento_id",
             "preco_fornecedor", "desconto_fornecedor", "frete", "margem", "lucro_alvo", "preco_final",
             "ipi", "ipi_tipo", "difal", "imposto_venda", "meta_title", "meta_description",
-            "visivel_loja", "requer_documentacao", "destaque_home", "eh_lancamento", "eh_outdoor"
+            "visivel_loja", "requer_documentacao", "destaque_home", "eh_lancamento", "eh_outdoor",
+            "promo_ativada", "promo_preco_fornecedor", "promo_data_inicio", "promo_data_fim"
         ]
         antes = {c: getattr(produto, c, None) for c in campos_auditados}
 
@@ -315,6 +315,8 @@ def gerenciar_produto(produto_id=None):
 
             produto.promo_ativada = data.get("promo_ativada") == "on"
             produto.promo_preco_fornecedor = to_decimal(data.get("promo_preco_fornecedor"))
+            produto.promo_data_inicio = parse_form_datetime(data.get("promo_data_inicio"))
+            produto.promo_data_fim = parse_form_datetime(data.get("promo_data_fim"))
 
             produto.foto_url = data.get("foto_url") or foto_atual
 

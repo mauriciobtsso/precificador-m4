@@ -12,6 +12,7 @@ from decimal import Decimal, InvalidOperation
 
 # Importações auxiliares
 from app.utils.datetime import now_local
+from app.utils.parsing import as_local_aware
 from app.produtos.categorias.models import CategoriaProduto
 from app.produtos.configs.models import (
     MarcaProduto,
@@ -130,7 +131,9 @@ class Produto(db.Model):
         if self.promo_ativada and self.promo_preco_fornecedor and self.promo_data_inicio and self.promo_data_fim:
             try:
                 p_promo = float(self.promo_preco_fornecedor)
-                if p_promo > 0 and self.promo_data_inicio <= agora <= self.promo_data_fim:
+                inicio = as_local_aware(self.promo_data_inicio)
+                fim = as_local_aware(self.promo_data_fim)
+                if p_promo > 0 and inicio <= agora <= fim:
                     preco_base = p_promo
                     em_oferta = True
             except (ValueError, TypeError):
