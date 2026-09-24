@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pedido #{{ pedido.id }} - M4 Tática</title>
+    <style>
+        @page { margin: 14mm; }
+        * { box-sizing: border-box; }
+        body { color: #111; font: 13px/1.4 Arial, sans-serif; margin: 0; }
+        .print-toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 18px; }
+        button { background: #111; border: 0; color: #fff; cursor: pointer; padding: 8px 12px; }
+        .header { border-bottom: 2px solid #111; display: flex; justify-content: space-between; padding-bottom: 10px; }
+        h1 { font-size: 22px; margin: 0; }
+        h2 { font-size: 15px; margin: 22px 0 8px; }
+        .muted { color: #555; }
+        .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+        .summary p { margin: 2px 0; }
+        table { border-collapse: collapse; margin-top: 8px; width: 100%; }
+        th, td { border-bottom: 1px solid #ddd; padding: 8px 6px; text-align: left; }
+        th { background: #f1f1f1; font-size: 11px; text-transform: uppercase; }
+        .right { text-align: right; }
+        .center { text-align: center; }
+        .totals { margin-left: auto; margin-top: 12px; max-width: 280px; }
+        .totals div { display: flex; justify-content: space-between; padding: 3px 0; }
+        .total { border-top: 2px solid #111; font-size: 16px; font-weight: bold; margin-top: 5px; padding-top: 7px !important; }
+        @media print { .print-toolbar { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="print-toolbar"><button onclick="window.print()">Imprimir</button><button onclick="window.close()">Fechar</button></div>
+    <header class="header">
+        <div><h1>Pedido #{{ pedido.id }}</h1><div class="muted">M4 Tática</div></div>
+        <div class="right"><strong>{{ pedido.criado_em.strftime('%d/%m/%Y %H:%M') }}</strong><br><span class="muted">Status: {{ pedido.status|upper }}</span></div>
+    </header>
+    <section class="summary">
+        <div><strong>Cliente</strong><p>{{ pedido.nome_cliente }}</p><p class="muted">{{ pedido.email_cliente }}</p><p class="muted">{{ pedido.telefone }}</p></div>
+        <div><strong>Entrega</strong><p>{{ pedido.logradouro }}, {{ pedido.numero }}</p>{% if pedido.complemento %}<p>{{ pedido.complemento }}</p>{% endif %}<p>{{ pedido.bairro }} - {{ pedido.cidade }}/{{ pedido.estado }}</p><p>CEP {{ pedido.cep }}</p></div>
+        <div><strong>Pagamento</strong><p>{{ pedido.forma_pagamento|upper }}</p><p>{{ pedido.parcelas }}x</p></div>
+    </section>
+    <h2>Itens do pedido</h2>
+    <table>
+        <thead><tr><th>Código</th><th>Produto</th><th class="center">Quantidade</th><th class="right">Unitário</th><th class="right">Subtotal</th></tr></thead>
+        <tbody>{% for item in pedido.items %}<tr><td>{{ item.produto.codigo if item.produto and item.produto.codigo else '-' }}</td><td>{{ item.produto.nome if item.produto else 'Produto removido' }}</td><td class="center">{{ item.quantidade }}</td><td class="right">R$ {{ '%.2f'|format(item.preco_unitario_historico) }}</td><td class="right">R$ {{ '%.2f'|format(item.quantidade * item.preco_unitario_historico) }}</td></tr>{% else %}<tr><td colspan="5">Nenhum item registrado.</td></tr>{% endfor %}</tbody>
+    </table>
+    <div class="totals"><div><span>Produtos</span><span>R$ {{ '%.2f'|format(pedido.total_produtos) }}</span></div><div><span>Frete</span><span>R$ {{ '%.2f'|format(pedido.total_frete) }}</span></div><div class="total"><span>Total</span><span>R$ {{ '%.2f'|format(pedido.total_pedido) }}</span></div></div>
+</body>
+</html>

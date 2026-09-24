@@ -3,9 +3,17 @@
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Pedido #{{ pedido.id }}</h1>
-    <a href="{{ url_for('loja_admin.pedidos') }}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-arrow-left"></i> Voltar
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('loja_admin.imprimir_pedido', id=pedido.id) }}" class="btn btn-dark btn-sm" target="_blank" rel="noopener">
+            <i class="bi bi-printer"></i> Imprimir pedido
+        </a>
+        <a href="{{ url_for('loja_admin.imprimir_etiqueta_pedido', id=pedido.id) }}" class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener">
+            <i class="bi bi-tag"></i> Imprimir etiqueta
+        </a>
+        <a href="{{ url_for('loja_admin.pedidos') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
 </div>
 
 <div class="row g-4">
@@ -26,11 +34,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in pedido.itens %}
+                        {% for item in pedido.items %}
                         <tr>
                             <td class="px-4">
                                 <div class="fw-bold text-dark">{{ item.produto.nome if item.produto else 'Produto Removido' }}</div>
-                                <div class="small text-muted">Cód: {{ item.produto.codigo if item.produto else '-' }}</div>
+                                <div class="small text-muted">Código: {{ item.produto.codigo if item.produto and item.produto.codigo else '-' }}</div>
                             </td>
                             <td class="text-center">{{ item.quantidade }}</td>
                             <td class="text-end">R$ {{ "%.2f"|format(item.preco_unitario_historico) }}</td>

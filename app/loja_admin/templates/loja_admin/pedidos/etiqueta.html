@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Etiqueta - Pedido #{{ pedido.id }}</title>
+    <style>
+        @page { size: 100mm 150mm; margin: 0; }
+        * { box-sizing: border-box; }
+        body { align-items: center; display: flex; font: 14px/1.35 Arial, sans-serif; justify-content: center; margin: 0; min-height: 150mm; }
+        .toolbar { left: 12px; position: fixed; top: 12px; }
+        button { background: #111; border: 0; color: #fff; cursor: pointer; padding: 8px 12px; }
+        .label { border: 2px solid #111; padding: 12mm 9mm; width: 100mm; }
+        .brand { border-bottom: 1px solid #111; font-size: 15px; font-weight: bold; padding-bottom: 8px; }
+        .caption { color: #555; font-size: 10px; font-weight: bold; letter-spacing: .08em; margin: 16px 0 5px; text-transform: uppercase; }
+        .recipient { font-size: 20px; font-weight: bold; }
+        .address { font-size: 17px; line-height: 1.45; }
+        .order { border-top: 1px solid #111; font-size: 12px; margin-top: 18px; padding-top: 8px; }
+        @media print { .toolbar { display: none; } body { min-height: 150mm; } }
+    </style>
+</head>
+<body>
+    <div class="toolbar"><button onclick="window.print()">Imprimir</button><button onclick="window.close()">Fechar</button></div>
+    <main class="label">
+        <div class="brand">M4 Tática — Etiqueta de envio</div>
+        <div class="caption">Destinatário</div>
+        <div class="recipient">{{ pedido.nome_cliente }}</div>
+        <div class="caption">Endereço</div>
+        <div class="address">{{ pedido.logradouro }}, {{ pedido.numero }}{% if pedido.complemento %} — {{ pedido.complemento }}{% endif %}<br>{{ pedido.bairro }}<br>{{ pedido.cidade }} - {{ pedido.estado }}<br><strong>CEP {{ pedido.cep }}</strong></div>
+        <div class="order">Pedido <strong>#{{ pedido.id }}</strong></div>
+    </main>
+</body>
+</html>

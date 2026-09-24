@@ -450,6 +450,20 @@ def detalhe_pedido(id):
     pedido = Pedido.query.get_or_404(id)
     return render_template('loja_admin/pedidos/detalhe.html', pedido=pedido)
 
+@loja_admin_bp.route('/pedidos/<int:id>/imprimir')
+@login_required
+def imprimir_pedido(id):
+    """Abre uma versão própria para impressão do pedido."""
+    pedido = Pedido.query.get_or_404(id)
+    return render_template('loja_admin/pedidos/imprimir.html', pedido=pedido)
+
+@loja_admin_bp.route('/pedidos/<int:id>/etiqueta')
+@login_required
+def imprimir_etiqueta_pedido(id):
+    """Abre uma etiqueta de envio com os dados do destinatário."""
+    pedido = Pedido.query.get_or_404(id)
+    return render_template('loja_admin/pedidos/etiqueta.html', pedido=pedido)
+
 @loja_admin_bp.route('/pedidos/<int:id>/status', methods=['POST'])
 @login_required
 def atualizar_status_pedido(id):

@@ -57,3 +57,26 @@ Na loja pública, foi criada a página `/loja/links-uteis`, que no modo de vitri
 - `python3 -m py_compile app/loja/models_admin.py app/loja/routes.py app/loja_admin/routes.py migrations/versions/b7c4d91f2a10_criar_links_uteis_da_loja.py` — aprovado.
 - `git diff --check` — aprovado.
 - Verificação do grafo de migrações — `b7c4d91f2a10` identificado como head único.
+
+
+## 24/09/2026 — Correção do detalhe e impressão de pedidos da loja
+
+### Solicitação
+Ajustar `/admin-loja/pedidos` e o detalhe do pedido para exibir código do produto, item e quantidade; disponibilizar impressão do pedido e da etiqueta de envio; e reduzir a tipografia do painel para evitar scroll horizontal.
+
+### Alterações realizadas
+- Corrigida a iteração dos produtos no detalhe: o modelo `Pedido` expõe a relação `items`, enquanto o template utilizava `itens`; por isso a tabela aparecia sem os itens e mostrava somente os totais.
+- Mantidos e destacados na tabela o nome do produto, código, quantidade, preço unitário e subtotal.
+- Adicionados os botões **Imprimir pedido** e **Imprimir etiqueta** no detalhe, abrindo as versões próprias em nova aba.
+- Criada a rota protegida `/admin-loja/pedidos/<id>/imprimir` e seu template com cliente, endereço, pagamento, itens, códigos, quantidades e totais.
+- Criada a rota protegida `/admin-loja/pedidos/<id>/etiqueta` e seu template em formato de etiqueta 100 × 150 mm, com destinatário, endereço, CEP e número do pedido.
+- Reduzida a fonte base do painel, da navegação, tabelas e cabeçalhos; adicionados `min-width: 0` e controle de overflow horizontal no layout administrativo, preservando a rolagem interna de tabelas quando necessário em telas estreitas.
+- Adicionados testes de regressão para a relação correta dos itens, dados exibidos, rotas/templates de impressão e regras de layout.
+
+### Validações
+- `python3 -m py_compile app/loja_admin/routes.py` — aprovado.
+- `pytest -q tests/test_loja_admin_pedidos.py` — executado após a implementação.
+- `git diff --check` — executado antes do commit.
+
+### Entrega
+Alterações commitadas e enviadas para a branch `main` do repositório `mauriciobtsso/precificador-m4`.
