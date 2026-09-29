@@ -1,6 +1,7 @@
 <div class="col">
     <div class="card h-100 product-card-m4 border-0">
         {% set precos = produto.calcular_precos() %}
+        {% set parcela_12x_card = calcular_parcela_12x(precos.preco_a_vista) %}
 
         <div class="m4-badge-container">
             {% if precos.em_oferta %}
@@ -85,9 +86,11 @@
                     <span class="visually-hidden">Preço atual: </span>
                     R$ {{ "{:,.2f}".format(precos.preco_a_vista).replace(',','X').replace('.',',').replace('X','.') }}
                 </p>
-                <p class="m4-installments">
-                    Ou 12x de <span class="fw-bold">R$ {{ "{:,.2f}".format(precos.preco_a_vista / 12).replace(',','X').replace('.',',').replace('X','.') }}</span>
-                </p>
+                {% if parcela_12x_card %}
+                    <p class="m4-installments">
+                        Ou 12x de <span class="fw-bold">R$ {{ "{:,.2f}".format(parcela_12x_card.parcela).replace(',','X').replace('.',',').replace('X','.') }}</span>
+                    </p>
+                {% endif %}
                 <div class="text-success small fw-bold mt-2 d-flex align-items-center" style="font-size:10px;">
                     <i class="bi bi-lightning-charge-fill me-1" aria-hidden="true"></i> À VISTA NO PIX
                 </div>

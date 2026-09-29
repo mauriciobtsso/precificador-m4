@@ -167,6 +167,17 @@ def inject_thumb_helper():
         imagem_otimizada=convert_resized_url,
     )
 
+@loja_bp.app_context_processor
+def inject_parcelamento_helper():
+    """Compartilha com os cards a mesma regra de parcelamento do detalhe."""
+    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+
+    def calcular_parcela_12x(valor_base):
+        linhas = parcelamento_logic.gerar_linhas_parcelas(valor_base, taxas)
+        return next((linha for linha in linhas if linha['rotulo'] == '12x'), None)
+
+    return dict(calcular_parcela_12x=calcular_parcela_12x)
+
 # ============================================================
 # VITRINE PRINCIPAL (CIRURGIA A LASER: OPTIMIZED GET_SMART_CAT)
 # ============================================================
