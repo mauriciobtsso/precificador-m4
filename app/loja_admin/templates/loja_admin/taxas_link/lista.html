@@ -1,0 +1,53 @@
+{% extends 'loja_admin/base_admin.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <div class="small text-muted text-uppercase fw-bold">Configurações da vitrine</div>
+        <h1 class="h3 fw-bold mb-1">Taxas de parcelamento da loja</h1>
+        <p class="text-muted mb-0">Estas taxas afetam somente os cards, o detalhe e as formas de pagamento exibidas em /loja.</p>
+    </div>
+    <a href="{{ url_for('loja_admin.gerenciar_taxa_link') }}" class="btn btn-primary fw-bold">
+        <i class="bi bi-plus-lg me-1"></i> Nova taxa
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Forma</th>
+                    <th>Taxa de juros</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for taxa in taxas %}
+                <tr>
+                    <td class="fw-semibold">{{ 'Débito' if taxa.numero_parcelas == 0 else taxa.numero_parcelas ~ 'x' }}</td>
+                    <td>{{ '%.2f'|format(taxa.juros or 0)|replace('.', ',') }}%</td>
+                    <td class="text-end">
+                        <a href="{{ url_for('loja_admin.gerenciar_taxa_link', id=taxa.id) }}" class="btn btn-sm btn-outline-primary" title="Editar taxa" aria-label="Editar taxa">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('loja_admin.excluir_taxa_link', id=taxa.id) }}" class="d-inline" onsubmit="return confirm('Excluir esta taxa da loja?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir taxa" aria-label="Excluir taxa">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center text-muted py-5">
+                        Nenhuma taxa cadastrada. Crie uma taxa para exibir parcelamento na loja.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

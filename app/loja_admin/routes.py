@@ -1,6 +1,7 @@
 import os
 import re
 import unicodedata
+from decimal import Decimal, InvalidOperation
 from urllib.parse import urlparse
 from flask import render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
@@ -8,7 +9,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_, and_ 
 from app.produtos.models import Produto
 from app.loja_admin import loja_admin_bp
-from app.loja.models_admin import Banner, PaginaInstitucional, LinkUtil
+from app.loja.models_admin import Banner, PaginaInstitucional, LinkUtil, TaxaLojaLink
 from app.models import Configuracao
 from app.carrinho.models import Pedido
 from app.extensions import db
@@ -33,6 +34,7 @@ def index():
     total_banners = Banner.query.count()
     total_paginas = PaginaInstitucional.query.count()
     total_links_uteis = LinkUtil.query.count()
+    total_taxas_link = TaxaLojaLink.query.count()
     
     # Estatísticas de Pedidos
     total_pedidos = Pedido.query.count()
@@ -42,6 +44,7 @@ def index():
                            total_banners=total_banners, 
                            total_paginas=total_paginas,
                            total_links_uteis=total_links_uteis,
+                           total_taxas_link=total_taxas_link,
                            total_pedidos=total_pedidos,
                            pedidos_pendentes=pedidos_pendentes)
 
@@ -227,6 +230,71 @@ def excluir_link_util(id):
     db.session.commit()
     flash('Link útil excluído!', 'success')
     return redirect(url_for('loja_admin.links_uteis'))
+
+
+# =========================================================
+# TAXAS DE PARCELAMENTO EXCLUSIVAS DA LOJA
+# =========================================================
+def _dados_taxa_link_validos(form, taxa, taxa_id=None):
+    numero = form.get('numero_parcelas', type=int)
+    try:
+        juros = Decimal((form.get('juros') or '').strip().replace(',', '.'))
+    except (InvalidOperation, ValueError):
+        juros = None
+
+    if numero is None or not 0 <= numero <= 36:
+        flash('Informe uma quantidade de parcelas entre 0 (débito) e 36.', 'danger')
+        return False
+    if juros is None or not juros.is_finite() or not Decimal('0') <= juros <= Decimal('100'):
+        flash('Informe uma taxa de juros entre 0% e 100%.', 'danger')
+        return False
+    duplicada = TaxaLojaLink.query.filter_by(numero_parcelas=numero)
+    if taxa_id:
+        duplicada = duplicada.filter(TaxaLojaLink.id != taxa_id)
+    if duplicada.first():
+        flash('Já existe uma taxa cadastrada para essa quantidade de parcelas.', 'danger')
+        return False
+
+    taxa.numero_parcelas = numero
+    taxa.juros = float(juros)
+    return True
+
+
+@loja_admin_bp.route('/taxas-link')
+@login_required
+def taxas_link():
+    taxas = TaxaLojaLink.query.order_by(TaxaLojaLink.numero_parcelas.asc()).all()
+    return render_template('loja_admin/taxas_link/lista.html', taxas=taxas)
+
+
+@loja_admin_bp.route('/taxas-link/novo', methods=['GET', 'POST'])
+@loja_admin_bp.route('/taxas-link/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def gerenciar_taxa_link(id=None):
+    taxa = TaxaLojaLink.query.get_or_404(id) if id else TaxaLojaLink()
+    if request.method == 'POST':
+        if not _dados_taxa_link_validos(request.form, taxa, id):
+            return render_template('loja_admin/taxas_link/form.html', taxa=taxa)
+        if not id:
+            db.session.add(taxa)
+        from app.loja.routes import invalidar_cache_taxas_loja
+        invalidar_cache_taxas_loja()
+        db.session.commit()
+        flash(f'Taxa da loja {"atualizada" if id else "criada"} com sucesso!', 'success')
+        return redirect(url_for('loja_admin.taxas_link'))
+    return render_template('loja_admin/taxas_link/form.html', taxa=taxa)
+
+
+@loja_admin_bp.route('/taxas-link/excluir/<int:id>', methods=['POST'])
+@login_required
+def excluir_taxa_link(id):
+    taxa = TaxaLojaLink.query.get_or_404(id)
+    db.session.delete(taxa)
+    from app.loja.routes import invalidar_cache_taxas_loja
+    invalidar_cache_taxas_loja()
+    db.session.commit()
+    flash('Taxa da loja excluída com sucesso!', 'success')
+    return redirect(url_for('loja_admin.taxas_link'))
 
 # =========================================================
 # CONFIGURAÇÕES DA LOJA (VERSÃO INTELIGENTE: CRIA CHAVES NOVAS)

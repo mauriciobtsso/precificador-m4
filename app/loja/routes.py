@@ -1,13 +1,13 @@
 #app/loja/routes.py
 
-from flask import render_template, abort, request, url_for, send_from_directory, current_app, redirect, Response, make_response, flash, session, jsonify
+from flask import render_template, abort, request, url_for, send_from_directory, current_app, redirect, Response, make_response, flash, session, jsonify, has_app_context
 from flask_login import login_required
 from app.loja import loja_bp
 from app import db
-from app.loja.models_admin import Banner, PaginaInstitucional, LinkUtil
+from app.loja.models_admin import Banner, PaginaInstitucional, LinkUtil, TaxaLojaLink
 from app.produtos.models import Produto
 from app.produtos.categorias.models import CategoriaProduto
-from app.models import Taxa, Configuracao
+from app.models import Configuracao
 from app.utils.r2_helpers import gerar_link_r2
 from app.utils.thumbnail_utils import get_thumb_url
 from app.catalogo.image_url_helper import convert_resized_url
@@ -17,6 +17,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 import os
 import re
 from datetime import datetime
+from uuid import uuid4
 import pytz
 
 # ============================================================
@@ -170,13 +171,47 @@ def inject_thumb_helper():
 @loja_bp.app_context_processor
 def inject_parcelamento_helper():
     """Compartilha com os cards a mesma regra de parcelamento do detalhe."""
-    taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+    taxas = TaxaLojaLink.query.order_by(TaxaLojaLink.numero_parcelas).all()
 
     def calcular_parcela_12x(valor_base):
         linhas = parcelamento_logic.gerar_linhas_parcelas(valor_base, taxas)
         return next((linha for linha in linhas if linha['rotulo'] == '12x'), None)
 
     return dict(calcular_parcela_12x=calcular_parcela_12x)
+
+
+_TAXAS_LOJA_CACHE_VERSION_KEY = "taxas_loja_link:public_cache_version"
+
+
+def _taxas_loja_cache_version():
+    """Versão usada para invalidar caches públicos sem afetar os fluxos internos."""
+    if not has_app_context() or "sqlalchemy" not in current_app.extensions:
+        return "initial"
+    versao = Configuracao.query.with_entities(Configuracao.valor).filter_by(
+        chave=_TAXAS_LOJA_CACHE_VERSION_KEY
+    ).scalar()
+    return versao or "initial"
+
+
+def invalidar_cache_taxas_loja():
+    """Marca uma nova geração para invalidação em todos os workers da aplicação.
+
+    A gravação participa da transação da taxa; a leitura da versão no banco evita
+    depender do cache local de processo configurado para as respostas da loja.
+    """
+    configuracao = Configuracao.query.filter_by(chave=_TAXAS_LOJA_CACHE_VERSION_KEY).first()
+    if configuracao:
+        configuracao.valor = uuid4().hex
+    else:
+        db.session.add(Configuracao(chave=_TAXAS_LOJA_CACHE_VERSION_KEY, valor=uuid4().hex))
+
+
+def _categoria_cache_key():
+    return f"loja:categoria:v2:taxas:{_taxas_loja_cache_version()}:{request.full_path}"
+
+
+def _detalhe_produto_cache_key(*args, **kwargs):
+    return f"loja:produto:v3:taxas:{_taxas_loja_cache_version()}:{request.path}"
 
 # ============================================================
 # VITRINE PRINCIPAL (CIRURGIA A LASER: OPTIMIZED GET_SMART_CAT)
@@ -256,7 +291,7 @@ def _index_cache_key():
     """
     caminho = request.full_path.rstrip('?')
     cliente_id = session.get('loja_cliente_id') or 'anon'
-    return f"loja:index:v10:{caminho}:cliente:{cliente_id}"
+    return f"loja:index:v11:taxas:{_taxas_loja_cache_version()}:{caminho}:cliente:{cliente_id}"
 
 
 @loja_bp.route('/')
@@ -378,14 +413,15 @@ def index():
 # DETALHE DO PRODUTO
 # ============================================================
 @loja_bp.route('/produto/<string:slug>')
-@cache.cached(timeout=300, make_cache_key=lambda *args, **kwargs: request.path)
+@cache.cached(timeout=300, make_cache_key=_detalhe_produto_cache_key)
 def detalhe_produto(slug):
     produto = Produto.query.filter_by(slug=slug, visivel_loja=True)\
         .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
         .first_or_404()
     
     precos_key = f'precos_v2_{produto.id}'
-    opcoes_parcelamento_key = f'opcoes_parcelamento_v2_{produto.id}'
+    versao_taxas = _taxas_loja_cache_version()
+    opcoes_parcelamento_key = f'opcoes_parcelamento_loja_v1_{versao_taxas}_{produto.id}'
 
     precos = cache.get(precos_key)
     opcoes_parcelamento = cache.get(opcoes_parcelamento_key)
@@ -393,7 +429,7 @@ def detalhe_produto(slug):
     if precos is None or opcoes_parcelamento is None:
         precos = produto.calcular_precos()
         valor_base = float(precos.get('preco_a_vista') or 0.0)
-        taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
+        taxas = TaxaLojaLink.query.order_by(TaxaLojaLink.numero_parcelas).all()
         opcoes_parcelamento = parcelamento_logic.gerar_linhas_parcelas(valor_base, taxas)
         cache.set(precos_key, precos, timeout=3600)
         cache.set(opcoes_parcelamento_key, opcoes_parcelamento, timeout=3600)
@@ -431,7 +467,7 @@ def detalhe_produto(slug):
 # PÁGINA DE CATEGORIA
 # ============================================================
 @loja_bp.route('/categoria/<string:slug_categoria>')
-@cache.cached(timeout=300, make_cache_key=lambda *args, **kwargs: request.full_path)
+@cache.cached(timeout=300, make_cache_key=lambda *args, **kwargs: _categoria_cache_key())
 def categoria(slug_categoria):
     categoria_obj = CategoriaProduto.query.filter_by(slug=slug_categoria)\
         .options(subqueryload(CategoriaProduto.subcategorias)).first_or_404()

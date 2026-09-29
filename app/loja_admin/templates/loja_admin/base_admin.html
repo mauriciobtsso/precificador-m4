@@ -76,6 +76,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ 'active' if 'taxa_link' in (request.endpoint or '') }}" href="{{ url_for('loja_admin.taxas_link') }}">
+                            <i class="bi bi-credit-card-2-front"></i> Taxas da loja
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ 'active' if 'auditoria_loja' in request.endpoint }}" href="{{ url_for('loja_admin.auditoria_loja') }}">
                             <i class="bi bi-clipboard-check"></i> Auditoria de Dados
                         </a>

@@ -53,3 +53,22 @@ class LinkUtil(db.Model):
 
     def __repr__(self):
         return f"<LinkUtil {self.titulo}>"
+
+
+class TaxaLojaLink(db.Model):
+    """Taxa de parcelamento usada exclusivamente pela vitrine da loja."""
+
+    __tablename__ = "taxas_loja_link"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "numero_parcelas",
+            name="uq_taxas_loja_link_numero_parcelas",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    numero_parcelas = db.Column(db.Integer, nullable=False)
+    juros = db.Column(db.Float, nullable=False, default=0.0, server_default="0")
+
+    def __repr__(self):
+        return f"<TaxaLojaLink {self.numero_parcelas}x: {self.juros}%>"
