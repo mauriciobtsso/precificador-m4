@@ -5,58 +5,68 @@
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
             <div class="mb-4">
-                <i class="fas fa-check-circle text-success fa-5x animate__animated animate__bounceIn"></i>
+                {% if pedido.status == 'pago' %}
+                <i class="fas fa-check-circle text-success fa-5x"></i>
+                {% else %}
+                <i class="fas fa-receipt text-primary fa-5x"></i>
+                {% endif %}
             </div>
 
-            <h2 class="fw-bold mb-2">Pedido Recebido com Sucesso!</h2>
-            <p class="text-muted mb-4">O número do seu pedido é <strong>#{{ pedido.id }}</strong></p>
+            <h2 class="fw-bold mb-2">{% if pedido.status == 'pago' %}Pagamento confirmado{% else %}Pedido registrado{% endif %}</h2>
+            <p class="text-muted mb-4">Pedido <strong>#{{ pedido.id }}</strong></p>
 
             <div class="card shadow-sm border-0 mb-4 bg-light">
                 <div class="card-body p-4 text-start">
-                    <h6 class="fw-bold border-bottom pb-2 mb-3">Resumo da Operação</h6>
+                    <h6 class="fw-bold border-bottom pb-2 mb-3">Resumo do pedido</h6>
                     <div class="d-flex justify-content-between mb-2">
                         <span>Status:</span>
-                        <span class="badge bg-warning text-dark">{{ pedido.status | upper }}</span>
+                        <span class="badge {% if pedido.status == 'pago' %}bg-success{% elif pedido.status == 'cancelado' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ (pedido.status or 'pendente')|upper }}</span>
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Total do Pedido:</span>
-                        <span class="fw-bold">R$ {{ "{:,.2f}".format(pedido.total_pedido).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span>
+                    <div class="d-flex justify-content-between mb-2"><span>Produtos:</span><span>R$ {{ "{:,.2f}".format(pedido.total_produtos or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span></div>
+                    <div class="d-flex justify-content-between mb-2"><span>Frete:</span><span>R$ {{ "{:,.2f}".format(pedido.total_frete or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span></div>
+                    {% if pedido.desconto_aplicado and pedido.desconto_aplicado > 0 %}
+                    <div class="d-flex justify-content-between mb-2 text-success"><span>Desconto PIX:</span><span>− R$ {{ "{:,.2f}".format(pedido.desconto_aplicado).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span></div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between border-top pt-2 mt-2 fw-bold">
+                        <span>Total a pagar:</span>
+                        <span>R$ {{ "{:,.2f}".format(pedido.total_cobrado if pedido.total_cobrado is not none else pedido.total_pedido).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span>
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Forma de Pagamento:</span>
-                        <span>{{ 'PIX' if pedido.forma_pagamento == 'pix' else 'Cartão de Crédito' }}</span>
-                    </div>
+                    <div class="d-flex justify-content-between mt-2"><span>Forma de pagamento:</span><span>{{ pedido.forma_pagamento|upper }}</span></div>
                 </div>
             </div>
 
-            {% if pedido.forma_pagamento == 'pix' %}
+            {% if pedido.forma_pagamento == 'pix' and pedido.status != 'pago' %}
             <div class="card shadow border-primary mb-4">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3"><i class="fas fa-qrcode me-2 text-primary"></i>Pague com PIX</h5>
-                    <p class="small text-muted mb-3">Escaneie o QR Code abaixo ou utilize a chave copia e cola.</p>
-                    
+                    {% if pedido.pagarme_pix_qr_code_url %}
                     <div class="bg-white p-3 d-inline-block border mb-3">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=CHAVE_PIX_AQUI" 
-                             alt="QR Code PIX" class="img-fluid" style="max-width: 200px;">
+                        <img src="{{ pedido.pagarme_pix_qr_code_url }}" alt="QR Code PIX do pedido" class="img-fluid" style="max-width: 220px;">
                     </div>
-
+                    {% endif %}
+                    {% if pedido.pagarme_pix_qr_code %}
+                    <p class="small text-muted mb-2">Escaneie o QR Code ou copie o código abaixo:</p>
                     <div class="input-group mb-3">
-                        <input type="text" class="form-control form-control-sm" id="pix_copy" value="00020126580014br.gov.bcb.pix0136..." readonly>
-                        <button class="btn btn-primary btn-sm" onclick="copyPix()">Copiar Chave</button>
+                        <textarea class="form-control form-control-sm" id="pix_copy" rows="3" readonly>{{ pedido.pagarme_pix_qr_code }}</textarea>
+                        <button class="btn btn-primary btn-sm" type="button" onclick="copyPix()">Copiar código</button>
                     </div>
-                    <p class="small text-danger"><i class="far fa-clock me-1"></i> Este QR Code expira em 60 minutos.</p>
+                    {% else %}
+                    <div class="alert alert-info mb-0" role="status">A solicitação do PIX está sendo confirmada pelo gateway. Atualize esta página em instantes. Não tente gerar ou pagar outro pedido enquanto este estiver pendente.</div>
+                    {% endif %}
+                    {% if pedido.pagarme_pix_expires_at %}
+                    <p class="small text-danger mb-0"><i class="far fa-clock me-1"></i>Válido até {{ pedido.pagarme_pix_expires_at.strftime('%d/%m/%Y %H:%M') }}.</p>
+                    {% endif %}
                 </div>
             </div>
-            {% else %}
-            <div class="alert alert-info border-0 shadow-sm">
-                <i class="fas fa-info-circle me-2"></i>
-                Seu pagamento está em análise pela operadora. Você receberá um e-mail assim que for aprovado.
-            </div>
+            {% elif pedido.status == 'pago' %}
+            <div class="alert alert-success border-0 shadow-sm">Pagamento confirmado. Você receberá as atualizações do pedido por e-mail.</div>
+            {% elif pedido.status == 'cancelado' %}
+            <div class="alert alert-warning border-0 shadow-sm">Este pedido foi cancelado. Entre em contato com a loja para receber orientação.</div>
             {% endif %}
 
             <div class="d-grid gap-2">
                 <a href="{{ url_for('loja.index') }}" class="btn btn-warning text-dark btn-lg fw-bold">Voltar para a Loja</a>
-                <button class="btn btn-outline-dark" onclick="window.print()"><i class="fas fa-print me-2"></i>Imprimir Comprovante</button>
+                <button class="btn btn-outline-dark" type="button" onclick="window.print()"><i class="fas fa-print me-2"></i>Imprimir resumo</button>
             </div>
         </div>
     </div>
@@ -65,15 +75,20 @@
 
 {% block extra_js %}
 <script>
-    function copyPix() {
-        var copyText = document.getElementById('pix_copy');
-        if (!copyText) { return; }
-        copyText.focus();
-        copyText.select();
-        copyText.setSelectionRange(0, 99999);
-        var sucesso = false;
-        try { sucesso = document.execCommand('copy'); } catch (erro) { sucesso = false; }
-        alert(sucesso ? 'Chave PIX copiada para a área de transferência!' : 'Selecione e copie a chave PIX manualmente.');
+function copyPix() {
+    var field = document.getElementById('pix_copy');
+    if (!field) return;
+    var text = field.value;
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function() { alert('Código PIX copiado.'); }).catch(function() { field.focus(); field.select(); });
+    } else {
+        field.focus();
+        field.select();
+        field.setSelectionRange(0, 99999);
+        var copied = false;
+        try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
+        alert(copied ? 'Código PIX copiado.' : 'Selecione e copie o código PIX manualmente.');
     }
+}
 </script>
 {% endblock %}

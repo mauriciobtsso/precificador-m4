@@ -48,7 +48,12 @@ def test_valores_do_admin_usam_filtro_de_moeda_brasileira():
 
 
 def test_novo_pedido_quantiza_totais_antes_de_persistir():
-    rotas = (ROOT / "app/carrinho/routes.py").read_text(encoding="utf-8")
-    assert "from decimal import Decimal, ROUND_HALF_UP" in rotas
-    assert "total_pedido = (total_produtos + total_frete).quantize" in rotas
-    assert "total_pedido=total_pedido" in rotas
+    financeiro = (ROOT / "app/carrinho/payment.py").read_text(encoding="utf-8")
+    servico = (ROOT / "app/carrinho/checkout_service.py").read_text(encoding="utf-8")
+    modelo = (ROOT / "app/carrinho/models.py").read_text(encoding="utf-8")
+    assert "ROUND_HALF_UP" in financeiro
+    assert '"total_base": total_base' in financeiro
+    assert '"total_cobrado": total_cobrado' in financeiro
+    assert "total_pedido=snapshot[\"total_base\"]" in servico
+    assert "total_cobrado=snapshot[\"total_cobrado\"]" in servico
+    assert "checkout_key" in modelo

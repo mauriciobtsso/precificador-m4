@@ -3,17 +3,18 @@ from flask_login import current_user
 from app import db
 from . import carrinho_bp
 from .frete import MelhorEnvioService
-from .models import Carrinho, CarrinhoItem, Pedido, PedidoItem
+from .models import Carrinho, CarrinhoItem, Pedido
 from app.produtos.models import Produto
 from app.utils.datetime import now_local
 from app.utils.r2_helpers import gerar_link_r2
 from app.loja.auth_loja import get_cliente_logado
-from app.alertas.notificacoes import registrar_notificacao
-import requests
-import json
-import uuid
+from .checkout_service import processar_checkout_pix, processar_webhook_pagarme
+from .payment import calcular_snapshot_pix
+from .frete_quotes import cart_fingerprint, issue_quote, money as money_frete, validate_quote
+from app.models import Configuracao
 import sqlalchemy as sa
-from decimal import Decimal, ROUND_HALF_UP
+import uuid
+import re
 
 
 def _cep_apenas_digitos(valor):
@@ -42,6 +43,39 @@ def _opcao_retirada_na_loja():
 
 # Cache global para evitar consultas repetidas de schema ao banco
 _HAS_CLIENTE_ID_CACHE = None
+
+def _assinar_opcoes_frete(opcoes, cep_destino, carrinho):
+    """Anexa cotações assinadas e vinculadas à composição atual do carrinho."""
+    fingerprint = cart_fingerprint(carrinho)
+    assinadas = []
+    for opcao in opcoes:
+        empresa = (opcao.get('company') or {}).get('name') or 'Transportadora'
+        nome_produto = opcao.get('name') or 'Frete'
+        nome = f"{empresa} – {nome_produto}"
+        if opcao.get('custom'):
+            prazo = 'Retirada na loja'
+        else:
+            prazo_max = (opcao.get('delivery_range') or {}).get('max') or '-'
+            prazo = f"Prazo: até {prazo_max} dias úteis"
+        try:
+            valor = money_frete(opcao.get('price'))
+        except ValueError:
+            continue
+        option_id = str(opcao.get('id') or '')
+        token, expires_at = issue_quote(
+            cep_destino, option_id, nome, valor, prazo, fingerprint, current_app.secret_key
+        )
+        resultado = dict(opcao)
+        resultado.update({
+            'price': float(valor),
+            'quote_id': option_id,
+            'quote_name': nome,
+            'quote_prazo': prazo,
+            'quote_token': token,
+            'quote_expires_at': expires_at,
+        })
+        assinadas.append(resultado)
+    return assinadas
 
 # --- FUNÇÃO DE APOIO: IDENTIFICAÇÃO DO CLIENTE ---
 def get_or_create_carrinho(do_commit=True):
@@ -232,7 +266,9 @@ def atualizar_quantidade(item_id):
 @carrinho_bp.route('/api/frete/calcular', methods=['POST'])
 def api_calcular_frete():
     """Integração com a API do Melhor Envio."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"success": False, "message": "Requisição inválida."}), 400
     cep_destino = _cep_apenas_digitos(data.get('cep'))
     if len(cep_destino) != 8:
         return jsonify({"success": False, "message": "CEP inválido"}), 400
@@ -250,7 +286,8 @@ def api_calcular_frete():
 
     # A retirada local não depende do token do Melhor Envio.
     if not TOKEN_MELHOR_ENVIO and retirada_local:
-        return jsonify({"success": True, "opcoes": [_opcao_retirada_na_loja()]})
+        opcoes = _assinar_opcoes_frete([_opcao_retirada_na_loja()], cep_destino, carrinho)
+        return jsonify({"success": True, "opcoes": opcoes})
 
     if not TOKEN_MELHOR_ENVIO:
         return jsonify({"success": False, "message": "Token do Melhor Envio não configurado."}), 503
@@ -262,22 +299,54 @@ def api_calcular_frete():
         resultado.insert(0, _opcao_retirada_na_loja())
 
     if resultado:
-        return jsonify({"success": True, "opcoes": resultado})
+        opcoes_assinadas = _assinar_opcoes_frete(resultado, cep_destino, carrinho)
+        if opcoes_assinadas:
+            return jsonify({"success": True, "opcoes": opcoes_assinadas})
     return jsonify({"success": False, "message": "Não foi possível calcular o frete."}), 400
 
 @carrinho_bp.route('/api/frete/salvar', methods=['POST'])
 def salvar_frete_sessao():
-    """Salva o frete escolhido na sessão."""
-    data = request.get_json() or {}
+    """Salva somente uma cotação válida assinada para este carrinho."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"success": False, "message": "Requisição inválida."}), 400
     try:
-        valor = max(0.0, float(data.get('valor', 0) or 0))
+        valor = money_frete(data.get('valor', 0))
     except (TypeError, ValueError):
         return jsonify({"success": False, "message": "Valor de frete inválido."}), 400
+    if valor < 0:
+        return jsonify({"success": False, "message": "Valor de frete inválido."}), 400
+    cep = _cep_apenas_digitos(data.get('cep'))
+    nome = str(data.get('nome') or '').strip()
+    prazo = str(data.get('prazo') or '').strip()
+    option_id = str(data.get('quote_id') or '')
+    token = str(data.get('quote_token') or '')
+    expires_at = data.get('quote_expires_at')
+    carrinho = get_or_create_carrinho()
+    fingerprint = cart_fingerprint(carrinho)
+    if not validate_quote(
+        cep, option_id, nome, valor, prazo, fingerprint, token, expires_at, current_app.secret_key
+    ):
+        return jsonify({"success": False, "message": "Cotação inválida ou expirada. Recalcule o frete."}), 400
 
-    session['frete_valor'] = valor
-    session['frete_nome'] = str(data.get('nome') or '').strip()
-    session['frete_prazo'] = str(data.get('prazo') or '').strip()
-    session['frete_cep'] = _cep_apenas_digitos(data.get('cep'))
+    session['frete_valor'] = float(valor)
+    session['frete_nome'] = nome
+    session['frete_prazo'] = prazo
+    session['frete_cep'] = cep
+    session['frete_quote_id'] = option_id
+    session['frete_quote_token'] = token
+    session['frete_quote_expires_at'] = int(expires_at)
+    session.modified = True
+    return jsonify({"success": True})
+
+@carrinho_bp.route('/api/frete/limpar', methods=['POST'])
+def limpar_frete_sessao():
+    """Remove a seleção de frete; sem opção válida o pedido não pode finalizar."""
+    for key in (
+        'frete_valor', 'frete_nome', 'frete_prazo', 'frete_cep',
+        'frete_quote_id', 'frete_quote_token', 'frete_quote_expires_at',
+    ):
+        session.pop(key, None)
     session.modified = True
     return jsonify({"success": True})
 
@@ -298,154 +367,61 @@ def checkout_view():
         'prazo': session.get('frete_prazo', ''),
         'cep': session.get('frete_cep', ''),
     }
-    return render_template('carrinho/checkout.html', carrinho=carrinho, frete_sessao=frete_sessao, checkout_cliente=cliente, checkout_endereco=endereco, checkout_telefone=telefone)
+    if not session.get('loja_checkout_key'):
+        session['loja_checkout_key'] = uuid.uuid4().hex
+    try:
+        snapshot_pix = calcular_snapshot_pix(carrinho.items, frete_sessao['valor'])
+    except ValueError:
+        snapshot_pix = calcular_snapshot_pix(carrinho.items, 0)
+    pagarme_key = Configuracao.query.filter_by(chave='integ_pagarme_secret_key').first()
+    pagarme_pix_configurado = bool(pagarme_key and (pagarme_key.valor or '').strip())
+    checkout_disponivel = (
+        pagarme_pix_configurado
+        and bool(snapshot_pix['linhas'])
+        and snapshot_pix['total_produtos_pix'] > 0
+        and snapshot_pix['total_cobrado'] > 0
+    )
+    return render_template(
+        'carrinho/checkout.html',
+        carrinho=carrinho,
+        frete_sessao=frete_sessao,
+        checkout_cliente=cliente,
+        checkout_endereco=endereco,
+        checkout_telefone=telefone,
+        snapshot_pix=snapshot_pix,
+        checkout_key=session['loja_checkout_key'],
+        pagarme_pix_configurado=pagarme_pix_configurado,
+        checkout_disponivel=checkout_disponivel,
+    )
 
 @carrinho_bp.route('/checkout/processar', methods=['POST'])
 def processar_pedido():
-    """Grava o pedido final."""
+    """Cria uma cobrança PIX real; cartão é bloqueado no servidor por segurança."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'success': False, 'message': 'Requisição inválida.'}), 400
+    metodo = str(data.get('metodo_pagamento') or 'pix').strip().lower()
+    if metodo != 'pix':
+        return jsonify({
+            'success': False,
+            'message': 'Pagamento por cartão está temporariamente desabilitado até confirmar o tipo da conta Pagar.me.',
+        }), 409
     try:
-        data = request.get_json(silent=True) or {}
         cliente = get_cliente_logado()
         carrinho = get_or_create_carrinho()
-
-        if not carrinho or not carrinho.items:
-            return jsonify({"success": False, "message": "Carrinho vazio."}), 400
-
-        def texto(chave): return str(data.get(chave) or '').strip()
-
-        if cliente:
-            nome_cliente = (cliente.nome or '').strip()
-            email_cliente = (cliente.email_login or '').strip().lower()
-            documento = ''.join(filter(str.isdigit, cliente.documento or ''))
-            cliente_id = cliente.id
-            usuario_id = None
-        else:
-            nome_cliente = texto('nome')
-            email_cliente = texto('email').lower()
-            documento = ''.join(filter(str.isdigit, texto('documento')))
-            cliente_id = None
-            usuario_id = current_user.id if current_user.is_authenticated else None
-
-        cep = ''.join(filter(str.isdigit, texto('cep')))
-        logradouro = texto('logradouro')
-        numero = texto('numero')
-        bairro = texto('bairro')
-        cidade = texto('cidade')
-        estado = texto('uf').upper()
-        telefone = texto('telefone')
-
-        if not all([nome_cliente, email_cliente, documento, cep, logradouro, numero, bairro, cidade, estado]):
-            return jsonify({"success": False, "message": "Preencha todos os campos obrigatórios."}), 400
-
-        nome_frete = texto('nome_frete')
-        nome_frete_sessao = str(session.get('frete_nome') or '').strip()
-        cep_frete_sessao = _cep_apenas_digitos(session.get('frete_cep'))
-        if not nome_frete or not nome_frete_sessao:
-            return jsonify({"success": False, "message": "Selecione uma opção de frete ou retirada na loja antes de finalizar."}), 400
-        if cep_frete_sessao != cep:
-            return jsonify({"success": False, "message": "O frete precisa ser recalculado para o CEP informado."}), 400
-
-        # O valor efetivo vem da sessão assinada, não de um campo hidden manipulável.
-        nome_frete = nome_frete_sessao
-        try:
-            valor_frete = float(session.get('frete_valor') or 0)
-        except (TypeError, ValueError):
-            return jsonify({"success": False, "message": "Valor de frete inválido."}), 400
-
-        if valor_frete < 0:
-            return jsonify({"success": False, "message": "Valor de frete inválido."}), 400
-
-        if 'retirar na loja' in nome_frete.strip().lower():
-            from app.models import Configuracao
-            cfg_cep_origem = Configuracao.query.filter_by(chave='integ_melhorenvio_cep_origem').first()
-            cep_origem = cfg_cep_origem.valor if cfg_cep_origem and cfg_cep_origem.valor else '64000000'
-            if not _mesma_faixa_cidade(cep_origem, cep):
-                return jsonify({"success": False, "message": "A retirada na loja está disponível apenas para CEPs da cidade de origem."}), 400
-            valor_frete = 0.0
-
-        total_produtos = Decimal(str(carrinho.total_avista or 0)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        total_frete = Decimal(str(valor_frete or 0)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        total_pedido = (total_produtos + total_frete).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-
-        try:
-            parcelas = max(1, int(data.get('parcelas') or 1))
-        except (TypeError, ValueError):
-            parcelas = 1
-
-        # Verifica se a coluna cliente_id existe no Pedido
-        has_pedido_cliente_id = False
-        try:
-            db.session.execute(sa.text("SELECT cliente_id FROM pedidos LIMIT 1"))
-            has_pedido_cliente_id = True
-        except Exception: db.session.rollback()
-
-        pedido = Pedido(
-            usuario_id=usuario_id,
-            nome_cliente=nome_cliente,
-            email_cliente=email_cliente,
-            documento=documento,
-            telefone=telefone,
-            cep=cep,
-            logradouro=logradouro,
-            numero=numero,
-            bairro=bairro,
-            cidade=cidade,
-            estado=estado,
-            total_produtos=total_produtos,
-            total_frete=total_frete,
-            total_pedido=total_pedido,
-            forma_pagamento=(texto('metodo_pagamento') or 'pix'),
-            parcelas=parcelas,
-            status='pendente'
-        )
-        db.session.add(pedido)
-        db.session.flush()
-
-        if cliente_id and has_pedido_cliente_id:
-            try:
-                db.session.execute(sa.text("UPDATE pedidos SET cliente_id = :cid WHERE id = :id"), {"cid": cliente_id, "id": pedido.id})
-            except Exception: db.session.rollback()
-
-        for item in carrinho.items:
-            p_item = PedidoItem(
-                pedido_id=pedido.id,
-                produto_id=item.produto_id,
-                quantidade=item.quantidade,
-                preco_unitario_historico=item.preco_unitario_no_momento
-            )
-            db.session.add(p_item)
-
-        # Limpa o carrinho
-        for item in list(carrinho.items): db.session.delete(item)
-        db.session.commit()
-
-        # Notifica o administrador sobre o novo pedido
-        try:
-            registrar_notificacao(
-                tipo='venda',
-                nivel='info',
-                mensagem=f"Novo pedido #{pedido.id} realizado por {pedido.nome_cliente} (R$ {pedido.total_pedido:,.2f})",
-                cliente_id=cliente_id
-            )
-        except Exception as e:
-            current_app.logger.error(f"Erro ao registrar notificação de pedido: {e}")
-
-        # Dispara e-mail de confirmação / pagamento para o cliente
-        try:
-            from app.utils.email_service import enviar_email_novo_pedido
-            enviar_email_novo_pedido(pedido)
-        except Exception as e:
-            current_app.logger.error(f"Erro ao enviar e-mail de novo pedido: {e}")
-
-        session.pop('frete_valor', None)
-        session.pop('frete_nome', None)
-        session.pop('frete_prazo', None)
-        session.pop('frete_cep', None)
-
-        return jsonify({"success": True, "pedido_id": pedido.public_id, "redirect": url_for('carrinho.sucesso', public_id=pedido.public_id)})
-    except Exception as e:
+        resultado, status = processar_checkout_pix(data, carrinho, cliente)
+        return jsonify(resultado), status
+    except Exception:
         db.session.rollback()
-        return jsonify({"success": False, "message": str(e)}), 500
+        current_app.logger.exception('Falha inesperada no checkout PIX da loja')
+        return jsonify({'success': False, 'message': 'Não foi possível iniciar o pagamento PIX.'}), 500
+
+
+@carrinho_bp.route('/webhook/pagarme', methods=['POST'])
+def webhook_pagarme():
+    """Valida eventos consultando o pedido diretamente na API autenticada."""
+    resultado, status = processar_webhook_pagarme(request.get_json(silent=True))
+    return jsonify(resultado), status
 
 @carrinho_bp.route('/sucesso/<string:public_id>')
 def sucesso(public_id):

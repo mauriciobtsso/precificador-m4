@@ -52,7 +52,7 @@
                 <div>
                     <span class="text-muted small fw-bold">VALOR TOTAL</span>
                     <h5 class="fw-black mb-0 text-gold">
-                        R$ {{ "{:,.2f}".format(pedido.total_pedido or 0).replace(',','X').replace('.',',').replace('X','.') }}
+                        R$ {{ "{:,.2f}".format(pedido.total_cobrado if pedido.total_cobrado is not none else (pedido.total_pedido or 0)).replace(',','X').replace('.',',').replace('X','.') }}
                     </h5>
                 </div>
                 <a href="{{ url_for('loja.detalhe_pedido', public_id=pedido.public_id) }}"

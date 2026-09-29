@@ -100,7 +100,7 @@ def create_app():
     csrf.exempt("app.carrinho.routes.atualizar_quantidade")
     csrf.exempt("app.carrinho.routes.api_calcular_frete")
     csrf.exempt("app.carrinho.routes.salvar_frete_sessao")
-    csrf.exempt("app.carrinho.routes.processar_pedido")
+    csrf.exempt("app.carrinho.routes.limpar_frete_sessao")
     csrf.exempt("app.carrinho.routes.webhook_pagarme")
     csrf.exempt("app.notificacoes.routes.marcar_como_lida")
     csrf.exempt("app.produtos.routes.configs.adicionar_config_geral")

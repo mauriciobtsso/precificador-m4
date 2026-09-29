@@ -70,9 +70,21 @@
                     <span class="text-muted">Frete:</span>
                     <span class="fw-bold">R$ {{ "{:,.2f}".format(pedido.total_frete or 0).replace(',','X').replace('.',',').replace('X','.') }}</span>
                 </div>
+                {% if pedido.desconto_aplicado and pedido.desconto_aplicado > 0 %}
+                <div class="d-flex justify-content-between mb-2 small text-success">
+                    <span>Desconto PIX:</span>
+                    <span class="fw-bold">− R$ {{ "{:,.2f}".format(pedido.desconto_aplicado).replace(',','X').replace('.',',').replace('X','.') }}</span>
+                </div>
+                {% endif %}
+                {% if pedido.taxa_aplicada and pedido.taxa_aplicada > 0 %}
+                <div class="d-flex justify-content-between mb-2 small">
+                    <span class="text-muted">Taxa de parcelamento (snapshot):</span>
+                    <span class="fw-bold">{{ pedido.taxa_aplicada }}%</span>
+                </div>
+                {% endif %}
                 <div class="d-flex justify-content-between border-top pt-3 mt-3">
-                    <h6 class="fw-black mb-0">TOTAL:</h6>
-                    <h5 class="fw-black mb-0 text-gold">R$ {{ "{:,.2f}".format(pedido.total_pedido or 0).replace(',','X').replace('.',',').replace('X','.') }}</h5>
+                    <h6 class="fw-black mb-0">TOTAL COBRADO:</h6>
+                    <h5 class="fw-black mb-0 text-gold">R$ {{ "{:,.2f}".format(pedido.total_cobrado if pedido.total_cobrado is not none else (pedido.total_pedido or 0)).replace(',','X').replace('.',',').replace('X','.') }}</h5>
                 </div>
             </div>
         </div>
@@ -87,6 +99,16 @@
                 <p class="mb-0 small text-muted">CEP {{ pedido.cep }}</p>
             </div>
         </div>
+        {% if pedido.forma_pagamento == 'pix' and pedido.status == 'pendente' and pedido.pagarme_pix_qr_code %}
+        <div class="card border-0 shadow-sm client-content-card mt-4">
+            <div class="card-body p-4">
+                <h6 class="fw-black mb-3 text-uppercase small">Pagamento PIX</h6>
+                {% if pedido.pagarme_pix_qr_code_url %}<img src="{{ pedido.pagarme_pix_qr_code_url }}" class="img-fluid d-block mx-auto mb-3" alt="QR Code PIX" style="max-width:220px">{% endif %}
+                <textarea class="form-control form-control-sm" rows="4" readonly>{{ pedido.pagarme_pix_qr_code }}</textarea>
+                {% if pedido.pagarme_pix_expires_at %}<p class="small text-muted mt-2 mb-0">Válido até {{ pedido.pagarme_pix_expires_at.strftime('%d/%m/%Y %H:%M') }}.</p>{% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

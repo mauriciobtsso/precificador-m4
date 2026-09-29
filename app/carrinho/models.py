@@ -76,11 +76,20 @@ class Pedido(db.Model):
     total_produtos = db.Column(db.Numeric(12, 2), nullable=False)
     total_frete = db.Column(db.Numeric(12, 2), default=0.00)
     total_pedido = db.Column(db.Numeric(12, 2), nullable=False)
+    # Snapshot exclusivo da cobrança da loja; total_pedido continua sendo o valor-base.
+    total_cobrado = db.Column(db.Numeric(12, 2), nullable=True)
+    taxa_aplicada = db.Column(db.Numeric(8, 4), nullable=True)
+    desconto_aplicado = db.Column(db.Numeric(12, 2), nullable=True)
+    valor_parcela = db.Column(db.Numeric(12, 2), nullable=True)
     forma_pagamento = db.Column(db.String(20)) # 'pix' ou 'credit_card'
     parcelas = db.Column(db.Integer, default=1)
+    checkout_key = db.Column(db.String(36), nullable=True, unique=True, index=True)
     
     # Integração Pagar.me
     pagarme_id = db.Column(db.String(100), index=True) # ID do Pedido no Pagar.me
+    pagarme_pix_qr_code = db.Column(db.Text, nullable=True)
+    pagarme_pix_qr_code_url = db.Column(db.String(1024), nullable=True)
+    pagarme_pix_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
     status = db.Column(db.String(30), default='pendente') # pendente, pago, cancelado, estornado
     
     # Logística e Datas

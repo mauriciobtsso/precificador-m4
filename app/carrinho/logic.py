@@ -1,78 +1,83 @@
 # app/carrinho/logic.py
 import requests
-import json
 from decimal import Decimal
+
 
 class CartOrchestrator:
     def __init__(self, carrinho):
         self.carrinho = carrinho
 
     def calcular_frete(self, cep_destino):
-        """
-        Aqui faremos a chamada para API (Kangu/Melhor Envio).
-        Por enquanto, retornamos um mock (simulação).
-        """
-        # Exemplo: logic para chamar Kangu ficaria aqui
+        """Estimativa legada usada apenas pelos fluxos que ainda dependem dela."""
         if not cep_destino:
             return Decimal(0)
-        return Decimal(25.00) # Simulação de frete fixo
+        return Decimal("25.00")
 
     def preparar_checkout_transparente(self, gateway="mercadopago"):
-        """
-        Prepara os dados para o Checkout Transparente.
-        Retorna os tokens/scripts necessários para o frontend.
-        """
-        dados_pedido = {
+        return {
             "items": [
                 {
                     "title": item.produto.nome,
                     "quantity": item.quantidade,
-                    "unit_price": float(item.preco_unitario_no_momento)
-                } for item in self.carrinho.items
+                    "unit_price": float(item.preco_unitario_no_momento),
+                }
+                for item in self.carrinho.items
             ],
-            "total": float(self.carrinho.total_avista)
+            "total": float(self.carrinho.total_avista),
         }
-        return dados_pedido
+
+
+class PagarmeAPIError(Exception):
+    """Erro sanitizado da API; nunca guarda/expõe chave ou payload sensível."""
+
+    def __init__(self, message, status_code=None, ambiguous=False):
+        super().__init__(message)
+        self.status_code = status_code
+        self.ambiguous = ambiguous
+
 
 class PagarmeOrchestrator:
-    def __init__(self, api_key):
-        self.api_key = api_key
-        self.base_url = "https://api.pagar.me/core/v5"
+    BASE_URL = "https://api.pagar.me/core/v5"
 
-    def preparar_pedido_transparente(self, carrinho, dados_cliente, frete_selecionado):
-        """
-        Gera a estrutura JSON para enviar ao Pagar.me
-        """
-        items = []
-        for item in carrinho.items:
-            items.append({
-                "amount": int(item.preco_unitario_no_momento * 100), # Pagar.me usa centavos (ex: R$ 10,00 = 1000)
-                "description": item.produto.nome,
-                "quantity": item.quantidade,
-                "code": item.produto.codigo
-            })
+    def __init__(self, api_key, http=requests, timeout=20):
+        self.api_key = str(api_key or "").strip()
+        self.http = http
+        self.timeout = timeout
 
-        payload = {
-            "items": items,
-            "customer": {
-                "name": dados_cliente['nome'],
-                "email": dados_cliente['email'],
-                "document": dados_cliente['documento'].replace('.', '').replace('-', ''),
-                "type": "individual",
-                "phones": {
-                    "mobile_phone": {
-                        "country_code": "55",
-                        "area_code": dados_cliente['ddd'],
-                        "number": dados_cliente['telefone']
-                    }
-                }
-            },
-            "payments": [
-                {
-                    "payment_method": dados_cliente['metodo'], # 'credit_card' ou 'pix'
-                    # Aqui entra o 'card_token' gerado pelo JS no frontend
-                }
-            ]
-        }
-        return payload
+    def _request(self, method, path, **kwargs):
+        if not self.api_key:
+            raise PagarmeAPIError("A chave secreta do Pagar.me não está configurada.")
+        try:
+            response = self.http.request(
+                method,
+                f"{self.BASE_URL}{path}",
+                auth=(self.api_key, ""),
+                timeout=self.timeout,
+                **kwargs,
+            )
+        except requests.RequestException as exc:
+            raise PagarmeAPIError(
+                "Não foi possível confirmar a resposta do Pagar.me.", ambiguous=True
+            ) from exc
 
+        try:
+            data = response.json()
+        except (ValueError, AttributeError):
+            data = {}
+
+        status_code = int(getattr(response, "status_code", 0) or 0)
+        if status_code < 200 or status_code >= 300:
+            raise PagarmeAPIError(
+                f"O Pagar.me recusou a operação (HTTP {status_code}).",
+                status_code=status_code,
+                ambiguous=status_code >= 500,
+            )
+        if not isinstance(data, dict):
+            raise PagarmeAPIError("O Pagar.me retornou uma resposta inválida.", ambiguous=True)
+        return data
+
+    def criar_pedido(self, payload):
+        return self._request("POST", "/orders", json=payload)
+
+    def obter_pedido(self, pagarme_id):
+        return self._request("GET", f"/orders/{str(pagarme_id)}")

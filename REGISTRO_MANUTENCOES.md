@@ -119,3 +119,26 @@ Separar as taxas exibidas pela vitrine pública dos parâmetros usados pelos flu
 - Ensaio da migração em SQLite com uma tabela `taxas` contendo uma faixa duplicada — aprovado; a nova tabela recebeu uma única taxa por faixa, preservando o registro de menor ID, e a tabela original permaneceu intacta.
 - Grafo Alembic — `20260929_taxas_link` confirmado como head único, descendente de `b7c4d91f2a10`.
 - `git diff --check` — aprovado.
+
+
+## 29/09/2026 — Etapa 2: snapshot financeiro do checkout público e PIX
+
+### Implementação
+
+- Adicionada a revisão Alembic `20260929_pix_snapshot`, dependente de `20260929_taxas_link`, com os campos nullable de snapshot (`total_cobrado`, `taxa_aplicada`, `desconto_aplicado` e `valor_parcela`), chave única `checkout_key` e dados do QR Code PIX. Pedidos antigos preservam os valores e exibem fallback para `total_pedido`.
+- O checkout público agora calcula os valores em `Decimal` com arredondamento monetário `ROUND_HALF_UP`, registra no pedido o total-base (`total_pedido`), o desconto e o valor final efetivamente enviado ao Pagar.me. A oferta PIX existente foi implementada como **5% de desconto sobre os produtos; o frete permanece sem desconto**. Para PIX, `parcelas=1`, `taxa_aplicada=0` e `valor_parcela=total_cobrado`.
+- A integração cria pedidos no Pagar.me Core v5 em modo PIX, usa a chave secreta já configurada em Admin Loja → Integrações e persiste o identificador, código copia-e-cola, URL do QR e vencimento retornados pelo gateway. O payload não contém dados de cartão.
+- O endpoint `POST /carrinho/webhook/pagarme` consulta o pedido diretamente na API autenticada do Pagar.me antes de atualizar status; também confere ID, código público e valor contra o snapshot local. Assim, o conteúdo do POST de webhook não é tratado como prova suficiente de pagamento.
+- A chave única do checkout evita cobranças repetidas em reenvios e respostas ambíguas. A submissão do pagamento passou a exigir CSRF. A seleção de frete recebe assinatura HMAC com validade de 15 minutos e vinculada à composição do carrinho, impedindo reduzir o preço pelo navegador; limpar frete é uma operação separada.
+- Cartão permanece bloqueado tanto na interface quanto no servidor até confirmar se a conta Pagar.me é Gateway ou PSP. E-mails, listagens, detalhes e impressão do pedido distinguem valor-base, desconto e total cobrado; a tela de sucesso mostra o QR real e código copia-e-cola.
+
+### Configuração operacional
+
+O checkout PIX requer a chave `integ_pagarme_secret_key` em **Admin Loja → Integrações**. Para atualizar os status e recuperar QR Code quando uma resposta da criação for ambígua, configure no painel do Pagar.me o endpoint público `POST /carrinho/webhook/pagarme` e os eventos de pedido suportados (`order.created`, `order.paid`, `order.payment_failed` e `order.canceled`). A implementação valida cada evento consultando a API autenticada. Não foi feita chamada de cobrança real durante os testes; estes usam respostas simuladas. Pagamento por cartão segue indisponível até confirmar o tipo da conta e o fluxo seguro apropriado.
+
+### Validações
+
+- `pytest -q`: **59 testes passaram** (1 aviso do Flask-Limiter sobre armazenamento de rate limit em memória no teste).
+- `py_compile` nos módulos Python e `git diff --check`: concluídos sem erro.
+- Grafo Alembic: head único `20260929_pix_snapshot`, encadeado à revisão `20260929_taxas_link`.
+- Migração testada isoladamente em SQLite: `upgrade` e `downgrade` aprovados, incluindo o índice único da chave de checkout.

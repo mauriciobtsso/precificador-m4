@@ -98,6 +98,15 @@ def enviar_email_novo_pedido(pedido):
         subtotal_item = float(item.preco_unitario_historico or 0) * int(item.quantidade or 0)
         itens_html += f"<tr><td style='padding: 8px; border-bottom: 1px solid #eee;'>{escape(str(prod_nome))} (x{item.quantidade})</td><td style='padding: 8px; border-bottom: 1px solid #eee; text-align: right;'>{_moeda_brl(subtotal_item)}</td></tr>"
 
+    pix_code_html = ""
+    if pedido.forma_pagamento == 'pix' and pedido.pagarme_pix_qr_code:
+        pix_code_html = f"""
+        <div style="background:#f8f9fa;padding:15px;border-radius:8px;margin:20px 0;">
+            <p style="margin:0 0 8px 0;"><strong>Código PIX copia e cola:</strong></p>
+            <code style="display:block;word-break:break-all;">{escape(str(pedido.pagarme_pix_qr_code))}</code>
+        </div>
+        """
+
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px;">
         <div style="text-align: center; margin-bottom: 20px;">
@@ -122,17 +131,23 @@ def enviar_email_novo_pedido(pedido):
                     <td style="padding: 8px; font-weight: bold;">Frete:</td>
                     <td style="padding: 8px; text-align: right;">{_moeda_brl(pedido.total_frete)}</td>
                 </tr>
+                <tr>
+                    <td style="padding: 8px;">Total base:</td>
+                    <td style="padding: 8px; text-align: right;">{_moeda_brl(pedido.total_pedido)}</td>
+                </tr>
+                {f"<tr style='color:#198754;'><td style='padding:8px;'>Desconto PIX:</td><td style='padding:8px;text-align:right;'>− {_moeda_brl(pedido.desconto_aplicado)}</td></tr>" if pedido.desconto_aplicado and pedido.desconto_aplicado > 0 else ""}
                 <tr style="font-size: 16px; color: #c5a059;">
-                    <td style="padding: 8px; font-weight: bold;">Total:</td>
-                    <td style="padding: 8px; text-align: right; font-weight: bold;">{_moeda_brl(pedido.total_pedido)}</td>
+                    <td style="padding: 8px; font-weight: bold;">Total a pagar:</td>
+                    <td style="padding: 8px; text-align: right; font-weight: bold;">{_moeda_brl(pedido.total_cobrado if pedido.total_cobrado is not None else pedido.total_pedido)}</td>
                 </tr>
             </tfoot>
         </table>
 
         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
             <p style="margin: 0 0 10px 0;">Forma de Pagamento: <strong>{pedido.forma_pagamento.upper()}</strong></p>
-            <a href="https://loja.m4tatica.com.br/carrinho/sucesso/{pedido.id}" style="background: #c5a059; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Ver Detalhes e Pagar</a>
+            <a href="https://loja.m4tatica.com.br/carrinho/sucesso/{escape(str(pedido.public_id))}" style="background: #c5a059; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Ver Detalhes e Pagar</a>
         </div>
+        {pix_code_html}
 
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
         <p style="font-size: 12px; color: #777; text-align: center;">M4 Tática - Assessoria e Comércio de Armas</p>

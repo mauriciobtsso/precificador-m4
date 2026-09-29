@@ -55,9 +55,19 @@
                             <td colspan="3" class="text-end px-4">Frete:</td>
                             <td class="text-end px-4">{{ pedido.total_frete|currency }}</td>
                         </tr>
-                        <tr class="text-primary fs-5">
-                            <td colspan="3" class="text-end px-4">TOTAL:</td>
+                        <tr>
+                            <td colspan="3" class="text-end px-4">Total base:</td>
                             <td class="text-end px-4">{{ pedido.total_pedido|currency }}</td>
+                        </tr>
+                        {% if pedido.desconto_aplicado and pedido.desconto_aplicado > 0 %}
+                        <tr class="text-success">
+                            <td colspan="3" class="text-end px-4">Desconto PIX:</td>
+                            <td class="text-end px-4">− {{ pedido.desconto_aplicado|currency }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="text-primary fs-5">
+                            <td colspan="3" class="text-end px-4">TOTAL COBRADO:</td>
+                            <td class="text-end px-4">{{ (pedido.total_cobrado if pedido.total_cobrado is not none else pedido.total_pedido)|currency }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -78,10 +88,29 @@
                         <p class="mb-1 text-muted small text-uppercase">Parcelamento</p>
                         <p class="fw-bold text-dark">{{ pedido.parcelas }}x</p>
                     </div>
+                    {% if pedido.taxa_aplicada is not none %}
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small text-uppercase">Taxa snapshot</p>
+                        <p class="fw-bold text-dark">{{ pedido.taxa_aplicada }}%</p>
+                    </div>
+                    {% endif %}
+                    {% if pedido.valor_parcela is not none %}
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small text-uppercase">Valor da parcela</p>
+                        <p class="fw-bold text-dark">{{ pedido.valor_parcela|currency }}</p>
+                    </div>
+                    {% endif %}
                     {% if pedido.pagarme_id %}
                     <div class="col-12 mt-2">
                         <p class="mb-1 text-muted small text-uppercase">ID Gateway (Pagar.me)</p>
                         <code class="text-primary">{{ pedido.pagarme_id }}</code>
+                    </div>
+                    {% endif %}
+                    {% if pedido.pagarme_pix_qr_code %}
+                    <div class="col-12 mt-3">
+                        <label class="form-label small text-muted text-uppercase">PIX copia e cola</label>
+                        <textarea class="form-control form-control-sm" rows="3" readonly>{{ pedido.pagarme_pix_qr_code }}</textarea>
+                        {% if pedido.pagarme_pix_expires_at %}<small class="text-muted">Expira: {{ pedido.pagarme_pix_expires_at.strftime('%d/%m/%Y %H:%M') }}</small>{% endif %}
                     </div>
                     {% endif %}
                 </div>

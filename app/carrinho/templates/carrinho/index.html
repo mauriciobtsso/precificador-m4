@@ -249,8 +249,8 @@ if (btnFrete) {
                                 var empresa = op.company && op.company.name ? op.company.name : 'Transportadora';
                                 var nomeOpcao = op.name || 'Frete';
                                 var valorOpcao = parseFloat(op.price || 0);
-                                var prazoOpcao = op.custom ? 'Retirada na loja' : 'Prazo: até ' + ((op.delivery_range && op.delivery_range.max) || '-') + ' dias úteis';
-                                var nomeCompleto = empresa + ' – ' + nomeOpcao;
+                                var prazoOpcao = op.quote_prazo || (op.custom ? 'Retirada na loja' : 'Prazo: até ' + ((op.delivery_range && op.delivery_range.max) || '-') + ' dias úteis');
+                                var nomeCompleto = op.quote_name || (empresa + ' – ' + nomeOpcao);
                                 html += '<label class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary" style="cursor:pointer;">' +
                                         '<div class="d-flex align-items-center gap-2">' +
                                         '<input type="radio" name="frete_opcao" class="form-check-input mt-0" ' +
@@ -258,6 +258,9 @@ if (btnFrete) {
                                         'data-nome="' + nomeCompleto.replace(/"/g, '&quot;') + '" ' +
                                         'data-prazo="' + prazoOpcao.replace(/"/g, '&quot;') + '" ' +
                                         'data-cep="' + cep + '" ' +
+                                        'data-quote-id="' + String(op.quote_id || '') + '" ' +
+                                        'data-quote-token="' + String(op.quote_token || '') + '" ' +
+                                        'data-quote-expires="' + String(op.quote_expires_at || '') + '" ' +
                                         'onchange="selecionarFrete(this)">' +
                                         '<div>' +
                                         '<span class="small fw-bold text-white">' + empresa + '</span>' +
@@ -296,6 +299,9 @@ function selecionarFrete(radio) {
     var nome  = radio.getAttribute('data-nome') || '';
     var prazo = radio.getAttribute('data-prazo') || '';
     var cep   = radio.getAttribute('data-cep') || '';
+    var quoteId = radio.getAttribute('data-quote-id') || '';
+    var quoteToken = radio.getAttribute('data-quote-token') || '';
+    var quoteExpires = radio.getAttribute('data-quote-expires') || '';
 
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/carrinho/api/frete/salvar', true);
@@ -318,9 +324,15 @@ function selecionarFrete(radio) {
                     atualizarTotalDisplay();
                 }
             } catch(e) {}
+        } else if (xhr.readyState === 4) {
+            var erro = document.getElementById('frete_erro');
+            if (erro) {
+                erro.textContent = 'A cotação expirou. Calcule o frete novamente.';
+                erro.classList.remove('d-none');
+            }
         }
     };
-    xhr.send(JSON.stringify({ valor: valor, nome: nome, prazo: prazo, cep: cep }));
+    xhr.send(JSON.stringify({ valor: valor, nome: nome, prazo: prazo, cep: cep, quote_id: quoteId, quote_token: quoteToken, quote_expires_at: quoteExpires }));
 }
 
 // ── LIMPAR FRETE ──────────────────────────────────────────────────────
@@ -328,7 +340,7 @@ var btnLimpar = document.getElementById('btnLimparFrete');
 if (btnLimpar) {
     btnLimpar.addEventListener('click', function () {
         var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/carrinho/api/frete/salvar', true);
+        xhr.open('POST', '/carrinho/api/frete/limpar', true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4 && xhr.status === 200) {

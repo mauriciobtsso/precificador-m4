@@ -47,7 +47,7 @@
                         <div class="small text-muted">{{ pedido.email_cliente }}</div>
                     </td>
                     <td>{{ pedido.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
-                    <td class="fw-bold text-dark">{{ pedido.total_pedido|currency }}</td>
+                    <td class="fw-bold text-dark">{{ (pedido.total_cobrado if pedido.total_cobrado is not none else pedido.total_pedido)|currency }}<div class="small text-muted">Base: {{ pedido.total_pedido|currency }}</div></td>
                     <td>
                         <span class="small text-uppercase fw-bold">{{ pedido.forma_pagamento }}</span>
                         {% if pedido.parcelas and pedido.parcelas > 1 %}
