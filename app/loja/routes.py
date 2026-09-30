@@ -211,7 +211,9 @@ def _categoria_cache_key():
 
 
 def _detalhe_produto_cache_key(*args, **kwargs):
-    return f"loja:produto:v3:taxas:{_taxas_loja_cache_version()}:{request.path}"
+    slug = kwargs.get("slug") or request.view_args.get("slug")
+    atualizado = Produto.query.filter_by(slug=slug).with_entities(Produto.atualizado_em).scalar() if slug else None
+    return f"loja:produto:v4:taxas:{_taxas_loja_cache_version()}:{request.path}:atualizado:{atualizado}"
 
 # ============================================================
 # VITRINE PRINCIPAL (CIRURGIA A LASER: OPTIMIZED GET_SMART_CAT)
@@ -416,7 +418,7 @@ def index():
 @cache.cached(timeout=300, make_cache_key=_detalhe_produto_cache_key)
 def detalhe_produto(slug):
     produto = Produto.query.filter_by(slug=slug, visivel_loja=True)\
-        .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria))\
+        .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria), subqueryload(Produto.fotos))\
         .first_or_404()
     
     precos_key = f'precos_v2_{produto.id}'

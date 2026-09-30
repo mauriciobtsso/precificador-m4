@@ -46,6 +46,10 @@
     }
     .img-main-container img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); }
     .img-main-container:hover img { transform: scale(1.1); }
+    .produto-galeria-thumbs { display: flex; gap: .75rem; overflow-x: auto; padding-top: .75rem; }
+    .produto-galeria-thumb { flex: 0 0 76px; height: 76px; padding: 4px; background: #fff; border: 2px solid #eee; border-radius: 6px; cursor: pointer; }
+    .produto-galeria-thumb.active { border-color: var(--m4-gold); }
+    .produto-galeria-thumb img { width: 100%; height: 100%; object-fit: contain; }
     .badge-controlled-premium {
         background-color: #000; color: #fff; border-left: 4px solid var(--m4-gold);
         padding: 8px 15px; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
@@ -198,7 +202,11 @@
   "@type": "Product",
   "name": {{ (produto.nome_comercial or produto.nome) | tojson | safe }},
   "image": [
-    {{ gerar_link(produto.foto_url) | tojson | safe }}
+    {% if produto.fotos %}
+      {% for foto in produto.fotos %}{{ gerar_link(foto.url) | tojson | safe }}{% if not loop.last %},{% endif %}{% endfor %}
+    {% else %}
+      {{ gerar_link(produto.foto_url) | tojson | safe }}
+    {% endif %}
   ],
   "description": {{ (produto.descricao[:160] if produto.descricao else 'Equipamento tático de alta performance.') | tojson | safe }},
   "sku": {{ produto.codigo | tojson | safe }},
@@ -252,25 +260,27 @@
 
     <div class="row g-5">
         <div class="col-lg-7">
-	<div class="img-main-container rounded shadow-sm">
-	                {% set imagem = produto.foto_url or produto.imagem_principal %}
-	                {% if imagem %}
-                        {% set url_detalhe_original = gerar_link(imagem) %}
-                        {% set url_detalhe = imagem_otimizada(url_detalhe_original, 1200) %}
-                        {% set url_detalhe_media = imagem_otimizada(url_detalhe_original, 800) %}
-	                    <img src="{{ url_detalhe_media }}"
-                             srcset="{{ url_detalhe_media }} 800w, {{ url_detalhe }} 1200w"
-                             sizes="(max-width: 991px) 100vw, 58vw"
-	                         alt="{{ produto.nome_comercial or produto.nome }}" 
-                             width="800" height="600"
-	                         loading="eager" 
-	                         decoding="async" 
-                             onerror="this.onerror=null; this.src='{{ url_detalhe_original }}';">
-	                {% else %}
-                    <div class="text-center text-muted opacity-50">
-                        <i class="bi bi-image fs-1 d-block mb-2"></i>
-                        <span>Imagem indisponível</span>
-                    </div>
+            {% set fotos_loja = produto.fotos if produto.fotos else ([{'url': produto.foto_url}] if produto.foto_url else []) %}
+            <div class="produto-galeria-loja">
+                <div class="img-main-container rounded shadow-sm">
+                    {% if fotos_loja %}
+                        {% set url_detalhe_original = gerar_link(fotos_loja[0].url) %}
+                        <img id="produtoImagemPrincipal" src="{{ imagem_otimizada(url_detalhe_original, 800) }}"
+                             alt="{{ produto.nome_comercial or produto.nome }}" width="800" height="600"
+                             loading="eager" decoding="async" onerror="this.onerror=null; this.src='{{ url_detalhe_original }}';">
+                    {% else %}
+                        <div class="text-center text-muted opacity-50"><i class="bi bi-image fs-1 d-block mb-2"></i><span>Imagem indisponível</span></div>
+                    {% endif %}
+                </div>
+                {% if fotos_loja|length > 1 %}
+                <div class="produto-galeria-thumbs" aria-label="Fotos do produto">
+                    {% for foto in fotos_loja %}
+                        {% set thumb_original = gerar_link(foto.url) %}
+                        <button type="button" class="produto-galeria-thumb {{ 'active' if loop.first }}" data-image="{{ imagem_otimizada(thumb_original, 800) }}" data-original="{{ thumb_original }}" aria-label="Ver foto {{ loop.index }}">
+                            <img src="{{ imagem_otimizada(thumb_original, 160) }}" alt="{{ produto.nome_comercial or produto.nome }} — foto {{ loop.index }}" loading="lazy" onerror="this.onerror=null; this.src='{{ thumb_original }}';">
+                        </button>
+                    {% endfor %}
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -620,6 +630,19 @@
         } catch (e) {
             div.innerHTML = '<p class="text-danger small mb-0 mt-1">Erro ao calcular. Tente novamente.</p>';
         }
+    });
+    const imagemPrincipal = document.getElementById('produtoImagemPrincipal');
+    document.querySelectorAll('.produto-galeria-thumb').forEach((thumb) => {
+        thumb.addEventListener('click', () => {
+            if (!imagemPrincipal) return;
+            imagemPrincipal.src = thumb.dataset.image || thumb.dataset.original;
+            imagemPrincipal.onerror = () => {
+                imagemPrincipal.onerror = null;
+                imagemPrincipal.src = thumb.dataset.original;
+            };
+            document.querySelectorAll('.produto-galeria-thumb').forEach((item) => item.classList.remove('active'));
+            thumb.classList.add('active');
+        });
     });
 })();
 </script>

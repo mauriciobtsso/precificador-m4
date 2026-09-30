@@ -201,110 +201,81 @@
   }
 
   // ============================================================
-  // FOTO: Lógica para seleção, preview e upload (CORREÇÃO DA PERSISTÊNCIA)
+  // FOTO: galeria com upload múltiplo e foto principal
   // ============================================================
-  
-  // Função que faz o upload via API Flask (que por sua vez usa o R2)
-  async function uploadFoto(file, fotoProdutoOverlay, inputFotoUrl, btnRemoverFoto, fotoProdutoPreview, defaultPlaceholder, inputFotoProduto) {
-    const produtoId = getProdutoId() || 'novo';
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('produto_id', produtoId); // Para o servidor organizar o R2
-
-    if (fotoProdutoOverlay) fotoProdutoOverlay.classList.remove("d-none"); // Mostra o spinner
-
-    try {
-      // Endpoint que deve estar implementado no Flask (ex: app/produtos/routes/fotos.py)
-      const response = await fetch('/produtos/api/upload_foto', { 
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro no servidor: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success && data.foto_url) {
-        inputFotoUrl.value = data.foto_url; // <--- CHAVE PARA A PERSISTÊNCIA: Atualiza o campo que será enviado ao salvar.
-        console.log(`[M4] Foto carregada e URL atualizada: ${data.foto_url}`);
-        if (btnRemoverFoto) btnRemoverFoto.classList.remove("d-none");
-        
-      } else {
-        throw new Error(data.message || "Falha ao receber a URL da foto. Tente novamente.");
-      }
-
-    } catch (error) {
-      console.error("[M4] Erro no upload da foto:", error);
-      // Reverte o preview para o placeholder e limpa os campos em caso de falha no upload
-      fotoProdutoPreview.src = defaultPlaceholder;
-      if(inputFotoUrl) inputFotoUrl.value = "";
-      if(inputFotoProduto) inputFotoProduto.value = null;
-      alert("Falha ao enviar a foto. Por favor, tente novamente.");
-
-    } finally {
-      if (fotoProdutoOverlay) fotoProdutoOverlay.classList.add("d-none"); // Esconde o spinner
-    }
-  }
-
   function initFotoProduto() {
-      const btnSelecionarFoto = el("btnSelecionarFoto");
-      const inputFotoProduto = el("inputFotoProduto");
-      const btnRemoverFoto = el("btnRemoverFoto");
-      const fotoProdutoPreview = el("fotoProdutoPreview");
-      const inputFotoUrl = el("inputFotoUrl");
-      const fotoProdutoOverlay = el("fotoProdutoOverlay");
+    const btn = el("btnSelecionarFoto");
+    const input = el("inputFotoProduto");
+    const grid = el("galeriaProdutoGrid");
+    const empty = el("galeriaProdutoVazia");
+    const overlay = el("fotoProdutoOverlay");
+    const hidden = el("inputFotosProduto");
+    const legacy = el("inputFotoUrl");
+    if (!btn || !input || !grid || !hidden) return;
+    if (grid.dataset.bound === "1") return;
+    grid.dataset.bound = "1";
 
-      // Se os elementos chave não existirem, encerra a função
-      if (!btnSelecionarFoto || !inputFotoProduto || !fotoProdutoPreview) return;
-      
-      const defaultPlaceholder = fotoProdutoPreview.src;
+    let fotos = [];
+    try { fotos = JSON.parse(el("fotosProdutoIniciais")?.textContent || "[]"); } catch (_) {}
+    if (!fotos.length && legacy?.value) fotos = [{ url: legacy.value, principal: true }];
+    fotos = fotos.filter(f => f && f.url).map((f, index) => ({
+      url: f.url, principal: !!f.principal || (!fotos.some(x => x.principal) && index === 0),
+      preview: f.url
+    }));
 
-      const container = document.getElementById("fotoProdutoContainer");
-      if (container && container.dataset.bound === "1") return;
-      if (container) container.dataset.bound = "1";
+    const sync = () => {
+      if (fotos.length && !fotos.some(f => f.principal)) fotos[0].principal = true;
+      hidden.value = JSON.stringify(fotos.map(f => ({ url: f.url, principal: !!f.principal })));
+      if (legacy) legacy.value = fotos.find(f => f.principal)?.url || "";
+      empty.classList.toggle("d-none", fotos.length > 0);
+      grid.innerHTML = fotos.map((foto, index) => `
+        <div class="col">
+          <div class="produto-foto-thumb ${foto.principal ? "is-principal" : ""}">
+            <img src="${foto.preview || foto.url}" alt="Foto ${index + 1}" loading="lazy">
+            <button type="button" class="btn btn-sm btn-danger produto-foto-remove" data-index="${index}" title="Remover">
+              <i class="fas fa-times"></i>
+            </button>
+            <label class="produto-foto-primary" title="Definir como principal">
+              <input type="radio" name="foto_principal_ui" value="${index}" ${foto.principal ? "checked" : ""}>
+              <span><i class="fas fa-star"></i> Principal</span>
+            </label>
+          </div>
+        </div>`).join("");
+      grid.querySelectorAll(".produto-foto-remove").forEach(b => b.addEventListener("click", () => {
+        const removed = fotos.splice(Number(b.dataset.index), 1)[0];
+        if (removed?.principal && fotos.length) fotos[0].principal = true;
+        sync();
+      }));
+      grid.querySelectorAll("input[name=foto_principal_ui]").forEach(radio => radio.addEventListener("change", () => {
+        fotos.forEach((f, i) => f.principal = i === Number(radio.value));
+        sync();
+      }));
+    };
 
-      // 1. Lógica para selecionar o arquivo: Clica no input file escondido
-      btnSelecionarFoto.addEventListener("click", (e) => {
-        e.preventDefault();
-        inputFotoProduto.click();
-      });
-
-      // 2. Lógica para preview da imagem e iniciar upload
-      inputFotoProduto.addEventListener("change", (event) => {
-        const file = event.target.files[0];
-        if (file) {
-          // Preview imediato (sem persistência)
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            fotoProdutoPreview.src = e.target.result;
-          };
-          reader.readAsDataURL(file);
-
-          // Inicia o upload assíncrono para o R2/Proxy e salva a URL final
-          uploadFoto(file, fotoProdutoOverlay, inputFotoUrl, btnRemoverFoto, fotoProdutoPreview, defaultPlaceholder, inputFotoProduto);
-          
-        } else {
-          // Arquivo deselecionado (cancelado)
-          if(inputFotoUrl.value === "") { // Só limpa o preview se não houver URL persistida
-              fotoProdutoPreview.src = defaultPlaceholder;
-              if (btnRemoverFoto) btnRemoverFoto.classList.add("d-none");
-          }
+    btn.addEventListener("click", () => input.click());
+    input.addEventListener("change", async () => {
+      const arquivos = Array.from(input.files || []);
+      if (!arquivos.length) return;
+      overlay?.classList.remove("d-none");
+      try {
+        for (const file of arquivos) {
+          const fd = new FormData();
+          fd.append("file", file);
+          fd.append("produto_id", getProdutoId() || "novo");
+          const response = await fetch("/produtos/api/upload_foto", { method: "POST", body: fd });
+          const data = await response.json();
+          if (!response.ok || !data.success || !data.foto_url) throw new Error(data.error || "Falha no upload");
+          const preview = URL.createObjectURL(file);
+          fotos.push({ url: data.foto_url, preview, principal: fotos.length === 0 });
         }
-      });
-      
-      // 3. Lógica do botão remover
-      if (btnRemoverFoto) {
-        btnRemoverFoto.addEventListener("click", () => {
-          fotoProdutoPreview.src = defaultPlaceholder;
-          if(inputFotoUrl) inputFotoUrl.value = ""; // Limpa a URL para persistência
-          btnRemoverFoto.classList.add("d-none");
-          inputFotoProduto.value = null; // Limpa o input file
-          // NOTA: Para remover a foto do R2, uma chamada adicional ao backend seria necessária aqui.
-        });
-      }
-      console.info("[M4] Inicialização da Foto OK. ✅");
+        sync();
+        input.value = "";
+      } catch (error) {
+        console.error("[M4] Erro no upload da galeria:", error);
+        alert("Não foi possível enviar uma das fotos. Tente novamente.");
+      } finally { overlay?.classList.add("d-none"); }
+    });
+    sync();
   }
 
 

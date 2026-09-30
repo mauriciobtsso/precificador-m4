@@ -122,6 +122,13 @@ class Produto(db.Model):
     atualizado_em = db.Column(db.DateTime(timezone=True), onupdate=now_local, default=now_local, index=True)
 
     historicos = db.relationship("ProdutoHistorico", back_populates="produto", cascade="all, delete-orphan", lazy=True)
+    fotos = db.relationship(
+        "ProdutoFoto",
+        back_populates="produto",
+        cascade="all, delete-orphan",
+        order_by="(ProdutoFoto.eh_principal.desc(), ProdutoFoto.ordem.asc(), ProdutoFoto.id.asc())",
+        lazy=True,
+    )
 
     def calcular_precos(self):
         agora = now_local()
@@ -207,6 +214,32 @@ class Produto(db.Model):
 
     def __repr__(self):
         return f"<Produto {self.codigo} - {self.nome}>"
+
+
+class ProdutoFoto(db.Model):
+    """Galeria de imagens públicas de um produto.
+
+    ``Produto.foto_url`` continua sendo mantido como espelho da principal para
+    não quebrar integrações e registros antigos que ainda leem esse campo.
+    """
+    __tablename__ = "produto_fotos"
+    __table_args__ = (
+        Index("idx_produto_foto_produto_ordem", "produto_id", "ordem"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    produto_id = db.Column(
+        db.Integer,
+        db.ForeignKey("produtos.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    url = db.Column(db.String(512), nullable=False)
+    eh_principal = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    ordem = db.Column(db.Integer, nullable=False, default=0)
+    criado_em = db.Column(db.DateTime(timezone=True), default=now_local, nullable=False)
+
+    produto = db.relationship("Produto", back_populates="fotos")
 
 # Listener de Slug
 def gera_slug_automatico(target, value, oldvalue, initiator):

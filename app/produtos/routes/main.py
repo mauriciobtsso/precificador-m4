@@ -11,7 +11,7 @@ import json
 
 from app import db
 from .. import produtos_bp
-from app.produtos.models import Produto, ProdutoHistorico
+from app.produtos.models import Produto, ProdutoFoto, ProdutoHistorico
 from app.produtos.categorias.models import CategoriaProduto
 from app.produtos.configs.models import (
     MarcaProduto, CalibreProduto, TipoProduto, FuncionamentoProduto
@@ -318,7 +318,20 @@ def gerenciar_produto(produto_id=None):
             produto.promo_data_inicio = parse_form_datetime(data.get("promo_data_inicio"))
             produto.promo_data_fim = parse_form_datetime(data.get("promo_data_fim"))
 
-            produto.foto_url = data.get("foto_url") or foto_atual
+            fotos_payload = data.get("fotos_produto")
+            try:
+                fotos_enviadas = json.loads(fotos_payload) if fotos_payload else None
+                if not isinstance(fotos_enviadas, list):
+                    fotos_enviadas = None
+            except (TypeError, ValueError):
+                fotos_enviadas = None
+            # Mantém compatibilidade com formulários/integradores antigos.
+            if fotos_enviadas is None:
+                produto.foto_url = data.get("foto_url") or foto_atual
+            else:
+                fotos_enviadas = [item for item in fotos_enviadas if isinstance(item, dict) and item.get("url")]
+                principal = next((item for item in fotos_enviadas if item.get("principal")), None)
+                produto.foto_url = (principal or (fotos_enviadas[0] if fotos_enviadas else {})).get("url") or None
 
             # No trecho onde você coleta os dados do request:
             produto.peso = to_decimal(data.get('peso'))
@@ -346,7 +359,7 @@ def gerenciar_produto(produto_id=None):
             # ============================================================
             # MIGRAR FOTO DO TEMP PARA A PASTA DEFINITIVA DO PRODUTO NO R2
             # ============================================================
-            if produto.foto_url and 'produtos/fotos/temp/' in produto.foto_url:
+            if fotos_enviadas is None and produto.foto_url and 'produtos/fotos/temp/' in produto.foto_url:
                 try:
                     from app.produtos.routes.utils import _r2_client, _r2_bucket_publico
                     client = _r2_client()
@@ -398,6 +411,40 @@ def gerenciar_produto(produto_id=None):
                     current_app.logger.error(
                         f"[M4] Erro ao migrar foto temp para definitivo (produto {produto.id}): {e}"
                     )
+
+            # ============================================================
+            # SINCRONIZAR GALERIA DE FOTOS E IMAGEM PRINCIPAL
+            # ============================================================
+            if fotos_enviadas is not None:
+                for item in fotos_enviadas:
+                    foto_url = item["url"]
+                    if "produtos/fotos/temp/" not in foto_url:
+                        continue
+                    try:
+                        from app.produtos.routes.utils import _r2_client, _r2_bucket_publico
+                        from app.utils.r2_helpers import CDN_URL
+                        client = _r2_client()
+                        bucket = _r2_bucket_publico()
+                        old_key = _key_from_url(foto_url)
+                        if old_key and "produtos/fotos/temp/" in old_key:
+                            new_key = old_key.replace("produtos/fotos/temp/", f"produtos/fotos/{produto.id}/")
+                            client.copy_object(Bucket=bucket, CopySource={"Bucket": bucket, "Key": old_key}, Key=new_key)
+                            client.delete_object(Bucket=bucket, Key=old_key)
+                            item["url"] = f"{CDN_URL}/{new_key}"
+                    except Exception as e:
+                        current_app.logger.error("Erro ao migrar foto da galeria do produto %s: %s", produto.id, e)
+
+                principal_url = next((item["url"] for item in fotos_enviadas if item.get("principal")), None)
+                principal_url = principal_url or (fotos_enviadas[0]["url"] if fotos_enviadas else None)
+                produto.foto_url = principal_url
+                produto.fotos.clear()
+                for ordem, item in enumerate(fotos_enviadas):
+                    produto.fotos.append(ProdutoFoto(
+                        url=item["url"],
+                        eh_principal=item["url"] == principal_url,
+                        ordem=ordem,
+                    ))
+                produto.atualizado_em = now_local()
             # ============================================================
 
             registros = []
