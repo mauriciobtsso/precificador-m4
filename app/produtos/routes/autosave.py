@@ -10,7 +10,7 @@ from decimal import Decimal, InvalidOperation
 import re
 
 from app import db
-from app.produtos.models import Produto
+from app.produtos.models import Produto, ProdutoFoto
 from app.produtos.utils.historico_helper import registrar_historico
 from app.utils.parsing import parse_decimal, parse_form_datetime
 from app.utils.datetime import now_local
@@ -46,6 +46,50 @@ def autosave_produto(produto_id):
     produto = Produto.query.get_or_404(produto_id)
     data = request.get_json() or {}
     alteracoes = {}
+
+    # A galeria é enviada como JSON pelo formulário. Como fotos não são
+    # colunas diretas de Produto, precisam ser sincronizadas explicitamente
+    # aqui; antes, o autosave descartava a alteração ao trocar de aba.
+    fotos_payload = data.get("fotos_produto")
+    if fotos_payload is not None:
+        try:
+            fotos_recebidas = json.loads(fotos_payload) if isinstance(fotos_payload, str) else fotos_payload
+            if not isinstance(fotos_recebidas, list):
+                fotos_recebidas = None
+        except (TypeError, ValueError):
+            fotos_recebidas = None
+
+        if fotos_recebidas is not None:
+            fotos_recebidas = [
+                item for item in fotos_recebidas
+                if isinstance(item, dict) and str(item.get("url") or "").strip()
+            ]
+            principal = next((item for item in fotos_recebidas if item.get("principal")), None)
+            principal_url = (principal or (fotos_recebidas[0] if fotos_recebidas else {})).get("url")
+            fotos_atuais = ProdutoFoto.query.filter_by(produto_id=produto.id).order_by(
+                ProdutoFoto.ordem.asc(), ProdutoFoto.id.asc()
+            ).all()
+            estado_atual = [
+                {"url": foto.url, "principal": bool(foto.eh_principal)}
+                for foto in fotos_atuais
+            ]
+            estado_novo = [
+                {"url": item["url"], "principal": item["url"] == principal_url}
+                for item in fotos_recebidas
+            ]
+            if estado_atual != estado_novo or produto.foto_url != principal_url:
+                produto.fotos.clear()
+                for ordem, item in enumerate(estado_novo):
+                    produto.fotos.append(ProdutoFoto(
+                        url=item["url"],
+                        eh_principal=item["principal"],
+                        ordem=ordem,
+                    ))
+                alteracoes["fotos_produto"] = {
+                    "antigo": estado_atual,
+                    "novo": estado_novo,
+                }
+                produto.foto_url = principal_url or None
 
     CAMPOS_BOOLEANOS = ["promo_ativada", "visivel_loja", "destaque_home", "eh_lancamento", "eh_outdoor", "requer_documentacao"]
 
