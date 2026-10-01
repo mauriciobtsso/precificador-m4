@@ -213,7 +213,7 @@ def _categoria_cache_key():
 def _detalhe_produto_cache_key(*args, **kwargs):
     slug = kwargs.get("slug") or request.view_args.get("slug")
     atualizado = Produto.query.filter_by(slug=slug).with_entities(Produto.atualizado_em).scalar() if slug else None
-    return f"loja:produto:v4:taxas:{_taxas_loja_cache_version()}:{request.path}:atualizado:{atualizado}"
+    return f"loja:produto:v5:taxas:{_taxas_loja_cache_version()}:{request.path}:atualizado:{atualizado}"
 
 # ============================================================
 # VITRINE PRINCIPAL (CIRURGIA A LASER: OPTIMIZED GET_SMART_CAT)
