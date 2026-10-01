@@ -46,12 +46,38 @@
         top: auto;
         overflow: hidden;
     }
-    .img-main-container img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); }
-    .img-main-container:hover img { transform: scale(1.1); }
-    .produto-galeria-thumbs { display: flex; gap: .75rem; overflow-x: auto; padding: .75rem .25rem .25rem; min-height: 92px; }
-    .produto-galeria-thumb { flex: 0 0 76px; height: 76px; padding: 4px; background: #fff; border: 2px solid #eee; border-radius: 6px; cursor: pointer; }
-    .produto-galeria-thumb.active { border-color: var(--m4-gold); }
+    .img-main-container { touch-action: pan-y; }
+    .img-main-container img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; transition: opacity .2s ease; cursor: zoom-in; }
+    .img-main-container.is-loading img { opacity: .45; }
+    .produto-galeria-main-action { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border: 0; padding: 0; background: transparent; }
+    .produto-galeria-main-action:focus-visible { outline: 3px solid var(--m4-gold); outline-offset: 4px; border-radius: 4px; }
+    .produto-galeria-control { position: absolute; top: 50%; z-index: 2; transform: translateY(-50%); width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(0,0,0,.08); border-radius: 50%; background: rgba(255,255,255,.92); color: #111; box-shadow: 0 4px 14px rgba(0,0,0,.12); opacity: 0; transition: opacity .2s ease, transform .2s ease, background .2s ease; }
+    .img-main-container:hover .produto-galeria-control, .img-main-container:focus-within .produto-galeria-control { opacity: 1; }
+    .produto-galeria-control:hover { background: var(--m4-gold); transform: translateY(-50%) scale(1.05); }
+    .produto-galeria-control.prev { left: 14px; }
+    .produto-galeria-control.next { right: 14px; }
+    .produto-galeria-counter { position: absolute; right: 14px; bottom: 14px; z-index: 2; padding: 5px 10px; border-radius: 999px; color: #fff; background: rgba(0,0,0,.68); font-size: .72rem; font-weight: 700; letter-spacing: .3px; pointer-events: none; }
+    .produto-galeria-hint { display: flex; align-items: center; justify-content: center; gap: .35rem; margin-top: .5rem; color: #777; font-size: .72rem; }
+    .produto-galeria-thumbs { display: flex; gap: .75rem; overflow-x: auto; padding: .75rem .25rem .25rem; min-height: 92px; scrollbar-width: thin; scrollbar-color: var(--m4-gold) #f3f3f3; }
+    .produto-galeria-thumb { flex: 0 0 76px; height: 76px; padding: 4px; background: #fff; border: 2px solid #eee; border-radius: 6px; cursor: pointer; transition: border-color .2s ease, transform .2s ease; }
+    .produto-galeria-thumb:hover { transform: translateY(-2px); border-color: #bbb; }
+    .produto-galeria-thumb.active { border-color: var(--m4-gold); box-shadow: 0 0 0 2px rgba(197,160,89,.16); }
+    .produto-galeria-thumb:focus-visible { outline: 3px solid var(--m4-gold); outline-offset: 2px; }
     .produto-galeria-thumb img { width: 100%; height: 100%; object-fit: contain; }
+    .produto-lightbox[hidden] { display: none; }
+    .produto-lightbox { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0,0,0,.92); }
+    .produto-lightbox-dialog { position: relative; display: flex; align-items: center; justify-content: center; width: min(1180px, 100%); height: min(92vh, 900px); }
+    .produto-lightbox-image-wrap { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .produto-lightbox-image { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; transform-origin: center center; transition: transform .18s ease; cursor: zoom-in; }
+    .produto-lightbox-image.is-zoomed { cursor: zoom-out; transform: scale(1.8); }
+    .produto-lightbox-close, .produto-lightbox-control { position: absolute; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.35); border-radius: 50%; background: rgba(0,0,0,.5); color: #fff; font-size: 1.15rem; }
+    .produto-lightbox-close { top: 8px; right: 8px; }
+    .produto-lightbox-control { top: 50%; transform: translateY(-50%); }
+    .produto-lightbox-control.prev { left: 8px; }
+    .produto-lightbox-control.next { right: 8px; }
+    .produto-lightbox-close:hover, .produto-lightbox-control:hover, .produto-lightbox-close:focus-visible, .produto-lightbox-control:focus-visible { background: var(--m4-gold); color: #111; outline: none; }
+    .produto-lightbox-counter { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); color: #fff; background: rgba(0,0,0,.6); border-radius: 999px; padding: 6px 12px; font-size: .78rem; font-weight: 700; }
+    body.galeria-lightbox-aberta { overflow: hidden; }
     .badge-controlled-premium {
         background-color: #000; color: #fff; border-left: 4px solid var(--m4-gold);
         padding: 8px 15px; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
@@ -177,8 +203,23 @@
     .frete-resultado-item:last-child { border-bottom: none; }
 
     @media (max-width: 991px) {
-        .img-main-container { height: 400px; position: static; margin-bottom: 2rem; }
+        .img-main-container { height: 400px; position: static; margin-bottom: 1rem; padding: 24px; }
+        .produto-galeria-control { opacity: 1; width: 38px; height: 38px; }
+        .produto-galeria-control.prev { left: 8px; }
+        .produto-galeria-control.next { right: 8px; }
         .modal-parcelas .modal-dialog { margin: 1rem; max-width: calc(100% - 2rem); }
+    }
+    @media (max-width: 575px) {
+        .img-main-container { height: min(82vw, 390px); min-height: 280px; padding: 18px; }
+        .produto-galeria-thumb { flex-basis: 68px; height: 68px; }
+        .produto-lightbox { padding: 10px; }
+        .produto-lightbox-dialog { height: 84vh; }
+        .produto-lightbox-control { width: 38px; height: 38px; }
+        .produto-lightbox-control.prev { left: 0; }
+        .produto-lightbox-control.next { right: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .img-main-container img, .produto-galeria-thumb, .produto-galeria-control, .produto-lightbox-image { transition: none; }
     }
 </style>
 {% endblock %}
@@ -263,28 +304,54 @@
     <div class="row g-5">
         <div class="col-lg-7">
             {% set fotos_loja = produto.fotos if produto.fotos else ([{'url': produto.foto_url}] if produto.foto_url else []) %}
-            <div class="produto-galeria-loja">
-                <div class="img-main-container rounded shadow-sm">
+            <div class="produto-galeria-loja" data-gallery-count="{{ fotos_loja|length }}">
+                <div class="img-main-container rounded shadow-sm" id="produtoGaleriaPrincipal" aria-label="Galeria de fotos do produto">
                     {% if fotos_loja %}
                         {% set url_detalhe_original = gerar_link(fotos_loja[0].url) %}
-                        <img id="produtoImagemPrincipal" src="{{ imagem_otimizada(url_detalhe_original, 800) }}"
-                             alt="{{ produto.nome_comercial or produto.nome }}" width="800" height="600"
-                             loading="eager" decoding="async" onerror="this.onerror=null; this.src='{{ url_detalhe_original }}';">
+                        <button type="button" class="produto-galeria-main-action" id="produtoImagemAbrir" aria-label="Ampliar foto 1 de {{ fotos_loja|length }}">
+                            <img id="produtoImagemPrincipal" src="{{ imagem_otimizada(url_detalhe_original, 800) }}"
+                                 srcset="{{ imagem_otimizada(url_detalhe_original, 800) }} 800w, {{ imagem_otimizada(url_detalhe_original, 1200) }} 1200w"
+                                 sizes="(max-width: 991px) 100vw, 58vw"
+                                 alt="{{ produto.nome_comercial or produto.nome }} — foto 1" width="800" height="600"
+                                 loading="eager" fetchpriority="high" decoding="async" onerror="this.onerror=null; this.src='{{ url_detalhe_original }}';">
+                        </button>
+                        {% if fotos_loja|length > 1 %}
+                        <button type="button" class="produto-galeria-control prev" id="produtoGaleriaAnterior" aria-label="Foto anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                        <button type="button" class="produto-galeria-control next" id="produtoGaleriaProxima" aria-label="Próxima foto"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                        {% endif %}
+                        <span class="produto-galeria-counter" id="produtoGaleriaContador" aria-live="polite">1 / {{ fotos_loja|length }}</span>
                     {% else %}
                         <div class="text-center text-muted opacity-50"><i class="bi bi-image fs-1 d-block mb-2"></i><span>Imagem indisponível</span></div>
                     {% endif %}
                 </div>
+                {% if fotos_loja %}<div class="produto-galeria-hint"><i class="bi bi-zoom-in" aria-hidden="true"></i> Clique na foto para ampliar{% if fotos_loja|length > 1 %} · deslize para navegar{% endif %}</div>{% endif %}
                 {% if fotos_loja|length > 1 %}
                 <div class="produto-galeria-thumbs" aria-label="Fotos do produto">
                     {% for foto in fotos_loja %}
                         {% set thumb_original = gerar_link(foto.url) %}
-                        <button type="button" class="produto-galeria-thumb {{ 'active' if loop.first }}" data-image="{{ imagem_otimizada(thumb_original, 800) }}" data-original="{{ thumb_original }}" aria-label="Ver foto {{ loop.index }}">
+                        <button type="button" class="produto-galeria-thumb {{ 'active' if loop.first }}" data-index="{{ loop.index0 }}" data-image="{{ imagem_otimizada(thumb_original, 800) }}" data-image-large="{{ imagem_otimizada(thumb_original, 1200) }}" data-original="{{ thumb_original }}" data-alt="{{ produto.nome_comercial or produto.nome }} — foto {{ loop.index }}" aria-label="Ver foto {{ loop.index }} de {{ fotos_loja|length }}" aria-current="{{ 'true' if loop.first else 'false' }}">
                             <img src="{{ imagem_otimizada(thumb_original, 160) }}" alt="{{ produto.nome_comercial or produto.nome }} — foto {{ loop.index }}" loading="lazy" onerror="this.onerror=null; this.src='{{ thumb_original }}';">
                         </button>
                     {% endfor %}
                 </div>
                 {% endif %}
             </div>
+            {% if fotos_loja %}
+            <div class="produto-lightbox" id="produtoLightbox" role="dialog" aria-modal="true" aria-labelledby="produtoLightboxTitulo" hidden>
+                <div class="produto-lightbox-dialog">
+                    <h2 id="produtoLightboxTitulo" class="visually-hidden">Fotos ampliadas do produto</h2>
+                    <button type="button" class="produto-lightbox-close" id="produtoLightboxFechar" aria-label="Fechar fotos ampliadas"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                    {% if fotos_loja|length > 1 %}
+                    <button type="button" class="produto-lightbox-control prev" id="produtoLightboxAnterior" aria-label="Foto anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                    <button type="button" class="produto-lightbox-control next" id="produtoLightboxProxima" aria-label="Próxima foto"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                    {% endif %}
+                    <div class="produto-lightbox-image-wrap">
+                        <img class="produto-lightbox-image" id="produtoLightboxImagem" alt="" decoding="async">
+                    </div>
+                    <span class="produto-lightbox-counter" id="produtoLightboxContador" aria-live="polite"></span>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <div class="col-lg-5">
@@ -634,18 +701,102 @@
         }
     });
     const imagemPrincipal = document.getElementById('produtoImagemPrincipal');
-    document.querySelectorAll('.produto-galeria-thumb').forEach((thumb) => {
-        thumb.addEventListener('click', () => {
-            if (!imagemPrincipal) return;
-            imagemPrincipal.src = thumb.dataset.image || thumb.dataset.original;
-            imagemPrincipal.onerror = () => {
-                imagemPrincipal.onerror = null;
-                imagemPrincipal.src = thumb.dataset.original;
-            };
-            document.querySelectorAll('.produto-galeria-thumb').forEach((item) => item.classList.remove('active'));
-            thumb.classList.add('active');
+    const galeriaPrincipal = document.getElementById('produtoGaleriaPrincipal');
+    const thumbs = Array.from(document.querySelectorAll('.produto-galeria-thumb'));
+    const contador = document.getElementById('produtoGaleriaContador');
+    const abrirImagem = document.getElementById('produtoImagemAbrir');
+    const lightbox = document.getElementById('produtoLightbox');
+    const lightboxImagem = document.getElementById('produtoLightboxImagem');
+    const lightboxContador = document.getElementById('produtoLightboxContador');
+    let indiceAtual = 0;
+    let toqueInicial = null;
+    let ultimoElementoFocado = null;
+
+    function atualizarGaleria(indice, abrirLightbox = false) {
+        if (!imagemPrincipal || !thumbs.length) return;
+        indiceAtual = (indice + thumbs.length) % thumbs.length;
+        const thumb = thumbs[indiceAtual];
+        const urlMedia = thumb.dataset.image || thumb.dataset.original;
+        const urlGrande = thumb.dataset.imageLarge || thumb.dataset.original;
+        galeriaPrincipal?.classList.add('is-loading');
+        imagemPrincipal.src = urlMedia;
+        imagemPrincipal.srcset = `${urlMedia} 800w, ${urlGrande} 1200w`;
+        imagemPrincipal.alt = thumb.dataset.alt || `Foto ${indiceAtual + 1}`;
+        imagemPrincipal.onerror = () => {
+            imagemPrincipal.onerror = null;
+            imagemPrincipal.srcset = '';
+            imagemPrincipal.src = thumb.dataset.original;
+        };
+        imagemPrincipal.onload = () => galeriaPrincipal?.classList.remove('is-loading');
+        thumbs.forEach((item, index) => {
+            const ativo = index === indiceAtual;
+            item.classList.toggle('active', ativo);
+            item.setAttribute('aria-current', ativo ? 'true' : 'false');
         });
+        if (contador) contador.textContent = `${indiceAtual + 1} / ${thumbs.length}`;
+        if (abrirLightbox) abrirLightboxAtual();
+    }
+
+    function atualizarLightbox() {
+        if (!lightbox || !lightboxImagem || !thumbs.length) return;
+        const thumb = thumbs[indiceAtual];
+        lightboxImagem.classList.remove('is-zoomed');
+        lightboxImagem.src = thumb.dataset.imageLarge || thumb.dataset.original;
+        lightboxImagem.alt = thumb.dataset.alt || `Foto ${indiceAtual + 1}`;
+        lightboxImagem.onerror = () => {
+            lightboxImagem.onerror = null;
+            lightboxImagem.src = thumb.dataset.original;
+        };
+        if (lightboxContador) lightboxContador.textContent = `${indiceAtual + 1} / ${thumbs.length}`;
+    }
+
+    function abrirLightboxAtual() {
+        if (!lightbox || !thumbs.length) return;
+        ultimoElementoFocado = document.activeElement;
+        atualizarLightbox();
+        lightbox.hidden = false;
+        document.body.classList.add('galeria-lightbox-aberta');
+        document.getElementById('produtoLightboxFechar')?.focus();
+    }
+
+    function fecharLightbox() {
+        if (!lightbox) return;
+        lightbox.hidden = true;
+        document.body.classList.remove('galeria-lightbox-aberta');
+        ultimoElementoFocado?.focus?.();
+    }
+
+    function navegarGaleria(delta, noLightbox = false) {
+        if (!thumbs.length) return;
+        atualizarGaleria(indiceAtual + delta, false);
+        if (noLightbox) atualizarLightbox();
+    }
+
+    thumbs.forEach((thumb, index) => thumb.addEventListener('click', () => atualizarGaleria(index)));
+    abrirImagem?.addEventListener('click', () => abrirLightboxAtual());
+    document.getElementById('produtoGaleriaAnterior')?.addEventListener('click', (event) => { event.stopPropagation(); navegarGaleria(-1); });
+    document.getElementById('produtoGaleriaProxima')?.addEventListener('click', (event) => { event.stopPropagation(); navegarGaleria(1); });
+    document.getElementById('produtoLightboxAnterior')?.addEventListener('click', () => navegarGaleria(-1, true));
+    document.getElementById('produtoLightboxProxima')?.addEventListener('click', () => navegarGaleria(1, true));
+    document.getElementById('produtoLightboxFechar')?.addEventListener('click', fecharLightbox);
+    lightbox?.addEventListener('click', (event) => { if (event.target === lightbox) fecharLightbox(); });
+    lightboxImagem?.addEventListener('click', () => lightboxImagem.classList.toggle('is-zoomed'));
+
+    galeriaPrincipal?.addEventListener('pointerdown', (event) => { toqueInicial = { x: event.clientX, y: event.clientY }; });
+    galeriaPrincipal?.addEventListener('pointerup', (event) => {
+        if (!toqueInicial || thumbs.length < 2) return;
+        const deltaX = event.clientX - toqueInicial.x;
+        const deltaY = event.clientY - toqueInicial.y;
+        toqueInicial = null;
+        if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) navegarGaleria(deltaX < 0 ? 1 : -1);
     });
+    document.addEventListener('keydown', (event) => {
+        if (!lightbox || lightbox.hidden) return;
+        if (event.key === 'Escape') fecharLightbox();
+        if (event.key === 'ArrowLeft') navegarGaleria(-1, true);
+        if (event.key === 'ArrowRight') navegarGaleria(1, true);
+    });
+    atualizarGaleria(0);
 })();
 </script>
 {% endblock %}

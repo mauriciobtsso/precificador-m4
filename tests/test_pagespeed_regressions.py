@@ -74,6 +74,24 @@ def test_detail_page_uses_responsive_image_delivery():
     assert 'sizes="(max-width: 991px) 100vw, 58vw"' in detail
 
 
+def test_detail_page_gallery_has_phase_one_interactions():
+    detail = (LOJA_TEMPLATES / "produto_detalhe.html").read_text(encoding="utf-8")
+    for marker in (
+        'id="produtoGaleriaPrincipal"',
+        'id="produtoGaleriaContador"',
+        'id="produtoLightbox"',
+        'id="produtoLightboxImagem"',
+        'id="produtoGaleriaAnterior"',
+        'id="produtoGaleriaProxima"',
+        'produto-galeria-main-action',
+        'produtoLightboxFechar',
+        'ArrowLeft',
+        'ArrowRight',
+        'deltaX',
+    ):
+        assert marker in detail
+
+
 def test_card_reserves_image_and_text_space_for_stable_layout():
     css = (ROOT / "app/static/css/loja-card.css").read_text(encoding="utf-8")
     card = (LOJA_TEMPLATES / "_card_produto.html").read_text(encoding="utf-8")

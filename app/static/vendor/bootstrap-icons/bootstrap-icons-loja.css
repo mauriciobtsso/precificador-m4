@@ -27,6 +27,8 @@ url("./fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2") format("wof
 .bi-box-arrow-in-right::before { content: "\f1be"; }
 .bi-box-arrow-left::before { content: "\f1c2"; }
 .bi-box-seam::before { content: "\f1c7"; }
+.bi-chevron-left::before { content: "\f284"; }
+.bi-chevron-right::before { content: "\f285"; }
 .bi-cart-check::before { content: "\f23a"; }
 .bi-cart-plus::before { content: "\f23f"; }
 .bi-cart-plus-fill::before { content: "\f23e"; }
@@ -78,5 +80,7 @@ url("./fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2") format("wof
 .bi-three-dots-vertical::before { content: "\f5d3"; }
 .bi-trash::before { content: "\f5de"; }
 .bi-trash3-fill::before { content: "\f78a"; }
+.bi-x-lg::before { content: "\f659"; }
+.bi-zoom-in::before { content: "\f62c"; }
 .bi-truck::before { content: "\f5ea"; }
 .bi-whatsapp::before { content: "\f618"; }
