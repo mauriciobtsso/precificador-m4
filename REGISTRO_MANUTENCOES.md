@@ -215,3 +215,83 @@ Todos os commits foram enviados para a branch `main` do repositório `mauriciobt
 ### Resultado final
 
 O cadastro permite adicionar várias fotos e escolher a principal. A loja pública exibe a imagem principal e miniaturas navegáveis no detalhe do produto. A foto principal continua sincronizada com o campo legado, produtos antigos permanecem compatíveis e o cache do detalhe é invalidado quando a galeria é atualizada.
+
+
+## 01/10/2026 — Mensagem pública do PIX e desconto configurável
+
+### Solicitação e problema identificado
+
+No checkout público da loja, quando a chave secreta do Pagar.me não estava configurada, o cliente via a mensagem interna:
+
+> O PIX está indisponível até configurar a chave secreta do Pagar.me em Admin Loja → Integrações.
+
+Além disso, o checkout aplicava automaticamente um desconto fixo de 5% no PIX. Essa regra não dava autonomia à loja para decidir se o desconto deveria existir nem qual percentual deveria ser aplicado.
+
+### Alterações implantadas
+
+- Removida do checkout público a exposição de detalhes técnicos sobre chave secreta, Pagar.me e caminho administrativo.
+- Substituída a mensagem por uma orientação apropriada ao cliente:
+  > O pagamento via PIX está temporariamente indisponível. Tente novamente mais tarde ou fale com nossa equipe.
+- O desconto PIX deixou de ser fixo em 5% e passou a ter padrão **desativado, com 0%**.
+- Adicionada a função `obter_desconto_pix_percentual()` em `app/carrinho/payment.py`, que:
+  - só aplica desconto quando a configuração está explicitamente ativa;
+  - aceita percentuais de 0% a 100%;
+  - retorna 0% para configuração ausente, inválida ou fora do limite;
+  - mantém o frete fora da base de desconto.
+- `calcular_snapshot_pix()` passou a receber o percentual como parâmetro e a guardar no snapshot o campo `desconto_percentual`, além do valor monetário efetivamente abatido.
+- A prévia do checkout e o processamento efetivo do pedido passaram a usar a mesma configuração persistida, evitando que o total apresentado ao cliente seja diferente do total enviado ao gateway.
+- Quando o desconto está desativado, o checkout não exibe linha de desconto nem afirma que existe uma promoção. Quando está ativo, exibe o percentual configurado.
+- A linha de JavaScript que atualiza o frete foi protegida para funcionar também quando a linha de desconto não é renderizada.
+
+### Autonomia no painel administrativo
+
+Na tela **Admin Loja → Integrações → Pagamento**, foi criado o bloco **Desconto para pagamento via PIX**, com:
+
+- chave de ativação/desativação `loja_pix_desconto_ativo`;
+- percentual configurável `loja_pix_desconto_percentual`;
+- validação administrativa entre 0% e 100%;
+- aceitação de vírgula ou ponto na entrada decimal;
+- armazenamento normalizado com duas casas decimais.
+
+As duas chaves também foram adicionadas aos defaults de `Configuracao`, com os valores seguros `0` e `0.00`. Não foi necessária nova migração, pois o projeto já utiliza a tabela genérica `configuracoes`.
+
+### Erros, conflitos e soluções
+
+1. **Desconto fixo hardcoded em vários pontos**
+
+   O percentual de 5% estava definido em `payment.py`, refletido no template do checkout e coberto por testes que assumiam o valor fixo.
+
+   **Solução:** centralizado o percentual no banco de configurações, com padrão zero, parâmetro explícito no cálculo e testes separados para o comportamento padrão e para uma configuração ativa.
+
+2. **Risco de divergência entre prévia e pedido final**
+
+   A tela calculava o snapshot no endpoint de visualização e o serviço recalculava o snapshot no POST de processamento.
+
+   **Solução:** ambos os fluxos consultam `obter_desconto_pix_percentual()` no momento do cálculo. O pedido persiste o desconto monetário efetivamente usado no snapshot.
+
+3. **Linha de desconto ausente causando erro no JavaScript**
+
+   Ao desativar o desconto, a linha `desconto_pix_display` deixa de existir no HTML, mas o JavaScript ainda tentava atualizar o elemento ao selecionar um frete.
+
+   **Solução:** atualização protegida por verificação de existência do elemento.
+
+4. **Suíte de testes inicialmente indisponível no sandbox**
+
+   O comando `pytest` não estava instalado e, na tentativa seguinte, faltava `SQLAlchemy`. As dependências declaradas em `requirements.txt` foram instaladas somente no ambiente de validação do sandbox, sem alteração de dependências do projeto.
+
+5. **Falha não relacionada na suíte completa**
+
+   Os testes específicos do PIX passaram integralmente: **13 testes aprovados**. A suíte completa terminou com **60 testes aprovados e 1 falha** em `tests/test_pagespeed_regressions.py::test_detail_page_uses_responsive_image_delivery`, que ainda espera o texto `imagem_otimizada(url_detalhe_original, 1200)` no detalhe público. Essa expectativa pertence à validação anterior de entrega responsiva da galeria e não foi causada pelas alterações de checkout/desconto desta manutenção.
+
+### Validações
+
+- `python3 -m py_compile` nos módulos Python alterados — aprovado.
+- `git diff --check` — aprovado.
+- Parsing Jinja de `checkout.html` e `integracoes.html` — aprovado.
+- `python3 -m pytest -q tests/test_checkout_pix.py` — **13 aprovados**, com apenas o aviso já conhecido do Flask-Limiter sobre armazenamento em memória nos testes.
+- `python3 -m pytest -q` — **60 aprovados e 1 falha não relacionada**, descrita acima.
+- Busca de textos antigos — nenhuma mensagem técnica sobre chave secreta/Admin Loja permaneceu no checkout público e nenhuma descrição fixa de 5% permaneceu na aplicação pública.
+
+### Resultado final
+
+O cliente não vê mais detalhes internos de configuração quando o PIX está indisponível. O desconto PIX não é mais aplicado automaticamente. A loja pode ativá-lo ou desativá-lo e definir o percentual diretamente em **Admin Loja → Integrações**, com o padrão seguro de desconto desativado.

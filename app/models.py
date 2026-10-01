@@ -68,6 +68,8 @@ class Configuracao(db.Model):
             "incluir_pix": "true",
             "debito_percent": "1.09",
             "mensagem_whats_prefixo": "Olá! Vi este produto no site e gostaria de mais informações:",
+            "loja_pix_desconto_ativo": "0",
+            "loja_pix_desconto_percentual": "0.00",
             
             # --- Dados Institucionais (Teresina-PI) ---
             "loja_nome_fantasia": "M4 Tática",

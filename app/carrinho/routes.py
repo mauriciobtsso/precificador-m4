@@ -9,7 +9,7 @@ from app.utils.datetime import now_local
 from app.utils.r2_helpers import gerar_link_r2
 from app.loja.auth_loja import get_cliente_logado
 from .checkout_service import processar_checkout_pix, processar_webhook_pagarme
-from .payment import calcular_snapshot_pix
+from .payment import calcular_snapshot_pix, obter_desconto_pix_percentual
 from .frete_quotes import cart_fingerprint, issue_quote, money as money_frete, validate_quote
 from app.models import Configuracao
 import sqlalchemy as sa
@@ -370,9 +370,13 @@ def checkout_view():
     if not session.get('loja_checkout_key'):
         session['loja_checkout_key'] = uuid.uuid4().hex
     try:
-        snapshot_pix = calcular_snapshot_pix(carrinho.items, frete_sessao['valor'])
+        snapshot_pix = calcular_snapshot_pix(
+            carrinho.items, frete_sessao['valor'], obter_desconto_pix_percentual()
+        )
     except ValueError:
-        snapshot_pix = calcular_snapshot_pix(carrinho.items, 0)
+        snapshot_pix = calcular_snapshot_pix(
+            carrinho.items, 0, obter_desconto_pix_percentual()
+        )
     pagarme_key = Configuracao.query.filter_by(chave='integ_pagarme_secret_key').first()
     pagarme_pix_configurado = bool(pagarme_key and (pagarme_key.valor or '').strip())
     checkout_disponivel = (

@@ -165,8 +165,8 @@
                         <div class="tab-content mt-4" id="pills-tabContent">
                             <div class="tab-pane fade show active text-center py-3" id="pay-pix">
                                 <div class="mb-3"><i class="fas fa-bolt text-success fa-2x"></i></div>
-                                <h6>Pagamento via PIX com 5% de desconto nos produtos</h6>
-                                <p class="text-muted small">O frete não recebe desconto. O QR Code real será gerado pelo Pagar.me após confirmar o pedido.</p>
+                                <h6>Pagamento via PIX{% if snapshot_pix.desconto_percentual > 0 %} com {{ snapshot_pix.desconto_percentual }}% de desconto nos produtos{% endif %}</h6>
+                                <p class="text-muted small">O QR Code será gerado após a confirmação do pedido.</p>
                             </div>
                             <div class="tab-pane fade" id="pay-card">
                                 <div class="alert alert-warning mb-0" role="status">
@@ -207,12 +207,14 @@
                                 {% endif %}
                             </span>
                         </div>
+                        {% if snapshot_pix.desconto_aplicado > 0 %}
                         <div class="d-flex justify-content-between mb-2 text-success">
-                            <span>Desconto PIX (5% nos produtos):</span>
+                            <span>Desconto PIX ({{ snapshot_pix.desconto_percentual }}% nos produtos):</span>
                             <span id="desconto_pix_display">− R$ {{ "{:,.2f}".format(snapshot_pix.desconto_aplicado).replace(',', 'X').replace('.', ',').replace('X', '.') }}</span>
                         </div>
+                        {% endif %}
                         <div class="d-flex justify-content-between mb-4 fs-4 fw-bold text-warning">
-                            <span>Total PIX:</span>
+                            <span>Total a pagar:</span>
                             <span id="total_final_display">
                                 R$ {{ "{:,.2f}".format(snapshot_pix.total_cobrado).replace(',', 'X').replace('.', ',').replace('X', '.') }}
                             </span>
@@ -221,7 +223,7 @@
                         <input type="hidden" name="metodo_pagamento" id="metodo_pagamento" value="pix">
                         <div id="checkout_error" class="alert alert-danger d-none small mb-3" role="alert" aria-live="polite"></div>
                         {% if not pagarme_pix_configurado %}
-                        <div class="alert alert-warning small" role="alert">O PIX está indisponível até configurar a chave secreta do Pagar.me em Admin Loja → Integrações.</div>
+                        <div class="alert alert-warning small" role="alert">O pagamento via PIX está temporariamente indisponível. Tente novamente mais tarde ou fale com nossa equipe.</div>
                         {% endif %}
                         {% if pagarme_pix_configurado and not checkout_disponivel %}
                         <div class="alert alert-warning small" role="alert">O pedido precisa conter ao menos um produto com valor maior que zero para gerar uma cobrança.</div>
@@ -440,7 +442,10 @@ function atualizarFrete(radio) {
 
     total = Math.max(0, SUBTOTAL + valor - PIX_DISCOUNT);
     document.getElementById('valor_frete_display').textContent = 'R$ ' + valor.toFixed(2).replace('.', ',');
-    document.getElementById('desconto_pix_display').textContent = '− R$ ' + PIX_DISCOUNT.toFixed(2).replace('.', ',');
+    var descontoPixDisplay = document.getElementById('desconto_pix_display');
+    if (descontoPixDisplay) {
+        descontoPixDisplay.textContent = '− R$ ' + PIX_DISCOUNT.toFixed(2).replace('.', ',');
+    }
     document.getElementById('total_final_display').textContent =
         'R$ ' + total.toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
 

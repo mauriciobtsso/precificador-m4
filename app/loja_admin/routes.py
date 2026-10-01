@@ -380,6 +380,8 @@ CHAVES_INTEGRACAO = [
     'integ_pagarme_secret_key',
     'integ_pagarme_public_key',
     'integ_pagarme_sandbox',
+    'loja_pix_desconto_ativo',
+    'loja_pix_desconto_percentual',
     'integ_pix_chave',
     'integ_pix_beneficiario',
     'integ_pix_cidade',
@@ -410,11 +412,24 @@ def salvar_integracoes():
     checkboxes = {
         'integ_melhorenvio_sandbox',
         'integ_pagarme_sandbox',
+        'loja_pix_desconto_ativo',
     }
+
+    percentual = request.form.get('loja_pix_desconto_percentual', '0').strip().replace(',', '.')
+    try:
+        percentual_decimal = Decimal(percentual or '0')
+    except (InvalidOperation, ValueError):
+        flash('❌ Informe um percentual de desconto PIX válido.', 'danger')
+        return redirect(url_for('loja_admin.integracoes'))
+    if not percentual_decimal.is_finite() or percentual_decimal < 0 or percentual_decimal > 100:
+        flash('❌ O desconto PIX deve estar entre 0% e 100%.', 'danger')
+        return redirect(url_for('loja_admin.integracoes'))
 
     for chave in CHAVES_INTEGRACAO:
         if chave in checkboxes:
             valor = '1' if chave in request.form else '0'
+        elif chave == 'loja_pix_desconto_percentual':
+            valor = str(percentual_decimal.quantize(Decimal('0.01')))
         else:
             valor = request.form.get(chave, '').strip()
 

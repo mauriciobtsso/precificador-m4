@@ -4,10 +4,26 @@ Os valores aqui são snapshots de venda; não alteram a precificação nem a mar
 usadas pelos fluxos internos de produtos.
 """
 from decimal import Decimal, ROUND_HALF_UP
+from app.models import Configuracao
 
 CENT = Decimal("0.01")
-PIX_DISCOUNT_PERCENT = Decimal("5.00")
+PIX_DISCOUNT_PERCENT = Decimal("0.00")
 PIX_EXPIRATION_SECONDS = 60 * 60
+
+
+def obter_desconto_pix_percentual():
+    """Retorna o percentual configurado para o PIX, com padrão seguro de zero."""
+    ativo = Configuracao.query.filter_by(chave="loja_pix_desconto_ativo").first()
+    percentual = Configuracao.query.filter_by(chave="loja_pix_desconto_percentual").first()
+    if not ativo or str(ativo.valor or "") != "1":
+        return PIX_DISCOUNT_PERCENT
+    try:
+        valor = Decimal(str(percentual.valor or "0")) if percentual else PIX_DISCOUNT_PERCENT
+    except Exception:
+        return PIX_DISCOUNT_PERCENT
+    if not valor.is_finite() or valor < 0 or valor > 100:
+        return PIX_DISCOUNT_PERCENT
+    return valor.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def money(value):
@@ -24,13 +40,14 @@ def to_cents(value):
     return int(money(value) * 100)
 
 
-def calcular_snapshot_pix(itens, frete):
-    """Retorna produtos/frete/base/desconto/final com o desconto por unidade.
-
-    O desconto PIX anunciado (5%) incide nos produtos; o frete permanece pelo
-    valor selecionado. O arredondamento por unidade é o mesmo usado no payload
-    do gateway, para que o total local coincida exatamente com o total cobrado.
-    """
+def calcular_snapshot_pix(itens, frete, desconto_percentual=PIX_DISCOUNT_PERCENT):
+    """Retorna produtos/frete/base/desconto/final com desconto configurável."""
+    try:
+        desconto_percentual = Decimal(str(desconto_percentual or "0"))
+    except Exception as exc:
+        raise ValueError("Percentual de desconto PIX inválido.") from exc
+    if not desconto_percentual.is_finite() or not 0 <= desconto_percentual <= 100:
+        raise ValueError("Percentual de desconto PIX inválido.")
     linhas = []
     total_produtos = Decimal("0.00")
     total_produtos_pix = Decimal("0.00")
@@ -39,7 +56,7 @@ def calcular_snapshot_pix(itens, frete):
         if quantidade <= 0:
             raise ValueError("A quantidade de um item do carrinho é inválida.")
         unitario = money(item.preco_unitario_no_momento)
-        unitario_pix = money(unitario * (Decimal("1") - PIX_DISCOUNT_PERCENT / Decimal("100")))
+        unitario_pix = money(unitario * (Decimal("1") - desconto_percentual / Decimal("100")))
         subtotal = money(unitario * quantidade)
         subtotal_pix = money(unitario_pix * quantidade)
         linhas.append({"item": item, "unitario": unitario, "unitario_pix": unitario_pix,
@@ -63,6 +80,7 @@ def calcular_snapshot_pix(itens, frete):
         "total_frete": total_frete,
         "total_base": total_base,
         "desconto_aplicado": desconto,
+        "desconto_percentual": desconto_percentual,
         "total_cobrado": total_cobrado,
         "taxa_aplicada": Decimal("0.0000"),
         "parcelas": 1,

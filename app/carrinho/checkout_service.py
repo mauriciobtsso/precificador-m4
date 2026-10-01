@@ -16,6 +16,7 @@ from .payment import (
     calcular_snapshot_pix,
     construir_payload_pix,
     extrair_dados_pix,
+    obter_desconto_pix_percentual,
     status_local_pagarme,
     to_cents,
 )
@@ -182,7 +183,9 @@ def processar_checkout_pix(data, carrinho, cliente=None):
         return {"success": False, "message": "O pagamento PIX ainda não está configurado. Entre em contato com a loja."}, 503
 
     try:
-        snapshot = calcular_snapshot_pix(carrinho.items, valor_frete)
+        snapshot = calcular_snapshot_pix(
+            carrinho.items, valor_frete, obter_desconto_pix_percentual()
+        )
     except ValueError as exc:
         return {"success": False, "message": str(exc)}, 400
     if not snapshot["linhas"] or snapshot["total_produtos_pix"] <= 0 or snapshot["total_cobrado"] <= 0:

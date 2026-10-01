@@ -6,7 +6,7 @@ from app import db
 from app.carrinho.logic import PagarmeOrchestrator
 from app.carrinho.frete_quotes import cart_fingerprint, issue_quote, validate_quote
 from app.carrinho.models import Carrinho, CarrinhoItem, Pedido
-from app.carrinho.payment import calcular_snapshot_pix, construir_payload_pix, to_cents
+from app.carrinho.payment import calcular_snapshot_pix, construir_payload_pix, obter_desconto_pix_percentual, to_cents
 from app.models import Configuracao
 from app.produtos.models import Produto
 
@@ -46,7 +46,7 @@ def _pedido(public_id, total="12.00", email=None):
 def test_snapshot_pix_aplica_desconto_por_unidade_e_preserva_frete():
     produto = SimpleNamespace(nome="Produto teste", nome_comercial=None, codigo="P-1", id=1)
     item = SimpleNamespace(produto=produto, quantidade=3, preco_unitario_no_momento=Decimal("10.01"))
-    snapshot = calcular_snapshot_pix([item], Decimal("5.00"))
+    snapshot = calcular_snapshot_pix([item], Decimal("5.00"), Decimal("5.00"))
 
     # 5% sobre R$10,01 arredonda a R$9,51 por unidade; frete fica integral.
     assert snapshot["total_produtos"] == Decimal("30.03")
@@ -65,10 +65,41 @@ def test_snapshot_zero_continua_renderizavel_para_previa_sem_itens_cobraveis():
     assert snapshot["total_cobrado"] == Decimal("0.00")
 
 
+def test_snapshot_pix_nao_aplica_desconto_por_padrao():
+    item = SimpleNamespace(quantidade=2, preco_unitario_no_momento=Decimal("10.00"))
+    snapshot = calcular_snapshot_pix([item], Decimal("5.00"))
+    assert snapshot["desconto_percentual"] == Decimal("0.00")
+    assert snapshot["desconto_aplicado"] == Decimal("0.00")
+    assert snapshot["total_cobrado"] == Decimal("25.00")
+
+
+def test_desconto_pix_so_e_aplicado_com_configuracao_ativa(app):
+    with app.app_context():
+        ativo = Configuracao.query.filter_by(chave="loja_pix_desconto_ativo").first()
+        percentual = Configuracao.query.filter_by(chave="loja_pix_desconto_percentual").first()
+        if not ativo:
+            ativo = Configuracao(chave="loja_pix_desconto_ativo", valor="0")
+            db.session.add(ativo)
+        if not percentual:
+            percentual = Configuracao(chave="loja_pix_desconto_percentual", valor="0.00")
+            db.session.add(percentual)
+        ativo.valor = "1"
+        percentual.valor = "7.50"
+        db.session.commit()
+        assert obter_desconto_pix_percentual() == Decimal("7.50")
+        snapshot = calcular_snapshot_pix(
+            [SimpleNamespace(quantidade=1, preco_unitario_no_momento=Decimal("100.00"))],
+            Decimal("0.00"), obter_desconto_pix_percentual(),
+        )
+        assert snapshot["desconto_aplicado"] == Decimal("7.50")
+        ativo.valor = "0"
+        db.session.commit()
+
+
 def test_payload_pix_reflete_exatamente_snapshot():
     produto = SimpleNamespace(nome="Produto teste", nome_comercial=None, codigo="P-1", id=1)
     item = SimpleNamespace(produto=produto, quantidade=2, preco_unitario_no_momento=Decimal("10.00"))
-    snapshot = calcular_snapshot_pix([item], Decimal("5.00"))
+    snapshot = calcular_snapshot_pix([item], Decimal("5.00"), Decimal("5.00"))
     pedido = SimpleNamespace(public_id="pedido-publico-1")
     dados = {
         "nome": "Cliente Teste", "email": "cliente@example.test", "documento": "12345678901",
@@ -240,7 +271,8 @@ def test_checkout_pix_persiste_snapshot_qr_e_limpa_carrinho(client, app, monkeyp
 
     checkout_page = client.get("/carrinho/checkout")
     assert checkout_page.status_code == 200
-    assert "5% de desconto nos produtos" in checkout_page.get_data(as_text=True)
+    assert "Pagamento via PIX" in checkout_page.get_data(as_text=True)
+    assert "5% de desconto nos produtos" not in checkout_page.get_data(as_text=True)
     assert "checkout_key" in checkout_page.get_data(as_text=True)
 
     response = client.post("/carrinho/checkout/processar", json={
@@ -262,11 +294,11 @@ def test_checkout_pix_persiste_snapshot_qr_e_limpa_carrinho(client, app, monkeyp
         assert pedido.total_produtos == Decimal("20.00")
         assert pedido.total_frete == Decimal("5.00")
         assert pedido.total_pedido == Decimal("25.00")
-        assert pedido.desconto_aplicado == Decimal("1.00")
-        assert pedido.total_cobrado == Decimal("24.00")
+        assert pedido.desconto_aplicado == Decimal("0.00")
+        assert pedido.total_cobrado == Decimal("25.00")
         assert pedido.taxa_aplicada == Decimal("0.0000")
         assert pedido.parcelas == 1
-        assert pedido.valor_parcela == Decimal("24.00")
+        assert pedido.valor_parcela == Decimal("25.00")
         assert pedido.pagarme_id == "or_test_pix"
         assert pedido.pagarme_pix_qr_code == "000201PIX_TESTE"
         assert Carrinho.query.filter_by(session_id=cart_session).one().items == []
