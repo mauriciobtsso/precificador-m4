@@ -142,3 +142,76 @@ O checkout PIX requer a chave `integ_pagarme_secret_key` em **Admin Loja → Int
 - `py_compile` nos módulos Python e `git diff --check`: concluídos sem erro.
 - Grafo Alembic: head único `20260929_pix_snapshot`, encadeado à revisão `20260929_taxas_link`.
 - Migração testada isoladamente em SQLite: `upgrade` e `downgrade` aprovados, incluindo o índice único da chave de checkout.
+
+
+## 30/09/2026–01/10/2026 — Galeria de fotos dos produtos na loja pública
+
+### Solicitação e escopo
+
+Permitir o cadastro de mais de uma foto por produto, possibilitar a definição de uma foto principal e exibir todas as fotos no detalhe público da loja. O escopo incluiu o formulário administrativo de produtos e a página pública de detalhe.
+
+### Implementação persistente
+
+- Criado o modelo `ProdutoFoto` em `app/produtos/models.py`, relacionado a `Produto` pela relação `fotos`, com URL, ordem, indicador de principal, timestamp e exclusão em cascata.
+- Mantido o campo legado `Produto.foto_url` como espelho da foto principal para preservar integrações, templates e registros antigos.
+- Criada a migração Alembic `20260930_produto_fotos.py`, descendente de `20260929_pix_snapshot`, criando a tabela `produto_fotos`, índices de produto/principal/ordem e migrando automaticamente a foto existente de `produtos.foto_url` para a nova galeria.
+- Atualizado o cadastro administrativo para aceitar múltiplos arquivos, mostrar miniaturas, remover fotos e selecionar exatamente uma foto principal.
+- O fluxo de salvamento manual sincroniza a galeria, mantém a ordem, move imagens temporárias para a pasta definitiva do produto no R2 e atualiza `foto_url` com a principal.
+- O detalhe público passou a carregar `Produto.fotos` com `subqueryload`, renderizar a imagem principal, exibir miniaturas e trocar a imagem via JavaScript sem recarregar a página.
+- O JSON-LD do produto passou a listar todas as imagens disponíveis.
+
+### Erros e conflitos encontrados
+
+1. **Galeria não persistia ao trocar de aba ou sair do cadastro**
+
+   O JavaScript enviava o campo `fotos_produto`, mas o endpoint de autosave em `app/produtos/routes/autosave.py` ignorava esse campo porque ele não era uma coluna direta de `Produto`. A tela mostrava as fotos, porém o autosave descartava a alteração.
+
+   **Solução implantada:** o autosave passou a interpretar o JSON da galeria, comparar o estado atual com o recebido, recriar a relação `ProdutoFoto`, atualizar a foto principal e registrar a alteração no histórico.
+
+2. **Rota pública usada no diagnóstico estava com prefixo incorreto**
+
+   O blueprint possui o prefixo `/loja` no ambiente interno, mas o domínio público `loja.m4tatica.com.br` publica a loja na raiz. Portanto, o endereço canônico do detalhe é `/produto/<slug>`. A tentativa em `/loja/produto/<slug>` retornou `404` no domínio público, enquanto o endereço sem `/loja` retornou `200`.
+
+   **Solução/registro operacional:** validar o detalhe público sempre pelo endereço canônico:
+   `https://loja.m4tatica.com.br/produto/<slug>`.
+
+3. **Miniaturas presentes no HTML, mas visualmente cobertas durante a rolagem**
+
+   A imagem principal usava `position: sticky` e permanecia sobreposta ao conteúdo durante a rolagem e em capturas de página inteira. O print enviado mostrou a imagem principal cobrindo a região onde deveriam aparecer as miniaturas, apesar de o HTML conter as fotos.
+
+   **Solução implantada:** removido o comportamento `sticky`, definida posição normal/relativa para o contêiner da imagem e adicionada altura mínima/padding à faixa `.produto-galeria-thumbs`, mantendo as miniaturas claramente visíveis abaixo da imagem principal.
+
+4. **Cache e atualização do código público**
+
+   O detalhe utilizava cache de 300 segundos e a chave anterior não distinguia explicitamente a nova versão visual. Após a correção, o domínio ainda entregou temporariamente o CSS antigo com `position: sticky`, mesmo com o commit já publicado no GitHub.
+
+   **Solução implantada:** incrementado o namespace da chave de cache do detalhe de `v4` para `v5`, incluindo também o timestamp de atualização do produto. Foi identificado que o repositório não possui workflow GitHub Actions de deploy; por isso, o push na `main` e o redeploy do provedor são etapas distintas. Após o redeploy, a correção passou a funcionar na página pública.
+
+5. **Compatibilidade com produtos antigos**
+
+   Produtos sem registros em `produto_fotos` poderiam ficar sem imagem se o template dependesse somente da nova relação.
+
+   **Solução implantada:** o template usa fallback para `produto.foto_url` quando a galeria ainda está vazia, e a migração também popula a nova tabela a partir das fotos legadas.
+
+### Commits entregues
+
+- `52030b5` — `feat: adicionar galeria de fotos aos produtos`
+- `7ea0f9a` — `fix: persistir galeria de fotos no autosave`
+- `4e9f658` — `fix: manter miniaturas visiveis no detalhe da loja`
+- `38bf1c6` — `fix: exibir galeria sem sobreposicao no detalhe publico`
+
+Todos os commits foram enviados para a branch `main` do repositório `mauriciobtsso/precificador-m4`.
+
+### Validações executadas
+
+- `python3 -m py_compile` nos modelos, rotas de produtos, autosave, rota da loja e migração — aprovado.
+- `node --check app/static/js/produtos_form.js` — aprovado.
+- Parsing dos templates Jinja do cadastro e do detalhe — aprovado.
+- `git diff --check` — aprovado.
+- Verificação pública do produto Taurus GX2 — HTML contendo duas miniaturas e duas URLs de fotos.
+- Inspeção com navegador automatizado — galeria visível, duas miniaturas presentes e clicáveis.
+- Verificação pós-deploy — miniaturas renderizadas abaixo da imagem principal após a atualização do serviço público.
+
+### Resultado final
+
+O cadastro permite adicionar várias fotos e escolher a principal. A loja pública exibe a imagem principal e miniaturas navegáveis no detalhe do produto. A foto principal continua sincronizada com o campo legado, produtos antigos permanecem compatíveis e o cache do detalhe é invalidado quando a galeria é atualizada.
