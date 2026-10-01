@@ -17,6 +17,7 @@
   let autosaveTimer = null;
   let isSaving = false;
   const delay = 1500; // 1.5 segundos de inatividade
+  const csrfToken = form.querySelector('input[name="csrf_token"]')?.value || document.querySelector('input[name="csrf_token"]')?.value || "";
 
   // Cria elemento visual de status (fallback, caso header não exista)
   const statusEl = document.createElement("div");
@@ -193,7 +194,7 @@ const coletarDados = () => {
 
       const resp = await fetch(`/produtos/autosave/${produtoId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
         body: JSON.stringify(data),
       });
 

@@ -33,6 +33,20 @@
     return Number.isFinite(id) && id > 0 ? id : null;
   }
 
+  function getCsrfToken() {
+    return document.querySelector('input[name="csrf_token"]')?.value || "";
+  }
+
+  async function readApiResponse(response) {
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) return response.json();
+    const body = await response.text();
+    if (response.redirected || body.includes("<html") || body.includes("<!doctype")) {
+      return { success: false, error: "A sessão expirou ou a proteção de segurança bloqueou o upload. Recarregue a página e tente novamente." };
+    }
+    return { success: false, error: body || "Resposta inválida do servidor." };
+  }
+
 
 // ============================================================
   // ESPECIFICAÇÕES DINÂMICAS (JSON)
@@ -262,8 +276,8 @@
           const fd = new FormData();
           fd.append("file", file);
           fd.append("produto_id", getProdutoId() || "novo");
-          const response = await fetch("/produtos/api/upload_foto", { method: "POST", body: fd });
-          const data = await response.json();
+          const response = await fetch("/produtos/api/upload_foto", { method: "POST", headers: { "X-CSRFToken": getCsrfToken() }, body: fd });
+          const data = await readApiResponse(response);
           if (!response.ok || !data.success || !data.foto_url) throw new Error(data.error || "Falha no upload");
           const preview = URL.createObjectURL(file);
           fotos.push({ url: data.foto_url, preview, principal: fotos.length === 0 });
@@ -332,8 +346,8 @@
           const fd = new FormData();
           fd.append("file", file);
           fd.append("produto_id", getProdutoId() || "novo");
-          const response = await fetch("/produtos/api/upload_video", { method: "POST", body: fd });
-          const data = await response.json();
+          const response = await fetch("/produtos/api/upload_video", { method: "POST", headers: { "X-CSRFToken": getCsrfToken() }, body: fd });
+          const data = await readApiResponse(response);
           if (!response.ok || !data.success || !data.video_url) throw new Error(data.error || "Falha no upload");
           videos.push({ url: data.video_url, titulo: file.name.replace(/\.[^/.]+$/, ""), preview: URL.createObjectURL(file) });
         }
@@ -406,8 +420,8 @@
           const fd = new FormData();
           fd.append("file", file);
           fd.append("produto_id", getProdutoId() || "novo");
-          const response = await fetch("/produtos/api/upload_tour360_frame", { method: "POST", body: fd });
-          const data = await response.json();
+          const response = await fetch("/produtos/api/upload_tour360_frame", { method: "POST", headers: { "X-CSRFToken": getCsrfToken() }, body: fd });
+          const data = await readApiResponse(response);
           if (!response.ok || !data.success || !data.frame_url) throw new Error(data.error || "Falha no upload");
           config.frames.push({ url: data.frame_url, preview: URL.createObjectURL(file) });
         }

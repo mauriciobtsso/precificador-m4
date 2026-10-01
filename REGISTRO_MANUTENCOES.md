@@ -523,3 +523,34 @@ Ampliar o detalhe público de `/loja/produto/<slug>` com uma visualização inte
 ### Resultado final
 
 A Fase 3 permite cadastrar e administrar um tour 360 por produto e exibi-lo no detalhe público com navegação natural por arraste, teclado e setas. Também permite definir acessórios compatíveis manualmente, apresentando-os em uma seção própria da loja, sem perder as recomendações automáticas existentes ou a compatibilidade com produtos antigos.
+
+
+## 01/10/2026 — Correção do upload do tour 360 bloqueado por CSRF
+
+### Problema observado
+
+Ao editar o produto `426` e selecionar frames para o tour 360, o navegador registrava `POST /produtos/api/upload_tour360_frame 400`. Em seguida, o JavaScript apresentava `Unexpected token '<', "<!doctype ..." is not valid JSON`. Também foi observado `POST /produtos/autosave/426 400`.
+
+### Diagnóstico
+
+A aplicação utiliza proteção CSRF global. O formulário administrativo já possuía o campo `csrf_token`, mas os `fetch()` usados pelo upload do tour, pelos uploads de fotos e vídeos e pelo autosave não enviavam o valor no cabeçalho `X-CSRFToken`. O servidor devolvia a página HTML de erro da proteção CSRF, e o código tentava executar `response.json()` sobre esse HTML.
+
+O `404` da imagem antiga registrada no log é independente do erro do tour: trata-se de uma referência de foto legada inexistente no armazenamento público e não é a causa do `400` do upload.
+
+### Soluções implantadas
+
+- Adicionado o envio de `X-CSRFToken` nos uploads de fotos, vídeos e frames do tour 360.
+- Adicionado o envio de `X-CSRFToken` no endpoint de autosave.
+- Criado leitor de resposta segura no JavaScript do formulário:
+  - interpreta JSON quando o servidor retorna JSON;
+  - identifica redirecionamento ou HTML de erro;
+  - exibe mensagem orientando recarregar a página quando a sessão ou o token expirarem;
+  - evita o erro técnico `Unexpected token '<'` no navegador.
+- Mantida a proteção CSRF ativa; não foi necessário isentar o novo endpoint.
+
+### Validações
+
+- `node --check app/static/js/produtos_form.js` — aprovado.
+- `node --check app/static/js/produtos_autosave.js` — aprovado.
+- Verificação de `X-CSRFToken` nos três uploads e no autosave — aprovada.
+- `git diff --check` — aprovado.
