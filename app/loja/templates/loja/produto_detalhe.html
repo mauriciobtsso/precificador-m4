@@ -40,13 +40,15 @@
         justify-content: center;
         height: 600px;
         padding: 40px;
-        position: sticky;
-        top: 100px;
+        /* Não usar sticky: a imagem cobria as miniaturas durante a rolagem
+           e nas capturas de página inteira. */
+        position: relative;
+        top: auto;
         overflow: hidden;
     }
     .img-main-container img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1); }
     .img-main-container:hover img { transform: scale(1.1); }
-    .produto-galeria-thumbs { display: flex; gap: .75rem; overflow-x: auto; padding-top: .75rem; }
+    .produto-galeria-thumbs { display: flex; gap: .75rem; overflow-x: auto; padding: .75rem .25rem .25rem; min-height: 92px; }
     .produto-galeria-thumb { flex: 0 0 76px; height: 76px; padding: 4px; background: #fff; border: 2px solid #eee; border-radius: 6px; cursor: pointer; }
     .produto-galeria-thumb.active { border-color: var(--m4-gold); }
     .produto-galeria-thumb img { width: 100%; height: 100%; object-fit: contain; }
