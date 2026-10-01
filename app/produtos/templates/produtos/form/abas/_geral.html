@@ -64,6 +64,36 @@
         {% endfor %}
       ]</script>
     </div>
+    <div class="card border-0 shadow-sm bg-light p-3 mt-3" id="tour360ProdutoContainer">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <h6 class="fw-bold mb-0"><i class="fas fa-sync-alt me-2 text-orange"></i>Tour 360</h6>
+          <small class="text-muted">Adicione frames na ordem do giro.</small>
+        </div>
+        <button type="button" id="btnSelecionarTour360" class="btn btn-sm btn-orange">
+          <i class="fas fa-plus me-1"></i>Frames
+        </button>
+      </div>
+      <div id="tour360ProdutoPreview" class="row row-cols-4 g-2"></div>
+      <div id="tour360ProdutoVazio" class="text-center text-muted border rounded p-3 bg-white">
+        <i class="fas fa-cube fa-2x mb-2 opacity-50"></i>
+        <div class="small">Nenhum tour 360 configurado</div>
+      </div>
+      <input type="file" id="inputTour360Produto" accept="image/jpeg,image/png,image/webp" class="d-none" multiple>
+      <input type="hidden" id="inputTour360ProdutoJson" name="tour360_produto" value="">
+      <script type="application/json" id="tour360ProdutoInicial">{"titulo": {{ (produto.tour360.titulo if produto.tour360 else '')|tojson }}, "ativo": {{ (produto.tour360.ativo if produto.tour360 else true)|tojson }}, "frames": {{ (produto.tour360.frames if produto.tour360 else [])|tojson }}}</script>
+    </div>
+    <div class="card border-0 shadow-sm bg-light p-3 mt-3" id="acessoriosProdutoContainer">
+      <h6 class="fw-bold mb-1"><i class="fas fa-puzzle-piece me-2 text-orange"></i>Acessórios relacionados</h6>
+      <small class="text-muted d-block mb-2">Selecione os produtos que serão exibidos como acessórios.</small>
+      <select id="selectAcessoriosProduto" class="form-select form-select-sm" multiple size="6">
+        {% for acessorio in produtos_para_acessorios|default([]) %}
+          <option value="{{ acessorio.id }}" {% if acessorio in produto.acessorios %}selected{% endif %}>{{ acessorio.nome_comercial or acessorio.nome }}{% if acessorio.codigo %} — {{ acessorio.codigo }}{% endif %}</option>
+        {% endfor %}
+      </select>
+      <small class="text-muted mt-2">Use Ctrl/Cmd para selecionar mais de um item.</small>
+      <input type="hidden" id="inputAcessoriosProduto" name="acessorios_produto" value="">
+    </div>
   </div>
 
   <div class="col-12 col-md-8 order-md-1">

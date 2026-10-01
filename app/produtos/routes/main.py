@@ -11,7 +11,7 @@ import json
 
 from app import db
 from .. import produtos_bp
-from app.produtos.models import Produto, ProdutoFoto, ProdutoVideo, ProdutoHistorico
+from app.produtos.models import Produto, ProdutoFoto, ProdutoVideo, ProdutoTour360, ProdutoHistorico
 from app.produtos.categorias.models import CategoriaProduto
 from app.produtos.configs.models import (
     MarcaProduto, CalibreProduto, TipoProduto, FuncionamentoProduto
@@ -198,6 +198,7 @@ def gerenciar_produto(produto_id=None):
     calibres = CalibreProduto.query.order_by(CalibreProduto.nome.asc()).all()
     tipos = TipoProduto.query.order_by(TipoProduto.nome.asc()).all()
     funcionamentos = FuncionamentoProduto.query.order_by(FuncionamentoProduto.nome.asc()).all()
+    produtos_para_acessorios = Produto.query.filter(Produto.id != (produto.id or -1)).order_by(Produto.nome.asc()).all()
 
     if request.method == "POST":
         data = request.form
@@ -229,7 +230,7 @@ def gerenciar_produto(produto_id=None):
                 return render_template(
                     "produtos/form/produto_form.html",
                     produto=produto,
-                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
+                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos, produtos_para_acessorios=produtos_para_acessorios,
                 )
             produto.codigo = codigo
 
@@ -240,7 +241,7 @@ def gerenciar_produto(produto_id=None):
                 return render_template(
                     "produtos/form/produto_form.html",
                     produto=produto,
-                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
+                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos, produtos_para_acessorios=produtos_para_acessorios,
                 )
             produto.nome = nome
 
@@ -266,7 +267,7 @@ def gerenciar_produto(produto_id=None):
                 return render_template(
                     "produtos/form/produto_form.html",
                     produto=produto,
-                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
+                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos, produtos_para_acessorios=produtos_para_acessorios,
                 )
             produto.categoria_id = categoria_id
 
@@ -280,7 +281,7 @@ def gerenciar_produto(produto_id=None):
                 return render_template(
                     "produtos/form/produto_form.html",
                     produto=produto,
-                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
+                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos, produtos_para_acessorios=produtos_para_acessorios,
                 )
             produto.tipo_id = tipo_id
 
@@ -293,7 +294,7 @@ def gerenciar_produto(produto_id=None):
                 return render_template(
                     "produtos/form/produto_form.html",
                     produto=produto,
-                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
+                    categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos, produtos_para_acessorios=produtos_para_acessorios,
                 )
             produto.preco_fornecedor = preco_fornecedor
 
@@ -346,6 +347,37 @@ def gerenciar_produto(produto_id=None):
                     for item in videos_enviados
                     if isinstance(item, dict) and str(item.get("url") or "").strip()
                 ]
+
+            tour360_payload = data.get("tour360_produto")
+            try:
+                tour360_enviado = json.loads(tour360_payload) if tour360_payload else None
+                if not isinstance(tour360_enviado, dict):
+                    tour360_enviado = None
+            except (TypeError, ValueError):
+                tour360_enviado = None
+            if tour360_enviado is not None:
+                frames = tour360_enviado.get("frames") or []
+                tour360_enviado = {
+                    "titulo": str(tour360_enviado.get("titulo") or "").strip()[:180],
+                    "ativo": bool(tour360_enviado.get("ativo", True)),
+                    "frames": [
+                        str(frame.get("url") or "").strip()
+                        for frame in frames
+                        if isinstance(frame, dict) and str(frame.get("url") or "").strip()
+                    ],
+                }
+
+            acessorios_payload = data.get("acessorios_produto")
+            try:
+                acessorios_ids = json.loads(acessorios_payload) if acessorios_payload else None
+                if not isinstance(acessorios_ids, list):
+                    acessorios_ids = None
+            except (TypeError, ValueError):
+                acessorios_ids = None
+            if acessorios_ids is not None:
+                acessorios_ids = list(dict.fromkeys(
+                    int(item) for item in acessorios_ids if str(item).isdigit() and int(item) != produto.id
+                ))
 
             # No trecho onde você coleta os dados do request:
             produto.peso = to_decimal(data.get('peso'))
@@ -485,6 +517,43 @@ def gerenciar_produto(produto_id=None):
                 for ordem, item in enumerate(videos_enviados):
                     produto.videos.append(ProdutoVideo(url=item["url"], titulo=item.get("titulo") or None, ordem=ordem))
                 produto.atualizado_em = now_local()
+
+            # ============================================================
+            # SINCRONIZAR TOUR 360 E MOVER FRAMES TEMPORÁRIOS NO R2
+            # ============================================================
+            if tour360_enviado is not None:
+                from app.utils.r2_helpers import CDN_URL
+                frames_definitivos = []
+                for frame_url in tour360_enviado["frames"]:
+                    if "produtos/tours360/temp/" in frame_url:
+                        try:
+                            from app.produtos.routes.utils import _r2_client, _r2_bucket_publico
+                            client = _r2_client()
+                            bucket = _r2_bucket_publico()
+                            old_key = _key_from_url(frame_url)
+                            if old_key and "produtos/tours360/temp/" in old_key:
+                                new_key = old_key.replace("produtos/tours360/temp/", f"produtos/tours360/{produto.id}/")
+                                client.copy_object(Bucket=bucket, CopySource={"Bucket": bucket, "Key": old_key}, Key=new_key)
+                                client.delete_object(Bucket=bucket, Key=old_key)
+                                frame_url = f"{CDN_URL}/{new_key}"
+                        except Exception as e:
+                            current_app.logger.error("Erro ao migrar frame 360 do produto %s: %s", produto.id, e)
+                    frames_definitivos.append(frame_url)
+                if frames_definitivos:
+                    if not produto.tour360:
+                        produto.tour360 = ProdutoTour360()
+                    produto.tour360.titulo = tour360_enviado["titulo"] or None
+                    produto.tour360.ativo = tour360_enviado["ativo"]
+                    produto.tour360.frames = frames_definitivos
+                else:
+                    produto.tour360 = None
+                produto.atualizado_em = now_local()
+
+            if acessorios_ids is not None:
+                produto.acessorios = Produto.query.filter(
+                    Produto.id.in_(acessorios_ids), Produto.id != produto.id
+                ).order_by(Produto.nome.asc()).all()
+                produto.atualizado_em = now_local()
             # ============================================================
 
             registros = []
@@ -558,7 +627,7 @@ def gerenciar_produto(produto_id=None):
         "produtos/form/produto_form.html",
         produto=produto,
         foto_proxy=foto_proxy,
-        categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos,
+        categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos, produtos_para_acessorios=produtos_para_acessorios,
     )
 
 # ============================================================

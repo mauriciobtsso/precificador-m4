@@ -85,6 +85,16 @@
     .produto-galeria-video-card { background: #111; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
     .produto-galeria-video-card video { display: block; width: 100%; max-height: 360px; background: #000; }
     .produto-galeria-video-card figcaption { padding: .6rem .75rem; color: #fff; font-size: .78rem; }
+    .produto-tour360 { margin-top: 1.25rem; padding: 1rem; border: 1px solid #eee; border-radius: 10px; background: #fafafa; }
+    .produto-tour360-title { font-size: .72rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #555; }
+    .produto-tour360-stage { position: relative; display: flex; align-items: center; justify-content: center; min-height: 260px; overflow: hidden; border-radius: 8px; background: #fff; cursor: ew-resize; touch-action: pan-y; }
+    .produto-tour360-stage img { display: block; width: 100%; max-height: 460px; object-fit: contain; user-select: none; pointer-events: none; }
+    .produto-tour360-control { position: absolute; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border: 0; border-radius: 50%; background: rgba(0,0,0,.58); color: #fff; }
+    .produto-tour360-control.prev { left: 10px; }
+    .produto-tour360-control.next { right: 10px; }
+    .produto-tour360-control:hover, .produto-tour360-control:focus-visible { background: var(--m4-gold); color: #111; outline: none; }
+    .produto-tour360-badge { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); padding: .35rem .65rem; border-radius: 999px; color: #fff; background: rgba(0,0,0,.62); font-size: .72rem; pointer-events: none; }
+    .produto-tour360-counter { display: block; margin-top: .6rem; text-align: center; color: #777; font-size: .75rem; }
     body.galeria-lightbox-aberta { overflow: hidden; }
     .badge-controlled-premium {
         background-color: #000; color: #fff; border-left: 4px solid var(--m4-gold);
@@ -227,6 +237,7 @@
         .produto-lightbox-control.next { right: 0; }
         .produto-lightbox-toolbar { top: 4px; }
         .produto-galeria-video-card video { max-height: 240px; }
+        .produto-tour360-stage { min-height: 210px; }
     }
     @media (prefers-reduced-motion: reduce) {
         .img-main-container img, .produto-galeria-thumb, .produto-galeria-control, .produto-lightbox-image { transition: none; }
@@ -361,6 +372,19 @@
                         </div>
                         {% endfor %}
                     </div>
+                </section>
+                {% endif %}
+                {% if produto.tour360 and produto.tour360.ativo and produto.tour360.frames|length > 1 %}
+                {% set tour360_frames = produto.tour360.frames %}
+                <section class="produto-tour360" aria-labelledby="produtoTour360Titulo" data-tour360-frames="{{ tour360_frames|tojson|forceescape }}">
+                    <h2 id="produtoTour360Titulo" class="produto-tour360-title mb-3"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ produto.tour360.titulo or 'Tour 360 do produto' }}</h2>
+                    <div class="produto-tour360-stage" id="produtoTour360Stage" tabindex="0" aria-label="Tour 360. Arraste horizontalmente para girar o produto.">
+                        <img id="produtoTour360Imagem" src="{{ gerar_link(tour360_frames[0]) }}" alt="{{ produto.nome_comercial or produto.nome }} — tour 360" draggable="false" decoding="async">
+                        <button type="button" class="produto-tour360-control prev" id="produtoTour360Anterior" aria-label="Frame anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                        <button type="button" class="produto-tour360-control next" id="produtoTour360Proximo" aria-label="Próximo frame"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                        <span class="produto-tour360-badge"><i class="bi bi-arrows-expand me-1" aria-hidden="true"></i>Arraste para girar</span>
+                    </div>
+                    <span class="produto-tour360-counter" id="produtoTour360Contador" aria-live="polite">1 / {{ tour360_frames|length }}</span>
                 </section>
                 {% endif %}
             </div>
@@ -603,6 +627,24 @@
 <style>
     .border-bottom-dashed { border-bottom: 1px dashed #dee2e6 !important; }
 </style>    
+
+    {% if acessorios %}
+    <section class="row mt-5 pt-5 border-top" aria-labelledby="acessoriosTitulo">
+        <div class="col-12">
+            <h4 id="acessoriosTitulo" class="section-title-premium"><i class="bi bi-puzzle me-2" aria-hidden="true"></i>Acessórios compatíveis</h4>
+            <p class="text-muted small mb-3">Complete sua configuração com itens selecionados para este produto.</p>
+            <div class="row row-cols-2 row-cols-md-4 g-4">
+                {% for acessorio in acessorios %}
+                <div class="col">
+                    {% with produto = acessorio %}
+                        {% include 'loja/_card_produto.html' %}
+                    {% endwith %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
 
     {% if relacionados %}
     <div class="row mt-5 pt-5">
@@ -884,6 +926,47 @@
         if (event.key === '-' || event.key === '_') ajustarZoom(-0.5);
         if (event.key === '0') redefinirZoom();
     });
+
+    const tour360Stage = document.getElementById('produtoTour360Stage');
+    const tour360Imagem = document.getElementById('produtoTour360Imagem');
+    const tour360Contador = document.getElementById('produtoTour360Contador');
+    let tour360Frames = [];
+    let tour360Indice = 0;
+    let tour360Ponteiro = null;
+    let tour360Acumulado = 0;
+    try { tour360Frames = JSON.parse(tour360Stage?.closest('[data-tour360-frames]')?.dataset.tour360Frames || '[]'); } catch (_) {}
+    function atualizarTour360(indice) {
+        if (!tour360Imagem || !tour360Frames.length) return;
+        tour360Indice = (indice + tour360Frames.length) % tour360Frames.length;
+        tour360Imagem.src = tour360Frames[tour360Indice];
+        if (tour360Contador) tour360Contador.textContent = `${tour360Indice + 1} / ${tour360Frames.length}`;
+    }
+    function girarTour360(delta) { atualizarTour360(tour360Indice + delta); }
+    tour360Stage?.addEventListener('pointerdown', (event) => {
+        tour360Ponteiro = event.clientX;
+        tour360Acumulado = 0;
+        tour360Stage.setPointerCapture?.(event.pointerId);
+    });
+    tour360Stage?.addEventListener('pointermove', (event) => {
+        if (tour360Ponteiro === null || !tour360Frames.length) return;
+        const delta = event.clientX - tour360Ponteiro;
+        tour360Ponteiro = event.clientX;
+        tour360Acumulado += delta;
+        const passo = 14;
+        while (Math.abs(tour360Acumulado) >= passo) {
+            girarTour360(tour360Acumulado < 0 ? 1 : -1);
+            tour360Acumulado += tour360Acumulado < 0 ? passo : -passo;
+        }
+    });
+    tour360Stage?.addEventListener('pointerup', () => { tour360Ponteiro = null; tour360Acumulado = 0; });
+    tour360Stage?.addEventListener('pointercancel', () => { tour360Ponteiro = null; tour360Acumulado = 0; });
+    document.getElementById('produtoTour360Anterior')?.addEventListener('click', () => girarTour360(-1));
+    document.getElementById('produtoTour360Proximo')?.addEventListener('click', () => girarTour360(1));
+    tour360Stage?.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') { event.preventDefault(); girarTour360(-1); }
+        if (event.key === 'ArrowRight') { event.preventDefault(); girarTour360(1); }
+    });
+    atualizarTour360(0);
     atualizarGaleria(0);
 })();
 </script>

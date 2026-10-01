@@ -7,7 +7,7 @@ from app.loja.routes import _index_cache_key, normalizar_foto_loja
 from app.catalogo.image_url_helper import convert_resized_url
 from app.utils import image_proxy
 from app.utils.image_proxy import _resize_image
-from app.produtos.models import ProdutoVideo
+from app.produtos.models import ProdutoVideo, ProdutoTour360, produto_acessorios
 from app.produtos.routes.fotos import _video_extension
 
 
@@ -108,6 +108,24 @@ def test_detail_page_gallery_phase_two_has_video_and_advanced_zoom_controls():
         "playsinline",
     ):
         assert marker in detail
+
+
+def test_detail_page_gallery_phase_three_has_tour360_and_accessories():
+    detail = (LOJA_TEMPLATES / "produto_detalhe.html").read_text(encoding="utf-8")
+    for marker in (
+        "produto-tour360",
+        "produtoTour360Stage",
+        "produtoTour360Imagem",
+        "produtoTour360Anterior",
+        "produtoTour360Proximo",
+        "data-tour360-frames",
+        "Arraste para girar",
+        "acessoriosTitulo",
+        "Acessórios compatíveis",
+    ):
+        assert marker in detail
+    assert hasattr(ProdutoTour360, "frames")
+    assert produto_acessorios.name == "produto_acessorios"
 
 
 def test_video_upload_accepts_only_supported_media_types():

@@ -21,6 +21,14 @@ from app.produtos.configs.models import (
     FuncionamentoProduto,
 )
 
+produto_acessorios = db.Table(
+    "produto_acessorios",
+    db.Column("produto_id", db.Integer, db.ForeignKey("produtos.id", ondelete="CASCADE"), primary_key=True),
+    db.Column("acessorio_id", db.Integer, db.ForeignKey("produtos.id", ondelete="CASCADE"), primary_key=True),
+    db.Column("ordem", db.Integer, nullable=False, default=0),
+    Index("idx_produto_acessorios_produto_ordem", "produto_id", "ordem"),
+)
+
 # ======================================================
 # MODELO PRINCIPAL: PRODUTO
 # ======================================================
@@ -135,6 +143,20 @@ class Produto(db.Model):
         cascade="all, delete-orphan",
         order_by="(ProdutoVideo.ordem.asc(), ProdutoVideo.id.asc())",
         lazy=True,
+    )
+    tour360 = db.relationship(
+        "ProdutoTour360",
+        back_populates="produto",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    acessorios = db.relationship(
+        "Produto",
+        secondary=produto_acessorios,
+        primaryjoin=lambda: Produto.id == produto_acessorios.c.produto_id,
+        secondaryjoin=lambda: Produto.id == produto_acessorios.c.acessorio_id,
+        order_by="Produto.nome.asc()",
+        backref="produtos_como_acessorio",
     )
 
     def calcular_precos(self):
@@ -270,6 +292,28 @@ class ProdutoVideo(db.Model):
     criado_em = db.Column(db.DateTime(timezone=True), default=now_local, nullable=False)
 
     produto = db.relationship("Produto", back_populates="videos")
+
+
+class ProdutoTour360(db.Model):
+    """Conjunto ordenado de frames para o giro 360 de um produto."""
+
+    __tablename__ = "produto_tours_360"
+
+    id = db.Column(db.Integer, primary_key=True)
+    produto_id = db.Column(
+        db.Integer,
+        db.ForeignKey("produtos.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    titulo = db.Column(db.String(180), nullable=True)
+    frames = db.Column(db.JSON, nullable=False, default=list)
+    ativo = db.Column(db.Boolean, nullable=False, default=True, index=True)
+    criado_em = db.Column(db.DateTime(timezone=True), default=now_local, nullable=False)
+    atualizado_em = db.Column(db.DateTime(timezone=True), default=now_local, onupdate=now_local, nullable=False)
+
+    produto = db.relationship("Produto", back_populates="tour360")
 
 # Listener de Slug
 def gera_slug_automatico(target, value, oldvalue, initiator):

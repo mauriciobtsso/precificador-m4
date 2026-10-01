@@ -16,6 +16,12 @@ VIDEO_MIME_EXT = {
     "video/quicktime": ".mov",
 }
 MAX_VIDEO_BYTES = 100 * 1024 * 1024
+TOUR360_MIME_EXT = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
+MAX_TOUR360_FRAME_BYTES = 15 * 1024 * 1024
 
 
 def _video_extension(file):
@@ -261,3 +267,56 @@ def remover_foto_produto(produto_id):
         return jsonify({"success": False, "error": "Erro ao atualizar o produto."}), 500
     except Exception:
         return jsonify({"success": False, "error": "Falha ao remover a foto."}), 500
+
+
+@produtos_bp.route('/api/upload_tour360_frame', methods=['POST'])
+@login_required
+def api_upload_tour360_frame():
+    """Uploada um frame de imagem do tour 360 para o R2."""
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return jsonify({"success": False, "error": "Frame do tour 360 não enviado"}), 400
+    if request.content_length and request.content_length > MAX_TOUR360_FRAME_BYTES + 1024 * 1024:
+        return jsonify({"success": False, "error": "Cada frame deve ter no máximo 15 MB."}), 413
+    content_type = (file.mimetype or "").lower().split(";")[0].strip()
+    ext = TOUR360_MIME_EXT.get(content_type)
+    if not ext:
+        return jsonify({"success": False, "error": "Use frames JPG, PNG ou WebP."}), 415
+    produto_id_str = request.form.get('produto_id')
+    produto_id = int(produto_id_str) if produto_id_str and produto_id_str.isdigit() else None
+    key = f"produtos/tours360/{produto_id or 'temp'}/{uuid.uuid4().hex}{ext}"
+    try:
+        bucket = _r2_bucket_publico()
+        client = _r2_client()
+        file.seek(0)
+        client.upload_fileobj(
+            Fileobj=file,
+            Bucket=bucket,
+            Key=key,
+            ExtraArgs={"ContentType": content_type, "CacheControl": "public, max-age=31536000, immutable"},
+        )
+        base_public = _r2_public_base()
+        frame_url = (
+            f"{base_public.rstrip('/')}/{key}"
+            if base_public
+            else f"{current_app.config.get('R2_ENDPOINT_URL', '').rstrip('/')}/{bucket}/{key}"
+        )
+        if not produto_id:
+            frame_url = f"{frame_url}#{key.split('/')[-1]}"
+        return jsonify({"success": True, "frame_url": frame_url}), 200
+    except Exception as e:
+        current_app.logger.exception("[M4] Falha no upload do frame 360 para o R2.")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@produtos_bp.route("/tour360-temp/<path:temp_key>", methods=["DELETE"])
+@login_required
+def remover_tour360_temp(temp_key):
+    try:
+        _r2_client().delete_object(
+            Bucket=_r2_bucket_publico(),
+            Key=f"produtos/tours360/temp/{temp_key}",
+        )
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500

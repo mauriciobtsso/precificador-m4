@@ -10,7 +10,7 @@ from decimal import Decimal, InvalidOperation
 import re
 
 from app import db
-from app.produtos.models import Produto, ProdutoFoto, ProdutoVideo
+from app.produtos.models import Produto, ProdutoFoto, ProdutoVideo, ProdutoTour360
 from app.produtos.utils.historico_helper import registrar_historico
 from app.utils.parsing import parse_decimal, parse_form_datetime
 from app.utils.datetime import now_local
@@ -114,6 +114,58 @@ def autosave_produto(produto_id):
                 for ordem, item in enumerate(videos_novos):
                     produto.videos.append(ProdutoVideo(url=item["url"], titulo=item["titulo"] or None, ordem=ordem))
                 alteracoes["videos_produto"] = {"antigo": estado_atual_videos, "novo": videos_novos}
+
+    tour_payload = data.get("tour360_produto")
+    if tour_payload is not None:
+        try:
+            tour_recebido = json.loads(tour_payload) if isinstance(tour_payload, str) else tour_payload
+            if not isinstance(tour_recebido, dict):
+                tour_recebido = None
+        except (TypeError, ValueError):
+            tour_recebido = None
+        if tour_recebido is not None:
+            frames_novos = [
+                str(frame.get("url") or "").strip()
+                for frame in (tour_recebido.get("frames") or [])
+                if isinstance(frame, dict) and str(frame.get("url") or "").strip()
+            ]
+            tour_atual = ProdutoTour360.query.filter_by(produto_id=produto.id).first()
+            estado_atual_tour = {
+                "titulo": (tour_atual.titulo if tour_atual else "") or "",
+                "ativo": bool(tour_atual.ativo) if tour_atual else True,
+                "frames": (tour_atual.frames if tour_atual else []) or [],
+            }
+            estado_novo_tour = {
+                "titulo": str(tour_recebido.get("titulo") or "").strip()[:180],
+                "ativo": bool(tour_recebido.get("ativo", True)),
+                "frames": frames_novos,
+            }
+            if estado_atual_tour != estado_novo_tour:
+                if frames_novos:
+                    if not tour_atual:
+                        tour_atual = ProdutoTour360(produto_id=produto.id)
+                        db.session.add(tour_atual)
+                    tour_atual.titulo = estado_novo_tour["titulo"] or None
+                    tour_atual.ativo = estado_novo_tour["ativo"]
+                    tour_atual.frames = frames_novos
+                elif tour_atual:
+                    db.session.delete(tour_atual)
+                alteracoes["tour360_produto"] = {"antigo": estado_atual_tour, "novo": estado_novo_tour}
+
+    acessorios_payload = data.get("acessorios_produto")
+    if acessorios_payload is not None:
+        try:
+            acessorios_ids = json.loads(acessorios_payload) if isinstance(acessorios_payload, str) else acessorios_payload
+            if not isinstance(acessorios_ids, list):
+                acessorios_ids = None
+        except (TypeError, ValueError):
+            acessorios_ids = None
+        if acessorios_ids is not None:
+            ids = list(dict.fromkeys(int(item) for item in acessorios_ids if str(item).isdigit() and int(item) != produto.id))
+            atuais_ids = [item.id for item in produto.acessorios]
+            if atuais_ids != ids:
+                produto.acessorios = Produto.query.filter(Produto.id.in_(ids), Produto.id != produto.id).order_by(Produto.nome.asc()).all()
+                alteracoes["acessorios_produto"] = {"antigo": atuais_ids, "novo": ids}
 
     CAMPOS_BOOLEANOS = ["promo_ativada", "visivel_loja", "destaque_home", "eh_lancamento", "eh_outdoor", "requer_documentacao"]
 

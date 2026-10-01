@@ -418,7 +418,7 @@ def index():
 @cache.cached(timeout=300, make_cache_key=_detalhe_produto_cache_key)
 def detalhe_produto(slug):
     produto = Produto.query.filter_by(slug=slug, visivel_loja=True)\
-        .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria), subqueryload(Produto.fotos))\
+        .options(joinedload(Produto.marca_rel), joinedload(Produto.categoria), subqueryload(Produto.fotos), subqueryload(Produto.videos), joinedload(Produto.tour360), subqueryload(Produto.acessorios))\
         .first_or_404()
     
     precos_key = f'precos_v2_{produto.id}'
@@ -451,6 +451,7 @@ def detalhe_produto(slug):
             joinedload(Produto.categoria)
         ).limit(4).all()
         cache.set(relacionados_key, relacionados, timeout=3600)
+    acessorios = [acessorio for acessorio in produto.acessorios if acessorio.visivel_loja]
 
     gerador_limpo = lambda path: gerar_link_r2(limpar_caminho_r2(path))
 
@@ -460,6 +461,7 @@ def detalhe_produto(slug):
                        opcoes_parcelamento=opcoes_parcelamento,
                        parcela_12x=parcela_12x,
                        relacionados=relacionados,
+                       acessorios=acessorios,
                        gerar_link=gerador_limpo,
                        get_thumb_url=get_thumb_url,
                        title=f"{produto.nome} - M4 Tática")

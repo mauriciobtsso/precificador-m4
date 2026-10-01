@@ -429,3 +429,97 @@ O zoom da Fase 1 foi evoluído para aceitar níveis de 1x a 3.5x, roda do mouse,
 ### Resultado final
 
 A Fase 2 permite administrar vídeos junto às fotos do produto, persistir essa mídia com segurança no R2/CDN e exibi-la no detalhe público. As fotos passaram a oferecer zoom avançado com panorâmica, múltiplos níveis de ampliação e controles acessíveis, sem alterar o comportamento de produtos legados.
+
+
+## 01/10/2026 — Fase 3 da galeria: tour 360 e acessórios relacionados
+
+### Objetivo
+
+Ampliar o detalhe público de `/loja/produto/<slug>` com uma visualização interativa de produto em 360 graus e permitir que a administração selecione acessórios compatíveis para exibição dedicada na loja.
+
+### Implementações realizadas
+
+- Criada a entidade `ProdutoTour360`, com:
+  - um tour por produto;
+  - título opcional;
+  - lista ordenada de frames em JSON;
+  - controle de ativação;
+  - timestamps de criação e atualização.
+- Criada a tabela de associação `produto_acessorios`, permitindo vincular vários produtos como acessórios de outro produto sem duplicar dados.
+- Criada a migração reversível `20261001_tour360_acessorios.py`, encadeada após `20261001_produto_videos`, com chaves estrangeiras, índices e unicidade de um tour por produto.
+- Adicionado upload administrativo de frames JPG, PNG e WebP, com limite de 15 MB por frame.
+- Frames enviados para produto novo são armazenados temporariamente em `produtos/tours360/temp/` e migrados para `produtos/tours360/<produto_id>/` após o produto receber seu ID.
+- O cadastro administrativo agora permite:
+  - adicionar múltiplos frames;
+  - visualizar miniaturas;
+  - remover frames;
+  - reordenar frames com controles anterior/próximo;
+  - selecionar acessórios em uma lista múltipla.
+- O autosave e o salvamento tradicional sincronizam o tour 360 e os acessórios selecionados.
+- O detalhe público exibe o tour 360 somente quando há pelo menos dois frames e o tour está ativo.
+- O tour público permite:
+  - arrastar horizontalmente para girar;
+  - usar setas de navegação;
+  - usar `ArrowLeft` e `ArrowRight` quando o controle estiver focado;
+  - acompanhar o contador de frames atual.
+- A seção **Acessórios compatíveis** aparece antes das recomendações automáticas e exibe somente acessórios que também estejam visíveis na loja.
+- Foram adicionados ao CSS reduzido da loja os ícones necessários para o tour e a seção de acessórios.
+
+### Erros, conflitos e soluções
+
+1. **A aplicação possuía fotos e vídeos, mas nenhum conceito de tour 360.**
+
+   Reutilizar `ProdutoFoto` ou `ProdutoVideo` misturaria mídias com finalidades diferentes e dificultaria a ordenação dos frames.
+
+   **Solução:** criada a entidade independente `ProdutoTour360`, com frames ordenados e relação um-para-um com o produto.
+
+2. **Ainda não existia vínculo manual entre um produto e seus acessórios.**
+
+   As recomendações existentes eram automáticas por categoria e não permitiam controlar compatibilidade comercial.
+
+   **Solução:** criada a associação many-to-many `produto_acessorios`, com seleção administrativa e filtragem pública por `visivel_loja`.
+
+3. **Produtos novos não possuem ID no momento do upload.**
+
+   Assim como ocorreu com as mídias anteriores, o destino definitivo não poderia ser montado antes do primeiro salvamento.
+
+   **Solução:** frames novos utilizam a pasta temporária e são copiados para a pasta definitiva após o `flush()` do produto, antes do commit.
+
+4. **A ordem dos frames é essencial para a sensação de giro contínuo.**
+
+   Apenas armazenar várias URLs sem controles de ordem permitiria que o tour fosse exibido fora de sequência.
+
+   **Solução:** o cadastro mostra miniaturas numeradas e controles para mover cada frame para frente ou para trás; a ordem é enviada no JSON persistido.
+
+5. **A consulta pública poderia gerar consultas extras e mostrar acessórios ocultos.**
+
+   Tour, vídeos, fotos e acessórios são relações diferentes, e nem todo produto relacionado deve aparecer na vitrine.
+
+   **Solução:** a rota usa carregamento antecipado das relações da galeria e filtra os acessórios por `visivel_loja` antes de renderizar.
+
+6. **O cache do detalhe precisava reconhecer mudanças na nova configuração.**
+
+   A página pública já usa a chave baseada em `Produto.atualizado_em`.
+
+   **Solução:** toda alteração de tour ou acessórios atualiza `Produto.atualizado_em`, invalidando a resposta cacheada sem criar uma segunda estratégia de cache.
+
+7. **O comando de inspeção de heads do Alembic não funcionou neste sandbox.**
+
+   O ambiente de execução não tinha `SQLALCHEMY_DATABASE_URI` definida.
+
+   **Solução:** a migração foi validada por compilação Python, encadeamento textual com a revisão anterior e suíte automatizada; a aplicação de banco deve ser executada no ambiente que possui a configuração de banco real.
+
+### Testes e validações
+
+- Compilação Python de modelos, rotas, migração e testes — aprovada.
+- Parsing Jinja do detalhe público — aprovado.
+- `node --check` do JavaScript administrativo — aprovado.
+- `git diff --check` — aprovado.
+- Cobertura de ícones da loja — aprovada, sem ícones ausentes.
+- Verificação dos modelos no metadata SQLAlchemy — aprovada.
+- Testes direcionados de galeria, loja e produtos — **23 aprovados**.
+- Suíte completa — **65 aprovados**, com apenas o aviso já conhecido do Flask-Limiter sobre armazenamento em memória nos testes.
+
+### Resultado final
+
+A Fase 3 permite cadastrar e administrar um tour 360 por produto e exibi-lo no detalhe público com navegação natural por arraste, teclado e setas. Também permite definir acessórios compatíveis manualmente, apresentando-os em uma seção própria da loja, sem perder as recomendações automáticas existentes ou a compatibilidade com produtos antigos.

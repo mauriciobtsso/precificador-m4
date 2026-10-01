@@ -347,6 +347,90 @@
     sync();
   }
 
+  // ============================================================
+  // TOUR 360: frames ordenados com pré-visualização e remoção
+  // ============================================================
+  function initTour360Produto() {
+    const btn = el("btnSelecionarTour360");
+    const input = el("inputTour360Produto");
+    const preview = el("tour360ProdutoPreview");
+    const empty = el("tour360ProdutoVazio");
+    const hidden = el("inputTour360ProdutoJson");
+    if (!btn || !input || !preview || !hidden) return;
+    if (preview.dataset.bound === "1") return;
+    preview.dataset.bound = "1";
+    let config = { titulo: "", ativo: true, frames: [] };
+    try { config = { ...config, ...JSON.parse(el("tour360ProdutoInicial")?.textContent || "{}") }; } catch (_) {}
+    config.frames = (config.frames || []).map(url => typeof url === "string" ? ({ url, preview: url }) : url).filter(frame => frame?.url);
+    const sync = () => {
+      hidden.value = JSON.stringify({ titulo: config.titulo || "", ativo: config.ativo !== false, frames: config.frames.map(frame => ({ url: frame.url })) });
+      empty?.classList.toggle("d-none", config.frames.length > 0);
+      preview.innerHTML = config.frames.map((frame, index) => `
+        <div class="col">
+          <div class="border rounded bg-white p-1 position-relative">
+            <img src="${String(frame.preview || frame.url).replace(/"/g, "&quot;")}" class="w-100 rounded" style="height:72px;object-fit:cover" alt="Frame ${index + 1}" loading="lazy">
+            <div class="d-flex justify-content-center gap-1 mt-1">
+              <button type="button" class="btn btn-sm btn-light tour360-move" data-index="${index}" data-direction="-1" ${index === 0 ? "disabled" : ""} aria-label="Mover frame para trás"><i class="fas fa-chevron-left"></i></button>
+              <span class="small text-muted align-self-center">${index + 1}</span>
+              <button type="button" class="btn btn-sm btn-light tour360-move" data-index="${index}" data-direction="1" ${index === config.frames.length - 1 ? "disabled" : ""} aria-label="Mover frame para frente"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 tour360-remove" data-index="${index}" title="Remover frame"><i class="fas fa-times"></i></button>
+          </div>
+        </div>`).join("");
+      preview.querySelectorAll(".tour360-remove").forEach(button => button.addEventListener("click", () => {
+        const removed = config.frames.splice(Number(button.dataset.index), 1)[0];
+        if (removed?.preview?.startsWith("blob:")) URL.revokeObjectURL(removed.preview);
+        sync();
+      }));
+      preview.querySelectorAll(".tour360-move").forEach(button => button.addEventListener("click", () => {
+        const index = Number(button.dataset.index);
+        const target = index + Number(button.dataset.direction);
+        if (target < 0 || target >= config.frames.length) return;
+        [config.frames[index], config.frames[target]] = [config.frames[target], config.frames[index]];
+        sync();
+      }));
+    };
+    btn.addEventListener("click", () => input.click());
+    input.addEventListener("change", async () => {
+      const arquivos = Array.from(input.files || []);
+      if (!arquivos.length) return;
+      const tiposAceitos = ["image/jpeg", "image/png", "image/webp"];
+      if (arquivos.some(file => file.size > 15 * 1024 * 1024 || !tiposAceitos.includes(file.type))) {
+        alert("Use frames JPG, PNG ou WebP com no máximo 15 MB cada.");
+        input.value = "";
+        return;
+      }
+      btn.disabled = true;
+      try {
+        for (const file of arquivos) {
+          const fd = new FormData();
+          fd.append("file", file);
+          fd.append("produto_id", getProdutoId() || "novo");
+          const response = await fetch("/produtos/api/upload_tour360_frame", { method: "POST", body: fd });
+          const data = await response.json();
+          if (!response.ok || !data.success || !data.frame_url) throw new Error(data.error || "Falha no upload");
+          config.frames.push({ url: data.frame_url, preview: URL.createObjectURL(file) });
+        }
+        sync();
+        input.value = "";
+      } catch (error) {
+        console.error("[M4] Erro no upload do tour 360:", error);
+        alert(error.message || "Não foi possível enviar um dos frames.");
+      } finally { btn.disabled = false; }
+    });
+    sync();
+  }
+
+  function initAcessoriosProduto() {
+    const select = el("selectAcessoriosProduto");
+    const hidden = el("inputAcessoriosProduto");
+    if (!select || !hidden || select.dataset.bound === "1") return;
+    select.dataset.bound = "1";
+    const sync = () => { hidden.value = JSON.stringify(Array.from(select.selectedOptions).map(option => Number(option.value)).filter(Number.isFinite)); };
+    select.addEventListener("change", sync);
+    sync();
+  }
+
 
   // ============================================================
   // Máscara dinâmica do IPI (Manutenção da Lógica)
@@ -634,6 +718,8 @@
     init: function() {
       initFotoProduto(); 
       initVideoProduto();
+      initTour360Produto();
+      initAcessoriosProduto();
       initMasks(); 
       setupStaticListeners();
       corrigirAlturaAbas();
