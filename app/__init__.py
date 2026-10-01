@@ -123,6 +123,7 @@ def create_app():
         'frame-ancestors': ["'self'"],
         'frame-src': ["'self'", 'https:'],
         'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+        'media-src': ["'self'", 'blob:', 'https:'],
         'font-src': ["'self'", 'data:', 'https:'],
         'style-src': ["'self'", "'unsafe-inline'", 'https:'],
         'script-src': ["'self'", "'unsafe-inline'", 'https:'],

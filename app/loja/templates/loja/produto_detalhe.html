@@ -68,8 +68,8 @@
     .produto-lightbox { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0,0,0,.92); }
     .produto-lightbox-dialog { position: relative; display: flex; align-items: center; justify-content: center; width: min(1180px, 100%); height: min(92vh, 900px); }
     .produto-lightbox-image-wrap { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    .produto-lightbox-image { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; transform-origin: center center; transition: transform .18s ease; cursor: zoom-in; }
-    .produto-lightbox-image.is-zoomed { cursor: zoom-out; transform: scale(1.8); }
+    .produto-lightbox-image { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; transform-origin: center center; transform: translate3d(var(--zoom-x, 0px), var(--zoom-y, 0px)) scale(var(--zoom-scale, 1)); transition: transform .18s ease; cursor: zoom-in; touch-action: none; }
+    .produto-lightbox-image.is-dragging { transition: none; cursor: grabbing; }
     .produto-lightbox-close, .produto-lightbox-control { position: absolute; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.35); border-radius: 50%; background: rgba(0,0,0,.5); color: #fff; font-size: 1.15rem; }
     .produto-lightbox-close { top: 8px; right: 8px; }
     .produto-lightbox-control { top: 50%; transform: translateY(-50%); }
@@ -77,6 +77,14 @@
     .produto-lightbox-control.next { right: 8px; }
     .produto-lightbox-close:hover, .produto-lightbox-control:hover, .produto-lightbox-close:focus-visible, .produto-lightbox-control:focus-visible { background: var(--m4-gold); color: #111; outline: none; }
     .produto-lightbox-counter { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); color: #fff; background: rgba(0,0,0,.6); border-radius: 999px; padding: 6px 12px; font-size: .78rem; font-weight: 700; }
+    .produto-lightbox-toolbar { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); z-index: 2; display: flex; gap: 6px; padding: 5px; border-radius: 999px; background: rgba(0,0,0,.5); }
+    .produto-lightbox-toolbar button { width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; color: #fff; }
+    .produto-lightbox-toolbar button:hover, .produto-lightbox-toolbar button:focus-visible { background: var(--m4-gold); color: #111; outline: none; }
+    .produto-galeria-videos { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #eee; }
+    .produto-galeria-videos-title { font-size: .72rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #555; }
+    .produto-galeria-video-card { background: #111; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+    .produto-galeria-video-card video { display: block; width: 100%; max-height: 360px; background: #000; }
+    .produto-galeria-video-card figcaption { padding: .6rem .75rem; color: #fff; font-size: .78rem; }
     body.galeria-lightbox-aberta { overflow: hidden; }
     .badge-controlled-premium {
         background-color: #000; color: #fff; border-left: 4px solid var(--m4-gold);
@@ -217,6 +225,8 @@
         .produto-lightbox-control { width: 38px; height: 38px; }
         .produto-lightbox-control.prev { left: 0; }
         .produto-lightbox-control.next { right: 0; }
+        .produto-lightbox-toolbar { top: 4px; }
+        .produto-galeria-video-card video { max-height: 240px; }
     }
     @media (prefers-reduced-motion: reduce) {
         .img-main-container img, .produto-galeria-thumb, .produto-galeria-control, .produto-lightbox-image { transition: none; }
@@ -335,6 +345,24 @@
                     {% endfor %}
                 </div>
                 {% endif %}
+                {% if produto.videos %}
+                <section class="produto-galeria-videos" aria-labelledby="produtoGaleriaVideosTitulo">
+                    <h2 id="produtoGaleriaVideosTitulo" class="produto-galeria-videos-title mb-3"><i class="bi bi-camera-video me-1" aria-hidden="true"></i>Vídeos do produto</h2>
+                    <div class="row g-3">
+                        {% for video in produto.videos %}
+                        {% set video_url = gerar_link(video.url) %}
+                        <div class="col-12 {% if produto.videos|length > 1 %}col-md-6{% endif %}">
+                            <figure class="produto-galeria-video-card mb-0">
+                                <video controls playsinline preload="metadata" src="{{ video_url }}" aria-label="{{ video.titulo or ('Vídeo ' ~ loop.index ~ ' do produto') }}">
+                                    Seu navegador não suporta a reprodução de vídeo.
+                                </video>
+                                {% if video.titulo %}<figcaption>{{ video.titulo }}</figcaption>{% endif %}
+                            </figure>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
             </div>
             {% if fotos_loja %}
             <div class="produto-lightbox" id="produtoLightbox" role="dialog" aria-modal="true" aria-labelledby="produtoLightboxTitulo" hidden>
@@ -345,6 +373,11 @@
                     <button type="button" class="produto-lightbox-control prev" id="produtoLightboxAnterior" aria-label="Foto anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
                     <button type="button" class="produto-lightbox-control next" id="produtoLightboxProxima" aria-label="Próxima foto"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
                     {% endif %}
+                    <div class="produto-lightbox-toolbar" aria-label="Controles de zoom">
+                        <button type="button" id="produtoLightboxZoomMenos" aria-label="Reduzir zoom"><i class="bi bi-dash-lg" aria-hidden="true"></i></button>
+                        <button type="button" id="produtoLightboxZoomReset" aria-label="Redefinir zoom"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i></button>
+                        <button type="button" id="produtoLightboxZoomMais" aria-label="Aumentar zoom"><i class="bi bi-plus-lg" aria-hidden="true"></i></button>
+                    </div>
                     <div class="produto-lightbox-image-wrap">
                         <img class="produto-lightbox-image" id="produtoLightboxImagem" alt="" decoding="async">
                     </div>
@@ -711,6 +744,32 @@
     let indiceAtual = 0;
     let toqueInicial = null;
     let ultimoElementoFocado = null;
+    let zoomScale = 1;
+    let zoomX = 0;
+    let zoomY = 0;
+    let arrastandoZoom = false;
+    let ponteiroAnterior = null;
+
+    function renderizarZoom() {
+        if (!lightboxImagem) return;
+        lightboxImagem.style.setProperty('--zoom-scale', zoomScale);
+        lightboxImagem.style.setProperty('--zoom-x', `${zoomX}px`);
+        lightboxImagem.style.setProperty('--zoom-y', `${zoomY}px`);
+        lightboxImagem.classList.toggle('is-zoomed', zoomScale > 1);
+    }
+
+    function redefinirZoom() {
+        zoomScale = 1;
+        zoomX = 0;
+        zoomY = 0;
+        renderizarZoom();
+    }
+
+    function ajustarZoom(delta) {
+        zoomScale = Math.min(3.5, Math.max(1, Number((zoomScale + delta).toFixed(2))));
+        if (zoomScale === 1) { zoomX = 0; zoomY = 0; }
+        renderizarZoom();
+    }
 
     function atualizarGaleria(indice, abrirLightbox = false) {
         if (!imagemPrincipal || !thumbs.length) return;
@@ -740,7 +799,7 @@
     function atualizarLightbox() {
         if (!lightbox || !lightboxImagem || !thumbs.length) return;
         const thumb = thumbs[indiceAtual];
-        lightboxImagem.classList.remove('is-zoomed');
+        redefinirZoom();
         lightboxImagem.src = thumb.dataset.imageLarge || thumb.dataset.original;
         lightboxImagem.alt = thumb.dataset.alt || `Foto ${indiceAtual + 1}`;
         lightboxImagem.onerror = () => {
@@ -779,8 +838,34 @@
     document.getElementById('produtoLightboxAnterior')?.addEventListener('click', () => navegarGaleria(-1, true));
     document.getElementById('produtoLightboxProxima')?.addEventListener('click', () => navegarGaleria(1, true));
     document.getElementById('produtoLightboxFechar')?.addEventListener('click', fecharLightbox);
+    document.getElementById('produtoLightboxZoomMenos')?.addEventListener('click', () => ajustarZoom(-0.5));
+    document.getElementById('produtoLightboxZoomReset')?.addEventListener('click', redefinirZoom);
+    document.getElementById('produtoLightboxZoomMais')?.addEventListener('click', () => ajustarZoom(0.5));
     lightbox?.addEventListener('click', (event) => { if (event.target === lightbox) fecharLightbox(); });
-    lightboxImagem?.addEventListener('click', () => lightboxImagem.classList.toggle('is-zoomed'));
+    lightboxImagem?.addEventListener('dblclick', () => zoomScale > 1 ? redefinirZoom() : ajustarZoom(1));
+    lightboxImagem?.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        ajustarZoom(event.deltaY < 0 ? 0.25 : -0.25);
+    }, { passive: false });
+    lightboxImagem?.addEventListener('pointerdown', (event) => {
+        if (zoomScale <= 1) return;
+        arrastandoZoom = true;
+        ponteiroAnterior = { x: event.clientX, y: event.clientY };
+        lightboxImagem.classList.add('is-dragging');
+        lightboxImagem.setPointerCapture?.(event.pointerId);
+    });
+    lightboxImagem?.addEventListener('pointermove', (event) => {
+        if (!arrastandoZoom || !ponteiroAnterior) return;
+        zoomX += event.clientX - ponteiroAnterior.x;
+        zoomY += event.clientY - ponteiroAnterior.y;
+        ponteiroAnterior = { x: event.clientX, y: event.clientY };
+        renderizarZoom();
+    });
+    lightboxImagem?.addEventListener('pointerup', () => {
+        arrastandoZoom = false;
+        ponteiroAnterior = null;
+        lightboxImagem.classList.remove('is-dragging');
+    });
 
     galeriaPrincipal?.addEventListener('pointerdown', (event) => { toqueInicial = { x: event.clientX, y: event.clientY }; });
     galeriaPrincipal?.addEventListener('pointerup', (event) => {
@@ -795,6 +880,9 @@
         if (event.key === 'Escape') fecharLightbox();
         if (event.key === 'ArrowLeft') navegarGaleria(-1, true);
         if (event.key === 'ArrowRight') navegarGaleria(1, true);
+        if (event.key === '+' || event.key === '=') ajustarZoom(0.5);
+        if (event.key === '-' || event.key === '_') ajustarZoom(-0.5);
+        if (event.key === '0') redefinirZoom();
     });
     atualizarGaleria(0);
 })();

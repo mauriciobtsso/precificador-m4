@@ -7,6 +7,8 @@ from app.loja.routes import _index_cache_key, normalizar_foto_loja
 from app.catalogo.image_url_helper import convert_resized_url
 from app.utils import image_proxy
 from app.utils.image_proxy import _resize_image
+from app.produtos.models import ProdutoVideo
+from app.produtos.routes.fotos import _video_extension
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -90,6 +92,32 @@ def test_detail_page_gallery_has_phase_one_interactions():
         'deltaX',
     ):
         assert marker in detail
+
+
+def test_detail_page_gallery_phase_two_has_video_and_advanced_zoom_controls():
+    detail = (LOJA_TEMPLATES / "produto_detalhe.html").read_text(encoding="utf-8")
+    for marker in (
+        "produto-galeria-videos",
+        "produtoGaleriaVideosTitulo",
+        "produtoLightboxZoomMenos",
+        "produtoLightboxZoomMais",
+        "produtoLightboxZoomReset",
+        "deltaY < 0",
+        "is-dragging",
+        "pointermove",
+        "playsinline",
+    ):
+        assert marker in detail
+
+
+def test_video_upload_accepts_only_supported_media_types():
+    from types import SimpleNamespace
+
+    assert _video_extension(SimpleNamespace(mimetype="video/mp4", filename="demo.mp4")) == ("video/mp4", ".mp4")
+    assert _video_extension(SimpleNamespace(mimetype="video/webm", filename="demo.webm")) == ("video/webm", ".webm")
+    assert _video_extension(SimpleNamespace(mimetype="application/octet-stream", filename="demo.mov")) == ("video/quicktime", ".mov")
+    assert _video_extension(SimpleNamespace(mimetype="image/png", filename="demo.png")) == ("image/png", None)
+    assert hasattr(ProdutoVideo, "url") and hasattr(ProdutoVideo, "produto_id")
 
 
 def test_card_reserves_image_and_text_space_for_stable_layout():

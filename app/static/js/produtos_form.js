@@ -278,6 +278,75 @@
     sync();
   }
 
+  // ============================================================
+  // VÍDEO: galeria com upload múltiplo e títulos editáveis
+  // ============================================================
+  function initVideoProduto() {
+    const btn = el("btnSelecionarVideo");
+    const input = el("inputVideoProduto");
+    const grid = el("galeriaVideoProdutoGrid");
+    const empty = el("galeriaVideoVazia");
+    const overlay = el("videoProdutoOverlay");
+    const hidden = el("inputVideosProduto");
+    if (!btn || !input || !grid || !hidden) return;
+    if (grid.dataset.bound === "1") return;
+    grid.dataset.bound = "1";
+    let videos = [];
+    try { videos = JSON.parse(el("videosProdutoIniciais")?.textContent || "[]"); } catch (_) {}
+    videos = videos.filter(v => v && v.url).map(v => ({ url: v.url, titulo: v.titulo || "", preview: v.url }));
+    const escapeAttr = (value) => String(value || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const sync = () => {
+      hidden.value = JSON.stringify(videos.map(v => ({ url: v.url, titulo: (v.titulo || "").trim() })));
+      empty?.classList.toggle("d-none", videos.length > 0);
+      grid.innerHTML = videos.map((video, index) => `
+        <div class="col">
+          <div class="border rounded bg-white p-2 position-relative">
+            <video src="${escapeAttr(video.preview || video.url)}" class="w-100 rounded" style="height:120px;object-fit:cover" controls muted preload="metadata"></video>
+            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 produto-video-remove" data-index="${index}" title="Remover vídeo"><i class="fas fa-times"></i></button>
+            <input type="text" class="form-control form-control-sm mt-2 produto-video-title" data-index="${index}" value="${escapeAttr(video.titulo)}" placeholder="Título opcional do vídeo" maxlength="180">
+          </div>
+        </div>`).join("");
+      grid.querySelectorAll(".produto-video-remove").forEach(b => b.addEventListener("click", () => {
+        const removed = videos.splice(Number(b.dataset.index), 1)[0];
+        if (removed?.preview?.startsWith("blob:")) URL.revokeObjectURL(removed.preview);
+        sync();
+      }));
+      grid.querySelectorAll(".produto-video-title").forEach(field => field.addEventListener("input", () => {
+        videos[Number(field.dataset.index)].titulo = field.value;
+        hidden.value = JSON.stringify(videos.map(v => ({ url: v.url, titulo: (v.titulo || "").trim() })));
+      }));
+    };
+    btn.addEventListener("click", () => input.click());
+    input.addEventListener("change", async () => {
+      const arquivos = Array.from(input.files || []);
+      if (!arquivos.length) return;
+      const tiposAceitos = ["video/mp4", "video/webm", "video/quicktime"];
+      if (arquivos.some(file => file.size > 100 * 1024 * 1024 || !tiposAceitos.includes(file.type))) {
+        alert("Use vídeos MP4, WebM ou MOV com no máximo 100 MB cada.");
+        input.value = "";
+        return;
+      }
+      overlay?.classList.remove("d-none");
+      try {
+        for (const file of arquivos) {
+          const fd = new FormData();
+          fd.append("file", file);
+          fd.append("produto_id", getProdutoId() || "novo");
+          const response = await fetch("/produtos/api/upload_video", { method: "POST", body: fd });
+          const data = await response.json();
+          if (!response.ok || !data.success || !data.video_url) throw new Error(data.error || "Falha no upload");
+          videos.push({ url: data.video_url, titulo: file.name.replace(/\.[^/.]+$/, ""), preview: URL.createObjectURL(file) });
+        }
+        sync();
+        input.value = "";
+      } catch (error) {
+        console.error("[M4] Erro no upload da galeria de vídeos:", error);
+        alert(error.message || "Não foi possível enviar um dos vídeos. Tente novamente.");
+      } finally { overlay?.classList.add("d-none"); }
+    });
+    sync();
+  }
+
 
   // ============================================================
   // Máscara dinâmica do IPI (Manutenção da Lógica)
@@ -564,6 +633,7 @@
     // Método principal chamado em window.load
     init: function() {
       initFotoProduto(); 
+      initVideoProduto();
       initMasks(); 
       setupStaticListeners();
       corrigirAlturaAbas();

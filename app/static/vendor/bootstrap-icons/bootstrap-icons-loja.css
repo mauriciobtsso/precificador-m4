@@ -24,6 +24,7 @@ url("./fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2") format("wof
 .bi-arrow-left::before { content: "\f12f"; }
 .bi-arrow-left-right::before { content: "\f12b"; }
 .bi-arrow-up-right::before { content: "\f144"; }
+.bi-arrows-fullscreen::before { content: "\f14d"; }
 .bi-box-arrow-in-right::before { content: "\f1be"; }
 .bi-box-arrow-left::before { content: "\f1c2"; }
 .bi-box-seam::before { content: "\f1c7"; }
@@ -33,6 +34,7 @@ url("./fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2") format("wof
 .bi-cart-plus::before { content: "\f23f"; }
 .bi-cart-plus-fill::before { content: "\f23e"; }
 .bi-cart3::before { content: "\f244"; }
+.bi-camera-video::before { content: "\f21f"; }
 .bi-check-circle::before { content: "\f26b"; }
 .bi-check-circle-fill::before { content: "\f26a"; }
 .bi-circle::before { content: "\f28a"; }
@@ -40,6 +42,7 @@ url("./fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2") format("wof
 .bi-cpu::before { content: "\f2d6"; }
 .bi-credit-card::before { content: "\f2dc"; }
 .bi-credit-card-2-front::before { content: "\f2da"; }
+.bi-dash-lg::before { content: "\f63b"; }
 .bi-envelope::before { content: "\f32f"; }
 .bi-exclamation-circle::before { content: "\f333"; }
 .bi-exclamation-octagon-fill::before { content: "\f336"; }

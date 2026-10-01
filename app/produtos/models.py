@@ -129,6 +129,13 @@ class Produto(db.Model):
         order_by="(ProdutoFoto.eh_principal.desc(), ProdutoFoto.ordem.asc(), ProdutoFoto.id.asc())",
         lazy=True,
     )
+    videos = db.relationship(
+        "ProdutoVideo",
+        back_populates="produto",
+        cascade="all, delete-orphan",
+        order_by="(ProdutoVideo.ordem.asc(), ProdutoVideo.id.asc())",
+        lazy=True,
+    )
 
     def calcular_precos(self):
         agora = now_local()
@@ -240,6 +247,29 @@ class ProdutoFoto(db.Model):
     criado_em = db.Column(db.DateTime(timezone=True), default=now_local, nullable=False)
 
     produto = db.relationship("Produto", back_populates="fotos")
+
+
+class ProdutoVideo(db.Model):
+    """Vídeo público associado à galeria de um produto."""
+
+    __tablename__ = "produto_videos"
+    __table_args__ = (
+        Index("idx_produto_video_produto_ordem", "produto_id", "ordem"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    produto_id = db.Column(
+        db.Integer,
+        db.ForeignKey("produtos.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    url = db.Column(db.String(512), nullable=False)
+    titulo = db.Column(db.String(180), nullable=True)
+    ordem = db.Column(db.Integer, nullable=False, default=0)
+    criado_em = db.Column(db.DateTime(timezone=True), default=now_local, nullable=False)
+
+    produto = db.relationship("Produto", back_populates="videos")
 
 # Listener de Slug
 def gera_slug_automatico(target, value, oldvalue, initiator):

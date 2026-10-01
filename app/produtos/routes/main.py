@@ -11,7 +11,7 @@ import json
 
 from app import db
 from .. import produtos_bp
-from app.produtos.models import Produto, ProdutoFoto, ProdutoHistorico
+from app.produtos.models import Produto, ProdutoFoto, ProdutoVideo, ProdutoHistorico
 from app.produtos.categorias.models import CategoriaProduto
 from app.produtos.configs.models import (
     MarcaProduto, CalibreProduto, TipoProduto, FuncionamentoProduto
@@ -333,6 +333,20 @@ def gerenciar_produto(produto_id=None):
                 principal = next((item for item in fotos_enviadas if item.get("principal")), None)
                 produto.foto_url = (principal or (fotos_enviadas[0] if fotos_enviadas else {})).get("url") or None
 
+            videos_payload = data.get("videos_produto")
+            try:
+                videos_enviados = json.loads(videos_payload) if videos_payload else None
+                if not isinstance(videos_enviados, list):
+                    videos_enviados = None
+            except (TypeError, ValueError):
+                videos_enviados = None
+            if videos_enviados is not None:
+                videos_enviados = [
+                    {"url": str(item.get("url")).strip(), "titulo": str(item.get("titulo") or "").strip()[:180]}
+                    for item in videos_enviados
+                    if isinstance(item, dict) and str(item.get("url") or "").strip()
+                ]
+
             # No trecho onde você coleta os dados do request:
             produto.peso = to_decimal(data.get('peso'))
             produto.comprimento = to_decimal(data.get('comprimento'))
@@ -444,6 +458,32 @@ def gerenciar_produto(produto_id=None):
                         eh_principal=item["url"] == principal_url,
                         ordem=ordem,
                     ))
+                produto.atualizado_em = now_local()
+
+            # ============================================================
+            # SINCRONIZAR GALERIA DE VÍDEOS E MOVER TEMPORÁRIOS NO R2
+            # ============================================================
+            if videos_enviados is not None:
+                from app.utils.r2_helpers import CDN_URL
+                for item in videos_enviados:
+                    video_url = item["url"]
+                    if "produtos/videos/temp/" not in video_url:
+                        continue
+                    try:
+                        from app.produtos.routes.utils import _r2_client, _r2_bucket_publico
+                        client = _r2_client()
+                        bucket = _r2_bucket_publico()
+                        old_key = _key_from_url(video_url)
+                        if old_key and "produtos/videos/temp/" in old_key:
+                            new_key = old_key.replace("produtos/videos/temp/", f"produtos/videos/{produto.id}/")
+                            client.copy_object(Bucket=bucket, CopySource={"Bucket": bucket, "Key": old_key}, Key=new_key)
+                            client.delete_object(Bucket=bucket, Key=old_key)
+                            item["url"] = f"{CDN_URL}/{new_key}"
+                    except Exception as e:
+                        current_app.logger.error("Erro ao migrar vídeo do produto %s: %s", produto.id, e)
+                produto.videos.clear()
+                for ordem, item in enumerate(videos_enviados):
+                    produto.videos.append(ProdutoVideo(url=item["url"], titulo=item.get("titulo") or None, ordem=ordem))
                 produto.atualizado_em = now_local()
             # ============================================================
 

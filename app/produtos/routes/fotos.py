@@ -1,5 +1,6 @@
 # app/produtos/routes/fotos.py
 import uuid
+from pathlib import Path
 from flask import request, jsonify, current_app
 from flask_login import login_required
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,6 +9,79 @@ from .. import produtos_bp
 from app.produtos.models import Produto
 # IMPORT ATUALIZADO: Usamos _r2_bucket_publico para garantir a sincronia
 from .utils import _r2_bucket, _r2_bucket_publico, _r2_client, _r2_public_base, _key_from_url, _guess_ext
+
+VIDEO_MIME_EXT = {
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
+    "video/quicktime": ".mov",
+}
+MAX_VIDEO_BYTES = 100 * 1024 * 1024
+
+
+def _video_extension(file):
+    content_type = (file.mimetype or "").lower().split(";")[0].strip()
+    ext = VIDEO_MIME_EXT.get(content_type)
+    if not ext:
+        suffix = Path(file.filename or "").suffix.lower()
+        ext = suffix if suffix in {".mp4", ".webm", ".mov"} else None
+        if ext:
+            content_type = {value: key for key, value in VIDEO_MIME_EXT.items()}[ext]
+    return content_type, ext
+
+
+@produtos_bp.route('/api/upload_video', methods=['POST'])
+@login_required
+def api_upload_video():
+    """Uploada um vídeo da galeria para o bucket público do R2."""
+    if 'file' not in request.files:
+        return jsonify({"success": False, "error": "Arquivo de vídeo não enviado"}), 400
+    file = request.files["file"]
+    if not file or not file.filename:
+        return jsonify({"success": False, "error": "Arquivo de vídeo inválido"}), 400
+    if request.content_length and request.content_length > MAX_VIDEO_BYTES + 1024 * 1024:
+        return jsonify({"success": False, "error": "O vídeo deve ter no máximo 100 MB."}), 413
+    content_type, ext = _video_extension(file)
+    if not ext:
+        return jsonify({"success": False, "error": "Formato não suportado. Use MP4, WebM ou MOV."}), 415
+    produto_id_str = request.form.get('produto_id')
+    produto_id = int(produto_id_str) if produto_id_str and produto_id_str.isdigit() else None
+    key = f"produtos/videos/{produto_id or 'temp'}/{uuid.uuid4().hex}{ext}"
+    try:
+        bucket = _r2_bucket_publico()
+        client = _r2_client()
+        file.seek(0)
+        client.upload_fileobj(
+            Fileobj=file,
+            Bucket=bucket,
+            Key=key,
+            ExtraArgs={
+                "ContentType": content_type or f"video/{ext.lstrip('.')}",
+                "CacheControl": "public, max-age=31536000, immutable",
+            },
+        )
+        base_public = _r2_public_base()
+        video_url = (
+            f"{base_public.rstrip('/')}/{key}"
+            if base_public
+            else f"{current_app.config.get('R2_ENDPOINT_URL', '').rstrip('/')}/{bucket}/{key}"
+        )
+        if not produto_id:
+            video_url = f"{video_url}#{key.split('/')[-1]}"
+        return jsonify({"success": True, "video_url": video_url, "content_type": content_type}), 200
+    except Exception as e:
+        current_app.logger.exception("[M4] Falha no upload do vídeo para o R2.")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@produtos_bp.route("/video-temp/<path:temp_key>", methods=["DELETE"])
+@login_required
+def remover_video_temp(temp_key):
+    try:
+        client = _r2_client()
+        client.delete_object(Bucket=_r2_bucket_publico(), Key=f"produtos/videos/temp/{temp_key}")
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @produtos_bp.route('/api/upload_foto', methods=['POST'])
 @login_required

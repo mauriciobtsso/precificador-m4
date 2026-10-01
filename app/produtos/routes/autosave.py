@@ -10,7 +10,7 @@ from decimal import Decimal, InvalidOperation
 import re
 
 from app import db
-from app.produtos.models import Produto, ProdutoFoto
+from app.produtos.models import Produto, ProdutoFoto, ProdutoVideo
 from app.produtos.utils.historico_helper import registrar_historico
 from app.utils.parsing import parse_decimal, parse_form_datetime
 from app.utils.datetime import now_local
@@ -90,6 +90,30 @@ def autosave_produto(produto_id):
                     "novo": estado_novo,
                 }
                 produto.foto_url = principal_url or None
+
+    videos_payload = data.get("videos_produto")
+    if videos_payload is not None:
+        try:
+            videos_recebidos = json.loads(videos_payload) if isinstance(videos_payload, str) else videos_payload
+            if not isinstance(videos_recebidos, list):
+                videos_recebidos = None
+        except (TypeError, ValueError):
+            videos_recebidos = None
+        if videos_recebidos is not None:
+            videos_novos = [
+                {"url": str(item.get("url") or "").strip(), "titulo": str(item.get("titulo") or "").strip()[:180]}
+                for item in videos_recebidos
+                if isinstance(item, dict) and str(item.get("url") or "").strip()
+            ]
+            videos_atuais = ProdutoVideo.query.filter_by(produto_id=produto.id).order_by(
+                ProdutoVideo.ordem.asc(), ProdutoVideo.id.asc()
+            ).all()
+            estado_atual_videos = [{"url": video.url, "titulo": video.titulo or ""} for video in videos_atuais]
+            if estado_atual_videos != videos_novos:
+                produto.videos.clear()
+                for ordem, item in enumerate(videos_novos):
+                    produto.videos.append(ProdutoVideo(url=item["url"], titulo=item["titulo"] or None, ordem=ordem))
+                alteracoes["videos_produto"] = {"antigo": estado_atual_videos, "novo": videos_novos}
 
     CAMPOS_BOOLEANOS = ["promo_ativada", "visivel_loja", "destaque_home", "eh_lancamento", "eh_outdoor", "requer_documentacao"]
 

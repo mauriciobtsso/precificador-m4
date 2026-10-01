@@ -383,3 +383,49 @@ O detalhe público do produto agora permite ampliar a foto, navegar pelas imagen
 ### Situação de publicação após o commit
 
 O commit `33c78e2` foi enviado com sucesso para `origin/main`. Na verificação imediatamente posterior e após três novas consultas com intervalo de 10 segundos, a URL pública respondeu HTTP 200, porém ainda entregou o HTML anterior sem `produtoLightbox`, `produtoGaleriaContador` e URLs `w=1200`. Isso indica que o provedor de hospedagem ainda não havia concluído o redeploy/propagação do commit, e não uma falha nos testes ou no código versionado. A funcionalidade está pronta na branch `main` e deve aparecer no domínio assim que o serviço concluir a atualização.
+
+## 01/10/2026 — Fase 2 da galeria: zoom avançado e vídeos dos produtos
+
+### Objetivo
+
+Ampliar a experiência da galeria pública em `/loja/produto/<slug>` com zoom avançado nas fotos e suporte a vídeos cadastrados por produto, mantendo o fallback de produtos antigos e a compatibilidade com a galeria de fotos já existente.
+
+### Implementações realizadas
+
+A estrutura de dados ganhou a entidade `ProdutoVideo`, relacionada a `Produto`, com URL, título opcional, ordem e data de criação. Foi criada a migração reversível `20261001_produto_videos.py`, encadeada após `20260930_produto_fotos`, com índice por produto e ordem.
+
+O cadastro administrativo agora possui uma seção de vídeos separada da seção de fotos. O usuário pode selecionar múltiplos arquivos, acompanhar o upload, visualizar cada vídeo com controles nativos, informar um título opcional, remover itens e salvar a ordem atual. São aceitos MP4, WebM e MOV, com limite de 100 MB por arquivo.
+
+O upload usa o mesmo bucket público R2/CDN da galeria. Vídeos enviados durante o cadastro de um produto novo ficam inicialmente em `produtos/videos/temp/` e são movidos para `produtos/videos/<produto_id>/` após o produto receber seu ID. O autosave e o salvamento tradicional sincronizam títulos e ordem dos vídeos com o banco.
+
+No detalhe público, os vídeos aparecem abaixo das miniaturas, em cartões responsivos com `controls`, `playsinline`, `preload="metadata"` e legenda opcional. A CSP da loja recebeu `media-src` restrito a origens HTTPS, `self` e `blob`, permitindo a reprodução do CDN sem liberar mídia insegura.
+
+O zoom da Fase 1 foi evoluído para aceitar níveis de 1x a 3.5x, roda do mouse, botões de aumentar/reduzir/resetar, duplo clique, atalhos de teclado (`+`, `-` e `0`) e arraste da imagem ampliada para panorâmica. O zoom é redefinido ao trocar de foto ou navegar no lightbox.
+
+### Erros, conflitos e soluções
+
+1. **O modelo anterior contemplava somente fotos.** Foi criada uma relação independente `ProdutoVideo`, evitando misturar URLs de vídeo com `ProdutoFoto` e preservando a foto principal legada em `Produto.foto_url`.
+
+2. **O cadastro tradicional e o autosave tinham fluxos separados.** O payload `videos_produto` foi integrado aos dois caminhos, com normalização de títulos, ordem estável e sincronização transacional.
+
+3. **Produtos novos ainda não têm ID no momento do upload.** O upload utiliza uma pasta temporária e o salvamento move os objetos para a pasta definitiva após o `flush()` do produto, atualizando as URLs persistidas para o CDN.
+
+4. **Browsers podem enviar `application/octet-stream` para arquivos MOV.** A validação aceita somente extensões de vídeo permitidas e normaliza o MIME para `video/quicktime`, evitando que o objeto seja armazenado com Content-Type inadequado.
+
+5. **A política CSP não declarava `media-src`.** Sem a diretiva, a reprodução externa poderia depender de `default-src` e ser bloqueada ou ficar ambígua. Foi adicionada uma diretiva explícita para HTTPS, `self` e `blob`.
+
+6. **O CSS reduzido de ícones não continha os controles da Fase 2.** Foram adicionados os codepoints de câmera de vídeo, menos, tela cheia e os demais controles usados pela nova interface, mantendo o subconjunto público enxuto.
+
+### Testes e validações
+
+- Compilação Python dos modelos, rotas, migração, CSP e testes — aprovada.
+- Parsing Jinja dos templates administrativo e público — aprovado.
+- `node --check` do JavaScript administrativo e do JavaScript embutido do detalhe — aprovado.
+- `git diff --check` — aprovado.
+- Testes direcionados de Pagespeed, produtos e loja — **22 aprovados**.
+- Suíte completa — **64 aprovados**, com apenas o aviso já conhecido do Flask-Limiter sobre armazenamento em memória nos testes.
+- Validação específica de MIME e modelo `ProdutoVideo` — aprovada.
+
+### Resultado final
+
+A Fase 2 permite administrar vídeos junto às fotos do produto, persistir essa mídia com segurança no R2/CDN e exibi-la no detalhe público. As fotos passaram a oferecer zoom avançado com panorâmica, múltiplos níveis de ampliação e controles acessíveis, sem alterar o comportamento de produtos legados.
