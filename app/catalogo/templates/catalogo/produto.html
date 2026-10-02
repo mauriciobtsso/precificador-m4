@@ -127,6 +127,76 @@
         cursor: zoom-out;
     }
 
+    /* Galeria legada: sem dependência de grid, flex moderno ou aspect-ratio. */
+    .cat-gallery-thumbs {
+        padding: 10px;
+        background-color: var(--c-white);
+        text-align: center;
+        border-top: 1px solid var(--c-border);
+    }
+
+    .cat-gallery-thumb {
+        display: inline-block;
+        vertical-align: top;
+        width: 64px;
+        height: 64px;
+        margin: 3px;
+        padding: 3px;
+        border: 2px solid transparent;
+        border-radius: 5px;
+        background-color: var(--c-light);
+        cursor: pointer;
+        text-align: center;
+    }
+
+    .cat-gallery-thumb.active,
+    .cat-gallery-thumb:focus {
+        border-color: var(--c-gold);
+        outline: none;
+    }
+
+    .cat-gallery-thumb img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .cat-gallery-nav {
+        display: none;
+        position: absolute;
+        top: 50%;
+        width: 36px;
+        height: 36px;
+        margin-top: -18px;
+        border: 0;
+        border-radius: 50%;
+        background-color: rgba(0, 0, 0, .58);
+        color: #fff;
+        font-size: 20px;
+        line-height: 36px;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    .cat-gallery-nav.prev { left: 10px; }
+    .cat-gallery-nav.next { right: 10px; }
+    .cat-gallery-main.has-gallery .cat-gallery-nav { display: block; }
+
+    .cat-gallery-count {
+        display: none;
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        padding: 4px 8px;
+        border-radius: 10px;
+        background-color: rgba(0, 0, 0, .58);
+        color: #fff;
+        font-size: 11px;
+    }
+
+    .cat-gallery-main.has-gallery .cat-gallery-count { display: block; }
+
     /* Zoom por toque */
     .cat-gallery-main {
         touch-action: manipulation;
@@ -671,24 +741,34 @@
     {# ── COLUNA ESQUERDA: GALERIA ──────────────────────────── #}
     <div class="cat-prod-col-media">
 
+        {% set fotos_catalogo = produto.fotos if produto.fotos else [] %}
+        {% if not fotos_catalogo and produto.foto_url %}
+            {% set fotos_catalogo = [{'url': produto.foto_url}] %}
+        {% endif %}
         <div class="cat-gallery">
-            <div class="cat-gallery-main" id="galeriaPrincipal" aria-label="Foto principal do produto">
+            <div class="cat-gallery-main{% if fotos_catalogo|length > 1 %} has-gallery{% endif %}" id="galeriaPrincipal" aria-label="Galeria de fotos do produto">
                 {% if produto.requer_documentacao %}
                 <div class="cat-badge-pce">
                     <i class="bi bi-shield-lock-fill" aria-hidden="true"></i> Produto Controlado
                 </div>
                 {% endif %}
 
-                {% if produto.foto_url %}
+                {% if fotos_catalogo %}
+                    {% set foto_inicial = fotos_catalogo[0].url %}
                     <img
                         id="fotoMain"
-                        src="{{ convert_image_url(produto.foto_url) }}"
+                        src="{{ convert_image_url(foto_inicial) }}"
                         alt="{{ nome_display }}"
                         loading="eager"
                         fetchpriority="high"
                         decoding="async"
-                        onerror="this.onerror=null;this.src='{{ convert_image_url(produto.foto_url) if produto.foto_url else '/static/img/placeholder.jpg' }}';"
+                        onerror="this.onerror=null;this.src='{{ convert_image_url(foto_inicial) }}';"
                     >
+                    {% if fotos_catalogo|length > 1 %}
+                    <button type="button" class="cat-gallery-nav prev" id="galeriaAnterior" aria-label="Foto anterior">‹</button>
+                    <button type="button" class="cat-gallery-nav next" id="galeriaProxima" aria-label="Próxima foto">›</button>
+                    <span class="cat-gallery-count" id="galeriaContador">1 / {{ fotos_catalogo|length }}</span>
+                    {% endif %}
                 {% else %}
                     <div style="text-align:center;color:var(--c-mid);opacity:.4;">
                         <i class="bi bi-image" style="font-size:56px;display:block;margin-bottom:8px;"></i>
@@ -696,6 +776,15 @@
                     </div>
                 {% endif %}
             </div>
+            {% if fotos_catalogo|length > 1 %}
+            <div class="cat-gallery-thumbs" id="galeriaMiniaturas" aria-label="Escolher foto do produto">
+                {% for foto in fotos_catalogo %}
+                    <button type="button" class="cat-gallery-thumb{% if loop.first %} active{% endif %}" data-index="{{ loop.index0 }}" data-image="{{ convert_image_url(foto.url) }}" data-original="{{ foto.url }}" aria-label="Ver foto {{ loop.index }} de {{ fotos_catalogo|length }}" aria-current="{{ 'true' if loop.first else 'false' }}">
+                        <img src="{{ convert_thumb_url(foto.url, 't160') }}" alt="" loading="lazy" onerror="this.onerror=null;this.src='{{ convert_image_url(foto.url) }}';">
+                    </button>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
 
         {# ── FICHA TÉCNICA (mobile: abaixo da foto; desktop: aba) ── #}
@@ -1095,8 +1184,56 @@
         showToast('Comparador limpo');
     });
 
-    // ── Zoom na galeria (toque e clique) ───────────────────
+    // ── Galeria de fotos + zoom (compatível com WebKit antigo) ──
     var galeria = document.getElementById('galeriaPrincipal');
+    var fotoMain = document.getElementById('fotoMain');
+    var miniaturas = document.querySelectorAll('.cat-gallery-thumb');
+    var contadorGaleria = document.getElementById('galeriaContador');
+    var indiceGaleria = 0;
+
+    function mostrarFotoCatalogo(indice) {
+        if (!fotoMain || !miniaturas || !miniaturas.length) return;
+        if (indice < 0) indice = miniaturas.length - 1;
+        if (indice >= miniaturas.length) indice = 0;
+        indiceGaleria = indice;
+        var miniatura = miniaturas[indice];
+        var url = miniatura.getAttribute('data-image');
+        if (!url) return;
+        fotoMain.src = url;
+        fotoMain.removeAttribute('srcset');
+        fotoMain.onerror = function () {
+            this.onerror = null;
+            this.src = miniatura.getAttribute('data-original') || url;
+        };
+        for (var i = 0; i < miniaturas.length; i += 1) {
+            var ativa = i === indice;
+            miniaturas[i].className = ativa ? 'cat-gallery-thumb active' : 'cat-gallery-thumb';
+            miniaturas[i].setAttribute('aria-current', ativa ? 'true' : 'false');
+        }
+        if (contadorGaleria) contadorGaleria.textContent = (indice + 1) + ' / ' + miniaturas.length;
+        galeria.classList.remove('zoomed');
+    }
+
+    for (var indice = 0; indice < miniaturas.length; indice += 1) {
+        (function (posicao) {
+            miniaturas[posicao].addEventListener('click', function (evento) {
+                evento.stopPropagation();
+                mostrarFotoCatalogo(posicao);
+            }, false);
+        }(indice));
+    }
+
+    var btnAnterior = document.getElementById('galeriaAnterior');
+    var btnProxima = document.getElementById('galeriaProxima');
+    if (btnAnterior) btnAnterior.addEventListener('click', function (evento) {
+        evento.stopPropagation();
+        mostrarFotoCatalogo(indiceGaleria - 1);
+    }, false);
+    if (btnProxima) btnProxima.addEventListener('click', function (evento) {
+        evento.stopPropagation();
+        mostrarFotoCatalogo(indiceGaleria + 1);
+    }, false);
+
     if (galeria) {
         galeria.addEventListener('click', function () {
             this.classList.toggle('zoomed');
@@ -1113,6 +1250,12 @@
             lastTap = now;
         }, { passive: false });
     }
+
+    document.addEventListener('keydown', function (evento) {
+        if (!miniaturas || miniaturas.length < 2) return;
+        if (evento.keyCode === 37) mostrarFotoCatalogo(indiceGaleria - 1);
+        if (evento.keyCode === 39) mostrarFotoCatalogo(indiceGaleria + 1);
+    }, false);
 
     // ── QR Code ────────────────────────────────────────────
     var btnQr  = document.getElementById('btnQrCode');

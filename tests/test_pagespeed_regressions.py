@@ -207,3 +207,19 @@ def test_store_home_renders_optimized_html_and_security_headers(client):
     assert "imagem_otimizada(banner_link, 640)" in home_source
     assert "imagem_otimizada(banner_link, 1200)" in home_source
     assert "fetchpriority=\"high\"" in home_source
+
+
+def test_catalog_detail_has_legacy_photo_gallery():
+    detail = (ROOT / "app/catalogo/templates/catalogo/produto.html").read_text(encoding="utf-8")
+    for marker in (
+        "produto.fotos",
+        "cat-gallery-thumbs",
+        "cat-gallery-thumb",
+        "galeriaAnterior",
+        "galeriaProxima",
+        "mostrarFotoCatalogo",
+        "convert_thumb_url(foto.url, 't160')",
+    ):
+        assert marker in detail
+    assert "removeAttribute('srcset')" in detail
+    assert "evento.keyCode === 37" in detail

@@ -217,6 +217,7 @@ def produto(slug):
             joinedload(Produto.calibre_rel),
             joinedload(Produto.tipo_rel),
             joinedload(Produto.funcionamento_rel),
+            subqueryload(Produto.fotos),
         ).first_or_404()
 
     # Produtos relacionados: mesma categoria E/OU mesmo calibre

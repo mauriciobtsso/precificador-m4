@@ -554,3 +554,28 @@ O `404` da imagem antiga registrada no log é independente do erro do tour: trat
 - `node --check app/static/js/produtos_autosave.js` — aprovado.
 - Verificação de `X-CSRFToken` nos três uploads e no autosave — aprovada.
 - `git diff --check` — aprovado.
+
+
+## 02/10/2026 — Galeria de fotos no detalhe do catálogo legado
+
+### Problema
+
+O detalhe em `/catalogo/produto/<slug>` carregava somente `Produto.foto_url`, embora o cadastro já permitisse várias fotos relacionadas em `Produto.fotos`. Em dispositivos antigos, como o iPad Mini 1 com WebKit/iOS antigo, o cliente não conseguia visualizar as demais imagens do produto.
+
+### Solução implantada
+
+A rota do catálogo passou a carregar `Produto.fotos` com `subqueryload`, respeitando a ordenação existente da relação, que prioriza a foto principal. O template agora monta uma galeria com a foto principal, miniaturas, contador e setas anterior/próxima. Produtos legados sem registros em `Produto.fotos` continuam usando `Produto.foto_url` como fallback.
+
+A implementação visual foi feita com técnicas compatíveis com o navegador antigo: `float`, `inline-block`, botões HTML simples, `var`, `addEventListener`, `classList`, `getAttribute` e navegação por códigos de tecla. Não foi introduzida dependência de CSS Grid, `const`, `let` ou APIs modernas obrigatórias no fluxo da galeria. O cliente pode tocar em uma miniatura, usar as setas, deslizar para aplicar o zoom já existente e usar as setas esquerda/direita do teclado.
+
+As miniaturas utilizam o proxy de imagem com tamanho reduzido (`t160`) para preservar desempenho no iPad, enquanto a imagem principal utiliza a URL otimizada do catálogo. A funcionalidade foi mantida separada do detalhe moderno em `/loja`, sem alterar seus controles avançados.
+
+### Validações
+
+- Parsing Jinja do template — aprovado.
+- JavaScript renderizado com expressões Jinja substituídas — aprovado com `node --check`.
+- Teste específico da galeria legada — aprovado.
+- Suíte completa — **66 testes aprovados**, com apenas o aviso já conhecido do Flask-Limiter sobre armazenamento em memória nos testes.
+- `git diff --check` — aprovado.
+
+Uma checagem inicial de compatibilidade acusou falso positivo porque o comentário explicativo continha a expressão `aspect-ratio`; a implementação da galeria não depende dessa propriedade. A validação foi corrigida para verificar o JavaScript efetivo e passou.
