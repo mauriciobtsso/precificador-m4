@@ -240,6 +240,35 @@
             color: var(--c-black);
         }
 
+        .cat-btn-loja {
+            display: -webkit-inline-box;
+            display: -webkit-inline-flex;
+            display: inline-flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            height: 44px;
+            padding: 0 14px;
+            border: 1px solid var(--c-border);
+            border-radius: 22px;
+            background-color: var(--c-white);
+            color: var(--c-dark);
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            -webkit-flex-shrink: 0;
+            flex-shrink: 0;
+        }
+
+        .cat-btn-loja:hover,
+        .cat-btn-loja:active {
+            border-color: var(--c-gold);
+            color: var(--c-gold-dark);
+            background-color: #fffaf0;
+        }
+
+        .cat-btn-loja > * + * { margin-left: 6px; }
+
         /* ── RESULTADO DE BUSCA DROPDOWN ─────────────────────── */
         .cat-search-results {
             position: absolute;
@@ -420,6 +449,7 @@
         .cat-product-img {
             width: 100%;
             aspect-ratio: 1;
+            height: 220px;
             background-color: var(--c-light);
             overflow: hidden;
             display: -webkit-box;
@@ -527,6 +557,7 @@
         }
 
         @media (min-width: 600px) {
+            .cat-product-img { height: 230px; }
             .cat-grid-item {
                 width: calc(33.333% - 10.667px);
                 margin-right: 16px;
@@ -605,8 +636,26 @@
             white-space: nowrap;
         }
 
+        @media (min-width: 720px) {
+            .cat-chips {
+                -webkit-flex-wrap: wrap;
+                flex-wrap: wrap;
+                white-space: normal;
+            }
+            .cat-chips > * + * {
+                margin-left: 0;
+            }
+            .cat-chip {
+                margin: 0 8px 8px 0;
+            }
+        }
+
         .cat-chips > * + * {
             margin-left: 8px;
+        }
+
+        @media (min-width: 720px) {
+            .cat-chips > * + * { margin-left: 0; }
         }
 
         .cat-chip {
@@ -687,7 +736,7 @@
     {# ── HEADER GLOBAL DO CATÁLOGO ──────────────────────────── #}
     <header class="cat-header" role="banner">
         <div class="cat-header-inner">
-            <a href="{{ url_for('loja.index') }}" class="cat-logo" aria-label="M4 Tática — Voltar à Loja">
+            <a href="{{ url_for('catalogo.index') }}" class="cat-logo" aria-label="M4 Tática — Início do Catálogo">
                 <picture>
                     <source srcset="{{ url_for('static', filename='img/logo_pedido.png') }}" type="image/png">
                     <img src="{{ url_for('static', filename='img/logo.png') }}" alt="M4 Tática" width="120" height="36" fetchpriority="high">
@@ -731,6 +780,10 @@
                 <i class="bi bi-person-fill" aria-hidden="true"></i>
                 <span class="cat-modo-label">Modo Atendimento</span>
             </button>
+            <a href="{{ url_for('loja.index') }}" class="cat-btn-loja" aria-label="Abrir loja virtual">
+                <i class="bi bi-bag" aria-hidden="true"></i>
+                <span>Loja virtual</span>
+            </a>
         </div>
     </header>
 

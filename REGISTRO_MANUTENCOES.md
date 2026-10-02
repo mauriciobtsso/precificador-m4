@@ -579,3 +579,26 @@ As miniaturas utilizam o proxy de imagem com tamanho reduzido (`t160`) para pres
 - `git diff --check` — aprovado.
 
 Uma checagem inicial de compatibilidade acusou falso positivo porque o comentário explicativo continha a expressão `aspect-ratio`; a implementação da galeria não depende dessa propriedade. A validação foi corrigida para verificar o JavaScript efetivo e passou.
+
+
+## 02/10/2026 — Navegação e ajuste visual da home do catálogo no iPad
+
+### Problemas observados
+
+Na área `/catalogo`, o clique na logo levava para a home da loja virtual (`/loja`) em vez de retornar à home do catálogo. Também foi observado no iPad Mini que o cabeçalho ficava carregado, as categorias formavam uma faixa horizontal cortada e a home tinha espaçamento excessivo entre busca, filtros e produtos.
+
+### Soluções implantadas
+
+O link da logo foi corrigido para apontar para `catalogo.index`, com rótulo acessível indicando o início do Catálogo. Para manter o acesso à loja virtual, foi incluído um botão separado “Loja virtual” no cabeçalho, apontando explicitamente para `loja.index`.
+
+O layout da home foi reorganizado para reduzir o espaço vertical do hero, ampliar a busca principal e alinhar o conteúdo à esquerda em telas de tablet. Os filtros de categoria passam a quebrar em múltiplas linhas a partir de 720px, evitando a sensação de conteúdo cortado no iPad. As imagens dos cards receberam altura definida, além do `aspect-ratio`, para manter dimensões consistentes em navegadores antigos que não suportam essa propriedade. Também foram reduzidos os espaçamentos entre seções.
+
+As alterações preservam as técnicas de compatibilidade com iOS antigo: flexbox com prefixos WebKit, margens reais em vez de `gap`, controles com tamanho mínimo para toque e sem dependência de APIs modernas obrigatórias.
+
+### Validações
+
+- Parsing Jinja dos templates base e índice — aprovado.
+- JavaScript dos templates após substituição das expressões Jinja — aprovado com `node --check`.
+- Testes estáticos de navegação e layout — aprovados.
+- Suíte direcionada de regressões — **18 testes aprovados**.
+- `git diff --check` — aprovado.

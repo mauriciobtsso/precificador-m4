@@ -223,3 +223,16 @@ def test_catalog_detail_has_legacy_photo_gallery():
         assert marker in detail
     assert "removeAttribute('srcset')" in detail
     assert "evento.keyCode === 37" in detail
+
+
+def test_catalog_home_navigation_and_ipad_layout():
+    base = (ROOT / "app/catalogo/templates/catalogo/base.html").read_text(encoding="utf-8")
+    index = (ROOT / "app/catalogo/templates/catalogo/index.html").read_text(encoding="utf-8")
+    assert "url_for('catalogo.index')" in base
+    assert "url_for('loja.index')" in base
+    assert "cat-btn-loja" in base
+    assert "cat-chips {" in base
+    assert "-webkit-flex-wrap: wrap" in base
+    assert "@media (min-width: 720px)" in index
+    assert "text-align: left" in index
+    assert "height: 230px" in base

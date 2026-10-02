@@ -7,7 +7,7 @@
     /* ── HERO BUSCA ────────────────────────────────────────── */
     .cat-hero {
         text-align: center;
-        padding: 48px 0 32px;
+        padding: 32px 0 24px;
     }
 
     .cat-hero-eyebrow {
@@ -31,12 +31,12 @@
     .cat-hero-sub {
         font-size: 16px;
         color: var(--c-mid);
-        margin: 0 0 32px;
+        margin: 0 0 24px;
     }
 
     /* ── BUSCA HERO GRANDE (complementar ao header) ─────────── */
     .cat-hero-search-wrap {
-        max-width: 600px;
+        max-width: 720px;
         margin: 0 auto;
         position: relative;
     }
@@ -79,12 +79,12 @@
 
     /* ── CHIPS ─────────────────────────────────────────────── */
     .cat-chips-section {
-        padding: 0 0 8px;
+        padding: 0 0 4px;
     }
 
     /* ── GRID DINÂMICO (filtrado por JS) ─────────────────────── */
     .cat-dynamic-section {
-        padding-top: 32px;
+        padding-top: 24px;
     }
 
     .cat-dynamic-header {
@@ -257,7 +257,7 @@
 
     /* ── SEÇÕES ESTÁTICAS (SSR) ──────────────────────────── */
     .cat-ssr-section {
-        padding-top: 40px;
+        padding-top: 28px;
     }
 
     .cat-ssr-title {
@@ -272,6 +272,23 @@
 
     .cat-ssr-title span.cat-accent {
         color: var(--c-gold);
+    }
+
+    @media (min-width: 720px) {
+        .cat-hero {
+            text-align: left;
+            padding-top: 28px;
+        }
+        .cat-hero-search-wrap {
+            margin-left: 0;
+            margin-right: 0;
+        }
+        .cat-hero-title {
+            font-size: 38px;
+        }
+        .cat-hero-sub {
+            margin-bottom: 20px;
+        }
     }
 </style>
 {% endblock %}
