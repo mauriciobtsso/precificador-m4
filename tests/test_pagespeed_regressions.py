@@ -254,3 +254,35 @@ def test_catalog_uses_light_assets_and_legacy_lazy_loading():
     assert "convert_resized_url(p.foto_url, 220)" in index
     assert "if request.endpoint == 'catalogo.index'" in routes
     assert "Configuracao.query" not in routes
+
+
+def test_catalog_offline_cache_supports_service_worker_and_legacy_ipad():
+    base = (ROOT / "app/catalogo/templates/catalogo/base.html").read_text(encoding="utf-8")
+    worker = (ROOT / "app/catalogo/service_worker.js").read_text(encoding="utf-8")
+    manifest = (ROOT / "app/catalogo/appcache_manifest.txt").read_text(encoding="utf-8")
+    routes = (ROOT / "app/catalogo/routes.py").read_text(encoding="utf-8")
+    assert "catalogo.offline_manifest" in base
+    assert "navigator.serviceWorker.register" in base
+    assert "scope: '/catalogo/'" in base
+    assert "m4-catalogo-v1" in worker
+    assert "self.addEventListener('install'" in worker
+    assert "self.addEventListener('fetch'" in worker
+    assert "/catalogo/" in worker
+    assert "CACHE MANIFEST" in manifest
+    assert "NETWORK:" in manifest
+    assert "FALLBACK:" in manifest
+    assert "def service_worker" in routes
+    assert "def offline_manifest" in routes
+
+
+def test_catalog_offline_endpoints_return_expected_headers(client):
+    worker = client.get("/catalogo/service-worker.js")
+    assert worker.status_code == 200
+    assert worker.mimetype == "application/javascript"
+    assert "no-cache" in worker.headers["Cache-Control"]
+    assert worker.headers["Service-Worker-Allowed"] == "/catalogo/"
+
+    manifest = client.get("/catalogo/offline.manifest")
+    assert manifest.status_code == 200
+    assert manifest.mimetype == "text/cache-manifest"
+    assert manifest.data.startswith(b"CACHE MANIFEST")

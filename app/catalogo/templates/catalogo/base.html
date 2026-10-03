@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR"{% if 'iPad' in request.user_agent.string or 'iPhone' in request.user_agent.string %} manifest="{{ url_for('catalogo.offline_manifest') }}"{% endif %}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
@@ -933,5 +933,19 @@
     </script>
 
     {% block extra_js %}{% endblock %}
+
+    <script>
+    (function () {
+        // Navegadores atuais: cache offline por Service Worker no escopo do catálogo.
+        // O iPad Mini 1/iOS 9 não entra aqui; nele o atributo manifest acima usa AppCache.
+        if (navigator.serviceWorker && navigator.serviceWorker.register) {
+            navigator.serviceWorker.register('{{ url_for("catalogo.service_worker") }}', {
+                scope: '/catalogo/'
+            }).catch(function () {
+                // O catálogo continua funcionando normalmente se o worker for bloqueado.
+            });
+        }
+    }());
+    </script>
 </body>
 </html>

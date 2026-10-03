@@ -7,7 +7,8 @@
 
 import re
 import unicodedata
-from flask import render_template, request, jsonify, abort, current_app
+from pathlib import Path
+from flask import Response, render_template, request, jsonify, abort, current_app
 from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload, subqueryload
 
@@ -146,6 +147,25 @@ def image_proxy(image_path):
         /catalogo/image-proxy/produtos/fotos/166/aa4_t280.webp
     """
     return serve_image_with_fallback(image_path)
+
+
+@catalogo_bp.route('/service-worker.js')
+def service_worker():
+    """Entrega o worker no próprio escopo /catalogo/ para habilitar cache offline."""
+    source = Path(__file__).with_name('service_worker.js').read_text(encoding='utf-8')
+    response = Response(source, mimetype='application/javascript')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Service-Worker-Allowed'] = '/catalogo/'
+    return response
+
+
+@catalogo_bp.route('/offline.manifest')
+def offline_manifest():
+    """Fallback AppCache para iPad Mini 1/iOS 9, sem suporte a Service Worker."""
+    manifest = Path(__file__).with_name('appcache_manifest.txt').read_text(encoding='utf-8')
+    response = Response(manifest, mimetype='text/cache-manifest')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
 
 # ============================================================

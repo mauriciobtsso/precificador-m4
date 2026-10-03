@@ -1,0 +1,18 @@
+CACHE MANIFEST
+# M4 Tática catálogo offline v1
+
+CACHE:
+/catalogo/
+/static/vendor/bootstrap-icons/bootstrap-icons-loja.css
+/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2
+/static/img/logo_pedido.png
+/static/img/favicon-loja.png
+/static/img/placeholder.jpg
+
+NETWORK:
+/catalogo/api/
+/catalogo/image-proxy/
+*
+
+FALLBACK:
+/catalogo/ /catalogo/
