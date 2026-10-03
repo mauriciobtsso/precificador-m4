@@ -357,14 +357,14 @@
     <ul class="cat-grid" role="list">
         {% for p in destaques %}
         <li class="cat-grid-item" role="listitem">
-            {% set thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set thumb = convert_resized_url(p.foto_url, 220) if p.foto_url else '/static/img/placeholder.jpg' %}
             <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
                 <div class="cat-product-img">
                     <img
-                        src="{{ thumb }}"
+                        {% if loop.index <= 3 %}src="{{ thumb }}"{% else %}src="/static/img/placeholder.jpg" data-src="{{ thumb }}" class="catalogo-lazy-img"{% endif %}
                         alt="{{ p.nome_comercial or p.nome }}"
-                        loading="{{ 'eager' if loop.index <= 4 else 'lazy' }}"
-                        onerror="this.onerror=null;this.src='{{ convert_image_url(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
+                        loading="{{ 'eager' if loop.index <= 3 else 'lazy' }}"
+                        onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';"
                     >
                 </div>
                 <div class="cat-product-body">
@@ -398,14 +398,14 @@
     <ul class="cat-grid" role="list">
         {% for p in lancamentos %}
         <li class="cat-grid-item" role="listitem">
-            {% set thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set thumb = convert_resized_url(p.foto_url, 220) if p.foto_url else '/static/img/placeholder.jpg' %}
             <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
                 <div class="cat-product-img">
                     <img
-                        src="{{ thumb }}"
+                        src="/static/img/placeholder.jpg"{% if p.foto_url %} data-src="{{ thumb }}" class="catalogo-lazy-img"{% endif %}
                         alt="{{ p.nome_comercial or p.nome }}"
                         loading="lazy"
-                        onerror="this.onerror=null;this.src='{{ convert_image_url(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
+                        onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';"
                     >
                 </div>
                 <div class="cat-product-body">
@@ -438,14 +438,14 @@
     <ul class="cat-grid" role="list">
         {% for p in promocoes %}
         <li class="cat-grid-item" role="listitem">
-            {% set thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set thumb = convert_resized_url(p.foto_url, 220) if p.foto_url else '/static/img/placeholder.jpg' %}
             <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
                 <div class="cat-product-img">
                     <img
-                        src="{{ thumb }}"
+                        src="/static/img/placeholder.jpg"{% if p.foto_url %} data-src="{{ thumb }}" class="catalogo-lazy-img"{% endif %}
                         alt="{{ p.nome_comercial or p.nome }}"
                         loading="lazy"
-                        onerror="this.onerror=null;this.src='{{ convert_image_url(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' }}';"
+                        onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';"
                     >
                 </div>
                 <div class="cat-product-body">
@@ -487,6 +487,31 @@
     var secaoDestaques  = document.getElementById('secaoDestaques');
     var secaoLancamentos = document.getElementById('secaoLancamentos');
     var secaoPromocoes  = document.getElementById('secaoPromocoes');
+    var lazyTick = false;
+
+    // Safari do iOS 9 ignora loading="lazy". O fallback abaixo só troca
+    // data-src por src quando a imagem está próxima da viewport.
+    function carregarImagensProximas() {
+        var imagens = document.querySelectorAll('img.catalogo-lazy-img[data-src]');
+        var limite = (window.innerHeight || document.documentElement.clientHeight || 600) + 500;
+        for (var i = 0; i < imagens.length; i++) {
+            var rect = imagens[i].getBoundingClientRect();
+            if (rect.top < limite && rect.bottom > -100) {
+                imagens[i].src = imagens[i].getAttribute('data-src');
+                imagens[i].removeAttribute('data-src');
+                imagens[i].className = '';
+            }
+        }
+    }
+
+    function agendarCargaDeImagens() {
+        if (lazyTick) return;
+        lazyTick = true;
+        setTimeout(function () {
+            lazyTick = false;
+            carregarImagensProximas();
+        }, 80);
+    }
 
     function fmtPreco(v) {
         if (!v) return '';
@@ -514,7 +539,7 @@
             html += '<li class="cat-dynamic-item" role="listitem">' +
                 '<a href="' + PROD_URL + encodeURIComponent(p.slug) + '" class="cat-product-card" aria-label="' + p.nome + '">' +
                     '<div class="cat-product-img">' +
-                        '<img src="' + p.foto + '" alt="' + p.nome + '" loading="lazy" onerror="this.onerror=null;this.src=\'/static/img/placeholder.jpg\';">' +
+                        '<img src="/static/img/placeholder.jpg" data-src="' + p.foto + '" class="catalogo-lazy-img" alt="' + p.nome + '" loading="lazy" onerror="this.onerror=null;this.src=\'/static/img/placeholder.jpg\';">' +
                     '</div>' +
                     '<div class="cat-product-body">' +
                         (p.marca ? '<span class="cat-product-marca">' + p.marca + '</span>' : '') +
@@ -632,6 +657,7 @@
                             carregarCategoria(catAtivo.slug, catAtivo.nome, paginaAtual + 1);
                         });
                     }
+                    agendarCargaDeImagens();
 
                 } catch(e) {
                     secaoDyn.innerHTML = '<div class="cat-empty"><div class="cat-empty-title">Erro ao carregar.</div></div>';
@@ -702,6 +728,10 @@
             setTimeout(function () { headInput.focus(); }, 0);
         });
     }
+
+    window.addEventListener('scroll', agendarCargaDeImagens, false);
+    window.addEventListener('resize', agendarCargaDeImagens, false);
+    carregarImagensProximas();
 
 }());
 </script>

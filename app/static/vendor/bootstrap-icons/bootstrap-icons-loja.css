@@ -24,6 +24,7 @@ url("./fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2") format("wof
 .bi-arrow-left::before { content: "\f12f"; }
 .bi-arrow-left-right::before { content: "\f12b"; }
 .bi-arrow-up-right::before { content: "\f144"; }
+.bi-bag::before { content: "\f179"; }
 .bi-arrow-repeat::before { content: "\f130"; }
 .bi-arrows-fullscreen::before { content: "\f14d"; }
 .bi-arrows-expand::before { content: "\f14c"; }
@@ -58,7 +59,9 @@ url("./fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2") format("wof
 .bi-geo-alt::before { content: "\f3e8"; }
 .bi-google::before { content: "\f3f0"; }
 .bi-grid-1x2-fill::before { content: "\f3f3"; }
+.bi-grid-fill::before { content: "\f3fb"; }
 .bi-heart::before { content: "\f417"; }
+.bi-heart-fill::before { content: "\f415"; }
 .bi-hourglass-split::before { content: "\f41f"; }
 .bi-image::before { content: "\f42a"; }
 .bi-info-circle::before { content: "\f431"; }
@@ -79,10 +82,12 @@ url("./fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2") format("wof
 .bi-puzzle::before { content: "\f503"; }
 .bi-qr-code::before { content: "\f6ae"; }
 .bi-search::before { content: "\f52a"; }
+.bi-share::before { content: "\f52e"; }
 .bi-shield-check::before { content: "\f52f"; }
 .bi-shield-lock-fill::before { content: "\f537"; }
 .bi-shield-shaded::before { content: "\f53b"; }
 .bi-star-fill::before { content: "\f586"; }
+.bi-tag-fill::before { content: "\f5af"; }
 .bi-three-dots-vertical::before { content: "\f5d3"; }
 .bi-trash::before { content: "\f5de"; }
 .bi-trash3-fill::before { content: "\f78a"; }

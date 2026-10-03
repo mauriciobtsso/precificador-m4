@@ -16,11 +16,14 @@ from app import db
 from app.produtos.models import Produto
 from app.produtos.categorias.models import CategoriaProduto
 from app.produtos.configs.models import MarcaProduto, CalibreProduto
-from app.models import Configuracao
 from app.utils.r2_helpers import gerar_link_r2
 # from app.utils.thumbnail_utils import get_thumb_url  # Substituído pelo proxy
 from app.utils.image_proxy import serve_image_with_fallback
-from app.catalogo.image_url_helper import convert_image_url, convert_thumb_url
+from app.catalogo.image_url_helper import (
+    convert_image_url,
+    convert_thumb_url,
+    convert_resized_url,
+)
 
 # ────────────────────────────────────────────────────────────
 # HELPER LOCAL: compatível com o padrão de loja/routes.py
@@ -104,32 +107,28 @@ def _build_search_conditions(termo: str):
 def inject_catalogo_data():
     """Injeta categorias e configurações globais no contexto do catálogo."""
     try:
-        categorias = CategoriaProduto.query.filter_by(pai_id=None)\
-            .options(subqueryload(CategoriaProduto.subcategorias))\
-            .order_by(CategoriaProduto.ordem_exibicao.asc()).all()
-
-        config_objs = Configuracao.query.filter(
-            Configuracao.chave.like('loja_%')
-        ).all()
-        loja_config = {c.chave: c.valor for c in config_objs}
+        # A lista de categorias só existe na home. Não repetir essa consulta
+        # nem carregar configurações sem uso no detalhe, muito acessado no iPad.
+        categorias = []
+        if request.endpoint == 'catalogo.index':
+            categorias = CategoriaProduto.query.filter_by(pai_id=None)\
+                .order_by(CategoriaProduto.ordem_exibicao.asc()).all()
 
         return dict(
             catalogo_categorias=categorias,
-            loja_config=loja_config,
-            # get_thumb_url=get_thumb_url,  # Usar convert_thumb_url no lugar
             catalogo_gerar_link=_gerador_link,
             convert_image_url=convert_image_url,
             convert_thumb_url=convert_thumb_url,
+            convert_resized_url=convert_resized_url,
         )
     except Exception as e:
         current_app.logger.error(f"[CATALOGO] Erro no context_processor: {e}")
         return dict(
             catalogo_categorias=[],
-            loja_config={},
-            # get_thumb_url=get_thumb_url,  # Usar convert_thumb_url no lugar
             catalogo_gerar_link=_gerador_link,
             convert_image_url=convert_image_url,
             convert_thumb_url=convert_thumb_url,
+            convert_resized_url=convert_resized_url,
         )
 
 

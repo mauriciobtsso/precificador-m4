@@ -96,6 +96,7 @@
     .cat-gallery-main {
         width: 100%;
         aspect-ratio: 1;
+        height: 300px;
         display: -webkit-box;
         display: -webkit-flex;
         display: flex;
@@ -133,13 +134,17 @@
         background-color: var(--c-white);
         text-align: center;
         border-top: 1px solid var(--c-border);
+        white-space: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
     }
 
     .cat-gallery-thumb {
         display: inline-block;
         vertical-align: top;
-        width: 64px;
-        height: 64px;
+        width: 72px;
+        height: 72px;
         margin: 3px;
         padding: 3px;
         border: 2px solid transparent;
@@ -200,6 +205,11 @@
     /* Zoom por toque */
     .cat-gallery-main {
         touch-action: manipulation;
+    }
+
+    @media (min-width: 720px) {
+        .cat-gallery-main { height: 420px; }
+        .cat-gallery-thumb { width: 76px; height: 76px; }
     }
 
     /* Badge de produto controlado (PCE) */
@@ -757,12 +767,12 @@
                     {% set foto_inicial = fotos_catalogo[0].url %}
                     <img
                         id="fotoMain"
-                        src="{{ convert_image_url(foto_inicial) }}"
+                        src="{{ convert_resized_url(foto_inicial, 760) }}"
                         alt="{{ nome_display }}"
                         loading="eager"
                         fetchpriority="high"
                         decoding="async"
-                        onerror="this.onerror=null;this.src='{{ convert_image_url(foto_inicial) }}';"
+                        onerror="this.onerror=null;this.src='{{ convert_resized_url(foto_inicial, 760) }}';"
                     >
                     {% if fotos_catalogo|length > 1 %}
                     <button type="button" class="cat-gallery-nav prev" id="galeriaAnterior" aria-label="Foto anterior">‹</button>
@@ -779,8 +789,8 @@
             {% if fotos_catalogo|length > 1 %}
             <div class="cat-gallery-thumbs" id="galeriaMiniaturas" aria-label="Escolher foto do produto">
                 {% for foto in fotos_catalogo %}
-                    <button type="button" class="cat-gallery-thumb{% if loop.first %} active{% endif %}" data-index="{{ loop.index0 }}" data-image="{{ convert_image_url(foto.url) }}" data-original="{{ foto.url }}" aria-label="Ver foto {{ loop.index }} de {{ fotos_catalogo|length }}" aria-current="{{ 'true' if loop.first else 'false' }}">
-                        <img src="{{ convert_thumb_url(foto.url, 't160') }}" alt="" loading="lazy" onerror="this.onerror=null;this.src='{{ convert_image_url(foto.url) }}';">
+                    <button type="button" class="cat-gallery-thumb{% if loop.first %} active{% endif %}" data-index="{{ loop.index0 }}" data-image="{{ convert_resized_url(foto.url, 760) }}" data-original="{{ foto.url }}" aria-label="Ver foto {{ loop.index }} de {{ fotos_catalogo|length }}" aria-current="{{ 'true' if loop.first else 'false' }}">
+                        <img {% if loop.first %}src="{{ convert_resized_url(foto.url, 96) }}"{% else %}src="/static/img/placeholder.jpg" data-src="{{ convert_resized_url(foto.url, 96) }}" class="catalogo-detalhe-thumb-lazy"{% endif %} alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';">
                     </button>
                 {% endfor %}
             </div>
@@ -1190,6 +1200,21 @@
     var miniaturas = document.querySelectorAll('.cat-gallery-thumb');
     var contadorGaleria = document.getElementById('galeriaContador');
     var indiceGaleria = 0;
+    var toqueInicioX = 0;
+    var toqueInicioY = 0;
+    var toqueMovido = false;
+
+    function carregarMiniatura(miniatura) {
+        if (!miniatura) return;
+        var imagem = miniatura.getElementsByTagName('img')[0];
+        if (!imagem) return;
+        var origem = imagem.getAttribute('data-src');
+        if (origem) {
+            imagem.src = origem;
+            imagem.removeAttribute('data-src');
+            imagem.className = '';
+        }
+    }
 
     function mostrarFotoCatalogo(indice) {
         if (!fotoMain || !miniaturas || !miniaturas.length) return;
@@ -1199,6 +1224,7 @@
         var miniatura = miniaturas[indice];
         var url = miniatura.getAttribute('data-image');
         if (!url) return;
+        carregarMiniatura(miniatura);
         fotoMain.src = url;
         fotoMain.removeAttribute('srcset');
         fotoMain.onerror = function () {
@@ -1212,6 +1238,14 @@
         }
         if (contadorGaleria) contadorGaleria.textContent = (indice + 1) + ' / ' + miniaturas.length;
         galeria.classList.remove('zoomed');
+
+        // Mantém a miniatura ativa visível no carrossel nativo do iOS antigo.
+        var alvoEsquerda = miniatura.offsetLeft;
+        var alvoDireita = alvoEsquerda + miniatura.offsetWidth;
+        var visivelEsquerda = galeriaMiniaturas ? galeriaMiniaturas.scrollLeft : 0;
+        var visivelDireita = visivelEsquerda + (galeriaMiniaturas ? galeriaMiniaturas.clientWidth : 0);
+        if (galeriaMiniaturas && alvoEsquerda < visivelEsquerda) galeriaMiniaturas.scrollLeft = alvoEsquerda - 8;
+        if (galeriaMiniaturas && alvoDireita > visivelDireita) galeriaMiniaturas.scrollLeft = alvoDireita - galeriaMiniaturas.clientWidth + 8;
     }
 
     for (var indice = 0; indice < miniaturas.length; indice += 1) {
@@ -1223,6 +1257,7 @@
         }(indice));
     }
 
+    var galeriaMiniaturas = document.getElementById('galeriaMiniaturas');
     var btnAnterior = document.getElementById('galeriaAnterior');
     var btnProxima = document.getElementById('galeriaProxima');
     if (btnAnterior) btnAnterior.addEventListener('click', function (evento) {
@@ -1241,14 +1276,39 @@
 
         // Duplo toque no iOS
         var lastTap = 0;
+        galeria.addEventListener('touchstart', function (e) {
+            if (!e.touches || !e.touches.length) return;
+            toqueInicioX = e.touches[0].pageX;
+            toqueInicioY = e.touches[0].pageY;
+            toqueMovido = false;
+        }, false);
+        galeria.addEventListener('touchmove', function (e) {
+            if (!e.touches || !e.touches.length) return;
+            var dx = e.touches[0].pageX - toqueInicioX;
+            var dy = e.touches[0].pageY - toqueInicioY;
+            if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
+                toqueMovido = true;
+                e.preventDefault();
+            }
+        }, false);
         galeria.addEventListener('touchend', function (e) {
+            var fimX = e.changedTouches && e.changedTouches.length ? e.changedTouches[0].pageX : toqueInicioX;
+            var fimY = e.changedTouches && e.changedTouches.length ? e.changedTouches[0].pageY : toqueInicioY;
+            var deltaX = fimX - toqueInicioX;
+            var deltaY = fimY - toqueInicioY;
+            if (toqueMovido && Math.abs(deltaX) >= 45 && Math.abs(deltaX) > Math.abs(deltaY) && miniaturas.length > 1) {
+                mostrarFotoCatalogo(deltaX < 0 ? indiceGaleria + 1 : indiceGaleria - 1);
+                e.preventDefault();
+                lastTap = 0;
+                return;
+            }
             var now = Date.now();
             if (now - lastTap < 300) {
                 this.classList.toggle('zoomed');
                 e.preventDefault();
             }
             lastTap = now;
-        }, { passive: false });
+        }, false);
     }
 
     document.addEventListener('keydown', function (evento) {

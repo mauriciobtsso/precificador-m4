@@ -602,3 +602,53 @@ As alterações preservam as técnicas de compatibilidade com iOS antigo: flexbo
 - Testes estáticos de navegação e layout — aprovados.
 - Suíte direcionada de regressões — **18 testes aprovados**.
 - `git diff --check` — aprovado.
+
+
+## 02/10/2026 — Desempenho do catálogo no iPad Mini 1 e navegação por toque
+
+### Contexto e auditoria
+
+O `/catalogo` é usado presencialmente para consultar rapidamente produtos com o cliente. A auditoria identificou que já existiam algumas medidas positivas: proxy local de imagens com conversão automática para JPEG quando o navegador não aceita WebP, cache público das imagens por 30 dias, redimensionamento sob demanda por largura, thumbnails na busca, CSS com prefixos WebKit, layout por `float` no detalhe e navegação básica por miniaturas.
+
+O principal gargalo era compatibilidade: o iPad Mini 1/iOS 9 não entende `loading="lazy"` como lazy loading real. Assim, mesmo com o atributo presente, a home podia iniciar o download das imagens dos três blocos SSR — destaques, lançamentos e promoções — totalizando até 24 imagens. Além disso, os cards usavam thumbnails fixas `t280`, que podiam cair em fallback mais pesado, e o catálogo carregava a folha completa de Bootstrap Icons, aproximadamente 92 KB, embora utilizasse poucos ícones.
+
+No detalhe, a foto principal era requisitada sem largura redimensionada e as miniaturas seguintes também ficavam sujeitas a fallback de imagem grande. A galeria tinha toque para zoom, mas ainda não possuía swipe horizontal confiável para trocar fotos.
+
+### Medidas implantadas
+
+#### Home `/catalogo`
+
+- Implementado lazy loading próprio compatível com iOS 9 usando `data-src`, cálculo de proximidade da viewport e eventos de scroll/resize com agendamento; não depende de `IntersectionObserver` nem do suporte nativo a `loading="lazy"`.
+- Somente as três primeiras imagens de destaques são carregadas imediatamente; lançamentos, promoções e demais cards entram progressivamente quando se aproximam da viewport.
+- Cards passaram a utilizar `convert_resized_url(..., 220)`, entregando uma imagem dimensionada ao uso real em vez de depender apenas do sufixo de thumbnail.
+- Resultados carregados por filtro de categoria também usam o lazy loading próprio.
+- Fallback de erro da home foi simplificado para o placeholder local, evitando uma segunda tentativa pesada com a imagem original.
+- O context processor deixou de consultar configurações `loja_%` sem uso no catálogo e só carrega categorias quando o endpoint é a home `catalogo.index`. Isso evita consultas repetidas no detalhe do produto.
+- O catálogo passou a usar `bootstrap-icons-loja.css`, o subconjunto reduzido já existente, com os cinco codepoints adicionais necessários (`bag`, `grid-fill`, `heart-fill`, `share` e `tag-fill`). O asset CSS caiu de aproximadamente 92 KB para 4 KB.
+
+#### Detalhe do produto no catálogo
+
+- A foto principal passou a ser servida por `convert_resized_url(..., 760)`, reduzindo a transferência sem perder qualidade útil para a coluna de apresentação.
+- Miniaturas passaram a usar largura 96 e carregamento sob demanda; apenas a primeira miniatura é solicitada no carregamento inicial.
+- A faixa de miniaturas agora é horizontal, sem quebra, com `overflow-x: auto`, `-webkit-overflow-scrolling: touch` e alvos de toque maiores de 72–76 px.
+- Ao trocar a foto, a miniatura ativa é automaticamente mantida visível no carrossel horizontal, inclusive quando o cliente navega pelas setas.
+- Implementado swipe horizontal na imagem principal: arrastar para a esquerda avança, arrastar para a direita volta; movimentos verticais continuam permitindo a rolagem normal da página.
+- Mantidos o duplo toque para zoom, setas e teclado, com listeners sem a opção `passive`, preservando compatibilidade com WebKit antigo.
+- Foi definida altura explícita para a área principal da galeria, mantendo o layout estável em navegadores que não suportam `aspect-ratio`.
+
+### Conflitos e ajustes durante a implementação
+
+- A primeira validação do JavaScript encontrou um arquivo temporário antigo de inspeção em `/tmp`, que ainda continha Jinja não renderizado (`{{ produto.id }}`). O arquivo foi removido e a validação passou a gerar nomes temporários limpos a cada execução.
+- O teste inicial do swipe procurava o texto `deltaX >= 45`, mas a implementação usa corretamente `Math.abs(deltaX) >= 45` para aceitar arrastes nos dois sentidos. O teste foi corrigido para validar a condição real.
+- O editor encontrou três blocos idênticos de fallback de imagem na home e recusou um patch ambíguo. A alteração foi aplicada em lote com assertiva de que exatamente três ocorrências seriam substituídas, evitando mudanças acidentais.
+- O teste de ícones confirmou que o subconjunto reduzido não tinha todos os ícones do catálogo; os cinco codepoints ausentes foram adicionados antes da troca do asset.
+
+### Validações
+
+- Parsing Jinja dos templates base, índice e detalhe — aprovado.
+- `py_compile` das rotas e testes — aprovado.
+- `node --check` dos três scripts extraídos dos templates — aprovado.
+- Auditoria dos ícones usados contra o subconjunto reduzido — nenhum ícone ausente.
+- Testes direcionados — **21 aprovados**.
+- Suíte completa — **68 aprovados**, com apenas o aviso já conhecido do Flask-Limiter sobre armazenamento em memória nos testes.
+- `git diff --check` — aprovado.

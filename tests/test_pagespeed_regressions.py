@@ -218,7 +218,11 @@ def test_catalog_detail_has_legacy_photo_gallery():
         "galeriaAnterior",
         "galeriaProxima",
         "mostrarFotoCatalogo",
-        "convert_thumb_url(foto.url, 't160')",
+        "convert_resized_url(foto.url, 96)",
+        "data-src=\"{{ convert_resized_url(foto.url, 96) }}\"",
+        "touchstart",
+        "touchmove",
+        "Math.abs(deltaX) >= 45",
     ):
         assert marker in detail
     assert "removeAttribute('srcset')" in detail
@@ -236,3 +240,17 @@ def test_catalog_home_navigation_and_ipad_layout():
     assert "@media (min-width: 720px)" in index
     assert "text-align: left" in index
     assert "height: 230px" in base
+
+
+def test_catalog_uses_light_assets_and_legacy_lazy_loading():
+    base = (ROOT / "app/catalogo/templates/catalogo/base.html").read_text(encoding="utf-8")
+    index = (ROOT / "app/catalogo/templates/catalogo/index.html").read_text(encoding="utf-8")
+    routes = (ROOT / "app/catalogo/routes.py").read_text(encoding="utf-8")
+    assert "bootstrap-icons-loja.css" in base
+    assert "bootstrap-icons.css'" not in base
+    assert "catalogo-lazy-img" in index
+    assert "carregarImagensProximas" in index
+    assert "data-src" in index
+    assert "convert_resized_url(p.foto_url, 220)" in index
+    assert "if request.endpoint == 'catalogo.index'" in routes
+    assert "Configuracao.query" not in routes
