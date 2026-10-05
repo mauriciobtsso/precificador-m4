@@ -218,8 +218,10 @@ def test_catalog_detail_has_legacy_photo_gallery():
         "galeriaAnterior",
         "galeriaProxima",
         "mostrarFotoCatalogo",
-        "convert_resized_url(foto.url, 96)",
-        "data-src=\"{{ convert_resized_url(foto.url, 96) }}\"",
+        "convert_thumb_url(foto.url, 't280')",
+        "data-src=\"{{ foto_thumb }}\"",
+        "convert_image_url(foto.url)",
+        "data-fallback=\"{{ foto_full }}\"",
         "touchstart",
         "touchmove",
         "Math.abs(deltaX) >= 45",
@@ -227,6 +229,7 @@ def test_catalog_detail_has_legacy_photo_gallery():
         assert marker in detail
     assert "removeAttribute('srcset')" in detail
     assert "evento.keyCode === 37" in detail
+    assert "miniatura.getAttribute('data-fallback')" in detail
 
 
 def test_catalog_home_navigation_and_ipad_layout():

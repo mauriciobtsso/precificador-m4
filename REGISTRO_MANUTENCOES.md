@@ -701,3 +701,23 @@ O editor encontrou três blocos SSR com linhas idênticas e recusou patches sem 
 - Os três blocos usam thumbnail `t280` e fallback da imagem original.
 - `pytest -q tests/test_pagespeed_regressions.py` — **21 testes aprovados**.
 - `git diff --check` — aprovado.
+
+## 05/10/2026 — Correção das fotos no detalhe do produto do `/catalogo`
+### Sintoma observado
+O detalhe do produto apresentava o mesmo comportamento da home: a foto principal ou as miniaturas podiam permanecer no placeholder, especialmente no iPad Mini 1/iOS 9, embora a navegação por categorias carregasse imagens normalmente.
+
+### Diagnóstico
+A galeria do detalhe ainda usava `convert_resized_url` com redimensionamento sob demanda para a foto principal (`w=760`) e para as miniaturas (`w=96`). Esse caminho exigia novas conversões pelo proxy Flask. Além disso, o fallback JavaScript da troca de foto usava `data-original`, que pode ser uma URL WebP do CDN e não é exibível nativamente pelo iOS 9.
+
+### Solução implantada
+- A foto principal passou a ser carregada pelo `convert_image_url`, que mantém o proxy de compatibilidade e entrega JPEG para navegadores sem suporte a WebP.
+- As miniaturas passaram a usar o thumbnail pré-gerado `t280`, o mesmo caminho validado na home e nas categorias.
+- Cada miniatura passou a guardar uma URL compatível em `data-fallback`.
+- O fallback da troca de fotos agora tenta `data-fallback` antes de considerar a URL original, evitando depender diretamente do WebP no iPad Mini 1.
+- Zoom, swipe, setas, teclado e a navegação horizontal das miniaturas foram preservados.
+
+### Validações
+- Template Jinja do detalhe compilado com sucesso.
+- Removidas da galeria as URLs `convert_resized_url(..., 760)` e `convert_resized_url(..., 96)`.
+- `pytest -q tests/test_pagespeed_regressions.py` — **21 testes aprovados**.
+- `git diff --check` — aprovado.

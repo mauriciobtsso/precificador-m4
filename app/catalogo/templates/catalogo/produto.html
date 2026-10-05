@@ -765,14 +765,15 @@
 
                 {% if fotos_catalogo %}
                     {% set foto_inicial = fotos_catalogo[0].url %}
+                    {% set foto_inicial_full = convert_image_url(foto_inicial) %}
                     <img
                         id="fotoMain"
-                        src="{{ convert_resized_url(foto_inicial, 760) }}"
+                        src="{{ foto_inicial_full }}"
                         alt="{{ nome_display }}"
                         loading="eager"
                         fetchpriority="high"
                         decoding="async"
-                        onerror="this.onerror=null;this.src='{{ convert_resized_url(foto_inicial, 760) }}';"
+                        onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';"
                     >
                     {% if fotos_catalogo|length > 1 %}
                     <button type="button" class="cat-gallery-nav prev" id="galeriaAnterior" aria-label="Foto anterior">‹</button>
@@ -789,8 +790,10 @@
             {% if fotos_catalogo|length > 1 %}
             <div class="cat-gallery-thumbs" id="galeriaMiniaturas" aria-label="Escolher foto do produto">
                 {% for foto in fotos_catalogo %}
-                    <button type="button" class="cat-gallery-thumb{% if loop.first %} active{% endif %}" data-index="{{ loop.index0 }}" data-image="{{ convert_resized_url(foto.url, 760) }}" data-original="{{ foto.url }}" aria-label="Ver foto {{ loop.index }} de {{ fotos_catalogo|length }}" aria-current="{{ 'true' if loop.first else 'false' }}">
-                        <img {% if loop.first %}src="{{ convert_resized_url(foto.url, 96) }}"{% else %}src="/static/img/placeholder.jpg" data-src="{{ convert_resized_url(foto.url, 96) }}" class="catalogo-detalhe-thumb-lazy"{% endif %} alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';">
+                    {% set foto_full = convert_image_url(foto.url) %}
+                    {% set foto_thumb = convert_thumb_url(foto.url, 't280') %}
+                    <button type="button" class="cat-gallery-thumb{% if loop.first %} active{% endif %}" data-index="{{ loop.index0 }}" data-image="{{ foto_full }}" data-original="{{ foto.url }}" data-fallback="{{ foto_full }}" aria-label="Ver foto {{ loop.index }} de {{ fotos_catalogo|length }}" aria-current="{{ 'true' if loop.first else 'false' }}">
+                        <img {% if loop.first %}src="{{ foto_thumb }}"{% else %}src="/static/img/placeholder.jpg" data-src="{{ foto_thumb }}" class="catalogo-detalhe-thumb-lazy"{% endif %} alt="" loading="lazy" onerror="this.onerror=function(){this.onerror=null;this.src='/static/img/placeholder.jpg';};this.src='{{ foto_full }}';">
                     </button>
                 {% endfor %}
             </div>
@@ -1229,7 +1232,7 @@
         fotoMain.removeAttribute('srcset');
         fotoMain.onerror = function () {
             this.onerror = null;
-            this.src = miniatura.getAttribute('data-original') || url;
+            this.src = miniatura.getAttribute('data-fallback') || miniatura.getAttribute('data-original') || url;
         };
         for (var i = 0; i < miniaturas.length; i += 1) {
             var ativa = i === indice;
