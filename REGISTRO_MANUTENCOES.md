@@ -676,3 +676,28 @@ Também foi adotada sintaxe ES5 no worker para reduzir riscos em navegadores ant
 ### Validações
 
 A rota do Service Worker, o manifesto e seus cabeçalhos foram testados. O JavaScript do worker passou no `node --check`, o template Jinja foi validado, o manifesto foi validado por estrutura e a suíte completa passou com **70 testes aprovados**. Permaneceu apenas o aviso conhecido do Flask-Limiter sobre armazenamento em memória durante os testes.
+
+## 05/10/2026 — Correção das fotos dos cards na home do `/catalogo` no iPad Mini 1
+### Sintoma observado
+Na home do catálogo, as fotos dos cards não carregavam ou permaneciam no placeholder. Ao abrir uma categoria, as imagens carregavam em quantidade significativamente maior. O comportamento foi reportado especificamente no iPad Mini 1/iOS 9.
+
+### Diagnóstico
+A comparação do HTML e das rotas encontrou uma regressão introduzida na otimização anterior: a home SSR usava `convert_resized_url(..., 220)`, que faz redimensionamento sob demanda no proxy Flask (`/catalogo/image-proxy/...?...w=220`). Já a API das categorias usava `convert_thumb_url(..., 't280')`, apontando para thumbnails pré-geradas. Assim, a home disparava várias conversões/downloads simultâneos pelo backend, enquanto as categorias usavam o caminho leve já validado.
+
+Além disso, o fallback da home havia sido reduzido diretamente ao placeholder, sem uma segunda tentativa pela imagem original. Se uma thumbnail não existisse ou falhasse, o card ficava definitivamente sem a foto.
+
+### Solução implantada
+- Os três blocos SSR da home — Destaques, Últimos Cadastrados e Promoções — passaram a usar `convert_thumb_url(p.foto_url, 't280')`, alinhando o fluxo com as categorias.
+- Foi adicionado fallback progressivo: em erro da thumbnail, o navegador tenta `convert_image_url(p.foto_url)` e somente depois usa o placeholder local.
+- O lazy loading legado por `data-src`, eventos de scroll/resize e carga inicial das imagens próximas foi preservado, mantendo compatibilidade com iOS 9.
+- O comportamento de imagens da API de categorias não foi alterado.
+
+### Conflitos e solução
+O editor encontrou três blocos SSR com linhas idênticas e recusou patches sem contexto exclusivo. A alteração foi aplicada bloco a bloco, com contexto das seções Destaques, Últimos Cadastrados e Promoções. O fallback restante foi substituído em lote com assertiva de exatamente duas ocorrências, evitando alterações fora da home.
+
+### Validações
+- Template Jinja da home — compilado com sucesso.
+- A home não contém mais `convert_resized_url(p.foto_url, 220)`.
+- Os três blocos usam thumbnail `t280` e fallback da imagem original.
+- `pytest -q tests/test_pagespeed_regressions.py` — **21 testes aprovados**.
+- `git diff --check` — aprovado.

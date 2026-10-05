@@ -357,14 +357,15 @@
     <ul class="cat-grid" role="list">
         {% for p in destaques %}
         <li class="cat-grid-item" role="listitem">
-            {% set thumb = convert_resized_url(p.foto_url, 220) if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set fallback = convert_image_url(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' %}
             <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
                 <div class="cat-product-img">
                     <img
                         {% if loop.index <= 3 %}src="{{ thumb }}"{% else %}src="/static/img/placeholder.jpg" data-src="{{ thumb }}" class="catalogo-lazy-img"{% endif %}
                         alt="{{ p.nome_comercial or p.nome }}"
                         loading="{{ 'eager' if loop.index <= 3 else 'lazy' }}"
-                        onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';"
+                        onerror="this.onerror=function(){this.onerror=null;this.src='/static/img/placeholder.jpg';};this.src='{{ fallback }}';"
                     >
                 </div>
                 <div class="cat-product-body">
@@ -398,14 +399,15 @@
     <ul class="cat-grid" role="list">
         {% for p in lancamentos %}
         <li class="cat-grid-item" role="listitem">
-            {% set thumb = convert_resized_url(p.foto_url, 220) if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set fallback = convert_image_url(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' %}
             <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
                 <div class="cat-product-img">
                     <img
                         src="/static/img/placeholder.jpg"{% if p.foto_url %} data-src="{{ thumb }}" class="catalogo-lazy-img"{% endif %}
                         alt="{{ p.nome_comercial or p.nome }}"
                         loading="lazy"
-                        onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';"
+                        onerror="this.onerror=function(){this.onerror=null;this.src='/static/img/placeholder.jpg';};this.src='{{ fallback }}';"
                     >
                 </div>
                 <div class="cat-product-body">
@@ -438,14 +440,15 @@
     <ul class="cat-grid" role="list">
         {% for p in promocoes %}
         <li class="cat-grid-item" role="listitem">
-            {% set thumb = convert_resized_url(p.foto_url, 220) if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set fallback = convert_image_url(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' %}
             <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
                 <div class="cat-product-img">
                     <img
                         src="/static/img/placeholder.jpg"{% if p.foto_url %} data-src="{{ thumb }}" class="catalogo-lazy-img"{% endif %}
                         alt="{{ p.nome_comercial or p.nome }}"
                         loading="lazy"
-                        onerror="this.onerror=null;this.src='/static/img/placeholder.jpg';"
+                        onerror="this.onerror=function(){this.onerror=null;this.src='/static/img/placeholder.jpg';};this.src='{{ fallback }}';"
                     >
                 </div>
                 <div class="cat-product-body">

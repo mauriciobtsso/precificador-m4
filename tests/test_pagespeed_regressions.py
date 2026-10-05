@@ -251,7 +251,8 @@ def test_catalog_uses_light_assets_and_legacy_lazy_loading():
     assert "catalogo-lazy-img" in index
     assert "carregarImagensProximas" in index
     assert "data-src" in index
-    assert "convert_resized_url(p.foto_url, 220)" in index
+    assert "convert_thumb_url(p.foto_url, 't280')" in index
+    assert "convert_image_url(p.foto_url)" in index
     assert "if request.endpoint == 'catalogo.index'" in routes
     assert "Configuracao.query" not in routes
 
