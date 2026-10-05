@@ -297,6 +297,8 @@
   // ============================================================
   function initVideoProduto() {
     const btn = el("btnSelecionarVideo");
+    const btnYoutube = el("btnAdicionarVideoYoutube");
+    const youtubeInput = el("inputYoutubeVideo");
     const input = el("inputVideoProduto");
     const grid = el("galeriaVideoProdutoGrid");
     const empty = el("galeriaVideoVazia");
@@ -307,7 +309,15 @@
     grid.dataset.bound = "1";
     let videos = [];
     try { videos = JSON.parse(el("videosProdutoIniciais")?.textContent || "[]"); } catch (_) {}
-    videos = videos.filter(v => v && v.url).map(v => ({ url: v.url, titulo: v.titulo || "", preview: v.url }));
+    const youtubeId = (value) => {
+      const raw = String(value || "").trim();
+      const match = raw.match(/^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})(?:[?&#].*)?$/i);
+      return match ? match[1] : "";
+    };
+    videos = videos.filter(v => v && v.url).map(v => {
+      const id = youtubeId(v.url);
+      return { url: id ? `https://www.youtube.com/watch?v=${id}` : v.url, titulo: v.titulo || "", preview: v.url, youtubeId: id };
+    });
     const escapeAttr = (value) => String(value || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const sync = () => {
       hidden.value = JSON.stringify(videos.map(v => ({ url: v.url, titulo: (v.titulo || "").trim() })));
@@ -315,7 +325,9 @@
       grid.innerHTML = videos.map((video, index) => `
         <div class="col">
           <div class="border rounded bg-white p-2 position-relative">
-            <video src="${escapeAttr(video.preview || video.url)}" class="w-100 rounded" style="height:120px;object-fit:cover" controls muted preload="metadata"></video>
+            ${video.youtubeId
+              ? `<img src="https://img.youtube.com/vi/${escapeAttr(video.youtubeId)}/hqdefault.jpg" class="w-100 rounded" style="height:120px;object-fit:cover" alt="Prévia do vídeo do YouTube" loading="lazy">`
+              : `<video src="${escapeAttr(video.preview || video.url)}" class="w-100 rounded" style="height:120px;object-fit:cover" controls muted preload="metadata"></video>`}
             <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 produto-video-remove" data-index="${index}" title="Remover vídeo"><i class="fas fa-times"></i></button>
             <input type="text" class="form-control form-control-sm mt-2 produto-video-title" data-index="${index}" value="${escapeAttr(video.titulo)}" placeholder="Título opcional do vídeo" maxlength="180">
           </div>
@@ -330,6 +342,20 @@
         hidden.value = JSON.stringify(videos.map(v => ({ url: v.url, titulo: (v.titulo || "").trim() })));
       }));
     };
+    btnYoutube?.addEventListener("click", () => {
+      const id = youtubeId(youtubeInput?.value);
+      if (!id) {
+        alert("Informe um link válido do YouTube (youtube.com ou youtu.be).");
+        youtubeInput?.focus();
+        return;
+      }
+      const url = `https://www.youtube.com/watch?v=${id}`;
+      if (!videos.some(video => video.url === url)) {
+        videos.push({ url, titulo: "", preview: url, youtubeId: id });
+      }
+      if (youtubeInput) youtubeInput.value = "";
+      sync();
+    });
     btn.addEventListener("click", () => input.click());
     input.addEventListener("change", async () => {
       const arquivos = Array.from(input.files || []);

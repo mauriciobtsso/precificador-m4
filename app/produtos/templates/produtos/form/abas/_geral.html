@@ -42,11 +42,17 @@
       <div class="d-flex justify-content-between align-items-center mb-2">
         <div>
           <h6 class="fw-bold mb-0"><i class="fas fa-video me-2 text-orange"></i>Vídeos do produto</h6>
-          <small class="text-muted">MP4, WebM ou MOV até 100 MB.</small>
+          <small class="text-muted">Prefira um link do YouTube para economizar banda. Upload MP4/WebM/MOV até 100 MB continua disponível.</small>
         </div>
-        <button type="button" id="btnSelecionarVideo" class="btn btn-sm btn-orange">
-          <i class="fas fa-plus me-1"></i>Adicionar
-        </button>
+        <div class="d-flex gap-2 align-items-center">
+          <input type="url" id="inputYoutubeVideo" class="form-control form-control-sm" style="min-width:260px" placeholder="https://youtu.be/..." aria-label="Link do YouTube">
+          <button type="button" id="btnAdicionarVideoYoutube" class="btn btn-sm btn-outline-danger text-nowrap">
+            <i class="fab fa-youtube me-1"></i>Adicionar YouTube
+          </button>
+          <button type="button" id="btnSelecionarVideo" class="btn btn-sm btn-orange text-nowrap">
+            <i class="fas fa-upload me-1"></i>Arquivo
+          </button>
+        </div>
       </div>
       <div id="galeriaVideoProdutoGrid" class="row row-cols-1 g-2"></div>
       <div id="galeriaVideoVazia" class="text-center text-muted border rounded p-3 bg-white">

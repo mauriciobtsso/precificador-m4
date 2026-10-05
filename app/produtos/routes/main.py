@@ -21,6 +21,7 @@ from app.models import Taxa
 import app.utils.parcelamento as parc
 from app.utils.datetime import now_local
 from app.utils.parsing import parse_decimal, parse_form_datetime
+from app.utils.youtube import normalizar_video_publico
 
 from urllib.parse import urlparse
 from app.produtos.routes.utils import _key_from_url
@@ -342,11 +343,17 @@ def gerenciar_produto(produto_id=None):
             except (TypeError, ValueError):
                 videos_enviados = None
             if videos_enviados is not None:
-                videos_enviados = [
-                    {"url": str(item.get("url")).strip(), "titulo": str(item.get("titulo") or "").strip()[:180]}
-                    for item in videos_enviados
-                    if isinstance(item, dict) and str(item.get("url") or "").strip()
-                ]
+                videos_normalizados = []
+                for item in videos_enviados:
+                    if not isinstance(item, dict):
+                        continue
+                    video_url = normalizar_video_publico(item.get("url"))
+                    if video_url:
+                        videos_normalizados.append({
+                            "url": video_url,
+                            "titulo": str(item.get("titulo") or "").strip()[:180],
+                        })
+                videos_enviados = videos_normalizados
 
             tour360_payload = data.get("tour360_produto")
             try:

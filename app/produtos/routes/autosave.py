@@ -14,6 +14,7 @@ from app.produtos.models import Produto, ProdutoFoto, ProdutoVideo, ProdutoTour3
 from app.produtos.utils.historico_helper import registrar_historico
 from app.utils.parsing import parse_decimal, parse_form_datetime
 from app.utils.datetime import now_local
+from app.utils.youtube import normalizar_video_publico
 
 # Importamos o Blueprint principal do módulo
 from .. import produtos_bp 
@@ -100,11 +101,16 @@ def autosave_produto(produto_id):
         except (TypeError, ValueError):
             videos_recebidos = None
         if videos_recebidos is not None:
-            videos_novos = [
-                {"url": str(item.get("url") or "").strip(), "titulo": str(item.get("titulo") or "").strip()[:180]}
-                for item in videos_recebidos
-                if isinstance(item, dict) and str(item.get("url") or "").strip()
-            ]
+            videos_novos = []
+            for item in videos_recebidos:
+                if not isinstance(item, dict):
+                    continue
+                video_url = normalizar_video_publico(item.get("url"))
+                if video_url:
+                    videos_novos.append({
+                        "url": video_url,
+                        "titulo": str(item.get("titulo") or "").strip()[:180],
+                    })
             videos_atuais = ProdutoVideo.query.filter_by(produto_id=produto.id).order_by(
                 ProdutoVideo.ordem.asc(), ProdutoVideo.id.asc()
             ).all()

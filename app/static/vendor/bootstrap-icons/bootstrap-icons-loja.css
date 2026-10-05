@@ -38,6 +38,7 @@ url("./fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2") format("wof
 .bi-cart-plus-fill::before { content: "\f23e"; }
 .bi-cart3::before { content: "\f244"; }
 .bi-camera-video::before { content: "\f21f"; }
+.bi-youtube::before { content: "\f62b"; }
 .bi-check-circle::before { content: "\f26b"; }
 .bi-check-circle-fill::before { content: "\f26a"; }
 .bi-circle::before { content: "\f28a"; }

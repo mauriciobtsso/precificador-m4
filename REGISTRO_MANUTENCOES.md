@@ -721,3 +721,29 @@ A galeria do detalhe ainda usava `convert_resized_url` com redimensionamento sob
 - Removidas da galeria as URLs `convert_resized_url(..., 760)` e `convert_resized_url(..., 96)`.
 - `pytest -q tests/test_pagespeed_regressions.py` — **21 testes aprovados**.
 - `git diff --check` — aprovado.
+
+## 05/10/2026 — Vídeos do produto via YouTube na `/loja`
+### Objetivo
+Reduzir o consumo de banda e o armazenamento no R2 para vídeos demonstrativos, permitindo que o cliente assista ao vídeo sem sair da página pública do produto.
+
+### Implementação
+- Criado `app/utils/youtube.py` com validação de hosts e extração de IDs para links `youtube.com`, `youtu.be`, Shorts, Embed e Live.
+- Links válidos são normalizados para `https://www.youtube.com/watch?v=ID`.
+- O player público usa `youtube-nocookie.com` e somente é criado após o cliente clicar na prévia (`loading=lazy`), evitando carregar o player do YouTube na abertura da página.
+- A prévia usa a thumbnail pública do vídeo e mantém o vídeo dentro do detalhe da `/loja`.
+- Vídeos antigos hospedados no R2 continuam funcionando com o elemento HTML `<video>`.
+- O cadastro administrativo ganhou campo para adicionar link do YouTube, título opcional e prévia; o upload de MP4/WebM/MOV foi preservado como alternativa legada.
+- O salvamento normal e o autosave aplicam a mesma normalização e bloqueiam URLs externas arbitrárias.
+- O ícone `bi-youtube` foi incluído na folha reduzida de Bootstrap Icons da loja.
+
+### Segurança e compatibilidade
+- Não é aceito domínio externo como vídeo legado, mesmo que tente imitar o caminho `produtos/videos/`.
+- O embed utiliza `rel=0` e `modestbranding=1`.
+- Não há autoplay automático; a reprodução começa somente por ação do cliente.
+- Títulos e múltiplos vídeos continuam suportados.
+
+### Validações
+- `pytest -q tests/test_pagespeed_regressions.py` — **23 testes aprovados**.
+- `node --check app/static/js/produtos_form.js` — aprovado.
+- Templates Jinja da loja e do formulário administrativo — compilados com sucesso.
+- `git diff --check` — aprovado.

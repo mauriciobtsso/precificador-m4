@@ -83,7 +83,12 @@
     .produto-galeria-videos { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #eee; }
     .produto-galeria-videos-title { font-size: .72rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #555; }
     .produto-galeria-video-card { background: #111; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
-    .produto-galeria-video-card video { display: block; width: 100%; max-height: 360px; background: #000; }
+    .produto-galeria-video-card video, .produto-galeria-video-card iframe { display: block; width: 100%; height: 360px; max-height: 360px; border: 0; background: #000; }
+    .produto-youtube-lazy { position: relative; display: flex; align-items: center; justify-content: center; min-height: 220px; padding: 0; border: 0; width: 100%; overflow: hidden; background: #111; color: #fff; cursor: pointer; }
+    .produto-youtube-lazy img { display: block; width: 100%; height: 360px; object-fit: cover; opacity: .72; }
+    .produto-youtube-lazy span { position: absolute; display: inline-flex; align-items: center; gap: .5rem; padding: .7rem 1rem; border-radius: 999px; background: #d00; color: #fff; font-weight: 700; box-shadow: 0 4px 16px rgba(0,0,0,.35); }
+    .produto-youtube-lazy:hover span, .produto-youtube-lazy:focus-visible span { background: #f22; transform: scale(1.04); }
+    .produto-youtube-lazy:focus-visible { outline: 3px solid var(--m4-gold); outline-offset: -3px; }
     .produto-galeria-video-card figcaption { padding: .6rem .75rem; color: #fff; font-size: .78rem; }
     .produto-tour360 { margin-top: 1.25rem; padding: 1rem; border: 1px solid #eee; border-radius: 10px; background: #fafafa; }
     .produto-tour360-title { font-size: .72rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #555; }
@@ -236,7 +241,7 @@
         .produto-lightbox-control.prev { left: 0; }
         .produto-lightbox-control.next { right: 0; }
         .produto-lightbox-toolbar { top: 4px; }
-        .produto-galeria-video-card video { max-height: 240px; }
+        .produto-galeria-video-card video, .produto-galeria-video-card iframe, .produto-youtube-lazy img { height: 240px; max-height: 240px; }
         .produto-tour360-stage { min-height: 210px; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -362,11 +367,20 @@
                     <div class="row g-3">
                         {% for video in produto.videos %}
                         {% set video_url = gerar_link(video.url) %}
+                        {% set youtube_id = youtube_video_id(video.url) %}
+                        {% set youtube_embed = youtube_embed_url(video.url) %}
                         <div class="col-12 {% if produto.videos|length > 1 %}col-md-6{% endif %}">
                             <figure class="produto-galeria-video-card mb-0">
+                                {% if youtube_embed and youtube_id %}
+                                <button type="button" class="produto-youtube-lazy" data-youtube-embed="{{ youtube_embed }}" aria-label="Reproduzir {{ video.titulo or ('vídeo ' ~ loop.index ~ ' do produto') }}">
+                                    <img src="https://img.youtube.com/vi/{{ youtube_id }}/hqdefault.jpg" alt="Prévia do vídeo {{ video.titulo or loop.index }}" loading="lazy">
+                                    <span><i class="bi bi-youtube" aria-hidden="true"></i> Reproduzir no YouTube</span>
+                                </button>
+                                {% else %}
                                 <video controls playsinline preload="metadata" src="{{ video_url }}" aria-label="{{ video.titulo or ('Vídeo ' ~ loop.index ~ ' do produto') }}">
                                     Seu navegador não suporta a reprodução de vídeo.
                                 </video>
+                                {% endif %}
                                 {% if video.titulo %}<figcaption>{{ video.titulo }}</figcaption>{% endif %}
                             </figure>
                         </div>
@@ -965,6 +979,19 @@
     tour360Stage?.addEventListener('keydown', (event) => {
         if (event.key === 'ArrowLeft') { event.preventDefault(); girarTour360(-1); }
         if (event.key === 'ArrowRight') { event.preventDefault(); girarTour360(1); }
+    });
+    document.querySelectorAll('.produto-youtube-lazy').forEach((botao) => {
+        botao.addEventListener('click', () => {
+            const embedUrl = botao.dataset.youtubeEmbed;
+            if (!embedUrl) return;
+            const iframe = document.createElement('iframe');
+            iframe.src = embedUrl;
+            iframe.title = botao.getAttribute('aria-label') || 'Vídeo do produto';
+            iframe.loading = 'lazy';
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+            iframe.allowFullscreen = true;
+            botao.replaceWith(iframe);
+        });
     });
     atualizarTour360(0);
     atualizarGaleria(0);

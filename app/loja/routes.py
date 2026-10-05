@@ -9,6 +9,7 @@ from app.produtos.models import Produto
 from app.produtos.categorias.models import CategoriaProduto
 from app.models import Configuracao
 from app.utils.r2_helpers import gerar_link_r2
+from app.utils.youtube import youtube_embed_url, youtube_video_id
 from app.utils.thumbnail_utils import get_thumb_url
 from app.catalogo.image_url_helper import convert_resized_url
 import app.utils.parcelamento as parcelamento_logic
@@ -463,6 +464,8 @@ def detalhe_produto(slug):
                        relacionados=relacionados,
                        acessorios=acessorios,
                        gerar_link=gerador_limpo,
+                       youtube_embed_url=youtube_embed_url,
+                       youtube_video_id=youtube_video_id,
                        get_thumb_url=get_thumb_url,
                        title=f"{produto.nome} - M4 Tática")
 

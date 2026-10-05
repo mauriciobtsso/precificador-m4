@@ -9,6 +9,7 @@ from app.utils import image_proxy
 from app.utils.image_proxy import _resize_image
 from app.produtos.models import ProdutoVideo, ProdutoTour360, produto_acessorios
 from app.produtos.routes.fotos import _video_extension
+from app.utils.youtube import normalizar_video_publico, youtube_embed_url, youtube_video_id
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -108,6 +109,29 @@ def test_detail_page_gallery_phase_two_has_video_and_advanced_zoom_controls():
         "playsinline",
     ):
         assert marker in detail
+
+
+def test_youtube_links_are_normalized_and_embedded_without_accepting_external_urls():
+    watch = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    assert youtube_video_id(watch) == "dQw4w9WgXcQ"
+    assert youtube_video_id("https://youtu.be/dQw4w9WgXcQ?t=10") == "dQw4w9WgXcQ"
+    assert normalizar_video_publico("https://www.youtube.com/shorts/dQw4w9WgXcQ") == watch
+    assert youtube_embed_url(watch).startswith("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?")
+    assert normalizar_video_publico("https://evil.example/video.mp4") is None
+    assert normalizar_video_publico("https://evil.example/produtos/videos/video.mp4") is None
+
+
+def test_store_youtube_player_is_lazy_and_uses_nocookie_embed():
+    detail = (LOJA_TEMPLATES / "produto_detalhe.html").read_text(encoding="utf-8")
+    for marker in (
+        "youtube_embed_url(video.url)",
+        "produto-youtube-lazy",
+        "data-youtube-embed",
+        "botao.replaceWith(iframe)",
+        "iframe.loading = 'lazy'",
+    ):
+        assert marker in detail
+    assert "youtube_embed_url" in detail
 
 
 def test_detail_page_gallery_phase_three_has_tour360_and_accessories():
