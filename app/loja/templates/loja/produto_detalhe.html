@@ -86,8 +86,8 @@
     .produto-galeria-video-card video, .produto-galeria-video-card iframe { display: block; width: 100%; height: 360px; max-height: 360px; border: 0; background: #000; }
     .produto-youtube-lazy { position: relative; display: flex; align-items: center; justify-content: center; min-height: 220px; padding: 0; border: 0; width: 100%; overflow: hidden; background: #111; color: #fff; cursor: pointer; }
     .produto-youtube-lazy img { display: block; width: 100%; height: 360px; object-fit: cover; opacity: .72; }
-    .produto-youtube-lazy span { position: absolute; display: inline-flex; align-items: center; gap: .5rem; padding: .7rem 1rem; border-radius: 999px; background: #d00; color: #fff; font-weight: 700; box-shadow: 0 4px 16px rgba(0,0,0,.35); }
-    .produto-youtube-lazy:hover span, .produto-youtube-lazy:focus-visible span { background: #f22; transform: scale(1.04); }
+    .produto-youtube-lazy span { position: absolute; display: inline-flex; align-items: center; justify-content: center; width: 68px; height: 48px; border-radius: 14px; background: #d00; color: #fff; font-size: 1.6rem; box-shadow: 0 4px 16px rgba(0,0,0,.35); transition: transform .18s ease, background .18s ease; }
+    .produto-youtube-lazy:hover span, .produto-youtube-lazy:focus-visible span { background: #f22; transform: scale(1.08); }
     .produto-youtube-lazy:focus-visible { outline: 3px solid var(--m4-gold); outline-offset: -3px; }
     .produto-galeria-video-card figcaption { padding: .6rem .75rem; color: #fff; font-size: .78rem; }
     .produto-tour360 { margin-top: 1.25rem; padding: 1rem; border: 1px solid #eee; border-radius: 10px; background: #fafafa; }
@@ -374,7 +374,7 @@
                                 {% if youtube_embed and youtube_id %}
                                 <button type="button" class="produto-youtube-lazy" data-youtube-embed="{{ youtube_embed }}" aria-label="Reproduzir {{ video.titulo or ('vídeo ' ~ loop.index ~ ' do produto') }}">
                                     <img src="https://img.youtube.com/vi/{{ youtube_id }}/hqdefault.jpg" alt="Prévia do vídeo {{ video.titulo or loop.index }}" loading="lazy">
-                                    <span><i class="bi bi-youtube" aria-hidden="true"></i> Reproduzir no YouTube</span>
+                                    <span aria-hidden="true"><i class="fas fa-play"></i></span>
                                 </button>
                                 {% else %}
                                 <video controls playsinline preload="metadata" src="{{ video_url }}" aria-label="{{ video.titulo or ('Vídeo ' ~ loop.index ~ ' do produto') }}">

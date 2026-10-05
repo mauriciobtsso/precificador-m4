@@ -38,18 +38,32 @@
         {% endfor %}
       ]</script>
     </div>
+    <style>
+      #galeriaVideoProdutoContainer { min-width: 0; overflow: hidden; }
+      #galeriaVideoProdutoContainer .galeria-video-cabecalho { display: flex; gap: .75rem; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+      #galeriaVideoProdutoContainer .galeria-video-descricao { min-width: 0; flex: 1 1 220px; }
+      #galeriaVideoProdutoContainer .galeria-video-acoes { display: flex; gap: .5rem; align-items: center; flex: 1 1 100%; min-width: 0; }
+      #galeriaVideoProdutoContainer #inputYoutubeVideo { flex: 1 1 auto; min-width: 0; width: auto; }
+      #galeriaVideoProdutoContainer .galeria-video-acoes button { flex: 0 0 auto; }
+      #galeriaVideoProdutoContainer #galeriaVideoProdutoGrid { margin-left: 0; margin-right: 0; }
+      @media (max-width: 575.98px) {
+        #galeriaVideoProdutoContainer .galeria-video-acoes { flex-wrap: wrap; }
+        #galeriaVideoProdutoContainer #inputYoutubeVideo { flex: 1 1 100%; }
+        #galeriaVideoProdutoContainer .galeria-video-acoes button { flex: 1 1 auto; }
+      }
+    </style>
     <div class="card border-0 shadow-sm bg-light p-3 mt-3" id="galeriaVideoProdutoContainer">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <div>
+      <div class="galeria-video-cabecalho mb-3">
+        <div class="galeria-video-descricao">
           <h6 class="fw-bold mb-0"><i class="fas fa-video me-2 text-orange"></i>Vídeos do produto</h6>
-          <small class="text-muted">Prefira um link do YouTube para economizar banda. Upload MP4/WebM/MOV até 100 MB continua disponível.</small>
+          <small class="text-muted d-block">Use um link do YouTube para economizar banda. Upload de arquivo continua disponível.</small>
         </div>
-        <div class="d-flex gap-2 align-items-center">
-          <input type="url" id="inputYoutubeVideo" class="form-control form-control-sm" style="min-width:260px" placeholder="https://youtu.be/..." aria-label="Link do YouTube">
-          <button type="button" id="btnAdicionarVideoYoutube" class="btn btn-sm btn-outline-danger text-nowrap">
-            <i class="fab fa-youtube me-1"></i>Adicionar YouTube
+        <div class="galeria-video-acoes">
+          <input type="url" id="inputYoutubeVideo" class="form-control form-control-sm" placeholder="Cole aqui o link do YouTube" aria-label="Link do YouTube">
+          <button type="button" id="btnAdicionarVideoYoutube" class="btn btn-sm btn-outline-danger text-nowrap" title="Adicionar vídeo do YouTube">
+            <i class="fab fa-youtube me-1"></i>Adicionar
           </button>
-          <button type="button" id="btnSelecionarVideo" class="btn btn-sm btn-orange text-nowrap">
+          <button type="button" id="btnSelecionarVideo" class="btn btn-sm btn-orange text-nowrap" title="Enviar arquivo de vídeo">
             <i class="fas fa-upload me-1"></i>Arquivo
           </button>
         </div>

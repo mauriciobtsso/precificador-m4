@@ -747,3 +747,22 @@ Reduzir o consumo de banda e o armazenamento no R2 para vídeos demonstrativos, 
 - `node --check app/static/js/produtos_form.js` — aprovado.
 - Templates Jinja da loja e do formulário administrativo — compilados com sucesso.
 - `git diff --check` — aprovado.
+
+## 05/10/2026 — Refinamento visual dos vídeos YouTube
+### Ajustes solicitados
+O bloco de vídeos do formulário administrativo ocupava espaço excessivo e provocava rolagem horizontal. Na loja pública, a prévia exibia o texto “Reproduzir no YouTube”, quando a experiência desejada era um botão de play mais limpo.
+
+### Soluções
+- Reorganizado o cabeçalho do bloco administrativo com layout flexível e quebra responsiva.
+- Removida a largura mínima fixa de 260px do campo de URL.
+- Em telas estreitas, o campo ocupa uma linha e os botões se distribuem na linha seguinte.
+- O container passou a usar `min-width: 0` e `overflow: hidden` para impedir vazamento horizontal.
+- A prévia pública agora exibe somente um botão visual de play sobre a thumbnail.
+- O texto foi removido visualmente, mas o `aria-label` permanece para acessibilidade.
+- Removido o ícone Bootstrap `bi-youtube` que deixou de ser utilizado pela loja.
+
+### Validações
+- `pytest -q tests/test_pagespeed_regressions.py` — **24 testes aprovados**.
+- `node --check app/static/js/produtos_form.js` — aprovado.
+- Templates Jinja alterados — compilados com sucesso.
+- `git diff --check` — aprovado.

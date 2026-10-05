@@ -132,6 +132,21 @@ def test_store_youtube_player_is_lazy_and_uses_nocookie_embed():
     ):
         assert marker in detail
     assert "youtube_embed_url" in detail
+    assert "Reproduzir no YouTube</span>" not in detail
+    assert 'class="fas fa-play"' in detail
+
+
+def test_admin_video_controls_wrap_without_horizontal_overflow():
+    form = (ROOT / "app/produtos/templates/produtos/form/abas/_geral.html").read_text(encoding="utf-8")
+    for marker in (
+        "galeria-video-cabecalho",
+        "galeria-video-acoes",
+        "flex-wrap: wrap",
+        "min-width: 0",
+        "Cole aqui o link do YouTube",
+    ):
+        assert marker in form
+    assert "style=\"min-width:260px\"" not in form
 
 
 def test_detail_page_gallery_phase_three_has_tour360_and_accessories():
