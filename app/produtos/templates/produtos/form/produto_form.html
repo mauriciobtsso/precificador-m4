@@ -129,6 +129,30 @@
       // Inicializa Tooltips do Bootstrap
       const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
       tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+
+      const abaInput = document.getElementById("produtoAbaAtiva");
+      const abaAtual = () => document.querySelector("#produtoTabs .nav-link.active")?.getAttribute("data-bs-target") || "#abaGeral";
+      if (abaInput) abaInput.value = abaInput.value || abaAtual();
+      document.getElementById("produtoForm")?.addEventListener("submit", () => {
+        if (abaInput) abaInput.value = abaAtual();
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      const abaSolicitada = params.get("aba");
+      const tabSolicitada = abaSolicitada && Array.from(document.querySelectorAll("#produtoTabs .nav-link"))
+        .find(tab => tab.getAttribute("data-bs-target") === abaSolicitada);
+      if (tabSolicitada && window.bootstrap?.Tab) {
+        window.bootstrap.Tab.getOrCreateInstance(tabSolicitada).show();
+      }
+      if (params.get("salvo") === "1") {
+        const toastEl = document.getElementById("toastAutosave");
+        if (toastEl && window.bootstrap?.Toast) {
+          const corpo = toastEl.querySelector(".toast-body");
+          if (corpo) corpo.textContent = "✅ Produto salvo com sucesso.";
+          window.bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 3000 }).show();
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     });
 
     window.addEventListener("load", () => {

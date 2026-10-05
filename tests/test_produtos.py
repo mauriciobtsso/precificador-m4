@@ -2,6 +2,7 @@ from app.produtos.models import Produto
 from app.produtos.categorias.models import CategoriaProduto
 from app.produtos.configs.models import TipoProduto
 from app import db
+from pathlib import Path
 
 
 def test_listar_produtos_vazio(client):
@@ -59,3 +60,18 @@ def test_criar_editar_excluir_produto(client, app):
     resp = client.post(f"/produtos/{produto_id}/excluir", follow_redirects=True)
     assert resp.status_code == 200
     assert "foi excluído com sucesso" in resp.get_data(as_text=True)
+
+
+def test_formulario_oferece_salvar_permanecer_e_salvar_voltar():
+    root = Path(__file__).resolve().parents[1]
+    footer = (root / "app/produtos/templates/produtos/form/includes/_footer.html").read_text(encoding="utf-8")
+    route = (root / "app/produtos/routes/main.py").read_text(encoding="utf-8")
+    form = (root / "app/produtos/templates/produtos/form/produto_form.html").read_text(encoding="utf-8")
+
+    assert 'name="__acao__" value="ficar"' in footer
+    assert 'name="__acao__" value="lista"' in footer
+    assert 'name="__aba_ativa"' in footer
+    assert 'if acao == "lista"' in route
+    assert 'salvo=1' in route
+    assert 'params.get("salvo") === "1"' in form
+    assert 'produtoAbaAtiva' in form

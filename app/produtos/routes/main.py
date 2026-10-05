@@ -594,7 +594,16 @@ def gerenciar_produto(produto_id=None):
             db.session.commit()
             _LIST_CACHE.clear()
             flash("✅ Produto salvo com sucesso!", "success")
-            return redirect(url_for("produtos.index"))
+            acao = (data.get("__acao__") or "ficar").strip().lower()
+            if acao == "lista":
+                return redirect(url_for("produtos.index"))
+            aba_ativa = (data.get("__aba_ativa") or "").strip()
+            return redirect(url_for(
+                "produtos.gerenciar_produto",
+                produto_id=produto.id,
+                salvo=1,
+                aba=aba_ativa if aba_ativa.startswith("#aba") else None,
+            ))
 
         except ValueError as ve:
             db.session.rollback()

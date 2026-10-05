@@ -766,3 +766,22 @@ O bloco de vídeos do formulário administrativo ocupava espaço excessivo e pro
 - `node --check app/static/js/produtos_form.js` — aprovado.
 - Templates Jinja alterados — compilados com sucesso.
 - `git diff --check` — aprovado.
+
+## 05/10/2026 — Salvamento do produto permanece na edição
+### Comportamento anterior
+Ao salvar um produto, o sistema sempre redirecionava para a lista principal de `/produtos`, obrigando a reabrir o cadastro para continuar trabalhando em outras abas.
+
+### Comportamento implantado
+- O botão principal agora é **Salvar e permanecer**.
+- Após salvar, o sistema retorna para a página de edição do mesmo produto.
+- Um toast informa **Produto salvo com sucesso**.
+- A aba ativa antes do envio é preservada, inclusive após editar preços, dados técnicos ou conteúdo de e-commerce.
+- Foi adicionado o botão secundário **Salvar e voltar para a lista**, mantendo o fluxo antigo como opção explícita.
+- Para novos produtos, o redirecionamento após o primeiro salvamento passa a usar automaticamente a URL de edição do produto recém-criado.
+- Em caso de erro de validação, o formulário continua sendo exibido na própria página.
+
+### Validações
+- `pytest -q tests/test_produtos.py` — **3 testes aprovados**.
+- `node --check app/static/js/produtos_form.js` — aprovado.
+- Templates Jinja do formulário — compilados com sucesso.
+- `git diff --check` — aprovado.
