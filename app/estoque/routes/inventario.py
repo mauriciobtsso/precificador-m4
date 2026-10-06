@@ -225,18 +225,17 @@ def inventario_municoes_pdf(conferencia_id):
     logo_path = current_app.root_path + "/static/img/logo_docs.png"
     logo = ReportlabImage(logo_path, width=30 * mm, height=20 * mm) if os.path.exists(logo_path) else Spacer(30 * mm, 20 * mm)
     header_content = [
-        Paragraph("INVENTÁRIO FÍSICO DE MUNIÇÕES", title_style),
         Paragraph(f"<b>Loja:</b> {escape(conferencia.loja_nome or '-')} &nbsp;&nbsp; <b>CNPJ:</b> {escape(conferencia.loja_cnpj or '-')} &nbsp;&nbsp; <b>CR:</b> {escape(conferencia.loja_cr or '-')}", styles["Normal"]),
         Paragraph(f"<b>Endereço:</b> {escape(conferencia.loja_endereco or '-')} &nbsp;&nbsp; <b>Data da conferência:</b> {conferencia.data_conferencia.strftime('%d/%m/%Y')}", styles["Normal"]),
     ]
     header = Table([[logo, header_content]], colWidths=[36 * mm, 231 * mm])
-    header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
-    story = [header, Spacer(1, 5 * mm)]
+    header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+    story = [header, Spacer(1, 3 * mm), Paragraph("INVENTÁRIO FÍSICO DE MUNIÇÕES", title_style), Spacer(1, 3 * mm)]
     rows = [["Código", "Descrição", "Calibre", "Lote", "Identificações das embalagens", "Qtd. embalagens", "Qtd. total"]]
     rows.extend(_linhas_exportacao(conferencia))
     formatted_rows = [[Paragraph(escape(str(cell)), table_header_style) for cell in rows[0]]]
     for row in rows[1:]:
-        identification = escape(str(row[4] or "-")).replace(", ", ",<br/>")
+        identification = escape(str(row[4] or "-"))
         formatted_rows.append([
             Paragraph(escape(str(row[0] or "-")), table_cell_style),
             Paragraph(escape(str(row[1] or "-")), table_cell_style),

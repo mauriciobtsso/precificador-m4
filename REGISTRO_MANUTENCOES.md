@@ -835,3 +835,8 @@ Corrigido um erro no callback assíncrono da tela de conferência. Quando a tabe
 O cabeçalho do PDF de inventário passou a utilizar a logo institucional `app/static/img/logo_docs.png`, posicionada ao lado do título e dos dados da loja. A tabela agora renderiza as células com `Paragraph` do ReportLab, mantendo largura fixa para quantidade de embalagens e quantidade total. As identificações das embalagens são quebradas dentro da própria célula, uma por linha quando necessário, evitando que listas com mais de 4, 10 ou 20 códigos invadam as colunas seguintes. A altura da linha cresce automaticamente e o cabeçalho continua sendo repetido em novas páginas.
 
 Validações: PDF sintético com 22 identificações na mesma linha gerado com sucesso, logo localizada, compilação Python aprovada, `git diff --check` aprovado e suíte existente com 74 testes aprovados.
+
+
+## 06/10/2026 — Otimização do espaço no PDF do inventário
+
+O PDF foi reorganizado para exibir a logo e as informações da loja no topo, com o título **INVENTÁRIO FÍSICO DE MUNIÇÕES** centralizado logo abaixo e imediatamente antes da tabela. A coluna de identificações deixou de inserir uma quebra forçada após cada embalagem; os códigos agora permanecem na mesma linha enquanto houver espaço e quebram naturalmente dentro da própria célula quando necessário. Isso reduz a altura das linhas e conserva as colunas de quantidade de embalagens e quantidade total alinhadas.
