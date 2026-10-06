@@ -102,7 +102,7 @@ def inventario_municoes_scan(conferencia_id):
     produto = Produto.query.get(produto_id) if produto_id else None
     if not produto:
         return jsonify(success=False, message="Selecione a munição para esta embalagem."), 400
-    lote = str(payload.get("lote") or (estoque.lote if estoque else "")).strip()
+    lote = str(payload.get("lote") or (estoque.lote if estoque else "")).strip().upper()
     try:
         quantidade = int(payload.get("quantidade_embalagem") or (estoque.quantidade if estoque else 0))
     except (TypeError, ValueError):
@@ -162,10 +162,25 @@ def inventario_municoes_finalizar(conferencia_id):
 
 
 def _linhas_exportacao(conferencia):
+    agrupados = {}
+    for item in conferencia.itens:
+        chave = (item.codigo_municao, item.descricao, item.calibre or "", item.lote or "")
+        grupo = agrupados.setdefault(chave, {
+            "codigo": item.codigo_municao,
+            "descricao": item.descricao,
+            "calibre": item.calibre or "",
+            "lote": item.lote or "",
+            "identificacoes": [],
+            "embalagens": 0,
+            "total": 0,
+        })
+        grupo["identificacoes"].append(item.identificacao_embalagem)
+        grupo["embalagens"] += 1
+        grupo["total"] += item.quantidade_total
     return [[
-        item.codigo_municao, item.descricao, item.calibre or "", item.lote or "",
-        item.identificacao_embalagem, item.quantidade_embalagem, item.quantidade_total,
-    ] for item in conferencia.itens]
+        grupo["codigo"], grupo["descricao"], grupo["calibre"], grupo["lote"],
+        ", ".join(grupo["identificacoes"]), grupo["embalagens"], grupo["total"],
+    ] for grupo in agrupados.values()]
 
 
 @estoque_bp.route("/inventario-municoes/<int:conferencia_id>/excel")
@@ -178,7 +193,7 @@ def inventario_municoes_excel(conferencia_id):
     ws.append(["CNPJ da Loja", "Nome da Loja", "Endereço da Loja", "CR da Loja", "Data da Conferência"])
     ws.append([conferencia.loja_cnpj, conferencia.loja_nome, conferencia.loja_endereco, conferencia.loja_cr, conferencia.data_conferencia.strftime("%d/%m/%Y")])
     ws.append([])
-    headers = ["Código da Munição", "Descrição", "Calibre", "Lote", "Identificação da Embalagem", "Quantidade da Embalagem", "Quantidade Total da Munição"]
+    headers = ["Código da Munição", "Descrição", "Calibre", "Lote", "Identificações das Embalagens", "Quantidade de Embalagens", "Quantidade Total da Munição"]
     ws.append(headers)
     for row in _linhas_exportacao(conferencia):
         ws.append(row)
@@ -204,7 +219,7 @@ def inventario_municoes_pdf(conferencia_id):
     story.append(Paragraph(f"<b>Loja:</b> {conferencia.loja_nome or '-'} &nbsp;&nbsp; <b>CNPJ:</b> {conferencia.loja_cnpj or '-'} &nbsp;&nbsp; <b>CR:</b> {conferencia.loja_cr or '-'}", styles["Normal"]))
     story.append(Paragraph(f"<b>Endereço:</b> {conferencia.loja_endereco or '-'} &nbsp;&nbsp; <b>Data da conferência:</b> {conferencia.data_conferencia.strftime('%d/%m/%Y')}", styles["Normal"]))
     story.append(Spacer(1, 5 * mm))
-    rows = [["Código", "Descrição", "Calibre", "Lote", "Identificação da embalagem", "Qtd. embalagem", "Qtd. total"]]
+    rows = [["Código", "Descrição", "Calibre", "Lote", "Identificações das embalagens", "Qtd. embalagens", "Qtd. total"]]
     rows.extend(_linhas_exportacao(conferencia))
     table = Table(rows, repeatRows=1, colWidths=[27 * mm, 75 * mm, 25 * mm, 25 * mm, 55 * mm, 25 * mm, 22 * mm])
     table.setStyle(TableStyle([
