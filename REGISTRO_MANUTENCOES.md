@@ -785,3 +785,20 @@ Ao salvar um produto, o sistema sempre redirecionava para a lista principal de `
 - `node --check app/static/js/produtos_form.js` — aprovado.
 - Templates Jinja do formulário — compilados com sucesso.
 - `git diff --check` — aprovado.
+
+
+## 06/10/2026 — Conferência física e exportação do inventário de munições
+
+### Solicitação e escopo
+Foi solicitada uma planilha para envio ao Exército contendo os dados da loja e o inventário atual de munições por código, descrição, lote, identificação da embalagem, quantidade da embalagem e quantidade total, com data da conferência. O fluxo precisava aceitar leitor de código de barras e câmera do celular, considerando embalagens de 10, 30 e 50 unidades, além de permitir PDF e Excel.
+
+### Implementação
+- Criadas as tabelas `estoque_conferencias_municao` e `estoque_conferencia_municao_itens`, com migração Alembic `20261006_inventario_municoes.py`.
+- Adicionado o menu **Estoque → Conferência de munições**, com abertura de conferência por data e observação.
+- A identificação da embalagem pode ser informada por leitor USB ou pela câmera do celular usando `html5-qrcode`. Quando o código já existe no estoque disponível, produto, lote e quantidade são preenchidos a partir do registro; quando não existe, a tela permite selecionar a munição e informar lote e quantidade.
+- Cada embalagem é registrada apenas uma vez por conferência, mantendo snapshot dos dados necessários para auditoria e exportação. A conferência pode ser finalizada e passa a ser somente para consulta.
+- Criadas exportações `.xlsx` e `.pdf`, ambas com CNPJ, nome, endereço, CR, data da conferência e as colunas do inventário. Os dados da loja são capturados no momento da abertura a partir das configurações institucionais `loja_*`.
+
+### Validações
+- `python3 -m py_compile` dos modelos, rotas e migração — aprovado.
+- `git diff --check` — aprovado.

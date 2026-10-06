@@ -217,6 +217,12 @@
                     </a>
                   </li>
                   <li class="nav-item mb-1">
+                    <a class="nav-link text-white {% if request.endpoint and 'estoque.inventario_municoes' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('estoque.inventario_municoes') }}">
+                      <i class="fas fa-clipboard-check me-1"></i> Conferência de munições
+                    </a>
+                  </li>
+                  <li class="nav-item mb-1">
                     <a class="nav-link text-white {% if request.endpoint and 'estoque.pces' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
                        href="{{ url_for('estoque.pces_listar') }}">
                       <i class="fas fa-cog me-1"></i> PCEs
