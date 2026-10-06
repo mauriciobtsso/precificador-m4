@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container-fluid py-2">
+<style>
+  .inventario-lista { font-size: .82rem; max-width: 100%; overflow-x: hidden; }
+  .inventario-lista h3 { font-size: 1.25rem; }
+  .inventario-lista .form-label, .inventario-lista .form-control, .inventario-lista .btn, .inventario-lista .table { font-size: .78rem; }
+  .inventario-lista .table th, .inventario-lista .table td { padding: .45rem .55rem; }
+</style>
+<div class="container-fluid py-2 inventario-lista">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div><span class="text-uppercase text-muted small fw-bold">Estoque / Controle</span><h3 class="fw-bold mb-0"><i class="fas fa-clipboard-check text-primary me-2"></i>Conferência de munições</h3></div>
     <form method="post" class="d-flex align-items-end gap-2 flex-wrap">

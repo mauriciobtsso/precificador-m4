@@ -1,38 +1,100 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container-fluid py-2">
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+<style>
+  .inventario-page { font-size: .82rem; max-width: 100%; overflow-x: hidden; }
+  .inventario-page h3 { font-size: 1.25rem; }
+  .inventario-page h5 { font-size: .95rem; }
+  .inventario-page .form-label { font-size: .78rem; margin-bottom: .25rem; }
+  .inventario-page .form-control, .inventario-page .form-select, .inventario-page .btn { font-size: .8rem; }
+  .inventario-page .table { font-size: .73rem; white-space: nowrap; }
+  .inventario-page .table th, .inventario-page .table td { padding: .42rem .5rem; }
+  .inventario-page .card-header { padding: .65rem .8rem; }
+  .inventario-page .alert { font-size: .78rem; }
+  .inventario-page .display-5 { font-size: 2rem; }
+  .inventario-page .display-6 { font-size: 1.65rem; }
+  #legacyNotice { display: none; }
+  #cameraBox { max-width: 100%; }
+  @media (max-width: 768px) {
+    .inventario-page { font-size: .78rem; }
+    .inventario-page .table { font-size: .68rem; }
+    .inventario-page .table th, .inventario-page .table td { padding: .35rem .4rem; }
+  }
+</style>
+<div class="container-fluid py-2 inventario-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div><a href="{{ url_for('estoque.inventario_municoes') }}" class="text-decoration-none small"><i class="fas fa-arrow-left me-1"></i>Conferências</a><h3 class="fw-bold mb-1">Conferência de {{ conferencia.data_conferencia.strftime('%d/%m/%Y') }}</h3><div class="text-muted small">{{ conferencia.loja_nome or 'Loja não configurada' }} · CNPJ {{ conferencia.loja_cnpj or '-' }} · CR {{ conferencia.loja_cr or '-' }}</div></div>
     <div class="d-flex gap-2 flex-wrap">{% if conferencia.status == 'aberta' %}<form method="post" action="{{ url_for('estoque.inventario_municoes_finalizar', conferencia_id=conferencia.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-success" onclick="return confirm('Finalizar esta conferência? Depois disso ela ficará somente para consulta.')"><i class="fas fa-check me-1"></i>Finalizar</button></form>{% endif %}<a class="btn btn-outline-danger" href="{{ url_for('estoque.inventario_municoes_pdf', conferencia_id=conferencia.id) }}"><i class="fas fa-file-pdf me-1"></i>PDF</a><a class="btn btn-outline-success" href="{{ url_for('estoque.inventario_municoes_excel', conferencia_id=conferencia.id) }}"><i class="fas fa-file-excel me-1"></i>Excel</a></div>
   </div>
   {% if conferencia.status == 'aberta' %}
-  <div class="alert alert-success border-0 shadow-sm"><i class="fas fa-sync-alt me-2"></i>Esta conferência está aberta e pode ser fechada e retomada a qualquer momento pela opção <strong>Continuar</strong>. Todas as munições já registradas permanecem salvas.</div>
-  <div class="row g-3 mb-4"><div class="col-xl-8"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+  <div id="legacyNotice" class="alert alert-warning border-0 shadow-sm"><i class="fas fa-keyboard me-2"></i><strong>Modo legado ativo.</strong> Use um leitor Bluetooth configurado como teclado. Depois do bip, pressione Enter se o leitor não enviar essa tecla.</div>
+  <div class="alert alert-success border-0 shadow-sm"><i class="fas fa-sync-alt me-2"></i>Esta conferência está aberta e pode ser retomada pela opção <strong>Continuar</strong>. Todas as munições já registradas permanecem salvas.</div>
+  <div class="row g-3 mb-3"><div class="col-xl-8"><div class="card border-0 shadow-sm h-100"><div class="card-body">
     <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="fw-bold mb-0"><i class="fas fa-barcode text-primary me-2"></i>Adicionar embalagem</h5><span id="statusLeitura" class="badge bg-light text-dark border">Pronto</span></div>
-    <div class="row g-3">
-      <div class="col-md-6"><label class="form-label fw-bold" for="produto">Munição</label><select id="produto" class="form-select"><option value="">Pesquise por código ou nome da munição...</option>{% for p in produtos %}<option value="{{ p.id }}">{{ p.codigo }} — {{ p.nome }}{% if p.calibre_rel %} ({{ p.calibre_rel.nome }}){% endif %}</option>{% endfor %}</select><div class="form-text">Digite parte do código ou do nome para encontrar rapidamente.</div></div>
-      <div class="col-md-6"><label class="form-label fw-bold" for="codigo">Identificação da embalagem</label><div class="input-group"><input id="codigo" class="form-control form-control-lg font-monospace" autocomplete="off" placeholder="Bipe aqui ou use a câmera"><button class="btn btn-outline-primary" id="btnCamera" type="button"><i class="fas fa-camera me-1"></i>Câmera</button></div><div class="form-text">Depois de bipar, o sistema vai para o campo Lote sem salvar automaticamente.</div></div>
-      <div class="col-md-4"><label class="form-label fw-bold" for="lote">Lote</label><input id="lote" class="form-control text-uppercase" autocomplete="off" placeholder="Ex.: HHB68" style="text-transform:uppercase"><div class="form-text">As letras serão gravadas em maiúsculas.</div></div>
+    <div class="row g-2">
+      <div class="col-md-6"><label class="form-label fw-bold" for="produto">Munição</label><select id="produto" class="form-select"><option value="">Pesquise por código ou nome...</option>{% for p in produtos %}<option value="{{ p.id }}">{{ p.codigo }} — {{ p.nome }}{% if p.calibre_rel %} ({{ p.calibre_rel.nome }}){% endif %}</option>{% endfor %}</select><div class="form-text">Digite código ou nome para localizar.</div></div>
+      <div class="col-md-6"><label class="form-label fw-bold" for="codigo">Identificação da embalagem</label><div class="input-group"><input id="codigo" class="form-control form-control-lg font-monospace" autocomplete="off" placeholder="Bipe com leitor Bluetooth"><button class="btn btn-outline-primary" id="btnCamera" type="button"><i class="fas fa-camera me-1"></i>Câmera</button></div><div class="form-text" id="leitorHelp">O leitor Bluetooth deve estar no modo teclado. O código não é salvo até informar o lote.</div></div>
+      <div class="col-md-4"><label class="form-label fw-bold" for="lote">Lote</label><input id="lote" class="form-control text-uppercase" autocomplete="off" autocapitalize="characters" placeholder="Ex.: HHB68" style="text-transform:uppercase"><div class="form-text">Sempre gravado em maiúsculas.</div></div>
       <div class="col-md-4"><label class="form-label fw-bold" for="quantidade">Qtd. na embalagem</label><input id="quantidade" type="number" min="1" class="form-control" placeholder="10, 30 ou 50"></div>
-      <div class="col-md-4 d-flex align-items-end"><button id="btnAdicionar" class="btn btn-primary w-100" type="button"><i class="fas fa-plus me-1"></i>Registrar embalagem</button></div>
+      <div class="col-md-4 d-flex align-items-end"><button id="btnAdicionar" class="btn btn-primary w-100" type="button"><i class="fas fa-plus me-1"></i>Registrar</button></div>
     </div>
     <div id="cameraBox" class="mt-3 d-none"><div id="reader" style="max-width:520px"></div><button id="btnFecharCamera" class="btn btn-sm btn-outline-secondary mt-2" type="button">Fechar câmera</button></div><div id="feedback" class="mt-3"></div>
   </div></div></div><div class="col-xl-4"><div class="card border-0 shadow-sm bg-dark text-white h-100"><div class="card-body"><div class="small text-uppercase opacity-75">Conferido</div><div class="display-5 fw-bold" id="totalEmbalagens">{{ conferencia.itens|length }}</div><div class="small opacity-75">embalagens</div><hr class="border-secondary"><div class="display-6 fw-bold" id="totalMunicoes">{{ conferencia.itens|sum(attribute='quantidade_total') }}</div><div class="small opacity-75">munições totais</div></div></div></div></div>
   {% endif %}
-  <div class="card border-0 shadow-sm"><div class="card-header bg-white d-flex justify-content-between"><h5 class="mb-0 fw-bold">Embalagens lidas</h5><span class="text-muted small">{{ conferencia.loja_endereco or '' }}</span></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Código</th><th>Descrição</th><th>Calibre</th><th>Lote</th><th>Identificação da embalagem</th><th>Qtd. embalagem</th><th>Total</th>{% if conferencia.status == 'aberta' %}<th></th>{% endif %}</tr></thead><tbody id="itensBody">{% for item in conferencia.itens %}<tr id="item-{{ item.id }}"><td class="font-monospace">{{ item.codigo_municao }}</td><td>{{ item.descricao }}</td><td>{{ item.calibre or '-' }}</td><td>{{ item.lote or '-' }}</td><td class="font-monospace fw-semibold">{{ item.identificacao_embalagem }}</td><td>{{ item.quantidade_embalagem }}</td><td class="fw-bold">{{ item.quantidade_total }}</td>{% if conferencia.status == 'aberta' %}<td><button class="btn btn-sm btn-outline-danger" onclick="excluirItem({{ item.id }})"><i class="fas fa-trash"></i></button></td>{% endif %}</tr>{% else %}<tr id="emptyRow"><td colspan="8" class="text-center text-muted py-5">Nenhuma embalagem lida ainda.</td></tr>{% endfor %}</tbody></table></div></div>
+  <div class="card border-0 shadow-sm"><div class="card-header bg-white d-flex justify-content-between"><h5 class="mb-0 fw-bold">Embalagens lidas</h5><span class="text-muted small">{{ conferencia.loja_endereco or '' }}</span></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Código</th><th>Descrição</th><th>Calibre</th><th>Lote</th><th>Identificação</th><th>Qtd. emb.</th><th>Total</th>{% if conferencia.status == 'aberta' %}<th></th>{% endif %}</tr></thead><tbody id="itensBody">{% for item in conferencia.itens %}<tr id="item-{{ item.id }}"><td class="font-monospace">{{ item.codigo_municao }}</td><td>{{ item.descricao }}</td><td>{{ item.calibre or '-' }}</td><td>{{ item.lote or '-' }}</td><td class="font-monospace fw-semibold">{{ item.identificacao_embalagem }}</td><td>{{ item.quantidade_embalagem }}</td><td class="fw-bold">{{ item.quantidade_total }}</td>{% if conferencia.status == 'aberta' %}<td><button class="btn btn-sm btn-outline-danger" onclick="excluirItem({{ item.id }})"><i class="fas fa-trash"></i></button></td>{% endif %}</tr>{% else %}<tr id="emptyRow"><td colspan="8" class="text-center text-muted py-5">Nenhuma embalagem lida ainda.</td></tr>{% endfor %}</tbody></table></div></div>
 </div>
 {% endblock %}
-{% block scripts %}<script src="https://unpkg.com/html5-qrcode" defer></script><script>
-const urlScan={{ url_for('estoque.inventario_municoes_scan', conferencia_id=conferencia.id)|tojson }}; const csrf={{ csrf_token()|tojson }}; let scanner=null;
-const $=id=>document.getElementById(id); function msg(text,kind='success'){ $('feedback').innerHTML=`<div class="alert alert-${kind} py-2 mb-0">${text}</div>`; }
-document.addEventListener('DOMContentLoaded',function(){ window.jQuery('#produto').select2({theme:'bootstrap-5',width:'100%',placeholder:'Pesquise por código ou nome da munição...',allowClear:true}); $('codigo').focus(); });
-$('lote').addEventListener('input',()=>{$('lote').value=$('lote').value.toUpperCase()});
-$('codigo').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('lote').focus();}});
-$('lote').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('quantidade').focus();}});
-$('quantidade').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();registrar();}});
-function aposLeitura(codigo){$('codigo').value=codigo.trim();$('statusLeitura').textContent='Código lido — informe o lote';$('lote').focus();msg('Código recebido. Informe o lote e a quantidade, depois registre a embalagem.','info');}
-async function registrar(){const codigo=$('codigo').value.trim(), produto=$('produto').value, lote=$('lote').value.trim().toUpperCase(), quantidade=$('quantidade').value; if(!codigo){msg('Leia ou digite a identificação da embalagem.','warning');$('codigo').focus();return;} if(!lote){msg('Informe o lote da embalagem.','warning');$('lote').focus();return;} if(!quantidade){msg('Informe a quantidade da embalagem.','warning');$('quantidade').focus();return;} $('btnAdicionar').disabled=true; try{const r=await fetch(urlScan,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},body:JSON.stringify({codigo,produto_id:produto||null,lote,quantidade_embalagem:quantidade})}); const d=await r.json(); if(!r.ok) throw new Error(d.message||'Não foi possível registrar.'); const i=d.item; $('emptyRow')?.remove(); $('itensBody').insertAdjacentHTML('beforeend',`<tr id="item-${i.id}"><td class="font-monospace">${i.codigo}</td><td>${i.descricao}</td><td>${i.calibre||'-'}</td><td>${i.lote||'-'}</td><td class="font-monospace fw-semibold">${i.identificacao_embalagem}</td><td>${i.quantidade_embalagem}</td><td class="fw-bold">${i.quantidade_total}</td><td><button class="btn btn-sm btn-outline-danger" onclick="excluirItem(${i.id})"><i class="fas fa-trash"></i></button></td></tr>`); $('totalEmbalagens').textContent=Number($('totalEmbalagens').textContent)+1; $('totalMunicoes').textContent=Number($('totalMunicoes').textContent)+Number(i.quantidade_total); $('codigo').value='';$('lote').value='';$('quantidade').value='';$('statusLeitura').textContent='Pronto';$('codigo').focus();msg('Embalagem registrada.');}catch(e){msg(e.message,'danger')}finally{$('btnAdicionar').disabled=false}}
-$('btnAdicionar').addEventListener('click',registrar);
-$('btnCamera').addEventListener('click',async()=>{if(!window.Html5Qrcode){msg('A biblioteca da câmera ainda está carregando. Tente novamente em alguns segundos.','warning');return} $('cameraBox').classList.remove('d-none'); $('statusLeitura').textContent='Câmera ativa'; scanner=new Html5Qrcode('reader'); try{await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:280,height:120}},text=>{aposLeitura(text);scanner.stop().then(()=>{$('cameraBox').classList.add('d-none')})},()=>{});}catch(e){msg('Não foi possível acessar a câmera. Verifique a permissão do navegador.','warning');$('cameraBox').classList.add('d-none')}}); $('btnFecharCamera').addEventListener('click',()=>{if(scanner)scanner.stop().catch(()=>{});$('cameraBox').classList.add('d-none');$('codigo').focus()});
-async function excluirItem(id){if(!confirm('Remover esta leitura?'))return;const r=await fetch(`{{ url_for('estoque.inventario_municoes_item_excluir', conferencia_id=conferencia.id, item_id=0) }}`.replace('/0/excluir',`/${id}/excluir`),{method:'POST',headers:{'X-CSRFToken':csrf}});const d=await r.json();if(d.success){document.getElementById('item-'+id)?.remove();location.reload()}else msg(d.message||'Não foi possível remover.','danger')}
-</script>{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var ua = navigator.userAgent || '';
+  var legacy = /CPU OS 9_|iPad; CPU OS 9_|iPad1,|iPad2,|iPad3,|iPad4,/.test(ua);
+  var urlScan = {{ url_for('estoque.inventario_municoes_scan', conferencia_id=conferencia.id)|tojson }};
+  var csrf = {{ csrf_token()|tojson }};
+  var scanner = null;
+  function $(id) { return document.getElementById(id); }
+  function msg(text, kind) { $('feedback').innerHTML = '<div class="alert alert-' + (kind || 'success') + ' py-2 mb-0">' + text + '</div>'; }
+  function focusCode() { $('codigo').focus(); }
+  function upperLote() { $('lote').value = ($('lote').value || '').toUpperCase(); }
+  function aposLeitura(codigo) { $('codigo').value = (codigo || '').replace(/^\s+|\s+$/g, ''); $('statusLeitura').innerHTML = 'Código lido — informe o lote'; $('lote').focus(); msg('Código recebido. Informe o lote e a quantidade, depois registre.', 'info'); }
+  function esc(value) { return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function registrar() {
+    var codigo = $('codigo').value.replace(/^\s+|\s+$/g, ''), produto = $('produto').value, lote = $('lote').value.replace(/^\s+|\s+$/g, '').toUpperCase(), quantidade = $('quantidade').value;
+    if (!codigo) { msg('Leia ou digite a identificação da embalagem.', 'warning'); focusCode(); return; }
+    if (!lote) { msg('Informe o lote da embalagem.', 'warning'); $('lote').focus(); return; }
+    if (!quantidade) { msg('Informe a quantidade da embalagem.', 'warning'); $('quantidade').focus(); return; }
+    $('btnAdicionar').disabled = true;
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', urlScan, true); xhr.setRequestHeader('Content-Type', 'application/json'); xhr.setRequestHeader('X-CSRFToken', csrf);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      var data = {}; try { data = JSON.parse(xhr.responseText); } catch (e) {}
+      if (xhr.status < 200 || xhr.status >= 300) { msg(data.message || 'Não foi possível registrar.', 'danger'); $('btnAdicionar').disabled = false; return; }
+      var i = data.item; $('emptyRow').parentNode.removeChild($('emptyRow'));
+      var row = '<tr id="item-' + i.id + '"><td class="font-monospace">' + esc(i.codigo) + '</td><td>' + esc(i.descricao) + '</td><td>' + esc(i.calibre || '-') + '</td><td>' + esc(i.lote || '-') + '</td><td class="font-monospace fw-semibold">' + esc(i.identificacao_embalagem) + '</td><td>' + i.quantidade_embalagem + '</td><td class="fw-bold">' + i.quantidade_total + '</td><td><button class="btn btn-sm btn-outline-danger" onclick="excluirItem(' + i.id + ')"><i class="fas fa-trash"></i></button></td></tr>';
+      $('itensBody').insertAdjacentHTML('beforeend', row); $('totalEmbalagens').innerHTML = parseInt($('totalEmbalagens').innerHTML, 10) + 1; $('totalMunicoes').innerHTML = parseInt($('totalMunicoes').innerHTML, 10) + parseInt(i.quantidade_total, 10); $('codigo').value = ''; $('lote').value = ''; $('quantidade').value = ''; $('statusLeitura').innerHTML = 'Pronto'; $('btnAdicionar').disabled = false; focusCode(); msg('Embalagem registrada.');
+    };
+    xhr.send(JSON.stringify({ codigo: codigo, produto_id: produto || null, lote: lote, quantidade_embalagem: quantidade }));
+  }
+  function iniciarCamera() {
+    if (legacy) { msg('A câmera não é compatível com este iPad. Use um leitor Bluetooth no modo teclado.', 'warning'); return; }
+    if (!window.Html5Qrcode) { msg('A biblioteca da câmera ainda está carregando. Tente novamente.', 'warning'); return; }
+    $('cameraBox').className = 'mt-3'; $('statusLeitura').innerHTML = 'Câmera ativa'; scanner = new Html5Qrcode('reader');
+    scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 280, height: 120 } }, function (text) { aposLeitura(text); scanner.stop().then(function () { $('cameraBox').className = 'mt-3 d-none'; }); }, function () {});
+  }
+  window.excluirItem = function (id) {
+    if (!window.confirm('Remover esta leitura?')) return;
+    var xhr = new XMLHttpRequest(), url = '{{ url_for('estoque.inventario_municoes_item_excluir', conferencia_id=conferencia.id, item_id=0) }}'.replace('/0/excluir', '/' + id + '/excluir'); xhr.open('POST', url, true); xhr.setRequestHeader('X-CSRFToken', csrf); xhr.onreadystatechange = function () { if (xhr.readyState === 4) { var d = {}; try { d = JSON.parse(xhr.responseText); } catch (e) {} if (d.success) window.location.reload(); else msg(d.message || 'Não foi possível remover.', 'danger'); } }; xhr.send();
+  };
+  document.addEventListener('DOMContentLoaded', function () {
+    if (legacy) { $('legacyNotice').style.display = 'block'; $('btnCamera').style.display = 'none'; $('leitorHelp').innerHTML = 'Modo legado: use um leitor Bluetooth como teclado. O foco ficará no campo para receber o código.'; }
+    if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) window.jQuery('#produto').select2({ theme: 'bootstrap-5', width: '100%', placeholder: 'Pesquise por código ou nome...', allowClear: true });
+    $('codigo').onkeydown = function (e) { e = e || window.event; if (e.keyCode === 13) { e.preventDefault(); aposLeitura($('codigo').value); } };
+    $('lote').oninput = upperLote; $('lote').onkeydown = function (e) { e = e || window.event; if (e.keyCode === 13) { e.preventDefault(); $('quantidade').focus(); } };
+    $('quantidade').onkeydown = function (e) { e = e || window.event; if (e.keyCode === 13) { e.preventDefault(); registrar(); } };
+    $('btnAdicionar').onclick = registrar; $('btnCamera').onclick = iniciarCamera; $('btnFecharCamera').onclick = function () { if (scanner) scanner.stop(); $('cameraBox').className = 'mt-3 d-none'; focusCode(); };
+    focusCode();
+    if (!legacy) { var s = document.createElement('script'); s.src = 'https://unpkg.com/html5-qrcode'; s.onload = function () {}; document.getElementsByTagName('head')[0].appendChild(s); }
+  });
+}());
+</script>
+{% endblock %}

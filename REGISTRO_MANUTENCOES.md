@@ -812,3 +812,14 @@ O fluxo de leitura foi alterado para não salvar imediatamente após o bip. Depo
 Os relatórios PDF e Excel passaram a consolidar as embalagens por código, descrição, calibre e lote. Cada linha mostra as identificações lidas, a quantidade de embalagens e a quantidade total de munições. Assim, três embalagens de 10 unidades do código 10029935 aparecem como 3 embalagens e 30 munições, sem perder as identificações individuais para rastreabilidade.
 
 Validações desta rodada: compilação dos módulos alterados e `git diff --check` após a implementação.
+
+
+## 06/10/2026 — Modo legado para iPad mini 1 e layout compacto do inventário
+
+O módulo completo de conferência de munições passou a detectar o iPad mini 1 e versões antigas do iOS pelo navegador. Nessa situação, o botão de câmera é ocultado e a interface informa o uso de leitor Bluetooth configurado no modo teclado (HID). O leitor envia o código para o campo de identificação e a rotina compatível com Safari antigo usa `XMLHttpRequest`, eventos tradicionais e JavaScript ES5, sem `fetch`, `async/await`, arrow functions, optional chaining ou template literals.
+
+Em navegadores modernos, a câmera continua disponível e a biblioteca de leitura é carregada somente quando necessária. O foco após o bip permanece no lote, com avanço por Enter para quantidade e registro. A pesquisa por código ou nome continua disponível no campo de munição.
+
+A tela de histórico e a tela operacional receberam tipografia e espaçamentos menores, tabela responsiva e contenção de overflow horizontal. O bloco global de notificações também foi convertido de `async/fetch` para `XMLHttpRequest` e o menu passou a usar laço compatível com navegadores antigos, evitando erro de parsing do Safari iOS 9.
+
+Validações: compilação Python, verificação de ausência de sintaxe moderna no JavaScript do modo legado, `git diff --check` e suíte existente com 74 testes aprovados.

@@ -369,37 +369,46 @@
 
   <script>
   // Inicialização de Notificações
-  async function atualizarBadgeNotificacoes() {
-    const badge = document.getElementById("badgeNotificacoes");
+  function atualizarBadgeNotificacoes() {
+    var badge = document.getElementById("badgeNotificacoes");
     if (!badge) return;
-    try {
-      const resp = await fetch("/notificacoes/api?status=enviado&per_page=1");
-      const data = await resp.json();
-      if (data.total > 0) {
-        badge.textContent = data.total;
-        badge.classList.remove("d-none");
-      } else {
-        badge.classList.add("d-none");
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/notificacoes/api?status=enviado&per_page=1", true);
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState !== 4 || xhr.status < 200 || xhr.status >= 300) return;
+      try {
+        var data = JSON.parse(xhr.responseText);
+        if (data.total > 0) {
+          badge.textContent = data.total;
+          badge.classList.remove("d-none");
+        } else {
+          badge.classList.add("d-none");
+        }
+      } catch (err) {
+        if (window.console) console.warn("Erro ao carregar notificações:", err);
       }
-    } catch (err) {
-      console.warn("Erro ao carregar notificações:", err);
-    }
+    };
+    xhr.send();
   }
-  
+
   // Inicialização Geral
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", function() {
     atualizarBadgeNotificacoes();
     setInterval(atualizarBadgeNotificacoes, 60000);
 
     // Ajuste do Menu Mobile
-    document.querySelectorAll('#offcanvasSidebar a.nav-link').forEach(link => {
-      link.addEventListener('click', function() {
+    var links = document.querySelectorAll('#offcanvasSidebar a.nav-link');
+    for (var i = 0; i < links.length; i++) {
+      links[i].addEventListener('click', function() {
         if (this.getAttribute('data-bs-toggle') !== 'collapse') {
-          const offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById('offcanvasSidebar'));
+          var offcanvas = null;
+          if (window.bootstrap && window.bootstrap.Offcanvas) {
+            offcanvas = window.bootstrap.Offcanvas.getInstance(document.getElementById('offcanvasSidebar'));
+          }
           if (offcanvas) offcanvas.hide();
         }
       });
-    });
+    }
     
     // REMOVIDO SCRIPT DE LOCALSTORAGE QUE TRAVAVA O MENU
   });
