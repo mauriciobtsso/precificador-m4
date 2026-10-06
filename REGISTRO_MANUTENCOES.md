@@ -840,3 +840,10 @@ Validações: PDF sintético com 22 identificações na mesma linha gerado com s
 ## 06/10/2026 — Otimização do espaço no PDF do inventário
 
 O PDF foi reorganizado para exibir a logo e as informações da loja no topo, com o título **INVENTÁRIO FÍSICO DE MUNIÇÕES** centralizado logo abaixo e imediatamente antes da tabela. A coluna de identificações deixou de inserir uma quebra forçada após cada embalagem; os códigos agora permanecem na mesma linha enquanto houver espaço e quebram naturalmente dentro da própria célula quando necessário. Isso reduz a altura das linhas e conserva as colunas de quantidade de embalagens e quantidade total alinhadas.
+
+
+## 06/10/2026 — Lista de conferências responsiva no celular
+
+Corrigida a visualização da lista de conferências de munições em telas pequenas. A tabela continua disponível no PC, enquanto celulares passam a usar cartões empilhados com data, status, quantidade de embalagens, quantidade de munições, observação e botão **Continuar/Consultar** em largura total. Também foram ajustados os campos de abertura da conferência para ocuparem a largura disponível no celular, evitando que a lista fique escondida ou ultrapasse a viewport.
+
+Validações: compilação Python, `git diff --check` e suíte existente com 74 testes aprovados.
