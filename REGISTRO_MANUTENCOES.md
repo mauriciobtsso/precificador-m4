@@ -847,3 +847,10 @@ O PDF foi reorganizado para exibir a logo e as informações da loja no topo, co
 Corrigida a visualização da lista de conferências de munições em telas pequenas. A tabela continua disponível no PC, enquanto celulares passam a usar cartões empilhados com data, status, quantidade de embalagens, quantidade de munições, observação e botão **Continuar/Consultar** em largura total. Também foram ajustados os campos de abertura da conferência para ocuparem a largura disponível no celular, evitando que a lista fique escondida ou ultrapasse a viewport.
 
 Validações: compilação Python, `git diff --check` e suíte existente com 74 testes aprovados.
+
+
+## 06/10/2026 — Detalhes e embalagens lidas responsivos no celular
+
+Corrigida a tela de visualização e lançamento do inventário em celulares. A tabela horizontal de embalagens lidas agora é substituída por cartões verticais em telas pequenas, exibindo código, descrição, calibre, lote, identificação da embalagem, quantidade e total sem exigir rolagem lateral. Novas leituras inseridas pelo celular também são adicionadas ao conjunto de cartões sem atualizar a página. O endereço da loja deixou de ocupar o cabeçalho da lista e passou para uma linha própria no mobile, evitando sobreposição com o título **Embalagens lidas**.
+
+Validações: template Jinja compilado diretamente, compilação Python, `git diff --check` e suíte existente com 74 testes aprovados.
