@@ -1,16 +1,19 @@
 """Conferência física de munições por embalagem."""
 from datetime import datetime
 from io import BytesIO
+import os
 
-from flask import flash, jsonify, redirect, render_template, request, send_file, url_for
+from flask import current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import login_required
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
+from reportlab.platypus import Image as ReportlabImage
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from xml.sax.saxutils import escape
 
 from app import db
 from app.estoque import estoque_bp
@@ -215,18 +218,39 @@ def inventario_municoes_pdf(conferencia_id):
     output = BytesIO()
     doc = SimpleDocTemplate(output, pagesize=landscape(A4), rightMargin=10 * mm, leftMargin=10 * mm, topMargin=10 * mm, bottomMargin=10 * mm)
     styles = getSampleStyleSheet()
-    story = [Paragraph("INVENTÁRIO FÍSICO DE MUNIÇÕES", styles["Title"]), Spacer(1, 4 * mm)]
-    story.append(Paragraph(f"<b>Loja:</b> {conferencia.loja_nome or '-'} &nbsp;&nbsp; <b>CNPJ:</b> {conferencia.loja_cnpj or '-'} &nbsp;&nbsp; <b>CR:</b> {conferencia.loja_cr or '-'}", styles["Normal"]))
-    story.append(Paragraph(f"<b>Endereço:</b> {conferencia.loja_endereco or '-'} &nbsp;&nbsp; <b>Data da conferência:</b> {conferencia.data_conferencia.strftime('%d/%m/%Y')}", styles["Normal"]))
-    story.append(Spacer(1, 5 * mm))
+    table_header_style = ParagraphStyle("InventarioTableHeader", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=6.5, leading=7.5, textColor=colors.white)
+    table_cell_style = ParagraphStyle("InventarioTableCell", parent=styles["Normal"], fontName="Helvetica", fontSize=6.5, leading=8)
+    table_cell_bold_style = ParagraphStyle("InventarioTableCellBold", parent=table_cell_style, fontName="Helvetica-Bold")
+    title_style = ParagraphStyle("InventarioTitle", parent=styles["Title"], fontSize=17, leading=20, alignment=1, spaceAfter=2 * mm)
+    logo_path = current_app.root_path + "/static/img/logo_docs.png"
+    logo = ReportlabImage(logo_path, width=30 * mm, height=20 * mm) if os.path.exists(logo_path) else Spacer(30 * mm, 20 * mm)
+    header_content = [
+        Paragraph("INVENTÁRIO FÍSICO DE MUNIÇÕES", title_style),
+        Paragraph(f"<b>Loja:</b> {escape(conferencia.loja_nome or '-')} &nbsp;&nbsp; <b>CNPJ:</b> {escape(conferencia.loja_cnpj or '-')} &nbsp;&nbsp; <b>CR:</b> {escape(conferencia.loja_cr or '-')}", styles["Normal"]),
+        Paragraph(f"<b>Endereço:</b> {escape(conferencia.loja_endereco or '-')} &nbsp;&nbsp; <b>Data da conferência:</b> {conferencia.data_conferencia.strftime('%d/%m/%Y')}", styles["Normal"]),
+    ]
+    header = Table([[logo, header_content]], colWidths=[36 * mm, 231 * mm])
+    header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+    story = [header, Spacer(1, 5 * mm)]
     rows = [["Código", "Descrição", "Calibre", "Lote", "Identificações das embalagens", "Qtd. embalagens", "Qtd. total"]]
     rows.extend(_linhas_exportacao(conferencia))
-    table = Table(rows, repeatRows=1, colWidths=[27 * mm, 75 * mm, 25 * mm, 25 * mm, 55 * mm, 25 * mm, 22 * mm])
+    formatted_rows = [[Paragraph(escape(str(cell)), table_header_style) for cell in rows[0]]]
+    for row in rows[1:]:
+        identification = escape(str(row[4] or "-")).replace(", ", ",<br/>")
+        formatted_rows.append([
+            Paragraph(escape(str(row[0] or "-")), table_cell_style),
+            Paragraph(escape(str(row[1] or "-")), table_cell_style),
+            Paragraph(escape(str(row[2] or "-")), table_cell_style),
+            Paragraph(escape(str(row[3] or "-")), table_cell_style),
+            Paragraph(identification, table_cell_style),
+            Paragraph(str(row[5]), table_cell_bold_style),
+            Paragraph(str(row[6]), table_cell_bold_style),
+        ])
+    table = Table(formatted_rows, repeatRows=1, colWidths=[27 * mm, 72 * mm, 24 * mm, 23 * mm, 64 * mm, 25 * mm, 22 * mm])
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F2937")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 7),
         ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#CBD5E1")),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),

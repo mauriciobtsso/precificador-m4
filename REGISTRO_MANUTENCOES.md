@@ -828,3 +828,10 @@ Validações: compilação Python, verificação de ausência de sintaxe moderna
 ## 06/10/2026 — Correção do botão de registro após múltiplas leituras
 
 Corrigido um erro no callback assíncrono da tela de conferência. Quando a tabela já possuía itens, a rotina tentava remover novamente a linha vazia `emptyRow`, gerava uma exceção JavaScript depois que o servidor já havia salvo o registro e deixava o botão com aparência desabilitada. A remoção agora verifica se a linha ainda existe antes de removê-la, permitindo que o novo item seja inserido imediatamente na lista sem atualizar a página.
+
+
+## 06/10/2026 — Logo e quebra de linha no PDF do inventário
+
+O cabeçalho do PDF de inventário passou a utilizar a logo institucional `app/static/img/logo_docs.png`, posicionada ao lado do título e dos dados da loja. A tabela agora renderiza as células com `Paragraph` do ReportLab, mantendo largura fixa para quantidade de embalagens e quantidade total. As identificações das embalagens são quebradas dentro da própria célula, uma por linha quando necessário, evitando que listas com mais de 4, 10 ou 20 códigos invadam as colunas seguintes. A altura da linha cresce automaticamente e o cabeçalho continua sendo repetido em novas páginas.
+
+Validações: PDF sintético com 22 identificações na mesma linha gerado com sucesso, logo localizada, compilação Python aprovada, `git diff --check` aprovado e suíte existente com 74 testes aprovados.
