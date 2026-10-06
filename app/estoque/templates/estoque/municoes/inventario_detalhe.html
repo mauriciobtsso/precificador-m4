@@ -69,7 +69,8 @@
       if (xhr.readyState !== 4) return;
       var data = {}; try { data = JSON.parse(xhr.responseText); } catch (e) {}
       if (xhr.status < 200 || xhr.status >= 300) { msg(data.message || 'Não foi possível registrar.', 'danger'); $('btnAdicionar').disabled = false; return; }
-      var i = data.item; $('emptyRow').parentNode.removeChild($('emptyRow'));
+      var i = data.item, empty = $('emptyRow');
+      if (empty && empty.parentNode) empty.parentNode.removeChild(empty);
       var row = '<tr id="item-' + i.id + '"><td class="font-monospace">' + esc(i.codigo) + '</td><td>' + esc(i.descricao) + '</td><td>' + esc(i.calibre || '-') + '</td><td>' + esc(i.lote || '-') + '</td><td class="font-monospace fw-semibold">' + esc(i.identificacao_embalagem) + '</td><td>' + i.quantidade_embalagem + '</td><td class="fw-bold">' + i.quantidade_total + '</td><td><button class="btn btn-sm btn-outline-danger" onclick="excluirItem(' + i.id + ')"><i class="fas fa-trash"></i></button></td></tr>';
       $('itensBody').insertAdjacentHTML('beforeend', row); $('totalEmbalagens').innerHTML = parseInt($('totalEmbalagens').innerHTML, 10) + 1; $('totalMunicoes').innerHTML = parseInt($('totalMunicoes').innerHTML, 10) + parseInt(i.quantidade_total, 10); $('codigo').value = ''; $('lote').value = ''; $('quantidade').value = ''; $('statusLeitura').innerHTML = 'Pronto'; $('btnAdicionar').disabled = false; focusCode(); msg('Embalagem registrada.');
     };

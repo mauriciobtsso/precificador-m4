@@ -823,3 +823,8 @@ Em navegadores modernos, a câmera continua disponível e a biblioteca de leitur
 A tela de histórico e a tela operacional receberam tipografia e espaçamentos menores, tabela responsiva e contenção de overflow horizontal. O bloco global de notificações também foi convertido de `async/fetch` para `XMLHttpRequest` e o menu passou a usar laço compatível com navegadores antigos, evitando erro de parsing do Safari iOS 9.
 
 Validações: compilação Python, verificação de ausência de sintaxe moderna no JavaScript do modo legado, `git diff --check` e suíte existente com 74 testes aprovados.
+
+
+## 06/10/2026 — Correção do botão de registro após múltiplas leituras
+
+Corrigido um erro no callback assíncrono da tela de conferência. Quando a tabela já possuía itens, a rotina tentava remover novamente a linha vazia `emptyRow`, gerava uma exceção JavaScript depois que o servidor já havia salvo o registro e deixava o botão com aparência desabilitada. A remoção agora verifica se a linha ainda existe antes de removê-la, permitindo que o novo item seja inserido imediatamente na lista sem atualizar a página.
