@@ -13,3 +13,4 @@ from app.admin import routes
 from app.admin import usuarios_routes
 from app.admin import config_routes
 from app.admin import documentos_routes
+from app.admin import nfe_conferencia_routes

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+      <h2 class="mb-1"><i class="fas fa-file-circle-check me-2"></i>Conferência de NF-e</h2>
+      <p class="text-muted mb-0">Importe um XML autorizado para conferir diferenças e preparar observações internas.</p>
+    </div>
+  </div>
+
+  <div class="alert alert-danger border-danger" role="alert">
+    <strong>Ferramenta de conferência — não gera DANFE.</strong>
+    Os valores editados são apenas sugestões internas. A tela não altera nem regrava o XML,
+    assinatura digital, protocolo, chave oficial ou código de barras e não gera documento fiscal.
+    O PDF baixado terá marca d’água <strong>“RASCUNHO — SEM VALOR FISCAL”</strong>.
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  {% if not data %}
+  <section class="card shadow-sm mb-4" aria-labelledby="upload-title">
+    <div class="card-body p-4">
+      <h3 class="h5" id="upload-title">1. Carregar o XML</h3>
+      <p class="text-muted">O arquivo é lido em memória para preencher o formulário; não é armazenado por esta ferramenta. Limite: 2 MB.</p>
+      <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.nfe_conferencia') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="xml" class="form-label">Arquivo XML da NF-e</label>
+        <div class="input-group">
+          <input class="form-control" type="file" id="xml" name="xml" accept=".xml,application/xml,text/xml" required>
+          <button class="btn btn-primary" type="submit"><i class="fas fa-upload me-1"></i>Ler XML</button>
+        </div>
+      </form>
+    </div>
+  </section>
+  {% else %}
+  <section class="card shadow-sm mb-4">
+    <div class="card-body p-4">
+      <h3 class="h5 mb-3">2. Dados lidos do arquivo</h3>
+      <div class="row g-3">
+        <div class="col-sm-4"><span class="text-muted d-block small">NF-e de referência</span><strong>Nº {{ data.number or '—' }} / Série {{ data.series or '—' }}</strong></div>
+        <div class="col-sm-4"><span class="text-muted d-block small">Emitente</span><strong>{{ data.issuer or '—' }}</strong></div>
+        <div class="col-sm-4"><span class="text-muted d-block small">Destinatário</span><strong>{{ data.recipient or '—' }}</strong></div>
+        <div class="col-12"><span class="text-muted d-block small">Chave lida do XML (referência somente)</span><code class="text-break">{{ data.source_key or 'Não informada' }}</code></div>
+      </div>
+    </div>
+  </section>
+
+  <form method="post" action="{{ url_for('admin.nfe_conferencia') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="report">
+    <input type="hidden" name="number" value="{{ data.number }}">
+    <input type="hidden" name="series" value="{{ data.series }}">
+    <input type="hidden" name="issuer" value="{{ data.issuer }}">
+    <input type="hidden" name="recipient" value="{{ data.recipient }}">
+    <input type="hidden" name="source_key" value="{{ data.source_key }}">
+    <input type="hidden" name="total_original" value="{{ data.total }}">
+    <input type="hidden" name="products_original" value="{{ data.products_total }}">
+    <input type="hidden" name="payment_original" value="{{ data.payment_value }}">
+    <input type="hidden" name="payment_name" value="{{ data.payment_name }}">
+
+    <section class="card shadow-sm mb-4">
+      <div class="card-body p-4">
+        <h3 class="h5 mb-3">3. Valores para conferência interna</h3>
+        <p class="small text-muted">Os campos abaixo não alteram a NF-e. São valores sugeridos, apresentados apenas no relatório interno.</p>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label" for="total_sugerido">V. total da NF-e (sugestão)</label>
+            <div class="input-group"><span class="input-group-text">R$</span><input class="form-control" id="total_sugerido" name="total_sugerido" type="number" min="0" max="999999999999.99" step="0.01" value="{{ data.total }}" required></div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="produtos_sugerido">V. total dos produtos (sugestão)</label>
+            <div class="input-group"><span class="input-group-text">R$</span><input class="form-control" id="produtos_sugerido" name="produtos_sugerido" type="number" min="0" max="999999999999.99" step="0.01" value="{{ data.products_total }}" required></div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="pagamento_sugerido">Valor do pagamento (sugestão)</label>
+            <div class="input-group"><span class="input-group-text">R$</span><input class="form-control" id="pagamento_sugerido" name="pagamento_sugerido" type="number" min="0" max="999999999999.99" step="0.01" value="{{ data.payment_value }}" required></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="suggested_payment_name">Forma de pagamento (anotação sugerida)</label>
+            <input class="form-control" id="suggested_payment_name" name="suggested_payment_name" maxlength="200" value="{{ data.payment_name }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="suggested_key">Chave (anotação interna, não validada)</label>
+            <input class="form-control font-monospace" id="suggested_key" name="suggested_key" inputmode="numeric" maxlength="44" pattern="[0-9]{44}" value="{{ data.source_key }}" aria-describedby="key-help">
+            <div class="form-text" id="key-help">A chave oficial não pode ser editada por esta tela. Não será criado código de barras ou validação para esta sugestão.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card shadow-sm mb-4">
+      <div class="card-body p-4">
+        <h3 class="h5 mb-3">Itens — sugestões de unitário e total</h3>
+        {% for item in data["items"] %}
+        <div class="border rounded p-3 mb-3">
+          <div class="mb-3"><strong>{{ item.code or 'Item' }} — {{ item.description }}</strong><div class="small text-muted">Quantidade: {{ item.quantity }}</div></div>
+          <input type="hidden" name="item_code" value="{{ item.code }}">
+          <input type="hidden" name="item_description" value="{{ item.description }}">
+          <input type="hidden" name="item_quantity" value="{{ item.quantity }}">
+          <input type="hidden" name="item_unit_original" value="{{ item.unit }}">
+          <input type="hidden" name="item_total_original" value="{{ item.total }}">
+          <div class="row g-3">
+            <div class="col-sm-6 col-lg-3"><label class="form-label">V. unitário no XML</label><input class="form-control" type="number" step="0.01" value="{{ item.unit }}" readonly></div>
+            <div class="col-sm-6 col-lg-3"><label class="form-label" for="item-unit-{{ loop.index }}">V. unitário sugerido</label><input class="form-control" id="item-unit-{{ loop.index }}" type="number" name="item_unit_proposed" min="0" max="999999999999.99" step="0.01" value="{{ item.unit }}" required></div>
+            <div class="col-sm-6 col-lg-3"><label class="form-label">V. total no XML</label><input class="form-control" type="number" step="0.01" value="{{ item.total }}" readonly></div>
+            <div class="col-sm-6 col-lg-3"><label class="form-label" for="item-total-{{ loop.index }}">V. total sugerido</label><input class="form-control" id="item-total-{{ loop.index }}" type="number" name="item_total_proposed" min="0" max="999999999999.99" step="0.01" value="{{ item.total }}" required></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <div class="d-flex flex-wrap gap-2 mb-5">
+      <button class="btn btn-warning" type="submit"><i class="fas fa-file-pdf me-1"></i>Gerar relatório interno (PDF)</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('admin.nfe_conferencia') }}">Descartar e carregar outro XML</a>
+    </div>
+  </form>
+  {% endif %}
+
+  <div class="small text-muted border-top pt-3 mb-4">
+    Para corrigir uma NF-e já autorizada, consulte o responsável fiscal e utilize o procedimento oficial cabível no emissor/SEFAZ. A assinatura e o protocolo do XML original permanecem fora deste fluxo.
+  </div>
+</div>
+{% endblock %}

@@ -154,7 +154,8 @@
             {% set compras_ativo = (
               request.endpoint and (
                 'pedidos' in request.endpoint or
-                'compras' in request.endpoint
+                'compras' in request.endpoint or
+                'nfe_conferencia' in request.endpoint
               )
             ) %}
             <li class="nav-item">
@@ -180,6 +181,12 @@
                     <a class="nav-link text-white {% if request.endpoint and 'compras' in request.endpoint %}active border-start border-3 border-primary{% endif %}"
                        href="{{ url_for('compras_nf.index') }}">
                       <i class="fas fa-file-invoice me-1"></i> Notas Fiscais
+                    </a>
+                  </li>
+                  <li class="nav-item mb-1">
+                    <a class="nav-link text-white {% if request.endpoint == 'admin.nfe_conferencia' %}active border-start border-3 border-primary{% endif %}"
+                       href="{{ url_for('admin.nfe_conferencia') }}">
+                      <i class="fas fa-clipboard-check me-1"></i> Conferência XML (rascunho)
                     </a>
                   </li>
                 </ul>

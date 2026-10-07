@@ -954,3 +954,28 @@ Validação: `pytest -q` — **79 testes aprovados**; `py_compile` nos módulos/
 **Deploy em produção concluído:** as alterações foram publicadas na branch `main` no commit `64822c7` ([commit](https://github.com/mauriciobtsso/precificador-m4/commit/64822c7a9d1040838a79900cf37d047ce309891b)). O Render iniciou o Auto-Deploy após o push e confirmou o serviço `Loja-M4` como **Live** nesse commit, em 2m28s. Uma sondagem HTTP sem corpo em `https://loja.m4tatica.com.br/clientes/` respondeu **HTTP 200**. Nenhuma migração, importação ou alteração de dados de produção foi executada.
 
 **Diretriz permanente solicitada pelo usuário:** após cada alteração de aplicação neste projeto, executar os testes, publicar na `main`, aguardar e confirmar o deploy de produção como **Live** e verificar por HTTP a rota impactada. Se surgir falha ou bloqueio, informar e pausar sem declarar a implantação concluída.
+
+
+## 07/10/2026 — Conferência interna de dados de NF-e a partir de XML
+
+### Solicitação e análise
+Foi avaliada a solicitação de importar um XML de NF-e, permitir revisar valores e gerar um PDF semelhante à DANFE de referência. Os arquivos recebidos correspondem a uma NF-e autorizada e assinada digitalmente. Alterar valores/chave e reproduzir o layout da DANFE poderia apresentar dados modificados como se fossem a nota oficial. Por isso, o escopo implementado é uma **conferência interna**, e não a alteração do documento fiscal.
+
+### Alterações implementadas
+- Adicionada a rota autenticada `/admin/nfe/conferencia`, acessível no menu **Compras → Conferência XML (rascunho)**.
+- Criado parser restrito para XML de NF-e, com limite de 2 MB, rejeição de `DOCTYPE`/entidades e máximo de 100 itens. Os bytes do XML são processados em memória e não são persistidos por esta funcionalidade.
+- A tela preenche emitente, destinatário, número/série, chave de referência, totais, pagamento e itens. O usuário pode registrar valores e forma de pagamento **sugeridos** para comparação; a chave sugerida é apenas anotação interna e não é validada, assinada ou convertida em código de barras.
+- O botão gera somente um relatório interno em PDF, de layout genérico, com marca d’água em todas as páginas **“RASCUNHO — SEM VALOR FISCAL”** e avisos **“NÃO É DANFE”** e **“NÃO É NF-e”**. Não inclui o logo/layout de DANFE, não altera XML, assinatura, protocolo ou autorização, e não cria barcode/QR Code fiscal.
+- As respostas que exibem os dados do XML e o PDF usam `Cache-Control: no-store`. Nenhuma migração ou alteração de banco de dados foi necessária.
+- Os testes usam exclusivamente dados sintéticos; nenhum conteúdo pessoal/comercial dos arquivos anexados foi copiado para o código ou fixtures.
+
+### Validações
+- `pytest -q tests/test_nfe_conferencia.py` — **4 testes aprovados**, incluindo limite e rejeição de XML com DTD/entidade, extração dos campos, fluxo de upload, PDF e validação de chave sugerida.
+- `pytest -q` — **83 testes aprovados**; permaneceu somente o aviso já conhecido do Flask-Limiter sobre armazenamento em memória nos testes.
+- `py_compile` nos módulos/testes alterados e `git diff --check` — aprovados.
+
+### Limite fiscal e orientação de uso
+O relatório é apenas material de conferência e não deve substituir, acompanhar ou ser apresentado como DANFE/NF-e. Para corrigir uma NF-e autorizada, a empresa deve verificar com o responsável fiscal o procedimento oficial cabível no emissor/SEFAZ. O fluxo mantém o XML original intocado.
+
+### Publicação
+A alteração foi preparada no clone local da branch `main`. A publicação e a verificação de deploy/rota serão registradas após a etapa operacional, seguindo a diretriz permanente do projeto.
