@@ -932,3 +932,12 @@ Após pedido explícito, foi aplicada via Alembic a revisão `20261007_pf_pj_loc
 A validação pós-migração confirmou a revisão Alembic, a presença dos seis campos, as contagens inalteradas (989 clientes, 1.331 endereços, 2.413 contatos) e `GET /importacoes/` com HTTP 200. Antes da aplicação, o código do modelo/importador foi alinhado para inferir Pessoa Física/Jurídica pela quantidade de dígitos do documento e ler os códigos TD sem apagar valores quando a célula está vazia. A suíte local passou: **78 testes**.
 
 **Importante:** esta execução alterou somente o esquema. Os campos recém-adicionados dos registros existentes permanecem nulos; não foram preenchidos códigos nem reimportados dados. O código atualizado está no workspace do repositório e ainda precisa ser publicado/deployado para a aplicação produtiva começar a preencher os novos campos automaticamente.
+
+
+## 07/10/2026 — Publicação e deploy da atualização TD
+
+- O código de classificação automática PF/PJ e mapeamento dos códigos auxiliares TD foi publicado na branch `main` no commit `d1d3f9c` ([commit](https://github.com/mauriciobtsso/precificador-m4/commit/d1d3f9c9e3ec75c547f61ff338aaec9da2129ada)).
+- O serviço `Loja-M4` no Render concluiu o deploy manual desse mesmo commit com estado **Deploy succeeded | Live**. O build foi concluído com sucesso; o processo iniciou o Gunicorn e o Render reconheceu a porta de serviço.
+- Após o deploy, as sondagens HTTP públicas para `/` e `/importacoes/` (seguindo redirecionamentos) terminaram em **HTTP 200**.
+- A suíte local foi repetida antes da publicação: **78 testes aprovados**; permaneceu apenas o aviso já conhecido do Flask-Limiter sobre armazenamento de limites em memória durante testes.
+- Nenhuma reimportação de clientes nem alteração adicional de esquema foi executada durante este deploy. A migração `20261007_pf_pj_localidade`, descrita acima, já havia sido aplicada antes da publicação do código.
