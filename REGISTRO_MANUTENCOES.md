@@ -979,3 +979,9 @@ O relatório é apenas material de conferência e não deve substituir, acompanh
 
 ### Publicação
 A alteração foi preparada no clone local da branch `main`. A publicação e a verificação de deploy/rota serão registradas após a etapa operacional, seguindo a diretriz permanente do projeto.
+
+
+### Resultado da publicação — 07/10/2026
+
+- Código publicado na branch `main` no commit `ed58ed3` ([commit no GitHub](https://github.com/mauriciobtsso/precificador-m4/commit/ed58ed3)).
+- Durante a compilação/deploy, a rota respondeu inicialmente HTTP 404; após a conclusão do deploy, a verificação pública final em `https://loja.m4tatica.com.br/admin/nfe/conferencia` respondeu **HTTP 302** para `/sistema-interno/login?next=%2Fadmin%2Fnfe%2Fconferencia`. O redirecionamento confirma que a rota está registrada e protegida por autenticação; nenhum acesso autenticado nem dado de produção foi submetido durante a sondagem.
