@@ -941,3 +941,12 @@ A validação pós-migração confirmou a revisão Alembic, a presença dos seis
 - Após o deploy, as sondagens HTTP públicas para `/` e `/importacoes/` (seguindo redirecionamentos) terminaram em **HTTP 200**.
 - A suíte local foi repetida antes da publicação: **78 testes aprovados**; permaneceu apenas o aviso já conhecido do Flask-Limiter sobre armazenamento de limites em memória durante testes.
 - Nenhuma reimportação de clientes nem alteração adicional de esquema foi executada durante este deploy. A migração `20261007_pf_pj_localidade`, descrita acima, já havia sido aplicada antes da publicação do código.
+
+
+## 07/10/2026 — Responsividade da lista `/clientes`
+
+A listagem desktop agora usa tabela de largura fixa com colunas proporcionais (28% nome, 18% documento, 16% telefone, 26% e-mail e 12% ações), permitindo quebra de nomes, telefones e e-mails longos sem ampliar a página. Em telas menores, foram mantidos os cartões mobile, com controles de ação acessíveis; busca e paginação também podem se acomodar em larguras reduzidas.
+
+A contenção de largura e a quebra do cabeçalho flex foram escopadas à rota `clientes.index`. Foi identificada e contornada, somente nessa listagem, uma regra global antiga que ocultava todas as tabelas até 768 px: os cartões são mostrados abaixo de 768 px e a tabela volta a aparecer a partir desse breakpoint. Nenhuma outra página foi alterada visualmente por essa exceção.
+
+Validação: `pytest -q` — **79 testes aprovados**; `py_compile` nos módulos/teste alterados e `git diff --check` — aprovados. Um ensaio com Chromium, aplicação de teste e dados sintéticos isolados em SQLite mediu `scrollWidth` do documento igual à largura do viewport em **320, 360, 390, 767, 768, 1024 e 1440 px**; confirmou também cartões abaixo de 768 px e tabela a partir de 768 px. Não houve acesso ou alteração ao banco de produção. Esta alteração está apenas no workspace local: não foi publicada nem implantada.

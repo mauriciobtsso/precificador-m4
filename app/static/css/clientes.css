@@ -86,27 +86,149 @@ form[action*="documentos/upload"] .form-label {
 }
 
 /* =====================================================
-   Correção para list-group em telas pequenas
+   Lista de clientes: layout responsivo sem overflow
    ===================================================== */
-/* Anula o padding horizontal forçado por .container-fluid 
-   para evitar scroll horizontal na lista de clientes. */
-@media (max-width: 768px) {
-  .list-group {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+body.page-clientes-index > .d-flex {
+  width: 100%;
+  min-width: 0;
+}
+
+body.page-clientes-index > .d-flex > .flex-grow-1 {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.page-clientes-index > .d-flex > .flex-grow-1 > .navbar,
+body.page-clientes-index > .d-flex > .flex-grow-1 > .container-fluid {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.clientes-page,
+.clientes-list-area,
+.clientes-table-wrap,
+.clientes-mobile-wrap,
+.clientes-mobile-list {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.table-clientes-lista {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  margin-bottom: 0;
+}
+
+/* Sobrescreve o white-space: nowrap global das tabelas e permite que
+   nomes, telefones, documentos e e-mails extensos ocupem mais de uma linha. */
+.clientes-page .table-clientes-lista th,
+.clientes-page .table-clientes-lista td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.clientes-page .table-clientes-lista th {
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+
+.clientes-page .table-clientes-lista td {
+  font-size: 0.9rem;
+}
+
+.clientes-page .clientes-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+
+.clientes-action__label {
+  display: none;
+}
+
+.mobile-list-item {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.mobile-list-item .info-column {
+  flex: 1 1 0;
+  width: calc(100% - 42px);
+  max-width: calc(100% - 42px);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.clientes-mobile-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+}
+
+.clientes-pagination .pagination {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-bottom: 0;
+}
+
+@media (min-width: 1200px) {
+  .clientes-action__label {
+    display: inline;
   }
 }
-/* =====================================================
-   Correção Definitiva para Lista Mobile
-   ===================================================== */
-/* Garante que o item da lista não cause overflow horizontal */
-.mobile-list-item {
-  overflow-x: hidden; /* Esconde qualquer overflow do item */
+
+/* A folha global oculta qualquer <table> até 768px; aqui o breakpoint
+   desktop começa em 768px, portanto reabilitamos só a tabela desta lista. */
+@media (min-width: 768px) {
+  body.page-clientes-index .table-clientes-lista {
+    display: table;
+  }
 }
 
-/* Permite que a coluna de informações encolha corretamente */
-.mobile-list-item .info-column {
-  min-width: 0; /* Essencial para o flexbox permitir o encolhimento */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .clientes-page .table-clientes-lista th,
+  .clientes-page .table-clientes-lista td {
+    padding: 0.4rem 0.3rem;
+    font-size: 0.8rem;
+  }
 }
 
+@media (max-width: 767.98px) {
+  body.page-clientes-index .navbar {
+    flex-wrap: wrap;
+  }
 
+  body.page-clientes-index .navbar > .d-flex {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .clientes-page__title {
+    font-size: 1.4rem;
+  }
+
+  .clientes-search > [class*="col-"] {
+    min-width: 0;
+  }
+
+  .clientes-mobile-list {
+    width: 100%;
+    padding-inline: 0;
+  }
+
+  .clientes-pagination .page-link {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.875rem;
+  }
+}

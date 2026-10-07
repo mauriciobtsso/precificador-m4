@@ -81,7 +81,7 @@
   </style>
 </head>
 
-<body>
+<body class="{% if request.endpoint == 'clientes.index' %}page-clientes-index{% endif %}">
   <div class="d-flex">
 
     <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="offcanvasSidebar"
