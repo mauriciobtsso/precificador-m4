@@ -6,10 +6,22 @@
 #   - Tudo mais permanece idêntico
 
 from datetime import datetime
+import re
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.orm import validates
 
 from app.extensions import db
 from app.utils.datetime import now_local
+
+
+def classificar_tipo_pessoa(documento):
+    """Classifica CPF/CNPJ pelo número de dígitos, sem presumir outros formatos."""
+    digitos = re.sub(r"\D", "", str(documento or ""))
+    if len(digitos) == 11:
+        return "Pessoa Física"
+    if len(digitos) == 14:
+        return "Pessoa Jurídica"
+    return None
 
 
 # =========================
@@ -37,6 +49,10 @@ class Cliente(db.Model):
 
     # Documentos principais
     documento = db.Column(db.String(30), unique=True)  # CPF
+    tipo_pessoa = db.Column(db.String(20), nullable=True)
+    codigo_uf_nascimento = db.Column(db.String(20), nullable=True)
+    codigo_cidade_nascimento = db.Column(db.String(20), nullable=True)
+    codigo_estado_civil = db.Column(db.String(20), nullable=True)
     rg = db.Column(db.String(30))
     rg_emissor = db.Column(db.String(100))
     cnh = db.Column(db.String(30))
@@ -60,6 +76,11 @@ class Cliente(db.Model):
     email_verificado = db.Column(db.Boolean, default=False, nullable=False)
     loja_criado_em = db.Column(db.DateTime, nullable=True)
     # -------------------------------------------------------
+
+    @validates("documento")
+    def _classificar_documento(self, _chave, valor):
+        self.tipo_pessoa = classificar_tipo_pessoa(valor)
+        return valor
 
     # Flags
     cac = db.Column(db.Boolean, default=False)
@@ -126,6 +147,8 @@ class EnderecoCliente(db.Model):
     bairro = db.Column(db.String(100))
     cidade = db.Column(db.String(100))
     estado = db.Column(db.String(50))
+    codigo_estado = db.Column(db.String(20), nullable=True)
+    codigo_cidade = db.Column(db.String(20), nullable=True)
     tipo = db.Column(db.String(50), default="residencial")
 
     created_at = db.Column(db.DateTime, default=now_local)

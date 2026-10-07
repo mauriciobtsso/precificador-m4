@@ -264,8 +264,13 @@ def importar():
         try:
             if str(file.filename).lower().endswith(".xlsx"):
                 if tipo == "clientes":
-                    importar_clientes(file)
-                    flash("Clientes importados com sucesso!", "success")
+                    resultado = importar_clientes(file)
+                    flash(
+                        "Clientes importados com sucesso: "
+                        f"{resultado['criados']} criados, "
+                        f"{resultado['atualizados']} atualizados.",
+                        "success",
+                    )
                 elif tipo == "vendas":
                     importar_vendas(file)
                     flash("Vendas importadas com sucesso!", "success")

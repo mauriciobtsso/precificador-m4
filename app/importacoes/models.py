@@ -9,7 +9,9 @@ class ImportacaoLog(db.Model):
     __tablename__ = "importacoes_log"
 
     id = db.Column(db.Integer, primary_key=True)
-    tipo = db.Column(db.String(50), nullable=False, default="produtos")
+    tipo = db.Column(
+        db.String(50), nullable=False, default="produtos", server_default="produtos"
+    )
     usuario = db.Column(db.String(100), nullable=True)
     data_hora = db.Column(db.DateTime(timezone=True), default=now_local)
     novos = db.Column(db.Integer, nullable=False, default=0)

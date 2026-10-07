@@ -854,3 +854,81 @@ Validações: compilação Python, `git diff --check` e suíte existente com 74 
 Corrigida a tela de visualização e lançamento do inventário em celulares. A tabela horizontal de embalagens lidas agora é substituída por cartões verticais em telas pequenas, exibindo código, descrição, calibre, lote, identificação da embalagem, quantidade e total sem exigir rolagem lateral. Novas leituras inseridas pelo celular também são adicionadas ao conjunto de cartões sem atualizar a página. O endereço da loja deixou de ocupar o cabeçalho da lista e passou para uma linha própria no mobile, evitando sobreposição com o título **Embalagens lidas**.
 
 Validações: template Jinja compilado diretamente, compilação Python, `git diff --check` e suíte existente com 74 testes aprovados.
+
+
+## 07/10/2026 — Compatibilidade da importação de clientes TD
+
+### Solicitação e escopo
+Foi revisado o fluxo de importação em `/importacoes` para a planilha de clientes exportada do Tiro Digital (TD). A central `/importacoes` direciona o usuário autenticado para `/importar?tipo=clientes`; o processamento é realizado por `app/services/importacao.py`. A revisão e os testes foram executados no clone do repositório, sem conexão ou gravação no banco de dados da loja.
+
+### Diagnóstico da exportação
+A planilha examinada tem 985 linhas de dados e 67 colunas. Além dos campos básicos, contém campos de documentos e registros, parentes, datas, contatos secundários, três endereços e níveis de atirador. O fluxo anterior reconhecia alguns campos pelo cabeçalho, mas não mapeava corretamente os cabeçalhos `End1/End2/End3`, `CR Validade` e campos TD adicionais; também atribuía células vazias sobre dados existentes, não importava os contatos/endereço como relações e executava uma consulta por linha ao procurar o cliente.
+
+### Alterações implementadas
+- A leitura da planilha de clientes passou a usar modo `read_only` e a carregar clientes, contatos e endereços existentes em lote, com índice em memória por CPF/CNPJ sem máscara, evitando consultas individuais por linha.
+- A criação e atualização continuam identificadas por CPF/CNPJ; a formatação do documento existente é preservada. Os dados preenchidos da planilha atualizam o cadastro e células vazias não apagam informações existentes.
+- Foram adicionados mapeamentos para os campos TD de razão social, sexo, profissão, RG/emissor, matrícula, CR/emissor/validade, nacionalidade, nascimento, estado civil, inscrições estadual/municipal, nomes dos pais, naturalidade, SIGMA/SINARM, indicadores e níveis de atirador.
+- Telefones e e-mails secundários são armazenados em `ContatoCliente`; os endereços TD são armazenados em `EnderecoCliente`, com atualização não destrutiva e suporte aos três grupos de endereço.
+- A gravação é feita em uma transação única, com rollback em caso de erro. A interface informa contagens agregadas de clientes criados e atualizados.
+- Foram adicionados testes automatizados com dados sintéticos para criação, atualização, preservação de células vazias, datas, flags, contatos, endereço e rejeição de planilha sem CPF/CNPJ.
+
+### Validações
+- `python3 -m pip install -r requirements.txt` — executado porque SQLAlchemy e pytest não estavam disponíveis no ambiente. A instalação concluiu; o resolvedor reportou incompatibilidades de versão com alguns pacotes globais preexistentes do sandbox (boto3/botocore/urllib3, idna, cryptography e lxml), sem impedir os testes do projeto.
+- `pytest -q tests/test_importacao_clientes_td.py` — **2 testes aprovados**.
+- Prova de importação da planilha anexada em aplicação Flask com banco SQLite em memória: **985 linhas processadas, 985 clientes criados, 1.018 endereços e 1.857 contatos**. Nenhum banco externo foi acessado; os totais são agregados e nenhum dado pessoal foi registrado aqui.
+- `python3 -m py_compile app/services/importacao.py` e `git diff --check` — aprovados.
+
+### Limitação identificada
+O modelo `Cliente` não possui coluna persistida para classificar Pessoa Física/Jurídica. O documento é aceito como CPF/CNPJ, mas a categoria de pessoa não pode ser armazenada pelo importador sem alteração de esquema e migração de banco. Essa alteração não foi presumida nem aplicada; exige decisão/modelagem e migração separadas antes de afirmar que a categoria fica persistida.
+
+Também não há campos correspondentes no modelo para os códigos numéricos auxiliares de UF/cidade de nascimento, estado civil e UF/cidade dos endereços. A importação usa os nomes legíveis dessas localidades; os códigos auxiliares não são persistidos. Portanto, o arquivo é reconhecido e seus dados cadastrais mapeáveis são importados, mas não se deve dizer que os 67 valores de coluna são reproduzidos integralmente no banco atual.
+
+### Segurança e implantação
+O endpoint segue protegido por `login_required`. As alterações foram feitas somente no clone local da branch `main`; **não houve importação na loja em produção, commit, push ou migração do banco**. Antes da carga real, recomenda-se backup do banco e execução por operador autorizado no ambiente da loja.
+
+
+## 07/10/2026 — Diagnóstico do HTTP 500 em `/importacoes`
+
+### Diagnóstico somente leitura
+Com autorização do usuário, foi consultado o PostgreSQL em transação somente leitura, com limite de conexão e de execução. O banco informa `alembic_version = 20261006_inventario_municoes`, que era o head do repositório antes desta correção. As tabelas `clientes`, `clientes_contatos`, `clientes_enderecos` e `importacoes_log` existem. `importacoes_log` está vazia no momento da consulta e **não contém a coluna `tipo`**, embora `ImportacaoLog` declare esse campo e a rota `/importacoes/` faça uma consulta ORM que seleciona todas as colunas do modelo. Isso causa erro de coluna inexistente no PostgreSQL e explica o HTTP 500.
+
+A migração antiga `447f399d6bc1_adicionar_coluna_tipo_em_importacoes_log.py`, cujo título promete adicionar `tipo`, não chama `op.add_column`; ela cria índices de vendas. A migração seguinte também não adiciona o campo. A rota local, com o esquema completo gerado pelo modelo em SQLite, responde HTTP 200.
+
+### Correção preparada (não aplicada)
+- Criada a migração aditiva `20261007_importacoes_tipo`, filha do head `20261006_inventario_municoes`, adicionando `importacoes_log.tipo VARCHAR(50) NOT NULL DEFAULT 'produtos'`.
+- O default atende registros/insertes anteriores sem fornecer `tipo`; como a tabela estava vazia na inspeção, não há linhas existentes a reclassificar.
+- O modelo `ImportacaoLog` foi alinhado ao default server-side e foi adicionado teste de regressão para abrir a central de importações.
+- Validações: `pytest -q` — **77 testes aprovados**; compilação Python, validação de grafo Alembic e `git diff --check` aprovados.
+
+**No momento deste diagnóstico, a migração ainda não havia sido aplicada**: a autorização inicial era somente para verificar o banco, então a alteração de esquema aguardava confirmação explícita. A aplicação aprovada posteriormente está registrada abaixo. Até a confirmação, nenhum registro ou esquema foi alterado.
+
+
+### Aplicação autorizada — 07/10/2026
+Após confirmação explícita do usuário, a migração `20261007_importacoes_tipo` foi aplicada ao PostgreSQL. A pré-condição foi revalidada imediatamente antes da execução: revisão `20261006_inventario_municoes`, coluna ausente e zero linhas em `importacoes_log`. A pós-validação confirmou revisão `20261007_importacoes_tipo`, coluna `tipo` presente e zero linhas preservadas/alteradas na tabela de log. A aplicação Flask conectada ao mesmo banco executou `GET /importacoes/` e recebeu **HTTP 200**. A migração foi aplicada via Alembic com limite de espera para lock e timeout de instrução; nenhum outro upgrade foi solicitado e nenhuma tabela de clientes foi alterada.
+
+
+## 07/10/2026 — Teste prático do upload TD pelo fluxo HTTP
+
+Foi realizado teste de ponta a ponta pelo `POST /importar` com `tipo=clientes` e o arquivo TD anexado, em aplicação Flask de teste usando exclusivamente SQLite em memória (sem conexão ou escrita no PostgreSQL de produção). O POST foi seguido pelo GET da página de retorno.
+
+- Primeira passagem: POST redirecionou normalmente, página final HTTP 200; mensagem agregada **985 criados / 0 atualizados**. Banco temporário ao final: 985 clientes, 1.018 endereços, 1.857 contatos.
+- Segunda passagem do mesmo arquivo: POST e página final HTTP 200; **0 criados / 985 atualizados**. As contagens permaneceram idênticas, sem duplicar clientes, endereços ou contatos.
+- Resultado: fluxo de upload → validação → importação → commit → retorno da interface aprovado para criação e reimportação. Nenhuma linha da planilha foi aplicada à base de produção nesta prova.
+
+
+## 07/10/2026 — Importação definitiva de clientes TD em produção
+
+Após solicitação explícita, foi executada uma pré-verificação somente leitura contra a base de produção. A planilha tinha 985 documentos únicos, sem linhas sem nome/documento e sem duplicatas; 902 documentos correspondiam a clientes existentes e 83 eram novos. A transação foi revalidada imediatamente antes da execução e bloqueou temporariamente os registros de clientes, contatos e endereços existentes para evitar sobrescrita concorrente durante a carga.
+
+A importação foi concluída pelo serviço `importar_clientes`, que faz um commit único: **83 clientes criados, 902 atualizados, 985 linhas processadas**. As contagens de tabelas antes/depois foram: clientes 906 → 989; endereços 1.204 → 1.331; contatos 2.252 → 2.413. Na reconciliação posterior, os 985 documentos da planilha estavam presentes e não havia documento ausente nem duplicidade por chave normalizada. Nenhum valor pessoal foi impresso nos relatórios da operação.
+
+Foi também criado e conferido um único registro agregado em `importacoes_log` (`tipo=clientes`, 83 novos, 902 atualizados, total 985), visível no histórico da central. Nenhuma migração adicional foi executada nesta carga.
+
+
+## 07/10/2026 — Migração aditiva de tipo de pessoa e códigos de localidade
+
+Após pedido explícito, foi aplicada via Alembic a revisão `20261007_pf_pj_localidade`, sucessora de `20261007_importacoes_tipo`. Em `clientes`, foram adicionadas as colunas anuláveis `tipo_pessoa`, `codigo_uf_nascimento`, `codigo_cidade_nascimento` e `codigo_estado_civil`. Em `clientes_enderecos`, foram adicionadas `codigo_estado` e `codigo_cidade`. Os códigos usam texto (`VARCHAR(20)`) para preservar zeros à esquerda; a migração não inclui defaults, restrições novas ou backfill.
+
+A validação pós-migração confirmou a revisão Alembic, a presença dos seis campos, as contagens inalteradas (989 clientes, 1.331 endereços, 2.413 contatos) e `GET /importacoes/` com HTTP 200. Antes da aplicação, o código do modelo/importador foi alinhado para inferir Pessoa Física/Jurídica pela quantidade de dígitos do documento e ler os códigos TD sem apagar valores quando a célula está vazia. A suíte local passou: **78 testes**.
+
+**Importante:** esta execução alterou somente o esquema. Os campos recém-adicionados dos registros existentes permanecem nulos; não foram preenchidos códigos nem reimportados dados. O código atualizado está no workspace do repositório e ainda precisa ser publicado/deployado para a aplicação produtiva começar a preencher os novos campos automaticamente.
