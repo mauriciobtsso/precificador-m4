@@ -1001,3 +1001,26 @@ O importador atual não representa de forma estruturada todos os campos operacio
 
 ### Próxima etapa pendente
 Aguardando o usuário escolher entre (1) enviar o relatório `.xlsx` no layout de vendas já aceito pela aplicação; ou (2) confirmar o escopo para criar um importador dedicado para este CSV, incluindo as regras de agrupamento/identificação das vendas e o tratamento dos campos extras. Até essa definição, o arquivo permanece apenas pré-validado e não importado.
+
+
+## 08/10/2026 — Diretriz de linguagem para respostas de IA
+
+A pedido do usuário, as respostas de inteligência artificial neste projeto devem seguir a técnica **ASD-STE100**. Em português, usar os princípios aplicáveis: frases curtas, palavras simples, voz ativa e termos consistentes. Não afirmar conformidade formal com regras de inglês técnico quando a resposta estiver em português.
+
+
+## 08/10/2026 — Pré-validação de VENDAS.xlsx
+
+### Estrutura e compatibilidade
+O arquivo contém duas abas. **GERAL** tem 32 colunas e 476 linhas de dados; seus cabeçalhos correspondem ao importador de vendas atual. O perfil encontrou 215 linhas de resumo de venda e 261 linhas de item. Os 215 identificadores de agrupamento usados pela rotina atual são distintos. A soma de `Valor Total` das vendas é **R$ 92.831,53**, igual à soma dos itens que a rotina reconstruiria. Dez vendas sem itens são canceladas ou abertas (7 canceladas e 3 abertas); seus totais de origem não diferem do total calculado pelos itens.
+
+A aba **ARMAS** tem 36 linhas de dados e 45 colunas. Ela não segue o esquema de itens aceito por `importar_vendas`. A rotina usa a aba ativa da pasta de trabalho, e a aba ativa deste arquivo é **ARMAS**. Portanto, enviar o arquivo original sem preparar a seleção da aba não é seguro; a rotina não escolheria `GERAL` automaticamente. Os dados específicos de ARMAS não foram incluídos na simulação de importação de `GERAL`.
+
+### Valores que exigem tratamento
+Em 119 das 215 vendas, `Descontos (%)` contém o símbolo `%`. O conversor atual `to_float` não aceita esse símbolo e gravaria **0** nesses percentuais. Os valores monetários de desconto em reais são lidos separadamente. Antes da carga, o percentual deve ser normalizado ou o conversor deve ser corrigido e testado.
+
+### Limites da pré-validação
+A simulação local da lógica atual, limitada à aba `GERAL`, estimou 215 vendas e 261 itens, sem duplicatas internas e sem diferença entre os totais por item e os totais de origem. A rotina de vendas não oferece proteção contra reimportação e não grava `ImportacaoLog`; uma segunda carga poderia duplicar vendas.
+
+Ainda não foi possível consultar vendas existentes em produção: a central `/importacoes/` redirecionou para a tela de login e não há credencial de banco configurada neste ambiente. **Nenhuma consulta autenticada, importação ou gravação em produção foi feita.** Nenhum dado individual do arquivo foi copiado para este registro.
+
+Antes da execução, é necessário confirmar que o escopo será a aba `GERAL` e verificar, com acesso autenticado, se há vendas duplicadas em produção. A aba `ARMAS` permanece fora do escopo aceito pelo importador atual.
