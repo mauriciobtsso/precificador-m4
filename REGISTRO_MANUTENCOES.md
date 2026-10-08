@@ -985,3 +985,19 @@ A alteração foi preparada no clone local da branch `main`. A publicação e a 
 
 - Código publicado na branch `main` no commit `ed58ed3` ([commit no GitHub](https://github.com/mauriciobtsso/precificador-m4/commit/ed58ed3)).
 - Durante a compilação/deploy, a rota respondeu inicialmente HTTP 404; após a conclusão do deploy, a verificação pública final em `https://loja.m4tatica.com.br/admin/nfe/conferencia` respondeu **HTTP 302** para `/sistema-interno/login?next=%2Fadmin%2Fnfe%2Fconferencia`. O redirecionamento confirma que a rota está registrada e protegida por autenticação; nenhum acesso autenticado nem dado de produção foi submetido durante a sondagem.
+
+
+## 08/10/2026 — Pré-validação do relatório de vendas de carrinho
+
+### Solicitação e diagnóstico
+Foi analisado o arquivo `08-10-26-Vendasdecarrinho-08_10_2026,09_45_58.csv` para verificar compatibilidade com **Importações → Vendas**, sem enviar registros ao banco de dados. O arquivo está em CSV UTF-8 e contém 45 cabeçalhos. A rota `/importar` aceita vendas somente em arquivo `.xlsx`; para vendas, chama `importar_vendas`, que usa `openpyxl` e espera o layout de relatório Excel já suportado, com campos como `Abertura`, `Fechamento`, `NF - nº`, `Produto`, `Valor` e `Itens - Qtd`. O CSV apresenta outro layout, com campos como `Data da Venda`, `Arma`, `Valor Total`, `Valor Final` e dados de aquisição, autorização, retirada e contrato.
+
+A estrutura também não pôde ser reconstruída com segurança por leitores CSV comuns: a maior parte das linhas aparece como um único campo entre aspas e uma tentativa exploratória de desembrulhar encontrou linhas com 32 ou 45 campos, em vez de uma estrutura uniforme de 45 colunas. Portanto, não foi possível confirmar limites de registros nem mapear todos os valores sem risco de deslocar campos.
+
+### Decisão de segurança e dados
+**Nenhuma importação foi executada:** não houve conexão de leitura/escrita com o banco de produção, `importar_vendas` não foi chamado e nenhum registro de venda ou de histórico de importação foi criado. Nenhum nome, documento, número de série ou outro dado por linha foi copiado para este registro.
+
+O importador atual não representa de forma estruturada todos os campos operacionais deste relatório (por exemplo, dados de arma, autorizações, guias e contrato). Não se deve convertê-lo automaticamente para o formato antigo sem definir como esses campos devem ser preservados e qual regra identifica uma venda para evitar duplicatas.
+
+### Próxima etapa pendente
+Aguardando o usuário escolher entre (1) enviar o relatório `.xlsx` no layout de vendas já aceito pela aplicação; ou (2) confirmar o escopo para criar um importador dedicado para este CSV, incluindo as regras de agrupamento/identificação das vendas e o tratamento dos campos extras. Até essa definição, o arquivo permanece apenas pré-validado e não importado.
