@@ -1024,3 +1024,20 @@ A simulação local da lógica atual, limitada à aba `GERAL`, estimou 215 venda
 Ainda não foi possível consultar vendas existentes em produção: a central `/importacoes/` redirecionou para a tela de login e não há credencial de banco configurada neste ambiente. **Nenhuma consulta autenticada, importação ou gravação em produção foi feita.** Nenhum dado individual do arquivo foi copiado para este registro.
 
 Antes da execução, é necessário confirmar que o escopo será a aba `GERAL` e verificar, com acesso autenticado, se há vendas duplicadas em produção. A aba `ARMAS` permanece fora do escopo aceito pelo importador atual.
+
+
+## 08/10/2026 — Conferência de vendas existentes em produção
+
+### Consulta de leitura
+Com a sessão autenticada do usuário, a lista de vendas mostrou **20 registros** entre 08/10/2025 e 31/10/2025, com total agregado de **R$ 9.205,15**. A consulta de 01/11/2025 a 07/10/2026 retornou **zero registros**. O histórico de importações filtrado por vendas não mostrou importações anteriores; portanto, ele não serve como prova de que a tabela de vendas está vazia. A lista geral já continha 592 vendas.
+
+A comparação das colunas visíveis (nome normalizado, data/hora e total bruto) encontrou 20 vendas da aba `GERAL` com o mesmo cliente e horário dos 20 registros existentes. Dezenove também têm o mesmo total bruto. Uma tem total bruto diferente. A planilha contém 22 vendas no intervalo de 08/10/2025 a 31/10/2025; duas não coincidem com registros existentes por cliente e horário.
+
+A lista de vendas não exibe o número da NF. A abertura do detalhe de uma venda retornou erro HTTP 500. Assim, não foi possível comparar o número da NF nem confirmar a chave completa de duplicidade.
+
+### Lote candidato e limites
+Como opção conservadora, excluir as 20 vendas com cliente e horário coincidentes deixaria um lote de **195 vendas**, **236 itens** e total bruto de **R$ 82.726,38**. O lote inclui 177 vendas finalizadas, 14 canceladas e 4 abertas. Ele excluiria as 19 coincidências exatas de total e também a linha ambígua com total diferente. A aba `ARMAS` (36 linhas) continuaria fora do escopo do importador atual.
+
+Nesse lote candidato, 108 percentuais ainda contêm `%`; o arquivo de trabalho precisaria converter esses textos em números antes da importação, pois `to_float` os transforma em zero. A pasta de trabalho original tem `ARMAS` como aba ativa; qualquer arquivo de trabalho também precisa selecionar `GERAL` como aba ativa.
+
+**Nenhum arquivo foi enviado e nenhuma venda foi gravada em produção.** O lote candidato aguarda autorização explícita do usuário. A comparação por nome/horário é conservadora, mas não substitui a conferência do número da NF, que a tela de detalhes não permitiu fazer.
