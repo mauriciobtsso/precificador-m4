@@ -171,7 +171,7 @@
         .cat-search-input {
             width: 100%;
             height: 44px;
-            padding: 0 44px 0 16px;
+            padding: 0 52px 0 16px;
             background-color: var(--c-light);
             border: 1.5px solid transparent;
             border-radius: 22px;
@@ -192,14 +192,30 @@
         .cat-search-input::-webkit-input-placeholder { color: var(--c-mid); }
         .cat-search-input::placeholder { color: var(--c-mid); }
 
-        .cat-search-icon {
+        .cat-search-submit {
             position: absolute;
-            right: 14px;
-            top: 50%;
-            -webkit-transform: translateY(-50%);
-            transform: translateY(-50%);
+            right: 0;
+            top: 0;
+            width: 44px;
+            height: 44px;
             color: var(--c-mid);
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+        }
+
+        .cat-search-submit .cat-search-icon {
+            position: static;
+            color: inherit;
             font-size: 16px;
+            -webkit-transform: none;
+            transform: none;
             pointer-events: none;
         }
 
@@ -747,11 +763,14 @@
             <span class="cat-label">Catálogo</span>
 
             {# Campo de busca — protagonista da interface #}
-            <div class="cat-search-wrap" role="search">
+            <form class="cat-search-wrap" role="search" method="get" action="{{ url_for('catalogo.index') }}" id="catSearchForm">
                 <input
                     type="search"
                     id="catSearchInput"
                     class="cat-search-input"
+                    name="q"
+                    value="{{ request.args.get('q', '') }}"
+                    maxlength="120"
                     placeholder="Pesquisar produto, calibre, marca…"
                     autocomplete="off"
                     autocorrect="off"
@@ -761,12 +780,17 @@
                     aria-autocomplete="list"
                     aria-controls="catSearchResults"
                 >
-                <i class="bi bi-search cat-search-icon" aria-hidden="true"></i>
+                {% if request.args.get('calibre') %}
+                <input type="hidden" name="calibre" value="{{ request.args.get('calibre') }}">
+                {% endif %}
+                <button type="submit" class="cat-search-submit" aria-label="Pesquisar">
+                    <i class="bi bi-search cat-search-icon" aria-hidden="true"></i>
+                </button>
 
                 <div id="catSearchResults" class="cat-search-results" role="listbox" aria-label="Resultados da busca">
                     {# preenchido dinamicamente via JS #}
                 </div>
-            </div>
+            </form>
 
             <div class="cat-search-backdrop" id="catSearchBackdrop"></div>
 
@@ -923,6 +947,12 @@
         backdrop.addEventListener('click', hideResults);
 
         input.addEventListener('keydown', function (e) {
+            if (e.keyCode === 13) {
+                e.preventDefault();
+                hideResults();
+                if (input.form) input.form.submit();
+                return;
+            }
             if (e.key === 'Escape' || e.keyCode === 27) {
                 hideResults();
                 input.blur();

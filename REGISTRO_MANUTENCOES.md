@@ -1057,3 +1057,16 @@ Após renovar o login, consultas somente de leitura confirmaram que a base conti
 A tela de login aberta posteriormente após demora exibiu `400 Bad Request — The CSRF token has expired`. Foi aberta uma página de login nova e o usuário autenticou-se; a mensagem CSRF referia-se à página de login expirada e não foi possível confirmar que tenha sido a causa do HTTP 500 da importação.
 
 **Estado final:** importação pendente. Não reenviar o arquivo até que a causa do erro de produção seja investigada. Não houve alteração de aplicação ou de dados de produção nesta etapa. A cópia temporária de trabalho foi removida após as verificações; o arquivo original do usuário foi preservado.
+
+## 09/10/2026 — Correção da busca e filtro por calibre em /catalogo
+### Diagnóstico
+No campo principal da página, o JavaScript copiava o texto para a busca do cabeçalho e chamava o foco desse outro campo. Isso provocava o salto observado no iPad Mini. O cabeçalho não era um formulário de busca e seu tratamento de teclado cuidava apenas de Escape; por isso, Enter podia deixar o usuário apenas no fluxo de sugestões, sem abrir resultados completos. O catálogo também não tinha filtro direto por calibre.
+### Alterações
+- Removida a transferência de foco e sincronização entre a busca principal e a busca do cabeçalho. O foco permanece no campo que o usuário tocou.
+- Busca principal e cabeçalho agora enviam um formulário GET ao catálogo. Enter envia a busca diretamente, inclusive no Safari antigo do iPad Mini, sem depender de `requestSubmit`.
+- A busca completa exige todos os termos, mas permite que cada um corresponda a campos diferentes, como nome/categoria e calibre. Inclui produto, código, descrição, marca, categoria e calibre, com variações como `9mm`, `9 mm` e `9-mm`.
+- Adicionado seletor com os calibres que possuem produtos visíveis. Ele pode ser combinado com o termo da busca, preserva a consulta ao filtrar e mostra resultados completos paginados.
+- As sugestões rápidas do campo de cabeçalho continuam disponíveis; Enter nesse campo agora abre os resultados completos.
+### Validação e limites
+Foram adicionados cinco testes de regressão para envio por formulário sem troca de foco, busca de termos em campos distintos, filtro isolado por calibre, combinação de busca e calibre e API de sugestões. A suíte completa passou: **88 testes aprovados**. Também passaram a compilação Python e `git diff --check`. O teste emitiu um aviso do Flask-Limiter sobre armazenamento em memória no ambiente de teste; não houve falha.
+Nenhuma alteração de esquema ou de dados de produção foi feita. A publicação e a verificação do catálogo público ficam para a etapa seguinte.

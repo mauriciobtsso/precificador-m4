@@ -9,7 +9,7 @@ import re
 import unicodedata
 from pathlib import Path
 from flask import Response, render_template, request, jsonify, abort, current_app
-from sqlalchemy import or_, func
+from sqlalchemy import and_, or_, func
 from sqlalchemy.orm import joinedload, subqueryload
 
 from app.catalogo import catalogo_bp
@@ -49,56 +49,54 @@ def _gerador_link(path: str) -> str:
 
 
 # ────────────────────────────────────────────────────────────
-# HELPER: normaliza termos de busca para tolerância a variações
-# Ex: "9mm" == "9 MM" == "9-mm"
+# BUSCA: todos os termos podem corresponder a campos diferentes.
+# Ex.: "pistola 9mm" encontra a categoria/nome e o calibre.
 # ────────────────────────────────────────────────────────────
 def _normalizar_termo(termo: str) -> str:
-    """Remove acentos, converte para minúsculas, colapsa separadores."""
+    """Remove acentos, converte para minúsculas e colapsa separadores."""
     termo = unicodedata.normalize('NFKD', termo).encode('ascii', 'ignore').decode('ascii')
-    termo = termo.lower().strip()
-    # Colapsa espaços, hífens, pontos, underscores em espaço único
-    termo = re.sub(r'[\s\-_\.]+', ' ', termo)
-    return termo
+    return re.sub(r'[\s\-_\.]+', ' ', termo.lower().strip())
 
 
-def _build_search_conditions(termo: str):
-    """
-    Monta condições OR tolerantes para busca.
-    Gera múltiplos padrões ILIKE para cobrir variações do termo.
-    """
-    normalizado = _normalizar_termo(termo)
-    # Gera variantes: com espaço, sem espaço, com hífen
-    variantes = {normalizado}
-    sem_espaco = normalizado.replace(' ', '')
-    if sem_espaco != normalizado:
-        variantes.add(sem_espaco)
-    com_hifen = normalizado.replace(' ', '-')
-    if com_hifen != normalizado:
-        variantes.add(com_hifen)
+def _build_search_filter(termo: str):
+    """Exige cada palavra da busca, permitindo que esteja em campos distintos."""
+    campos = (
+        Produto.nome,
+        Produto.nome_comercial,
+        Produto.codigo,
+        Produto.descricao,
+        Produto.tags_palavras_chave,
+        Produto.descricao_comercial,
+        CalibreProduto.nome,
+        MarcaProduto.nome,
+        CategoriaProduto.nome,
+    )
+    condicoes_por_termo = []
+    tokens_brutos = re.findall(r'\S+', (termo or '').strip())[:8]
 
-    condicoes = []
-    for v in variantes:
-        filtro = f"%{v}%"
-        condicoes.extend([
-            Produto.nome.ilike(filtro),
-            Produto.nome_comercial.ilike(filtro),
-            Produto.codigo.ilike(filtro),
-            Produto.descricao.ilike(filtro),
-            Produto.tags_palavras_chave.ilike(filtro),
-            Produto.descricao_comercial.ilike(filtro),
-        ])
+    for token_bruto in tokens_brutos:
+        token_normalizado = _normalizar_termo(token_bruto)
+        partes = token_normalizado.split()
+        for parte in partes:
+            variantes = {parte}
+            token_original = token_bruto.strip('.,;:()[]{}"\'')
+            if token_original:
+                variantes.add(token_original)
 
-    # Busca também no termo original (com acentos, case-insensitive)
-    filtro_original = f"%{termo}%"
-    condicoes.extend([
-        Produto.nome.ilike(filtro_original),
-        Produto.nome_comercial.ilike(filtro_original),
-        Produto.codigo.ilike(filtro_original),
-        Produto.descricao.ilike(filtro_original),
-        Produto.tags_palavras_chave.ilike(filtro_original),
-    ])
+            # Permite equivalência entre 9mm, 9 mm e 9-mm.
+            numero_letras = re.match(r'^(\d+)([a-z]+)$', parte)
+            if numero_letras:
+                variantes.add(numero_letras.group(1) + ' ' + numero_letras.group(2))
+                variantes.add(numero_letras.group(1) + '-' + numero_letras.group(2))
 
-    return condicoes
+            por_campo = []
+            for variante in variantes:
+                escapada = variante.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+                padrao = '%' + escapada + '%'
+                por_campo.extend(campo.ilike(padrao, escape='\\') for campo in campos)
+            condicoes_por_termo.append(or_(*por_campo))
+
+    return and_(*condicoes_por_termo) if condicoes_por_termo else None
 
 
 # ────────────────────────────────────────────────────────────
@@ -177,6 +175,56 @@ def index():
     Página inicial do catálogo de atendimento.
     Exibe: campo de busca, categorias, destaques, lançamentos, promoções.
     """
+    termo_busca = request.args.get('q', '').strip()[:120]
+    calibre_raw = request.args.get('calibre', '').strip()
+    try:
+        calibre_id = int(calibre_raw) if calibre_raw else None
+        if calibre_id is not None and calibre_id < 1:
+            calibre_id = None
+    except (TypeError, ValueError):
+        calibre_id = None
+
+    calibres = CalibreProduto.query.join(
+        Produto, Produto.calibre_id == CalibreProduto.id
+    ).filter(
+        Produto.visivel_loja == True
+    ).distinct().order_by(CalibreProduto.nome.asc()).all()
+
+    busca_ativa = bool(termo_busca or calibre_id)
+    if busca_ativa:
+        consulta = Produto.query.outerjoin(Produto.calibre_rel)\
+            .outerjoin(Produto.marca_rel)\
+            .outerjoin(Produto.categoria)\
+            .filter(Produto.visivel_loja == True)
+
+        if termo_busca:
+            consulta = consulta.filter(_build_search_filter(termo_busca))
+        if calibre_id:
+            consulta = consulta.filter(Produto.calibre_id == calibre_id)
+
+        pagina = request.args.get('page', 1, type=int)
+        resultados = consulta.options(
+            joinedload(Produto.marca_rel),
+            joinedload(Produto.categoria),
+            joinedload(Produto.calibre_rel),
+        ).order_by(
+            Produto.destaque_home.desc(),
+            Produto.criado_em.desc(),
+        ).paginate(page=pagina, per_page=24, error_out=False)
+
+        return render_template(
+            'catalogo/index.html',
+            destaques=[],
+            lancamentos=[],
+            promocoes=[],
+            gerar_link=_gerador_link,
+            catalogo_calibres=calibres,
+            search_active=True,
+            search_query=termo_busca,
+            calibre_selecionado=str(calibre_id or ''),
+            search_pagination=resultados,
+        )
+
     opts = (joinedload(Produto.marca_rel), joinedload(Produto.categoria))
 
     # Destaques (destaque_home=True)
@@ -217,6 +265,11 @@ def index():
         lancamentos=lancamentos,
         promocoes=promocoes,
         gerar_link=_gerador_link,
+        catalogo_calibres=calibres,
+        search_active=False,
+        search_query='',
+        calibre_selecionado='',
+        search_pagination=None,
     )
 
 
@@ -303,29 +356,20 @@ def api_buscar():
     Busca tolerante: normaliza acentuação, maiúsculas, separadores.
     Busca em: nome, nome_comercial, codigo, descricao, tags, calibre, marca, categoria.
     """
-    termo = request.args.get('q', '').strip()
+    termo = request.args.get('q', '').strip()[:120]
 
     if len(termo) < 2:
         return jsonify({'produtos': [], 'total': 0})
 
     try:
-        condicoes = _build_search_conditions(termo)
-
-        # Busca por calibre (JOIN)
-        filtro_calibre = f"%{_normalizar_termo(termo)}%"
-        filtro_calibre_orig = f"%{termo}%"
+        filtro_busca = _build_search_filter(termo)
 
         produtos = Produto.query.outerjoin(Produto.calibre_rel)\
             .outerjoin(Produto.marca_rel)\
             .outerjoin(Produto.categoria)\
             .filter(
                 Produto.visivel_loja == True,
-                or_(
-                    *condicoes,
-                    CalibreProduto.nome.ilike(filtro_calibre_orig),
-                    MarcaProduto.nome.ilike(filtro_calibre_orig),
-                    CategoriaProduto.nome.ilike(filtro_calibre_orig),
-                )
+                filtro_busca,
             ).options(
                 joinedload(Produto.marca_rel),
                 joinedload(Produto.categoria),

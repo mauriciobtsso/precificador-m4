@@ -77,6 +77,122 @@
         pointer-events: none;
     }
 
+    .cat-hero-search-submit {
+        position: absolute;
+        right: 6px;
+        top: 6px;
+        width: 44px;
+        height: 44px;
+        color: var(--c-gold-dark);
+        font-size: 20px;
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+        -webkit-box-pack: center;
+        -webkit-justify-content: center;
+        justify-content: center;
+    }
+
+    .cat-filter-form {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-flex-wrap: wrap;
+        flex-wrap: wrap;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+        padding: 12px 14px;
+        margin: 0 0 16px;
+        border: 1px solid var(--c-border);
+        border-radius: var(--radius-md);
+        background: var(--c-surface);
+    }
+
+    .cat-filter-label {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--c-dark);
+        margin-right: 12px;
+    }
+
+    .cat-filter-select {
+        -webkit-box-flex: 1;
+        -webkit-flex: 1;
+        flex: 1;
+        min-width: 180px;
+        height: 44px;
+        padding: 0 12px;
+        border: 1px solid var(--c-border);
+        border-radius: var(--radius-sm);
+        background: var(--c-white);
+        color: var(--c-dark);
+        font: inherit;
+    }
+
+    .cat-filter-submit {
+        min-height: 44px;
+        padding: 0 18px;
+        margin-left: 10px;
+        border-radius: var(--radius-sm);
+        background: var(--c-dark);
+        color: var(--c-white);
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .cat-filter-clear {
+        display: inline-block;
+        min-height: 44px;
+        line-height: 44px;
+        padding: 0 12px;
+        color: var(--c-mid);
+        font-size: 14px;
+        text-decoration: underline;
+    }
+
+    .cat-search-page {
+        padding-top: 24px;
+    }
+
+    .cat-search-page-title {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+    .cat-search-page-summary {
+        margin: 0 0 16px;
+        color: var(--c-mid);
+        font-size: 14px;
+    }
+
+    .cat-search-pagination {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+        -webkit-box-pack: center;
+        -webkit-justify-content: center;
+        justify-content: center;
+        padding: 20px 0;
+    }
+
+    .cat-search-pagination > * + * { margin-left: 12px; }
+
+    @media (max-width: 520px) {
+        .cat-filter-form { display: block; }
+        .cat-filter-label { display: block; margin: 0 0 6px; }
+        .cat-filter-select { display: block; width: 100%; min-width: 0; }
+        .cat-filter-submit { display: block; width: 100%; margin: 8px 0 0; }
+        .cat-filter-clear { display: block; text-align: center; }
+    }
+
     /* ── CHIPS ─────────────────────────────────────────────── */
     .cat-chips-section {
         padding: 0 0 4px;
@@ -301,11 +417,14 @@
     <h1 class="cat-hero-title">Catálogo de Atendimento</h1>
     <p class="cat-hero-sub">Pesquise qualquer produto, fabricante ou calibre</p>
 
-    <div class="cat-hero-search-wrap" role="search">
+    <form class="cat-hero-search-wrap" role="search" method="get" action="{{ url_for('catalogo.index') }}">
         <input
             type="search"
             id="catHeroSearch"
             class="cat-hero-search-input"
+            name="q"
+            value="{{ search_query }}"
+            maxlength="120"
             placeholder="Ex: Glock, 9mm, pistola, carregador…"
             autocomplete="off"
             autocorrect="off"
@@ -313,9 +432,82 @@
             spellcheck="false"
             aria-label="Pesquisar produtos"
         >
-        <i class="bi bi-search cat-hero-search-icon" aria-hidden="true"></i>
-    </div>
+        {% if calibre_selecionado %}
+        <input type="hidden" name="calibre" value="{{ calibre_selecionado }}">
+        {% endif %}
+        <button type="submit" class="cat-hero-search-submit" aria-label="Pesquisar">
+            <i class="bi bi-search" aria-hidden="true"></i>
+        </button>
+    </form>
 </section>
+
+<form class="cat-filter-form" method="get" action="{{ url_for('catalogo.index') }}" aria-label="Filtrar produtos por calibre">
+    {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+    <label class="cat-filter-label" for="catCalibreFilter">Filtrar por calibre</label>
+    <select class="cat-filter-select" id="catCalibreFilter" name="calibre">
+        <option value="">Todos os calibres</option>
+        {% for calibre in catalogo_calibres %}
+        <option value="{{ calibre.id }}"{% if calibre_selecionado == calibre.id|string %} selected{% endif %}>{{ calibre.nome }}</option>
+        {% endfor %}
+    </select>
+    <button class="cat-filter-submit" type="submit">Filtrar</button>
+    {% if search_active %}<a class="cat-filter-clear" href="{{ url_for('catalogo.index') }}">Limpar busca e filtros</a>{% endif %}
+</form>
+
+{% if search_active %}
+<section class="cat-search-page" aria-live="polite">
+    <h2 class="cat-search-page-title">Resultados da pesquisa</h2>
+    <p class="cat-search-page-summary">
+        {{ search_pagination.total }} produto{% if search_pagination.total != 1 %}s{% endif %}
+        {% if search_query %} para “{{ search_query }}”{% endif %}.
+        {% if calibre_selecionado %} O filtro por calibre está aplicado.{% endif %}
+    </p>
+    {% if search_pagination.items %}
+    <ul class="cat-grid" role="list">
+        {% for p in search_pagination.items %}
+        <li class="cat-grid-item" role="listitem">
+            {% set thumb = convert_thumb_url(p.foto_url, 't280') if p.foto_url else '/static/img/placeholder.jpg' %}
+            {% set fallback = convert_image_url(p.foto_url) if p.foto_url else '/static/img/placeholder.jpg' %}
+            <a href="{{ url_for('catalogo.produto', slug=p.slug) }}" class="cat-product-card" aria-label="{{ p.nome_comercial or p.nome }}">
+                <div class="cat-product-img">
+                    <img src="{{ thumb }}" alt="{{ p.nome_comercial or p.nome }}" loading="lazy" onerror="this.onerror=function(){this.onerror=null;this.src='/static/img/placeholder.jpg';};this.src='{{ fallback }}';">
+                </div>
+                <div class="cat-product-body">
+                    {% if p.marca_rel %}<span class="cat-product-marca">{{ p.marca_rel.nome }}</span>{% endif %}
+                    <span class="cat-product-nome">{{ p.nome_comercial or p.nome }}</span>
+                    {% if p.calibre_rel %}
+                    <span class="cat-product-meta">{{ p.calibre_rel.nome }}</span>
+                    {% elif p.categoria %}
+                    <span class="cat-product-meta">{{ p.categoria.nome }}</span>
+                    {% endif %}
+                    {% if p.preco_a_vista %}
+                    <span class="cat-product-preco">R$ {{ "{:,.2f}".format(p.preco_a_vista | float).replace(',','X').replace('.',',').replace('X','.') }}</span>
+                    {% endif %}
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="cat-empty">
+        <div class="cat-empty-title">Nenhum produto encontrado</div>
+        <div class="cat-empty-text">Tente outro termo ou escolha um calibre diferente.</div>
+    </div>
+    {% endif %}
+
+    {% if search_pagination.pages > 1 %}
+    <nav class="cat-search-pagination" aria-label="Páginas dos resultados">
+        {% if search_pagination.has_prev %}
+        <a class="cat-chip" href="{{ url_for('catalogo.index', q=search_query or None, calibre=calibre_selecionado or None, page=search_pagination.prev_num) }}">Anterior</a>
+        {% endif %}
+        <span class="cat-search-page-summary">Página {{ search_pagination.page }} de {{ search_pagination.pages }}</span>
+        {% if search_pagination.has_next %}
+        <a class="cat-chip" href="{{ url_for('catalogo.index', q=search_query or None, calibre=calibre_selecionado or None, page=search_pagination.next_num) }}">Próxima</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% else %}
 
 {# ── CHIPS DE CATEGORIA ─────────────────────────────────────────── #}
 <section class="cat-chips-section" aria-label="Filtros por categoria">
@@ -468,6 +660,8 @@
         {% endfor %}
     </ul>
 </section>
+{% endif %}
+
 {% endif %}
 
 {% endblock %}
@@ -714,21 +908,14 @@
         }(chips[ci])));
     }
 
-    // ── Hero Search → sincroniza com busca do header ─────────
+    // A busca principal mantém o foco no próprio campo no Safari/iOS 9.
     var heroInput  = document.getElementById('catHeroSearch');
-    var headInput  = document.getElementById('catSearchInput');
-    var headResults = document.getElementById('catSearchResults');
-    var headBackdrop = document.getElementById('catSearchBackdrop');
-
-    if (heroInput && headInput) {
-        heroInput.addEventListener('input', function () {
-            headInput.value = this.value;
-            headInput.dispatchEvent(new Event('input'));
-        });
-
-        heroInput.addEventListener('focus', function () {
-            // Ao focar no hero, delega para o input do header
-            setTimeout(function () { headInput.focus(); }, 0);
+    if (heroInput) {
+        heroInput.addEventListener('keydown', function (e) {
+            if (e.keyCode === 13) {
+                e.preventDefault();
+                if (heroInput.form) heroInput.form.submit();
+            }
         });
     }
 
