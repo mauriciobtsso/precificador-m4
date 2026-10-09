@@ -1070,3 +1070,6 @@ No campo principal da página, o JavaScript copiava o texto para a busca do cabe
 ### Validação e limites
 Foram adicionados cinco testes de regressão para envio por formulário sem troca de foco, busca de termos em campos distintos, filtro isolado por calibre, combinação de busca e calibre e API de sugestões. A suíte completa passou: **88 testes aprovados**. Também passaram a compilação Python e `git diff --check`. O teste emitiu um aviso do Flask-Limiter sobre armazenamento em memória no ambiente de teste; não houve falha.
 Nenhuma alteração de esquema ou de dados de produção foi feita. A publicação e a verificação do catálogo público ficam para a etapa seguinte.
+
+### Publicação e verificação — 09/10/2026
+O commit `b7e2110` foi enviado à branch `main`. Após a publicação, uma requisição GET sem cache para `/catalogo/` respondeu **HTTP 200**. A página de resultados apresentou o formulário principal, o seletor de calibre, o estado de nenhum resultado para um termo de teste e não continha mais a transferência de foco para `headInput`. A primeira checagem por método HEAD retornou 502 transitório; a verificação final pelo GET, que é o método usado pela tela, passou. Nenhum dado de produção foi alterado.
