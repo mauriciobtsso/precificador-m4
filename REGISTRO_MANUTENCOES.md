@@ -1117,3 +1117,13 @@ Foi identificado o serviço Web `precificador-m4`, conectado ao repositório `ma
 Foi criado `Dockerfile` baseado em `python:3.12-slim-bookworm`, instalando `tesseract-ocr`, dados `eng` e `por`, `poppler-utils` e certificados. A imagem define `TESSERACT_CMD=/usr/bin/tesseract` e `POPPLER_PATH=/usr/bin`, valida durante o build os idiomas/binários e executa o Gunicorn como usuário não privilegiado, mantendo `gunicorn run:app`. O `.dockerignore` impede que `.env`, bancos, dumps, backups, logs, uploads locais, PDFs e planilhas pessoais do checkout sejam enviados no contexto da imagem; a regra de uploads foi limitada à pasta local da raiz para preservar o código Python em `app/uploads`.
 ### Validação e estado
 No Sandbox, foram instalados os binários equivalentes e confirmados Tesseract 5.3.4, idiomas `eng`/`por`, `pdfinfo` e `pdftoppm`. Um PDF sintético em português foi convertido via Poppler e reconhecido via Tesseract (`DOCUMENTO`, `TITULAR`, `CALIBRE`, `9 MM`), sem usar documentos reais nem chamar provedores externos. As verificações estáticas do Dockerfile/contexto e `git diff --check` passaram. O Sandbox não dispõe de Docker daemon; portanto a compilação efetiva da imagem será validada pelo build do Render. Nesta etapa, o runtime de produção ainda não foi alterado; a troca ocorrerá após publicar estes arquivos e confirmar o deploy Docker.
+
+
+## 09/10/2026 — Migração Docker do Render concluída
+
+### Resultado
+- O serviço `precificador-m4` agora usa Docker com `./Dockerfile` e contexto `.`. A branch `main`, a região Oregon, o plano Free, uma instância e o deploy automático por commit foram mantidos.
+- O commit `4b7aec0` concluiu o build e o deploy. O deploy `dep-db4kugnlot8c73begulg` terminou como **live** em `2026-10-09T20:33:27Z`.
+- O build concluiu sem falhas. As verificações da imagem confirmaram Tesseract em `/usr/bin/tesseract`, os idiomas `eng` e `por`, `pdfinfo` e `pdftoppm`.
+- Uma requisição GET ao endereço público `https://precificador-m4.onrender.com/` retornou **HTTP 200** e terminou na tela de login. Nenhuma conta foi acessada e nenhum dado de produção foi alterado.
+- Nenhum documento real foi enviado. Não foi feito upload de teste OCR em produção. O teste com PDF sintético descrito acima foi executado no Sandbox. Portanto, o build e a presença dos binários OCR estão confirmados, mas o fluxo completo de upload OCR em produção ainda não foi testado.
