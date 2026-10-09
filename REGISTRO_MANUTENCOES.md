@@ -1086,3 +1086,6 @@ O commit `b7e2110` foi enviado à branch `main`. Após a publicação, uma requi
 - Criados cinco testes sintéticos para saída A4 de uma página, limite de páginas, download/preview, associação ao cliente e exigência de login. Nenhum arquivo pessoal do anexo foi usado nos testes.
 - Suíte completa: **93 testes aprovados**. Também passaram compilação Python e `git diff --check`. Permaneceu apenas o aviso já conhecido do Flask-Limiter sobre armazenamento de limites em memória no ambiente de teste.
 - Não houve alteração de esquema, gravação no banco, persistência do PDF derivado ou mudança dos documentos originais.
+
+### Publicação e verificação — 09/10/2026
+O commit `5003cab` foi enviado à branch `main`. Após o deploy automático, uma requisição GET à rota POST-only com ID inexistente respondeu **HTTP 405**, confirmando que a rota foi registrada; não foi acessado cadastro nem arquivo de cliente. O repositório permaneceu sincronizado com `origin/main` após a publicação.
