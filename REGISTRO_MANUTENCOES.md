@@ -1073,3 +1073,16 @@ Nenhuma alteração de esquema ou de dados de produção foi feita. A publicaç�
 
 ### Publicação e verificação — 09/10/2026
 O commit `b7e2110` foi enviado à branch `main`. Após a publicação, uma requisição GET sem cache para `/catalogo/` respondeu **HTTP 200**. A página de resultados apresentou o formulário principal, o seletor de calibre, o estado de nenhum resultado para um termo de teste e não continha mais a transferência de foco para `headInput`. A primeira checagem por método HEAD retornou 502 transitório; a verificação final pelo GET, que é o método usado pela tela, passou. Nenhum dado de produção foi alterado.
+
+
+## 09/10/2026 — Geração de ficha compacta de documentos para o TD
+### Implementação
+- Adicionada à aba Documentos do cadastro uma ficha de seleção de CNH, CR e CRAF associado à arma escolhida, disponível apenas para usuário administrativo autenticado.
+- A ação oferece pré-visualização em nova aba e download de uma composição A4 de uma página, com confirmação manual de titularidade, validade e vínculo do CRAF antes de gerar.
+- Os arquivos PDF/JPG/PNG são lidos do armazenamento privado do cliente e compostos localmente, sem OCR, sem chamada a provedores externos, sem gravar uma cópia no storage e sem modificar/substituir os originais. O arquivo gerado não é enviado automaticamente ao Tiro Digital.
+- A rota exige login e CSRF, confere que cada documento pertence ao cliente e que o CRAF está vinculado à arma selecionada, limita cada arquivo a 15 MB e cada PDF-fonte a duas páginas, rejeitando arquivos que seriam truncados. A resposta não pode ser armazenada em cache e não contém nome/CPF no nome do arquivo.
+- Removidos dos logs do upload OCR os payloads extraídos e o caminho/nome do objeto. Os fluxos OCR preexistentes continuam usando os provedores já configurados; a nova ficha não os invoca.
+### Validação
+- Criados cinco testes sintéticos para saída A4 de uma página, limite de páginas, download/preview, associação ao cliente e exigência de login. Nenhum arquivo pessoal do anexo foi usado nos testes.
+- Suíte completa: **93 testes aprovados**. Também passaram compilação Python e `git diff --check`. Permaneceu apenas o aviso já conhecido do Flask-Limiter sobre armazenamento de limites em memória no ambiente de teste.
+- Não houve alteração de esquema, gravação no banco, persistência do PDF derivado ou mudança dos documentos originais.

@@ -109,7 +109,7 @@ def upload_craf(cliente_id):
         resultado = processar_documento(file_bytes, file.filename)
         dados_raw = resultado.get("resultado", {}) or {}
         
-        current_app.logger.info(f"[DEBUG OCR CRAF] Resultado OCR bruto: {dados_raw}")
+        current_app.logger.info("[OCR CRAF] Processamento concluído.")
 
         # ✅ Mapeamento para um dicionário plano
         dados_mapeados = {
@@ -129,7 +129,7 @@ def upload_craf(cliente_id):
             "nome_original": secure_filename(file.filename),
         }
 
-        current_app.logger.info(f"[DEBUG FLASK RESPONSE] Enviando JSON: {dados_mapeados}")
+        current_app.logger.info("[OCR CRAF] Resposta preparada; conteúdo documental omitido do log.")
         return jsonify(dados_mapeados)
 
     except Exception as e:
@@ -268,7 +268,7 @@ def upload_documento(cliente_id):
         key_r2 = None
         try:
             key_r2 = _upload_to_r2(file, cliente_id, "documentos")
-            current_app.logger.info(f"[UPLOAD OCR] Arquivo enviado ao R2: {key_r2}")
+            current_app.logger.info("[UPLOAD OCR] Arquivo enviado ao armazenamento privado.")
         except Exception as e:
             current_app.logger.warning(f"[UPLOAD OCR] Falha ao enviar ao R2: {e}")
             # Se falhar o R2, ainda podemos tentar retornar o OCR se for crítico, 
@@ -279,7 +279,11 @@ def upload_documento(cliente_id):
         if not resultado:
             raise RuntimeError("Nenhum resultado retornado pelo pipeline OCR")
 
-        current_app.logger.info(f"[UPLOAD OCR] Resultado OCR: {resultado}")
+        current_app.logger.info(
+            "[UPLOAD OCR] Processamento concluído (OCR=%s; interpretação=%s).",
+            resultado.get("ocr_engine", "desconhecido"),
+            resultado.get("engine", "desconhecida"),
+        )
 
         resposta = {
             "dados": resultado,
@@ -289,7 +293,7 @@ def upload_documento(cliente_id):
             "nome_original": filename,
         }
 
-        current_app.logger.info(f"[UPLOAD OCR] Retornando JSON: {resposta}")
+        current_app.logger.info("[UPLOAD OCR] Resposta preparada; dados extraídos omitidos do log.")
         return jsonify(resposta)
 
     except Exception as e:

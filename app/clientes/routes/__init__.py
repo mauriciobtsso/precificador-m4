@@ -12,3 +12,4 @@ from . import armas
 from . import processos
 from . import comunicacoes
 from . import api
+from . import ficha_documentos

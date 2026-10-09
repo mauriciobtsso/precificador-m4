@@ -285,6 +285,20 @@ def detalhe(cliente_id):
                 "descricao": ultima_com.assunto,
             })
 
+        def categoria_ficha(documento):
+            valor = (documento.categoria or documento.tipo or "").strip().upper()
+            if "CRAF" in valor:
+                return "CRAF"
+            if "CNH" in valor:
+                return "CNH"
+            if valor == "CR" or ("CERTIFICADO DE REGISTRO" in valor and "ARMA" not in valor):
+                return "CR"
+            return ""
+
+        documentos_cnh = [d for d in cliente.documentos if d.caminho_arquivo and categoria_ficha(d) == "CNH"]
+        documentos_cr = [d for d in cliente.documentos if d.caminho_arquivo and categoria_ficha(d) == "CR"]
+        armas_com_craf = [a for a in cliente.armas if a.caminho_craf]
+
         return render_template(
             "clientes/detalhe.html",
             cliente=cliente,
@@ -299,6 +313,9 @@ def detalhe(cliente_id):
             CATEGORIAS_ADQUIRENTE=CATEGORIAS_ADQUIRENTE,
             CATEGORIAS_DOCUMENTO=CATEGORIAS_DOCUMENTO,
             EMISSORES_DOCUMENTO=EMISSORES_DOCUMENTO,
+            documentos_cnh=documentos_cnh,
+            documentos_cr=documentos_cr,
+            armas_com_craf=armas_com_craf,
         )
     except Exception as e:
         current_app.logger.error(f"Erro ao carregar detalhe do cliente {cliente_id}: {e}")

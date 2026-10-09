@@ -123,6 +123,97 @@
   </div>
 </div>
 
+{% if current_user.is_authenticated %}
+<div class="card shadow-sm mb-4 border-primary-subtle">
+  <div class="card-header bg-white">
+    <h5 class="mb-0"><i class="fas fa-file-pdf me-2 text-primary"></i>Ficha compacta para o TD</h5>
+  </div>
+  <div class="card-body">
+    <p class="text-muted mb-3">
+      Selecione os arquivos já anexados. A ficha reúne CNH, CR e o CRAF da arma escolhida em uma página A4;
+      os originais permanecem intactos e não são reenviados ao OCR.
+    </p>
+
+    <form method="POST" action="{{ url_for('clientes.gerar_ficha_compacta', cliente_id=cliente.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-lg-4">
+          <label for="fichaCnhId" class="form-label fw-semibold">CNH</label>
+          <select class="form-select" id="fichaCnhId" name="cnh_id" required>
+            <option value="">Selecione a CNH</option>
+            {% for doc in documentos_cnh %}
+              <option value="{{ doc.id }}">
+                {{ doc.nome_original or ('Documento #' ~ doc.id) }}
+                {% if doc.data_validade %} — validade {{ doc.data_validade.strftime('%d/%m/%Y') }}{% endif %}
+              </option>
+            {% else %}
+              <option value="" disabled>Nenhuma CNH anexada</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-lg-4">
+          <label for="fichaCrId" class="form-label fw-semibold">Certificado de Registro (CR)</label>
+          <select class="form-select" id="fichaCrId" name="cr_id" required>
+            <option value="">Selecione o CR</option>
+            {% for doc in documentos_cr %}
+              <option value="{{ doc.id }}">
+                {{ doc.nome_original or ('Documento #' ~ doc.id) }}
+                {% if doc.data_validade %} — validade {{ doc.data_validade.strftime('%d/%m/%Y') }}{% endif %}
+              </option>
+            {% else %}
+              <option value="" disabled>Nenhum CR anexado</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-lg-4">
+          <label for="fichaArmaId" class="form-label fw-semibold">Arma / CRAF</label>
+          <select class="form-select" id="fichaArmaId" name="arma_id" required>
+            <option value="">Selecione a arma</option>
+            {% for arma in armas_com_craf %}
+              <option value="{{ arma.id }}">
+                Arma #{{ arma.id }} — {{ arma.modelo or arma.tipo or 'Arma cadastrada' }}
+                {% if arma.calibre %} — {{ arma.calibre }}{% endif %}
+                {% if arma.data_validade_craf %} — CRAF até {{ arma.data_validade_craf.strftime('%d/%m/%Y') }}{% endif %}
+              </option>
+            {% else %}
+              <option value="" disabled>Nenhum CRAF anexado a uma arma</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="alert alert-warning small mt-3 mb-3">
+        Confira visualmente os originais, inclusive titular/CPF, validade e correspondência do CRAF com a arma.
+        A composição reduz as páginas; verifique a legibilidade de textos e QR codes na prévia.
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" value="1" id="fichaConferida" name="confirmar_conferencia" required>
+        <label class="form-check-label" for="fichaConferida">
+          Conferi nos documentos originais que os arquivos selecionados correspondem a este cliente e à arma indicada.
+        </label>
+      </div>
+
+      {% set ficha_pronta = documentos_cnh|length > 0 and documentos_cr|length > 0 and armas_com_craf|length > 0 %}
+      <div class="d-flex flex-wrap gap-2">
+        <button type="submit" name="acao" value="visualizar" formtarget="_blank"
+                class="btn btn-outline-primary" {% if not ficha_pronta %}disabled{% endif %}>
+          <i class="fas fa-eye me-1"></i> Pré-visualizar ficha A4
+        </button>
+        <button type="submit" name="acao" value="baixar" class="btn btn-primary"
+                {% if not ficha_pronta %}disabled{% endif %}>
+          <i class="fas fa-download me-1"></i> Gerar e baixar PDF
+        </button>
+      </div>
+      {% if not ficha_pronta %}
+        <div class="form-text mt-2">Anexe uma CNH, um CR e o CRAF à arma correspondente para habilitar a geração.</div>
+      {% else %}
+        <div class="form-text mt-2">O PDF é gerado sob demanda, sem ser gravado novamente no armazenamento. Envio ao TD permanece manual.</div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% endif %}
+
 <!-- ====================== -->
 <!-- MODAL: NOVO DOCUMENTO -->
 <!-- ====================== -->
