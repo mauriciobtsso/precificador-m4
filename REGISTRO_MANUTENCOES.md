@@ -1127,3 +1127,21 @@ No Sandbox, foram instalados os binários equivalentes e confirmados Tesseract 5
 - O build concluiu sem falhas. As verificações da imagem confirmaram Tesseract em `/usr/bin/tesseract`, os idiomas `eng` e `por`, `pdfinfo` e `pdftoppm`.
 - Uma requisição GET ao endereço público `https://precificador-m4.onrender.com/` retornou **HTTP 200** e terminou na tela de login. Nenhuma conta foi acessada e nenhum dado de produção foi alterado.
 - Nenhum documento real foi enviado. Não foi feito upload de teste OCR em produção. O teste com PDF sintético descrito acima foi executado no Sandbox. Portanto, o build e a presença dos binários OCR estão confirmados, mas o fluxo completo de upload OCR em produção ainda não foi testado.
+
+
+## 09/10/2026 — Correção do modelo Groq usado no OCR
+
+### Causa
+O upload retornou `model_not_found` para `llama-3.1-8b-instant`. A documentação da Groq informa que esse modelo foi encerrado em 16/08/2026 e recomenda `openai/gpt-oss-20b` como substituto. Fontes: [descontinuações](https://console.groq.com/docs/deprecations) e [modelos suportados](https://console.groq.com/docs/models).
+
+### Correção
+O OCR agora usa `openai/gpt-oss-20b` como padrão. Se `GROQ_MODEL` ainda contiver o ID antigo, o código seleciona o substituto. O campo de motor da resposta e a documentação interna também foram atualizados. No Render, foi alterada somente a variável `GROQ_MODEL`; as outras variáveis foram preservadas. Nenhuma chave foi consultada ou alterada.
+
+A tabela oficial do plano Free lista `openai/gpt-oss-20b` com limites de referência de 30 requisições por minuto, 1.000 por dia, 8.000 tokens por minuto e 200.000 tokens por dia. Os limites exatos dependem da organização. Não foi ativado o plano Developer, cobrança ou método de pagamento. Fonte: [limites da Groq](https://console.groq.com/docs/rate-limits).
+
+### Validação e publicação
+A suíte completa passou: **101 testes aprovados**. Os testes novos simulam a resposta da Groq. Não fizeram chamada externa. `py_compile` e `git diff --check` também passaram. Permaneceu o aviso de teste já conhecido sobre o armazenamento em memória do Flask-Limiter.
+
+A atualização de `GROQ_MODEL` concluiu no deploy `dep-db4l5m0m7kps73c8igeg`. O commit `0c88659` foi enviado a `main` e concluiu o deploy `dep-db4l6a0ae00c73eig5l0` como **live** em `2026-10-09T20:49:24Z`. Depois do deploy, o endereço público respondeu **HTTP 200** e redirecionou para a tela de login.
+
+Nenhum documento de cliente foi usado nos testes e nenhum upload de teste foi feito em produção. A tentativa que falhou não é repetida automaticamente. Para preencher os campos, o OCR precisa ser executado de novo após esta correção; confira os dados no documento original.
