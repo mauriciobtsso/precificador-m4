@@ -325,7 +325,7 @@ def upload_documento(cliente_id):
         resposta = {
             "dados": resultado,
             "ocr_engine": resultado.get("ocr_engine", "local"),
-            "ia_engine": resultado.get("engine", "llama-3.1-8b-instant"),
+            "ia_engine": resultado.get("engine", "openai/gpt-oss-20b"),
             "caminho_arquivo": key_r2,
             "nome_original": filename,
         }

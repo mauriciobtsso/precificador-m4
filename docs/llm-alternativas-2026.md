@@ -27,3 +27,10 @@ Fontes: https://inference-docs.cerebras.ai/support/rate-limits ; https://www.cer
 ## Conclusão preliminar
 
 Para custo estritamente zero, manter o Groq no Free Plan é a opção mais simples no projeto atual. O problema de qualidade atual é principalmente o modelo configurado (`llama-3.1-8b-instant`) e o prompt, não necessariamente o provedor. Como alternativa a testar sem vincular billing, o Gemini Free Tier é o candidato mais forte em qualidade, mas exige conferir no AI Studio os limites do projeto e aceitar que prompts/respostas do Free Tier podem ser usados para melhoria dos produtos. OpenRouter é útil como fallback com limite baixo e qualidade variável; Cerebras não atende a operação gratuita permanente.
+
+
+## Atualização — 09/10/2026
+
+A Groq encerrou `llama-3.1-8b-instant` em 16/08/2026. A substituição recomendada para esse modelo é `openai/gpt-oss-20b`. A tabela atual de limites Free lista esse modelo com até 30 RPM, 1.000 RPD, 8.000 TPM e 200.000 TPD. Os limites exatos dependem da organização e devem ser conferidos no painel Groq. A mudança do modelo não exige habilitar o plano Developer; não foi configurada cobrança nem método de pagamento.
+
+Fontes oficiais: https://console.groq.com/docs/deprecations ; https://console.groq.com/docs/models ; https://console.groq.com/docs/rate-limits ; https://console.groq.com/docs/billing-faqs

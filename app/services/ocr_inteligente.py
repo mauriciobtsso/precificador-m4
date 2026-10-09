@@ -1,7 +1,7 @@
 # =====================================
 # OCR INTELIGENTE (via Groq LLM)
 # =====================================
-# Interpreta textos OCR com Llama 3.1-8B (Groq)
+# Interpreta textos OCR com o modelo Groq configurado para o ambiente.
 # Retorna um dicionário padronizado com campos de documento.
 
 import os
@@ -15,8 +15,19 @@ from datetime import datetime
 # Configurações
 # =====================================
 
+DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b"
+_DEPRECATED_GROQ_MODELS = {"llama-3.1-8b-instant"}
+
+
+def _resolve_groq_model(configured_model):
+    model = (configured_model or "").strip()
+    if not model or model in _DEPRECATED_GROQ_MODELS:
+        return DEFAULT_GROQ_MODEL
+    return model
+
+
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_MODEL = _resolve_groq_model(os.environ.get("GROQ_MODEL"))
 
 if not GROQ_API_KEY:
     raise RuntimeError("A variável de ambiente GROQ_API_KEY não está configurada.")

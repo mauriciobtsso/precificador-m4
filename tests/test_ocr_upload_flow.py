@@ -1,7 +1,7 @@
 from io import BytesIO
 from pathlib import Path
 
-from app.services import ocr_local, ocr_pipeline
+from app.services import ocr_inteligente, ocr_local, ocr_pipeline
 from app.uploads import routes as upload_routes
 
 
@@ -70,6 +70,52 @@ def test_upload_js_envia_csrf_sem_registrar_payloads_pessoais():
     assert "Retorno bruto" not in fonte
     assert "Normalizado para preenchimento" not in fonte
     assert 'toast.querySelector(".toast-body").textContent = mensagem' in fonte
+
+
+def test_modelo_groq_substitui_modelo_descontinuado():
+    assert ocr_inteligente._resolve_groq_model(None) == "openai/gpt-oss-20b"
+    assert (
+        ocr_inteligente._resolve_groq_model("llama-3.1-8b-instant")
+        == "openai/gpt-oss-20b"
+    )
+    assert (
+        ocr_inteligente._resolve_groq_model("qwen/qwen3.8-27b")
+        == "qwen/qwen3.8-27b"
+    )
+
+
+def test_interpretacao_ocr_envia_modelo_atual_sem_chamada_externa(monkeypatch):
+    chamada = {}
+
+    class RespostaSimulada:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {
+                "choices": [{
+                    "message": {
+                        "content": '{"categoria":"CNH","numero_documento":"12345678901"}'
+                    }
+                }]
+            }
+
+    def post_simulado(url, **kwargs):
+        chamada["url"] = url
+        chamada["payload"] = kwargs["json"]
+        return RespostaSimulada()
+
+    monkeypatch.setattr(ocr_inteligente, "GROQ_MODEL", "openai/gpt-oss-20b")
+    monkeypatch.setattr(ocr_inteligente.requests, "post", post_simulado)
+
+    resultado = ocr_inteligente.interpretar_documento(
+        "CARTEIRA NACIONAL DE HABILITACAO REGISTRO 12345678901"
+    )
+
+    assert chamada["url"] == "https://api.groq.com/openai/v1/chat/completions"
+    assert chamada["payload"]["model"] == "openai/gpt-oss-20b"
+    assert resultado["categoria"] == "CNH"
+    assert resultado["engine"] == "openai/gpt-oss-20b"
 
 
 def test_ocr_local_aplica_caminho_do_tesseract_configurado(app, monkeypatch):

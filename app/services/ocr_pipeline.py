@@ -18,7 +18,7 @@ def processar_documento(file_bytes: bytes, filename: str) -> dict:
     Faz OCR híbrido + IA e retorna JSON padronizado:
     {
       "ocr_engine": "ocr.space" | "local",
-      "ia_engine": "llama-3.1-8b-instant",
+      "ia_engine": "openai/gpt-oss-20b",
       "resultado": {...}
     }
     """
