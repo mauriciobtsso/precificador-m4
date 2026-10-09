@@ -1145,3 +1145,22 @@ A suíte completa passou: **101 testes aprovados**. Os testes novos simulam a re
 A atualização de `GROQ_MODEL` concluiu no deploy `dep-db4l5m0m7kps73c8igeg`. O commit `0c88659` foi enviado a `main` e concluiu o deploy `dep-db4l6a0ae00c73eig5l0` como **live** em `2026-10-09T20:49:24Z`. Depois do deploy, o endereço público respondeu **HTTP 200** e redirecionou para a tela de login.
 
 Nenhum documento de cliente foi usado nos testes e nenhum upload de teste foi feito em produção. A tentativa que falhou não é repetida automaticamente. Para preencher os campos, o OCR precisa ser executado de novo após esta correção; confira os dados no documento original.
+
+
+## 09/10/2026 — Correção do timeout 502 no upload OCR
+
+### Diagnóstico
+Os logs do Render mostram o arquivo chegando ao storage privado antes da etapa OCR. Em seguida, o worker do Gunicorn excedeu o timeout durante `pytesseract.image_to_string`, foi encerrado e reiniciado. O evento se repetiu nos registros entre 20:53Z e 20:58Z. Isso explica o 502 e a falta da janela de dados: o navegador recebeu a confirmação de envio ao storage, mas não recebeu a resposta final da rota. O Gunicorn usa timeout padrão de 30 segundos. A mensagem posterior “Perhaps out of memory?” não confirma falta de memória; o registro explícito foi `WORKER TIMEOUT`, sem evento Render de falha do serviço nesse intervalo. Fontes: [timeout do Gunicorn](https://docs.gunicorn.org/en/stable/settings.html#timeout), [background workers do Render](https://render.com/docs/background-workers) e [tarefas longas no Render](https://render.com/articles/how-to-trigger-a-long-running-task-from-a-web-service-on-render).
+
+### Correções
+- O pipeline OCR processa PDFs a 200 DPI e no máximo três páginas. A extração de texto embutido também respeita esse limite. PDFs maiores recebem um aviso visível de leitura parcial para que o usuário confira as páginas restantes.
+- O OCR local reduz imagens acima de 3.200 px no lado maior. O Tesseract recebe limites de 5 segundos para orientação e 15 segundos para OCR. A rasterização Poppler tem limite de 15 segundos. Se a leitura exceder os limites, o fluxo segue para contingência e pode abrir o preenchimento manual, em vez de deixar o worker sem resposta.
+- O fallback OCR externo tem limite de 20 segundos; a chamada Groq, 30 segundos. O Gunicorn no Docker aceita até 120 segundos para concluir a requisição com essa carga limitada.
+- A arquitetura atual continua síncrona. O Render recomenda um worker separado para tarefas longas; essa alternativa não foi implantada nesta correção. O aviso de páginas parciais e a revisão manual continuam importantes.
+
+### Validação e publicação
+A suíte completa passou: **106 testes aprovados**. Os novos testes cobrem os limites de página, os timeouts, a continuação manual e o aviso de documento parcial. Também passaram `py_compile` e `git diff --check`. Os testes não chamam Groq nem OCR externo e não usam documentos de clientes. Permaneceu o aviso conhecido do Flask-Limiter sobre armazenamento em memória no ambiente de teste.
+
+O commit `5f5ee61` foi enviado à branch `main`. O deploy Docker `dep-db4lfnmk1f9s7386gl5g` concluiu como **live** em `2026-10-09T21:09:32Z`. Os logs confirmaram o Gunicorn ouvindo na porta 10000 e iniciando o worker. Depois do deploy, o endereço público respondeu **HTTP 200** e redirecionou para a tela de login.
+
+Nenhum documento real foi reprocessado e nenhum objeto foi removido do R2. O log confirma que ao menos uma tentativa relatada foi armazenada antes do timeout; como a conexão terminou sem resposta, o formulário pode não ter recebido o caminho desse objeto. Uma nova tentativa poderá gravar outra cópia privada.
