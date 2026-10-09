@@ -21,7 +21,8 @@
       </button>
 
       <!-- Input oculto para upload -->
-      <input type="file" id="inputUploadOCR" class="d-none" accept="application/pdf,image/*">
+      <input type="file" id="inputUploadOCR" class="d-none"
+             accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
     </div>
   </div>
 
@@ -126,16 +127,23 @@
 {% if current_user.is_authenticated %}
 <div class="card shadow-sm mb-4 border-primary-subtle">
   <div class="card-header bg-white">
-    <h5 class="mb-0"><i class="fas fa-file-pdf me-2 text-primary"></i>Ficha compacta para o TD</h5>
+    <h5 class="mb-0"><i class="fas fa-file-pdf me-2 text-primary"></i>Documentos para o TD</h5>
   </div>
   <div class="card-body">
     <p class="text-muted mb-3">
-      Selecione os arquivos já anexados. A ficha reúne CNH, CR e o CRAF da arma escolhida em uma página A4;
-      os originais permanecem intactos e não são reenviados ao OCR.
+      Selecione os arquivos já anexados. O PDF legível reúne CNH, CR e o CRAF escolhido, mantendo cada página em uma folha A4;
+      também é possível gerar uma versão compacta de uma página, que reduz os documentos. Os originais permanecem intactos.
     </p>
 
     <form method="POST" action="{{ url_for('clientes.gerar_ficha_compacta', cliente_id=cliente.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3">
+        <label for="fichaFormato" class="form-label fw-semibold">Formato do PDF</label>
+        <select class="form-select" id="fichaFormato" name="formato">
+          <option value="legivel" selected>Legível — uma página A4 por página do documento (recomendado)</option>
+          <option value="compacta">Compacta — todos os documentos em uma página A4 horizontal</option>
+        </select>
+      </div>
       <div class="row g-3">
         <div class="col-lg-4">
           <label for="fichaCnhId" class="form-label fw-semibold">CNH</label>
@@ -184,7 +192,7 @@
 
       <div class="alert alert-warning small mt-3 mb-3">
         Confira visualmente os originais, inclusive titular/CPF, validade e correspondência do CRAF com a arma.
-        A composição reduz as páginas; verifique a legibilidade de textos e QR codes na prévia.
+        Na versão compacta, confirme também a legibilidade de textos e QR codes na prévia.
       </div>
       <div class="form-check mb-3">
         <input class="form-check-input" type="checkbox" value="1" id="fichaConferida" name="confirmar_conferencia" required>
@@ -197,7 +205,7 @@
       <div class="d-flex flex-wrap gap-2">
         <button type="submit" name="acao" value="visualizar" formtarget="_blank"
                 class="btn btn-outline-primary" {% if not ficha_pronta %}disabled{% endif %}>
-          <i class="fas fa-eye me-1"></i> Pré-visualizar ficha A4
+          <i class="fas fa-eye me-1"></i> Pré-visualizar PDF
         </button>
         <button type="submit" name="acao" value="baixar" class="btn btn-primary"
                 {% if not ficha_pronta %}disabled{% endif %}>

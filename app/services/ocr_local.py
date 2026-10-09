@@ -82,6 +82,20 @@ def _safe_get_env(name: str, default: Optional[str] = None) -> Optional[str]:
         return default
 
 
+def _configure_tesseract() -> None:
+    """Aplica o caminho configurado pelo Flask ou pela variável de ambiente."""
+    command = _safe_get_env("TESSERACT_CMD")
+    try:
+        from flask import current_app, has_app_context
+        if has_app_context():
+            command = current_app.config.get("TESSERACT_CMD") or command
+    except Exception:
+        pass
+
+    if command:
+        pytesseract.pytesseract.tesseract_cmd = command
+
+
 # ======================
 # Pré-processamento
 # ======================
@@ -314,6 +328,8 @@ def extract_text_local(
 
     if not file_bytes:
         raise ValueError("file_bytes não pode ser vazio.")
+
+    _configure_tesseract()
 
     header = file_bytes[:8]
     is_pdf = _looks_like_pdf(header, filename or "")

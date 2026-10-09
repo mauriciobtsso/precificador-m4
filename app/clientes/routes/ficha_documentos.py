@@ -11,6 +11,7 @@ from app.clientes.ficha_compacta import (
     FichaCompactaError,
     MAX_SOURCE_BYTES,
     montar_ficha_compacta,
+    montar_ficha_legivel,
 )
 from app.clientes.models import Arma, Cliente, Documento
 from app.utils.r2_helpers import _limpar_path_r2
@@ -71,7 +72,7 @@ def _ler_arquivo_r2(caminho: str, cliente_id: int) -> bytes:
 @clientes_bp.route("/<int:cliente_id>/documentos/ficha-compacta", methods=["POST"])
 @login_required
 def gerar_ficha_compacta(cliente_id: int):
-    """Pré-visualiza ou baixa uma composição A4; não altera os arquivos originais."""
+    """Pré-visualiza ou baixa um PDF combinado; não altera os arquivos originais."""
     cliente = Cliente.query.get_or_404(cliente_id)
     if request.form.get("confirmar_conferencia") != "1":
         flash("Confira os arquivos originais e confirme a titularidade antes de gerar a ficha.", "warning")
@@ -94,7 +95,13 @@ def gerar_ficha_compacta(cliente_id: int):
             ("CR", _ler_arquivo_r2(cr.caminho_arquivo, cliente_id), cr.nome_original or "cr.pdf"),
             ("CRAF", _ler_arquivo_r2(arma.caminho_craf, cliente_id), "craf.pdf"),
         ]
-        pdf_bytes = montar_ficha_compacta(documentos)
+        formato = (request.form.get("formato") or "legivel").strip().casefold()
+        if formato == "legivel":
+            pdf_bytes = montar_ficha_legivel(documentos)
+        elif formato == "compacta":
+            pdf_bytes = montar_ficha_compacta(documentos)
+        else:
+            raise FichaCompactaError("Selecione o formato legível ou compacto.")
     except FichaCompactaError as exc:
         flash(str(exc), "warning")
         return redirect(url_for("clientes.detalhe", cliente_id=cliente_id, _anchor="docs"))

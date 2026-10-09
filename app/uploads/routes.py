@@ -248,7 +248,6 @@ def upload_documento(cliente_id):
     Refatorado M4: Lê direto da memória (RAM), processa via OCR 
     e envia direto para o R2 sem tocar no disco efêmero do Render.
     """
-    import traceback
     from app.services import ocr_pipeline
 
     file = request.files.get("arquivo") or request.files.get("file")
@@ -270,14 +269,52 @@ def upload_documento(cliente_id):
             key_r2 = _upload_to_r2(file, cliente_id, "documentos")
             current_app.logger.info("[UPLOAD OCR] Arquivo enviado ao armazenamento privado.")
         except Exception as e:
-            current_app.logger.warning(f"[UPLOAD OCR] Falha ao enviar ao R2: {e}")
+            current_app.logger.warning(
+                "[UPLOAD OCR] Falha ao enviar ao R2 (%s).", type(e).__name__
+            )
             # Se falhar o R2, ainda podemos tentar retornar o OCR se for crítico, 
             # mas aqui manteremos a consistência de erro.
             return jsonify({"error": "Falha na comunicação com o Storage R2."}), 500
 
-        resultado = ocr_pipeline.processar_documento(file_bytes, filename)
+        aviso_ocr = (
+            "O arquivo foi anexado, mas o OCR não conseguiu extrair dados confiáveis. "
+            "Preencha os campos manualmente e confira cada informação no documento original."
+        )
+        try:
+            resultado = ocr_pipeline.processar_documento(file_bytes, filename)
+        except Exception as e:
+            current_app.logger.warning(
+                "[UPLOAD OCR] Pipeline indisponível (%s); arquivo preservado para cadastro manual.",
+                type(e).__name__,
+            )
+            return jsonify({
+                "dados": {},
+                "ocr_warning": aviso_ocr,
+                "ocr_engine": "indisponível",
+                "caminho_arquivo": key_r2,
+                "nome_original": filename,
+            })
+
         if not resultado:
-            raise RuntimeError("Nenhum resultado retornado pelo pipeline OCR")
+            resultado = {"erro": "Nenhum resultado retornado pelo pipeline OCR"}
+
+        dados_ocr = resultado.get("resultado") or {}
+        observacoes_ocr = str(dados_ocr.get("observacoes") or "").casefold()
+        leitura_insuficiente = bool(resultado.get("erro")) or (
+            str(dados_ocr.get("categoria") or "").upper() == "OUTRO"
+            and "texto ocr muito curto" in observacoes_ocr
+        )
+        if leitura_insuficiente:
+            current_app.logger.info(
+                "[UPLOAD OCR] Arquivo anexado; leitura insuficiente e edição manual necessária."
+            )
+            return jsonify({
+                "dados": {},
+                "ocr_warning": aviso_ocr,
+                "ocr_engine": resultado.get("ocr_engine", "desconhecido"),
+                "caminho_arquivo": key_r2,
+                "nome_original": filename,
+            })
 
         current_app.logger.info(
             "[UPLOAD OCR] Processamento concluído (OCR=%s; interpretação=%s).",
@@ -297,8 +334,9 @@ def upload_documento(cliente_id):
         return jsonify(resposta)
 
     except Exception as e:
-        current_app.logger.error("[UPLOAD OCR] Falha no pipeline OCR:", exc_info=True)
+        current_app.logger.warning(
+            "[UPLOAD OCR] Falha ao preparar o documento (%s).", type(e).__name__
+        )
         return jsonify({
-            "error": str(e),
-            "traceback": traceback.format_exc(),
+            "error": "Não foi possível preparar o arquivo. Atualize a página e tente novamente."
         }), 500

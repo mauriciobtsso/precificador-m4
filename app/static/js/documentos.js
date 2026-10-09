@@ -15,9 +15,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const file = event.target.files[0];
       if (!file) return;
 
+      const csrfInput = document.querySelector('#modalNovoDocumento input[name="csrf_token"]');
+      const csrfToken = csrfInput?.value || "";
+      if (!csrfToken) {
+        exibirToast("Não foi possível validar a sessão. Atualize a página e tente novamente.", "danger");
+        inputUploadOCR.value = "";
+        return;
+      }
+
       const clienteId = window.location.pathname.split("/")[2]; // extrai o cliente_id da URL
       const formData = new FormData();
       formData.append("arquivo", file);
+      formData.append("csrf_token", csrfToken);
 
       // Feedback visual
       btnUploadOCR.disabled = true;
@@ -26,29 +35,23 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const response = await fetch(`/uploads/${clienteId}/documento`, {
           method: "POST",
+          headers: { "X-CSRFToken": csrfToken },
           body: formData,
         });
 
-        if (!response.ok) throw new Error("Erro ao processar documento.");
-
-        const data = await response.json();
-        console.log("[OCR] Retorno bruto:", data);
-
-        // 🔧 Normaliza estrutura no nível 1 (apenas para log rápido)
-        let resultado = {};
-        if (data && typeof data === "object") {
-          if (data.dados) resultado = data.dados;
-          else if (data.resultado) resultado = data.resultado;
-          else resultado = data;
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const message = data.error || (response.status === 400
+            ? "A validação de segurança falhou. Atualize a página e tente novamente."
+            : `Não foi possível enviar o arquivo (HTTP ${response.status}).`);
+          throw new Error(message);
         }
-        console.log("[OCR] Normalizado para preenchimento:", resultado);
 
         // Exibe o modal e só preenche quando estiver visível
         const modalEl = document.getElementById("modalNovoDocumento");
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
         const onShown = () => {
-          console.log("🟢 Modal visível — iniciando preenchimento.");
           // Faz o achatamento *definitivo* dentro do preenchimento também (cobre todos os casos)
           preencherModalNovoDocumento(data);
           // redundância: tenta de novo em 100ms pra evitar corrida residual
@@ -58,10 +61,13 @@ document.addEventListener("DOMContentLoaded", () => {
         modalEl.addEventListener("shown.bs.modal", onShown, { once: true });
         modal.show();
 
-        exibirToast("Dados extraídos com sucesso! Revise antes de salvar.", "success");
+        const avisoOcr = data.ocr_warning || data.dados?.erro || "";
+        exibirToast(
+          avisoOcr || "Dados extraídos. Revise tudo no documento original antes de salvar.",
+          avisoOcr ? "warning" : "success"
+        );
       } catch (err) {
-        console.error("[OCR] Falha ao processar:", err);
-        exibirToast("Falha ao processar o OCR. Tente novamente.", "danger");
+        exibirToast(err instanceof Error ? err.message : "Falha ao enviar o documento. Tente novamente.", "danger");
       } finally {
         btnUploadOCR.disabled = false;
         btnUploadOCR.innerHTML = '<i class="fas fa-upload me-1"></i> Enviar e Processar Documento (OCR)';
@@ -170,9 +176,6 @@ function preencherModalNovoDocumento(rawData) {
       "";
   }
 
-  const isShown = modal.classList.contains("show");
-  console.log("📦 Preenchendo modal (visível=" + isShown + ") com payload achatado:", data);
-
   const campos = [
     "categoria",
     "emissor",
@@ -194,7 +197,7 @@ function preencherModalNovoDocumento(rawData) {
     if (el.tagName === "SELECT") {
       const ok = selectOptionSmart(el, valor);
       if (!ok) {
-        console.warn(`[OCR] Nenhuma option compatível para ${campo} com valor '${valor}'`);
+        console.warn(`[OCR] Nenhuma opção compatível para o campo ${campo}.`);
       }
       el.dispatchEvent(new Event("change", { bubbles: true }));
     } else if (campo.startsWith("data_") && valor) {
@@ -219,7 +222,6 @@ function preencherModalNovoDocumento(rawData) {
   const caminhoInput = getField(modal, "caminho_arquivo");
   if (caminhoInput) {
     caminhoInput.value = data.caminho_arquivo || "";
-    console.log("📁 Caminho do arquivo definido:", caminhoInput.value);
   } else {
     console.warn("[OCR] Campo 'caminho_arquivo' não encontrado no formulário.");
   }
@@ -231,7 +233,6 @@ function preencherModalNovoDocumento(rawData) {
     );
   }
 
-  console.log("[OCR] Modal preenchido (tentativa concluída).");
 }
 
 // ===========================
@@ -261,6 +262,7 @@ function exibirToast(mensagem, tipo = "info") {
       <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
     </div>
   `;
+  toast.querySelector(".toast-body").textContent = mensagem;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 4000);
 }
@@ -280,8 +282,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const clienteId = window.location.pathname.split("/")[2];
       const docId = btn.getAttribute("data-doc-id");
 
-      console.groupCollapsed(`🟦 [EDITAR DOC] Cliente ${clienteId}, Documento ${docId}`);
-
       modalBody.innerHTML = `
         <div class="text-center py-5 text-muted">
           <i class="fas fa-spinner fa-spin me-2"></i>Carregando formulário...
@@ -290,24 +290,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         const url = `/clientes/${clienteId}/documentos/${docId}/editar`;
-        console.log("🔗 Buscando:", url);
         const response = await fetch(url);
 
         if (!response.ok) throw new Error(`Erro ${response.status}: Falha ao carregar formulário.`);
 
         const html = await response.text();
-        console.log("✅ HTML recebido (bytes):", html.length);
         modalBody.innerHTML = html;
       } catch (err) {
-        console.error("💥 Erro no carregamento:", err);
         modalBody.innerHTML = `
           <div class="text-center text-danger py-5">
             <i class="fas fa-exclamation-triangle me-2"></i>
             Erro ao carregar formulário de edição.
           </div>`;
       }
-
-      console.groupEnd();
     });
   });
 });
@@ -331,7 +326,6 @@ document.addEventListener("DOMContentLoaded", () => {
       hidden.name = "caminho_arquivo";
       hidden.id = "caminho_arquivo";
       form.appendChild(hidden);
-      console.log("✅ Campo hidden 'caminho_arquivo' criado dinamicamente.");
     }
 
     // Se o OCR já preencheu, mantém o valor; senão, tenta recuperar
@@ -340,7 +334,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const temp = window?.ultimoCaminhoOCR || "";
       if (temp) {
         hidden.value = temp;
-        console.log("🔁 Caminho recuperado do cache:", temp);
       }
     }
   });

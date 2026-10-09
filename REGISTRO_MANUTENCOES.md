@@ -1089,3 +1089,18 @@ O commit `b7e2110` foi enviado à branch `main`. Após a publicação, uma requi
 
 ### Publicação e verificação — 09/10/2026
 O commit `5003cab` foi enviado à branch `main`. Após o deploy automático, uma requisição GET à rota POST-only com ID inexistente respondeu **HTTP 405**, confirmando que a rota foi registrada; não foi acessado cadastro nem arquivo de cliente. O repositório permaneceu sincronizado com `origin/main` após a publicação.
+
+
+## 09/10/2026 — Correções da ficha de documentos e do fluxo OCR
+### Diagnóstico
+A ficha de uma página reduzia imagens de documentos digitalizados em página inteira a uma fração pequena da folha, mesmo com orientação horizontal. Na tela de documentos, o envio assíncrono por `fetch` não encaminhava o token CSRF exigido pela aplicação. Além disso, respostas sem texto OCR podiam ser tratadas como sucesso pelo navegador; em uma falha do pipeline, o arquivo já enviado ao armazenamento privado não era devolvido ao formulário manual, e a rota podia expor detalhes técnicos/stack trace na resposta.
+
+### Alterações
+A geração oferece agora dois formatos: o padrão **Legível** cria um único PDF combinado, com cada página-fonte em sua própria página A4 e orientação ajustada; a opção **Compacta** preserva a composição em uma página A4 horizontal, com aviso de redução. Os documentos originais continuam inalterados, a seleção permanece vinculada ao cliente e ao CRAF da arma, e o PDF continua sendo gerado sob demanda, sem persistência adicional.
+
+O envio OCR passa o token CSRF no corpo e no cabeçalho `X-CSRFToken`. Quando o OCR falha, não retorna texto ou não produz dados confiáveis, o sistema preserva o arquivo já anexado no storage privado, abre o modal para preenchimento manual e orienta a conferência contra o original. Stack traces e conteúdo da resposta do provedor não são enviados ao navegador; logs do JavaScript deixam de expor payloads e caminhos. O pipeline local passa a aplicar `TESSERACT_CMD` da configuração Flask ou do ambiente.
+
+### Validação e requisito de infraestrutura
+Foram usados somente documentos sintéticos. Os testes cobrem os dois formatos e a escolha pela rota, upload OCR com sucesso e sem leitura, preservação do caminho armazenado, envio de CSRF, configuração do Tesseract e exigência de autenticação já existente. Resultado: **99 testes aprovados**; compilação Python, `node --check` e `git diff --check` também passaram. Permaneceu apenas o aviso já conhecido do Flask-Limiter sobre storage de limites em memória nos testes. Nenhum documento real foi processado e nenhum dado de produção foi alterado.
+
+O `render-build.sh` atual instala dependências Python e executa migrações, mas não instala Tesseract, dados de idioma português ou Poppler. O ambiente local desta validação também não tinha Tesseract nem chave `OCR_SPACE_API_KEY`; isso não confirma a configuração do serviço de produção. A documentação do runtime nativo do Render não lista esses binários e recomenda Docker para ferramentas de sistema ausentes ([runtimes nativos](https://render.com/docs/native-runtimes), [Docker](https://render.com/docs/docker)). Não foi alterado o runtime de produção nem adicionado `apt-get` especulativo ao build. Portanto, o novo fluxo agora encaminha corretamente a leitura disponível e oferece cadastro manual seguro, mas o OCR local em produção depende de provisionar Tesseract/Poppler (incluindo o idioma `por`) ou de a contingência externa existente estar configurada. Essa dependência deve ser confirmada antes de declarar o OCR automático integralmente operacional.

@@ -3,12 +3,16 @@ from uuid import uuid4
 
 import pypdfium2 as pdfium
 import pytest
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
 
 from app import db
 from app.clientes.models import Arma, Cliente, Documento
-from app.clientes.ficha_compacta import FichaCompactaError, montar_ficha_compacta
+from app.clientes.ficha_compacta import (
+    FichaCompactaError,
+    montar_ficha_compacta,
+    montar_ficha_legivel,
+)
 from app.clientes.routes import ficha_documentos as ficha_routes
 
 
@@ -32,7 +36,7 @@ def _imagem_sintetica():
     return output.getvalue()
 
 
-def test_ficha_compacta_gera_uma_unica_pagina_a4():
+def test_ficha_compacta_gera_uma_unica_pagina_a4_horizontal():
     dados = [
         ("CNH", _pdf_sintetico(1), "cnh.pdf"),
         ("CR", _pdf_sintetico(2), "cr.pdf"),
@@ -43,7 +47,9 @@ def test_ficha_compacta_gera_uma_unica_pagina_a4():
     documento = pdfium.PdfDocument(resultado)
     try:
         assert len(documento) == 1
-        assert documento[0].get_size() == pytest.approx(A4, abs=1)
+        assert documento[0].get_size() == pytest.approx(landscape(A4), abs=1)
+        largura, altura = documento[0].get_size()
+        assert largura > altura
     finally:
         documento.close()
 
@@ -57,6 +63,24 @@ def test_ficha_recusa_arquivo_com_mais_de_duas_paginas():
 
     with pytest.raises(FichaCompactaError, match="no máximo 2 páginas"):
         montar_ficha_compacta(dados)
+
+
+def test_ficha_legivel_preserva_uma_pagina_por_pagina_fonte():
+    dados = [
+        ("CNH", _pdf_sintetico(1), "cnh.pdf"),
+        ("CR", _pdf_sintetico(2), "cr.pdf"),
+        ("CRAF", _imagem_sintetica(), "craf.png"),
+    ]
+
+    documento = pdfium.PdfDocument(montar_ficha_legivel(dados))
+    try:
+        assert len(documento) == 4
+        assert documento[0].get_size() == pytest.approx(A4, abs=1)
+        assert documento[1].get_size() == pytest.approx(A4, abs=1)
+        assert documento[2].get_size() == pytest.approx(A4, abs=1)
+        assert documento[3].get_size() == pytest.approx(landscape(A4), abs=1)
+    finally:
+        documento.close()
 
 
 def _criar_cliente_com_documentos():
@@ -91,7 +115,8 @@ def _criar_cliente_com_documentos():
     return cliente, cnh, cr, arma
 
 
-def test_rota_gera_previa_privada_sem_gravar_arquivo(app, client, monkeypatch):
+@pytest.mark.parametrize(("formato", "paginas_esperadas"), [(None, 5), ("compacta", 1)])
+def test_rota_gera_previa_privada_sem_gravar_arquivo(app, client, monkeypatch, formato, paginas_esperadas):
     with app.app_context():
         cliente, cnh, cr, arma = _criar_cliente_com_documentos()
         ids = (cliente.id, cnh.id, cr.id, arma.id)
@@ -103,15 +128,18 @@ def test_rota_gera_previa_privada_sem_gravar_arquivo(app, client, monkeypatch):
     }
     monkeypatch.setattr(ficha_routes, "_ler_arquivo_r2", lambda caminho, cliente_id: fontes[caminho])
 
+    formulario = {
+        "cnh_id": str(ids[1]),
+        "cr_id": str(ids[2]),
+        "arma_id": str(ids[3]),
+        "confirmar_conferencia": "1",
+        "acao": "visualizar",
+    }
+    if formato:
+        formulario["formato"] = formato
     resposta = client.post(
         f"/clientes/{ids[0]}/documentos/ficha-compacta",
-        data={
-            "cnh_id": str(ids[1]),
-            "cr_id": str(ids[2]),
-            "arma_id": str(ids[3]),
-            "confirmar_conferencia": "1",
-            "acao": "visualizar",
-        },
+        data=formulario,
     )
 
     assert resposta.status_code == 200
@@ -121,7 +149,7 @@ def test_rota_gera_previa_privada_sem_gravar_arquivo(app, client, monkeypatch):
     assert resposta.data.startswith(b"%PDF-")
     pdf = pdfium.PdfDocument(resposta.data)
     try:
-        assert len(pdf) == 1
+        assert len(pdf) == paginas_esperadas
     finally:
         pdf.close()
 

@@ -13,7 +13,7 @@ import warnings
 from PIL import Image, ImageOps
 import pypdfium2 as pdfium
 from reportlab.lib.colors import HexColor
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
@@ -113,7 +113,12 @@ def _render_document(data: bytes) -> list[tuple[bytes, int, int]]:
     raise FichaCompactaError("Um dos arquivos não é um PDF, JPG ou PNG válido.")
 
 
-def _draw_fitted_image(pdf: canvas.Canvas, image_data: bytes, image_size: tuple[int, int], box: tuple[float, float, float, float]) -> None:
+def _draw_fitted_image(
+    pdf: canvas.Canvas,
+    image_data: bytes,
+    image_size: tuple[int, int],
+    box: tuple[float, float, float, float],
+) -> None:
     x, y, box_width, box_height = box
     image_width, image_height = image_size
     scale = min(box_width / image_width, box_height / image_height)
@@ -132,8 +137,8 @@ def _draw_fitted_image(pdf: canvas.Canvas, image_data: bytes, image_size: tuple[
     )
 
 
-def montar_ficha_compacta(documentos: Iterable[tuple[str, bytes, str]]) -> bytes:
-    """Monta CNH, CR e CRAF em três faixas numa página A4, sem OCR ou rede."""
+def montar_ficha_legivel(documentos: Iterable[tuple[str, bytes, str]]) -> bytes:
+    """Gera um PDF único, com cada página-fonte em uma página A4 legível."""
     documentos = list(documentos)
     tipos_esperados = ["CNH", "CR", "CRAF"]
     if [item[0] for item in documentos] != tipos_esperados:
@@ -143,18 +148,80 @@ def montar_ficha_compacta(documentos: Iterable[tuple[str, bytes, str]]) -> bytes
     for tipo, data, _filename in documentos:
         rendered_groups.append((tipo, _render_document(data)))
 
-    page_width, page_height = A4
-    margin = 16
-    top_reserved = 38
-    bottom_reserved = 18
-    row_gap = 7
-    content_width = page_width - (2 * margin)
-    content_top = page_height - margin - top_reserved
-    content_bottom = margin + bottom_reserved
-    row_height = (content_top - content_bottom - (2 * row_gap)) / 3
+    total_pages = sum(len(pages) for _tipo, pages in rendered_groups)
+    if not total_pages:
+        raise FichaCompactaError("Nenhuma página válida foi encontrada nos documentos selecionados.")
 
     output = BytesIO()
     pdf = canvas.Canvas(output, pagesize=A4, pageCompression=1)
+    pdf.setTitle("Documentos para conferência e envio ao TD")
+    pdf.setAuthor("M4 Tática")
+
+    page_number = 0
+    for tipo, pages in rendered_groups:
+        for index, (page_image, image_width, image_height) in enumerate(pages, start=1):
+            page_size = landscape(A4) if image_width > image_height else A4
+            page_width, page_height = page_size
+            pdf.setPageSize(page_size)
+
+            margin = 14
+            header_height = 26
+            footer_height = 18
+            pdf.setFillColor(HexColor("#18324b"))
+            pdf.setFont("Helvetica-Bold", 10)
+            pdf.drawString(margin, page_height - margin - 12, f"{tipo} — página {index} de {len(pages)}")
+            pdf.setFillColor(HexColor("#59636e"))
+            pdf.setFont("Helvetica", 7)
+            pdf.drawRightString(page_width - margin, page_height - margin - 12, date.today().strftime("%d/%m/%Y"))
+            pdf.setStrokeColor(HexColor("#e1e6ea"))
+            pdf.line(margin, page_height - margin - header_height, page_width - margin, page_height - margin - header_height)
+
+            image_box = (
+                margin,
+                margin + footer_height,
+                page_width - 2 * margin,
+                page_height - 2 * margin - header_height - footer_height,
+            )
+            _draw_fitted_image(pdf, page_image, (image_width, image_height), image_box)
+
+            page_number += 1
+            pdf.setFont("Helvetica", 6)
+            pdf.drawCentredString(
+                page_width / 2,
+                margin + 5,
+                f"Cópia para conferência; mantenha os originais no cadastro.  Página {page_number} de {total_pages}.",
+            )
+            if page_number < total_pages:
+                pdf.showPage()
+
+    pdf.save()
+    return output.getvalue()
+
+
+def montar_ficha_compacta(documentos: Iterable[tuple[str, bytes, str]]) -> bytes:
+    """Monta CNH, CR e CRAF em três colunas numa página A4 horizontal, sem OCR ou rede."""
+    documentos = list(documentos)
+    tipos_esperados = ["CNH", "CR", "CRAF"]
+    if [item[0] for item in documentos] != tipos_esperados:
+        raise FichaCompactaError("A seleção deve conter uma CNH, um CR e um CRAF, nessa ordem.")
+
+    rendered_groups: list[tuple[str, list[tuple[bytes, int, int]]]] = []
+    for tipo, data, _filename in documentos:
+        rendered_groups.append((tipo, _render_document(data)))
+
+    page_width, page_height = landscape(A4)
+    margin = 14
+    top_reserved = 34
+    bottom_reserved = 18
+    column_gap = 8
+    content_width = page_width - (2 * margin)
+    column_width = (content_width - (2 * column_gap)) / 3
+    content_top = page_height - margin - top_reserved
+    content_bottom = margin + bottom_reserved
+    content_height = content_top - content_bottom
+
+    output = BytesIO()
+    pdf = canvas.Canvas(output, pagesize=landscape(A4), pageCompression=1)
     pdf.setTitle("Ficha compacta de documentos")
     pdf.setAuthor("M4 Tática")
 
@@ -165,35 +232,28 @@ def montar_ficha_compacta(documentos: Iterable[tuple[str, bytes, str]]) -> bytes
     pdf.setFont("Helvetica", 7)
     pdf.drawRightString(page_width - margin, page_height - margin - 12, date.today().strftime("%d/%m/%Y"))
 
-    for row_index, (tipo, pages) in enumerate(rendered_groups):
-        row_top = content_top - row_index * (row_height + row_gap)
-        row_bottom = row_top - row_height
-        label_height = 15
-        image_bottom = row_bottom + 5
-        image_top = row_top - label_height - 3
-        image_height = image_top - image_bottom
+    for column_index, (tipo, pages) in enumerate(rendered_groups):
+        column_x = margin + column_index * (column_width + column_gap)
+        label_height = 18
+        image_top = content_top - label_height - 4
+        image_bottom = content_bottom + 5
+        image_area_height = image_top - image_bottom
+        page_gap = 5
+        tile_height = (image_area_height - (len(pages) - 1) * page_gap) / len(pages)
 
         pdf.setStrokeColor(HexColor("#b9c3cc"))
         pdf.setLineWidth(0.55)
-        pdf.roundRect(margin, row_bottom, content_width, row_height, 3, stroke=1, fill=0)
+        pdf.roundRect(column_x, content_bottom, column_width, content_height, 3, stroke=1, fill=0)
         pdf.setFillColor(HexColor("#18324b"))
         pdf.setFont("Helvetica-Bold", 8)
-        pdf.drawString(margin + 6, row_top - 11, tipo)
+        pdf.drawString(column_x + 6, content_top - 12, tipo)
         pdf.setStrokeColor(HexColor("#e1e6ea"))
-        pdf.line(margin + 5, row_top - label_height, page_width - margin - 5, row_top - label_height)
+        pdf.line(column_x + 5, content_top - label_height, column_x + column_width - 5, content_top - label_height)
 
-        if len(pages) == 1:
-            boxes = [(margin + 5, image_bottom, content_width - 10, image_height)]
-        else:
-            column_gap = 6
-            column_width = (content_width - 10 - column_gap) / 2
-            boxes = [
-                (margin + 5, image_bottom, column_width, image_height),
-                (margin + 5 + column_width + column_gap, image_bottom, column_width, image_height),
-            ]
-
-        for page_image, image_width, image_height_px in pages:
-            box = boxes.pop(0)
+        for page_index, (page_image, image_width, image_height_px) in enumerate(pages):
+            tile_top = image_top - page_index * (tile_height + page_gap)
+            tile_bottom = tile_top - tile_height
+            box = (column_x + 5, tile_bottom, column_width - 10, tile_height)
             _draw_fitted_image(pdf, page_image, (image_width, image_height_px), box)
 
     pdf.setFillColor(HexColor("#59636e"))
