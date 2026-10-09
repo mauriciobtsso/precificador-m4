@@ -23,7 +23,9 @@ OCR_SPACE_URL = "https://api.ocr.space/parse/image"
 def _pdf_to_image_first_page(file_bytes: bytes) -> bytes:
     """Converte a primeira página de um PDF em JPEG otimizado."""
     try:
-        images = convert_from_bytes(file_bytes, dpi=200, first_page=1, last_page=1)
+        images = convert_from_bytes(
+            file_bytes, dpi=200, first_page=1, last_page=1, timeout=10
+        )
         img = images[0]
         buf = io.BytesIO()
         img.save(buf, format="JPEG", quality=70)
@@ -51,7 +53,7 @@ def extract_text_fallback(file_bytes: bytes, filename: str = "documento.pdf", la
             "OCREngine": 2,
         }
 
-        resp = requests.post(OCR_SPACE_URL, files=files, data=data, timeout=180)
+        resp = requests.post(OCR_SPACE_URL, files=files, data=data, timeout=20)
         if resp.status_code != 200:
             return {"engine": "ocr.space", "texts": [], "error": f"HTTP {resp.status_code}"}
 

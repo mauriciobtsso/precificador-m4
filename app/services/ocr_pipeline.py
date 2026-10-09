@@ -12,6 +12,8 @@ Combina:
 
 from app.services import ocr_local, ocr_fallback, ocr_inteligente
 
+MAX_OCR_PAGES = 3
+
 
 def processar_documento(file_bytes: bytes, filename: str) -> dict:
     """
@@ -23,8 +25,14 @@ def processar_documento(file_bytes: bytes, filename: str) -> dict:
     }
     """
     # 1️⃣ Tenta OCR local
-    resultado_local = ocr_local.extract_text_local(file_bytes=file_bytes, filename=filename)
+    resultado_local = ocr_local.extract_text_local(
+        file_bytes=file_bytes,
+        filename=filename,
+        dpi=200,
+        max_pages=MAX_OCR_PAGES,
+    )
     textos_local = [t for t in resultado_local.get("texts", []) if t.strip()]
+    documento_truncado = bool(resultado_local.get("meta", {}).get("truncated"))
 
     # 2️⃣ Se o local não retornar texto, tenta OCR.Space
     if not textos_local:
@@ -109,11 +117,17 @@ def processar_documento(file_bytes: bytes, filename: str) -> dict:
         resultado_ia["parser_error"] = str(e)
 
     # 5️⃣ Retorno padronizado
-    return {
+    resposta = {
         "ocr_engine": engine,
         "ia_engine": resultado_ia.get("engine", "groq"),
         "resultado": resultado_ia
     }
+    if documento_truncado:
+        resposta["ocr_warning"] = (
+            f"O OCR analisou somente as {MAX_OCR_PAGES} primeiras páginas. "
+            "Confira o restante do documento e os campos preenchidos."
+        )
+    return resposta
 
 
 # ===========================

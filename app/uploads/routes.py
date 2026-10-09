@@ -329,6 +329,8 @@ def upload_documento(cliente_id):
             "caminho_arquivo": key_r2,
             "nome_original": filename,
         }
+        if resultado.get("ocr_warning"):
+            resposta["ocr_warning"] = resultado["ocr_warning"]
 
         current_app.logger.info("[UPLOAD OCR] Resposta preparada; dados extraídos omitidos do log.")
         return jsonify(resposta)

@@ -62,6 +62,26 @@ def test_upload_preserva_campos_quando_ocr_tem_sucesso(monkeypatch, client):
     assert "ocr_warning" not in payload
 
 
+def test_upload_propaga_aviso_de_documento_parcial(monkeypatch, client):
+    aviso = "O OCR analisou somente as 3 primeiras páginas. Confira o restante."
+    monkeypatch.setattr(upload_routes, "_upload_to_r2", lambda *_args: CAMINHO_R2)
+    monkeypatch.setattr(
+        ocr_pipeline,
+        "processar_documento",
+        lambda *_args: {
+            "ocr_engine": "local",
+            "engine": "teste",
+            "resultado": {"categoria": "CNH"},
+            "ocr_warning": aviso,
+        },
+    )
+
+    resposta = _enviar_pdf(client)
+
+    assert resposta.status_code == 200
+    assert resposta.get_json()["ocr_warning"] == aviso
+
+
 def test_upload_js_envia_csrf_sem_registrar_payloads_pessoais():
     fonte = Path("app/static/js/documentos.js").read_text(encoding="utf-8")
 

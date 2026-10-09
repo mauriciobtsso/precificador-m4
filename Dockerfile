@@ -35,4 +35,4 @@ USER app
 ENV HOME=/home/app
 
 # Mantém o mesmo WSGI alvo usado atualmente pelo serviço Render.
-CMD ["gunicorn", "run:app"]
+CMD ["gunicorn", "--timeout", "120", "run:app"]

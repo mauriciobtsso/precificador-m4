@@ -164,7 +164,7 @@ def interpretar_documento(texto_ocr: str) -> dict:
             "https://api.groq.com/openai/v1/chat/completions",
             headers=headers,
             json=payload,
-            timeout=60
+            timeout=30
         )
 
         if r.status_code != 200:

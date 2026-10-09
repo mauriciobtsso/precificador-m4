@@ -136,7 +136,8 @@ def _preprocess_image(img: Image.Image) -> Image.Image:
                 break
 
         threshold = max(60, min(200, median_gray))  # clamp
-        img = img.point(lambda x: 255 if x > threshold else 0, mode="1")
+        lookup = [0 if value <= threshold else 255 for value in range(256)]
+        img = img.point(lookup, mode="1")
 
         # Volta para L (muitos perfis do tesseract trabalham melhor em L do que em 1-bit)
         img = img.convert("L")
@@ -151,13 +152,13 @@ def _preprocess_image(img: Image.Image) -> Image.Image:
 # Correção de orientação (OSD)
 # ======================
 
-def _fix_orientation(img: Image.Image) -> Image.Image:
+def _fix_orientation(img: Image.Image, timeout: int = 5) -> Image.Image:
     """
     Usa OSD do Tesseract para detectar ângulo e rotacionar se necessário.
     Silencioso em caso de falha.
     """
     try:
-        osd = pytesseract.image_to_osd(img)
+        osd = pytesseract.image_to_osd(img, timeout=timeout)
         # Exemplo de saída OSD inclui "Rotate: 90"
         angle = 0
         for line in osd.splitlines():
@@ -186,25 +187,35 @@ def _ocr_image(
     psm: int = 6,
     oem: int = 3,
     compute_confidence: bool = False,
+    timeout: int = 15,
 ) -> Tuple[str, Optional[float]]:
     """
     Roda o OCR em uma imagem PIL.
     Retorna (texto, média_confiança|None)
     """
-    # Corrige orientação antes do OCR
-    img = _fix_orientation(img)
+    # Mantém o custo de imagens de alta resolução dentro do limite do serviço.
+    img.thumbnail((3200, 3200), Image.Resampling.LANCZOS)
+
+    # Corrige orientação antes do OCR, com timeout menor que o OCR principal.
+    img = _fix_orientation(img, timeout=min(timeout, 5))
     img = _preprocess_image(img)
 
     config = f"--psm {psm} --oem {oem}"
     try:
         if compute_confidence:
-            data = pytesseract.image_to_data(img, lang=lang, config=config, output_type=pytesseract.Output.DICT)
+            data = pytesseract.image_to_data(
+                img,
+                lang=lang,
+                config=config,
+                output_type=pytesseract.Output.DICT,
+                timeout=timeout,
+            )
             text = " ".join([w for w in data.get("text", []) if w and w.strip() != ""])
             confs = [float(c) for c in data.get("conf", []) if c not in (-1, "-1", "", None)]
             avg_conf = round(sum(confs) / len(confs), 2) if confs else None
             return text.strip(), avg_conf
         else:
-            text = pytesseract.image_to_string(img, lang=lang, config=config)
+            text = pytesseract.image_to_string(img, lang=lang, config=config, timeout=timeout)
             return text.strip(), None
     except Exception as e:
         logger.error(f"Erro no pytesseract: {e}")
@@ -215,24 +226,26 @@ def _ocr_image(
 # PDF: texto embutido
 # ======================
 
-def _pdf_textlayer_extract(file_bytes: bytes) -> List[str]:
+def _pdf_textlayer_extract(file_bytes: bytes, max_pages: int = 20) -> Tuple[List[str], bool]:
     """
-    Extrai texto embutido por página com pdfplumber.
-    Se pdfplumber não estiver disponível, retorna lista vazia.
+    Extrai texto embutido até max_pages e informa se o PDF foi truncado.
+    Se pdfplumber não estiver disponível, retorna lista vazia e False.
     """
     results: List[str] = []
     if not pdfplumber:
-        return results
+        return results, False
 
+    truncated = False
     try:
         with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-            for page in pdf.pages:
+            truncated = len(pdf.pages) > max_pages
+            for page in pdf.pages[:max_pages]:
                 txt = page.extract_text(x_tolerance=2, y_tolerance=2) or ""
                 results.append(txt.strip())
     except Exception as e:
         logger.warning(f"Falha ao extrair texto embutido com pdfplumber: {e}")
 
-    return results
+    return results, truncated
 
 
 # ======================
@@ -244,6 +257,7 @@ def _pdf_to_images(
     dpi: int = 300,
     first_page: Optional[int] = None,
     last_page: Optional[int] = None,
+    timeout: int = 15,
 ) -> List[Image.Image]:
     """
     Converte PDF -> lista de imagens PIL por página.
@@ -262,7 +276,8 @@ def _pdf_to_images(
             last_page=last_page,
             poppler_path=poppler_path,
             fmt="png",
-            thread_count=2
+            thread_count=2,
+            timeout=timeout,
         )
         return images or []
     except Exception as e:
@@ -354,7 +369,10 @@ def extract_text_local(
     if is_pdf:
         texts_embedded: List[str] = []
         if try_pdf_textlayer and pdfplumber:
-            texts_embedded = _pdf_textlayer_extract(file_bytes)
+            texts_embedded, textlayer_truncated = _pdf_textlayer_extract(
+                file_bytes, max_pages=max_pages
+            )
+            result["meta"]["truncated"] = textlayer_truncated
             # score simples: proporção de páginas com >= 30 chars
             if texts_embedded:
                 rich_pages = sum(1 for t in texts_embedded if len((t or "").strip()) >= 30)
@@ -373,7 +391,13 @@ def extract_text_local(
             return result
 
         # Rasterização (OCR)
-        images = _pdf_to_images(file_bytes, dpi=dpi)
+        images = _pdf_to_images(
+            file_bytes,
+            dpi=dpi,
+            first_page=1,
+            last_page=max_pages,
+            timeout=15,
+        )
         if not images:
             # Se falhou rasterizar, mas havia algum texto embutido, retorna-o
             if texts_embedded:
