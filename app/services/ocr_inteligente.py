@@ -6,9 +6,12 @@
 
 import os
 import json
+import logging
 import re
 import requests
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 # =====================================
@@ -28,6 +31,50 @@ def _resolve_groq_model(configured_model):
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GROQ_MODEL = _resolve_groq_model(os.environ.get("GROQ_MODEL"))
+
+GROQ_DOCUMENT_SCHEMA = {
+    "name": "documento_cliente",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "categoria": {
+                "type": "string",
+                "enum": ["CR", "CRAF", "CNH", "RG", "CPF", "OUTRO"],
+            },
+            "emissor": {"type": "string"},
+            "uf": {"type": "string"},
+            "numero_documento": {"type": "string"},
+            "data_emissao": {"type": "string"},
+            "data_validade": {"type": "string"},
+            "validade_indeterminada": {"type": "boolean"},
+            "tipo_arma": {"type": "string"},
+            "marca_arma": {"type": "string"},
+            "modelo_arma": {"type": "string"},
+            "serie_arma": {"type": "string"},
+            "calibre": {"type": "string"},
+            "funcionamento": {"type": "string"},
+            "observacoes": {"type": "string"},
+        },
+        "required": [
+            "categoria",
+            "emissor",
+            "uf",
+            "numero_documento",
+            "data_emissao",
+            "data_validade",
+            "validade_indeterminada",
+            "tipo_arma",
+            "marca_arma",
+            "modelo_arma",
+            "serie_arma",
+            "calibre",
+            "funcionamento",
+            "observacoes",
+        ],
+        "additionalProperties": False,
+    },
+}
 
 if not GROQ_API_KEY:
     raise RuntimeError("A variável de ambiente GROQ_API_KEY não está configurada.")
@@ -148,7 +195,11 @@ def interpretar_documento(texto_ocr: str) -> dict:
         "messages": [
             {"role": "system", "content": prompt_sistema},
             {"role": "user", "content": texto_ocr}
-        ]
+        ],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": GROQ_DOCUMENT_SCHEMA,
+        },
     }
 
     headers = {
@@ -168,26 +219,36 @@ def interpretar_documento(texto_ocr: str) -> dict:
         )
 
         if r.status_code != 200:
-            raise RuntimeError(f"Erro {r.status_code}: {r.text}")
+            raise RuntimeError(f"HTTP {r.status_code}")
 
-        content = r.json()["choices"][0]["message"]["content"].strip()
+        response_body = r.json()
+        choices = response_body.get("choices") if isinstance(response_body, dict) else None
+        message = (
+            choices[0].get("message")
+            if isinstance(choices, list) and choices and isinstance(choices[0], dict)
+            else None
+        )
+        content = message.get("content") if isinstance(message, dict) else None
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError("resposta vazia")
 
-        # ============================
-        # Sanitização de resposta
-        # ============================
-        content = re.sub(r"```(?:json)?", "", content)
-        content = content.replace("```", "").strip()
-
-        # Extrai trecho JSON bruto
-        if not content.strip().startswith("{"):
-            start = content.find("{")
-            end = content.rfind("}") + 1
-            content = content[start:end]
-
+        content = re.sub(
+            r"^\s*```(?:json)?\s*|\s*```\s*$",
+            "",
+            content.strip(),
+            flags=re.IGNORECASE,
+        ).strip()
         try:
             data = json.loads(content)
-        except json.JSONDecodeError:
-            raise ValueError(f"Falha ao decodificar JSON: {content[:200]}")
+        except json.JSONDecodeError as decode_error:
+            start = content.find("{")
+            end = content.rfind("}")
+            if start < 0 or end < start:
+                raise ValueError("resposta sem objeto JSON") from decode_error
+            data = json.loads(content[start:end + 1])
+
+        if not isinstance(data, dict):
+            raise ValueError("raiz JSON não é um objeto")
 
         # ============================
         # Normaliza e corrige
@@ -221,6 +282,7 @@ def interpretar_documento(texto_ocr: str) -> dict:
         return padrao
 
     except Exception as e:
+        logger.warning("[OCR Groq] Falha na interpretação (%s).", type(e).__name__)
         return {
             "engine": GROQ_MODEL,
             "categoria": "OUTRO",
@@ -229,7 +291,10 @@ def interpretar_documento(texto_ocr: str) -> dict:
             "data_emissao": "",
             "data_validade": "",
             "validade_indeterminada": False,
-            "observacoes": f"Erro no processamento via Groq: {e}"
+            "observacoes": (
+                "Erro no processamento via Groq: não foi possível interpretar a resposta. "
+                "Preencha os campos manualmente e confira o documento original."
+            )
         }
 
 

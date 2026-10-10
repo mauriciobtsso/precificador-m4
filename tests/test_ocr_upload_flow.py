@@ -134,8 +134,63 @@ def test_interpretacao_ocr_envia_modelo_atual_sem_chamada_externa(monkeypatch):
 
     assert chamada["url"] == "https://api.groq.com/openai/v1/chat/completions"
     assert chamada["payload"]["model"] == "openai/gpt-oss-20b"
+    formato = chamada["payload"]["response_format"]
+    assert formato["type"] == "json_schema"
+    assert formato["json_schema"]["strict"] is True
+    assert formato["json_schema"]["schema"]["additionalProperties"] is False
     assert resultado["categoria"] == "CNH"
     assert resultado["engine"] == "openai/gpt-oss-20b"
+
+
+def test_interpretacao_groq_aceita_json_cercado_em_markdown(monkeypatch):
+    class RespostaSimulada:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {
+                "choices": [{
+                    "message": {
+                        "content": '```json\n{"categoria":"CNH","numero_documento":"TESTE-123"}\n```'
+                    }
+                }]
+            }
+
+    monkeypatch.setattr(ocr_inteligente.requests, "post", lambda *_args, **_kwargs: RespostaSimulada())
+
+    resultado = ocr_inteligente.interpretar_documento("Texto sintético suficiente para testar a resposta.")
+
+    assert resultado["categoria"] == "CNH"
+    assert resultado["numero_documento"] == "TESTE-123"
+
+
+def test_resposta_groq_invalida_gera_aviso_seguro_sem_vazar_conteudo(monkeypatch, caplog):
+    marcador_sintetico = "ID-SINTETICO-NAO-EXIBIR"
+
+    class RespostaSimulada:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {
+                "choices": [{
+                    "message": {
+                        "content": '{"numero_documento":"ID-SINTETICO-NAO-EXIBIR"'
+                    }
+                }]
+            }
+
+    monkeypatch.setattr(ocr_inteligente.requests, "post", lambda *_args, **_kwargs: RespostaSimulada())
+
+    resultado = ocr_inteligente.interpretar_documento(
+        "Texto sintético suficientemente longo para chamar o modelo."
+    )
+
+    assert "Erro no processamento via Groq" in resultado["observacoes"]
+    assert "Preencha os campos manualmente" in resultado["observacoes"]
+    assert marcador_sintetico not in resultado["observacoes"]
+    assert marcador_sintetico not in caplog.text
+    assert "Falha ao decodificar JSON:" not in resultado["observacoes"]
 
 
 def test_ocr_local_aplica_caminho_do_tesseract_configurado(app, monkeypatch):
