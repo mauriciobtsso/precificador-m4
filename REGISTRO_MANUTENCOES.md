@@ -1164,3 +1164,21 @@ A suíte completa passou: **106 testes aprovados**. Os novos testes cobrem os li
 O commit `5f5ee61` foi enviado à branch `main`. O deploy Docker `dep-db4lfnmk1f9s7386gl5g` concluiu como **live** em `2026-10-09T21:09:32Z`. Os logs confirmaram o Gunicorn ouvindo na porta 10000 e iniciando o worker. Depois do deploy, o endereço público respondeu **HTTP 200** e redirecionou para a tela de login.
 
 Nenhum documento real foi reprocessado e nenhum objeto foi removido do R2. O log confirma que ao menos uma tentativa relatada foi armazenada antes do timeout; como a conexão terminou sem resposta, o formulário pode não ter recebido o caminho desse objeto. Uma nova tentativa poderá gravar outra cópia privada.
+
+
+## 10/10/2026 — Correção da resposta JSON da Groq no OCR
+
+### Diagnóstico
+A observação `Falha ao decodificar JSON:` sem texto resulta do parser antigo: se a resposta não continha `{` e `}`, o recorte produzia uma string vazia. O código então mostrava o erro técnico na observação do cliente. Os logs filtrados do horário do relato não continham a resposta bruta da Groq, então não foi possível determinar se o provedor retornou conteúdo vazio ou texto fora do formato esperado. A falha no parser, porém, explica a mensagem exibida.
+
+### Correção
+- A chamada da Groq agora solicita `response_format` com `json_schema` e `strict: true`. O schema exige os campos usados pelo cadastro e impede propriedades adicionais. A documentação oficial lista `openai/gpt-oss-20b` entre os modelos compatíveis com o modo estrito: [Structured Outputs](https://console.groq.com/docs/structured-outputs) e [página do modelo](https://console.groq.com/docs/model/openai/gpt-oss-20b).
+- O parser aceita JSON válido mesmo quando cercado por bloco Markdown ou texto auxiliar. Respostas vazias, malformadas ou com raiz que não seja objeto seguem para o fallback manual.
+- A observação não inclui mais a resposta bruta nem a exceção do provedor. O log registra somente a classe do erro, sem copiar dados extraídos do documento. A contingência interna continua reconhecendo o prefixo de falha Groq para tentar a extração local por expressões existentes.
+
+### Validação e publicação
+A suíte completa passou: **108 testes aprovados**. Os testes simulam respostas válidas, cercadas em Markdown e malformadas; verificam o schema estrito e confirmam que conteúdo sintético não aparece na observação nem nos logs. Também passaram `py_compile` e `git diff --check`. Nenhum teste chamou a API Groq.
+
+O commit `9426098` foi enviado à branch `main`. O deploy Docker `dep-db50keivcj2c73e6ncu0` concluiu como **live** em `2026-10-10T09:50:29Z`. Os logs confirmaram que o Gunicorn iniciou o worker. A página pública respondeu **HTTP 200** e redirecionou para o login.
+
+O PDF anexado não foi lido nem enviado à Groq. Nenhum documento ou dado de cliente foi processado no teste de produção; a resposta estruturada real da Groq deverá ser confirmada no próximo envio pelo formulário.
