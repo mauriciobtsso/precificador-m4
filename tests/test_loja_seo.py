@@ -223,6 +223,17 @@ def test_public_faq_page_has_visible_answers_metadata_and_official_sources(clien
     assert "https://www.in.gov.br/en/web/dou/-/portaria-conjunta-c-ex/dg-pf-n-4-de-18-de-julho-de-2025-645587385" in html
 
 
+def test_store_header_styles_do_not_apply_to_content_headers():
+    base_source = (REPO_ROOT / "app" / "loja" / "templates" / "loja" / "base.html").read_text(encoding="utf-8")
+    faq_source = (REPO_ROOT / "app" / "loja" / "templates" / "loja" / "perguntas_frequentes.html").read_text(encoding="utf-8")
+    style = re.search(r"<style>(.*?)</style>", base_source, flags=re.DOTALL).group(1)
+
+    assert ".store-header {" in style
+    assert re.search(r"(?m)^\s*header\s*\{", style) is None
+    assert '<header class="store-header">' in base_source
+    assert '<header class="mb-4 mb-lg-5">' in faq_source
+
+
 def test_contact_form_composes_whatsapp_message_instead_of_posting(client):
     response = client.get("/loja/fale-conosco")
     html = response.get_data(as_text=True)

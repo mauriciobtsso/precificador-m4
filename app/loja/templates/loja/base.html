@@ -68,7 +68,7 @@
         *, *::before, *::after { box-sizing: border-box; }
         body { font-family: 'Inter', system-ui, sans-serif; background-color: #fff; color: var(--m4-text); margin: 0; overflow-x: hidden; }
 
-        header {
+        .store-header {
             position: sticky; top: 0; width: 100%; z-index: 2000;
             background-color: var(--m4-dark); min-height: 86px; contain: layout style;
         }
@@ -167,7 +167,7 @@
         @media (max-width: 991px) {
             .search-container { order: 3; max-width: 100%; margin-top: 15px; }
             .logo-img { height: 40px; width: 120px; }
-            header { min-height: 70px; }
+            .store-header { min-height: 70px; }
             
             /* Transforma o menu em um acordeão perfeito no mobile */
             .navbar-main { padding: 10px 0; }
@@ -222,7 +222,7 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <header>
+    <header class="store-header">
 {% set breadcrumb_items = [{'name': 'Home', 'path': url_for('loja.index')}] %}
 {% if categoria_ativa %}
     {% set breadcrumb_items = breadcrumb_items + [{'name': categoria_ativa.nome, 'path': url_for('loja.categoria', slug_categoria=categoria_ativa.slug)}] %}
