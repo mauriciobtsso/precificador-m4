@@ -36,68 +36,21 @@
     </header>
 
     <section aria-label="Respostas às perguntas frequentes" class="faq-list">
+        {% for faq in faqs %}
         <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
-            <summary class="fw-bold">Preciso de porte para comprar uma arma?</summary>
+            <summary class="fw-bold">{{ faq.pergunta }}</summary>
             <div class="mt-3">
-                <p>Não. O porte e a autorização de aquisição são processos diferentes. Para adquirir uma arma de uso permitido, é necessária autorização prévia da Polícia Federal. Depois da compra, é preciso fazer o registro. A PF informa que a retirada depende da emissão do CRAF e da guia de trânsito. <a href="https://www.gov.br/pf/pt-br/assuntos/carta-de-servicos/armas/adquirir-arma-de-fogo" target="_blank" rel="noopener noreferrer">Consulte o serviço oficial da PF</a>.</p>
+                <p class="faq-answer">{{ faq.resposta }}</p>
+                {% if faq.link_texto and faq.link_url %}
+                <p class="faq-support-link"><a href="{{ faq.link_url }}" {% if faq.link_url.startswith('http://') or faq.link_url.startswith('https://') %}target="_blank" rel="noopener noreferrer"{% endif %}>{{ faq.link_texto }}</a></p>
+                {% endif %}
             </div>
         </details>
-
-        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
-            <summary class="fw-bold">Quais são os requisitos básicos para iniciar a aquisição de uma arma?</summary>
-            <div class="mt-3">
-                <p>Para a categoria cidadão, a regra geral exige idade mínima de 25 anos, salvo exceções legais. A PF também analisa a efetiva necessidade, a idoneidade, a ocupação lícita, a residência, a capacidade técnica e a aptidão psicológica. A lista de documentos e o resultado dependem da análise oficial. <a href="https://www.gov.br/pf/pt-br/assuntos/carta-de-servicos/armas/adquirir-arma-de-fogo" target="_blank" rel="noopener noreferrer">Confira os requisitos e etapas na PF</a>.</p>
-            </div>
-        </details>
-
-        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
-            <summary class="fw-bold">Preciso de porte para comprar munição?</summary>
-            <div class="mt-3">
-                <p>Não. Para munição de uso permitido, a norma da PF prevê CRAF válido do proprietário e munição do calibre correspondente à arma registrada. A quantidade e os documentos adicionais seguem as regras atuais e podem variar conforme a categoria. <a href="https://www.gov.br/pf/pt-br/assuntos/armas/normativos/in2012021atualizadadgpf.pdf" target="_blank" rel="noopener noreferrer">Consulte a Instrução Normativa da PF</a>.</p>
-            </div>
-        </details>
-
-        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
-            <summary class="fw-bold">Que documentos devo levar para comprar munição?</summary>
-            <div class="mt-3">
-                <p>Leve documento de identificação e o CRAF válido da arma registrada em seu nome. Atiradores devem levar também o CR. Militares devem levar a identidade militar. Policiais e outras categorias devem levar a identificação funcional. A equipe confirma os documentos aplicáveis ao seu caso antes da venda.</p>
-            </div>
-        </details>
-
-        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
-            <summary class="fw-bold">A M4 Tática envia munições ou permite retirada por outra pessoa?</summary>
-            <div class="mt-3">
-                <p>Não. Pela política da M4 Tática, munições e cartuchos são vendidos e retirados somente na loja física. A retirada deve ser feita pelo próprio comprador, após a conferência da documentação.</p>
-            </div>
-        </details>
-
-        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
-            <summary class="fw-bold">Quais calibres são de uso restrito?</summary>
-            <div class="mt-3">
-                <p>A classificação depende das características da arma e das normas vigentes. As regras foram alteradas em 2025. Por isso, não use listas antigas como referência. Envie o modelo exato e sua categoria à equipe para conferência. A <a href="https://www.gov.br/pf/pt-br/assuntos/armas/normativos/legislacao" target="_blank" rel="noopener noreferrer">página de legislação da PF</a> reúne os atos atuais.</p>
-            </div>
-        </details>
-
-        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
-            <summary class="fw-bold">Que comprovante de endereço posso apresentar?</summary>
-            <div class="mt-3">
-                <p>A página de serviço da PF lista comprovante recente de residência e orienta sobre documentos adicionais quando a conta está em nome de cônjuge, companheiro ou terceiro. A mesma página informa o prazo de emissão aceito. Além disso, as certidões criminais podem abranger os locais de domicílio dos últimos cinco anos. São exigências diferentes. <a href="https://www.gov.br/pf/pt-br/assuntos/carta-de-servicos/armas/adquirir-arma-de-fogo" target="_blank" rel="noopener noreferrer">Confira o checklist oficial antes de enviar o pedido</a>.</p>
-            </div>
-        </details>
-
-        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
-            <summary class="fw-bold">Quanto tempo leva a análise da Polícia Federal?</summary>
-            <div class="mt-3">
-                <p>O prazo pode variar. A página de serviço da PF informa uma estimativa de até 30 dias para análise. Acompanhe o pedido pelos canais oficiais. A M4 Tática não controla a fila nem pode garantir a data de decisão.</p>
-            </div>
-        </details>
-
-        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
-            <summary class="fw-bold">Qual é o valor do processo de posse e como posso parcelar?</summary>
-            <div class="mt-3">
-                <p>O valor informado pela M4 Tática é R$ 1.600,00 à vista ou 10 parcelas de R$ 184,33 no cartão de crédito. Confirme com a equipe se as condições continuam vigentes e o que está incluído. Para outros produtos, peça uma simulação atualizada de parcelamento pelo WhatsApp.</p>
-            </div>
-        </details>
+        {% else %}
+        <div class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
+            <p class="mb-0">Estamos atualizando as respostas. Para orientação, fale com a equipe pelo WhatsApp.</p>
+        </div>
+        {% endfor %}
     </section>
 
     <aside class="bg-light border rounded p-4 mt-5">
@@ -123,6 +76,7 @@
 <style>
     .faq-item summary { cursor: pointer; }
     .faq-item summary:focus-visible { outline: 3px solid #9b771f; outline-offset: 4px; }
+    .faq-answer { white-space: pre-line; }
     .faq-item p:last-child { margin-bottom: 0; }
 </style>
 {% endblock %}

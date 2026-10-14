@@ -1,0 +1,82 @@
+{% extends 'loja_admin/base_admin.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap align-items-center gap-2 pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <h1 class="h2 mb-1">Perguntas frequentes</h1>
+        <p class="text-muted mb-0">Edite o conteúdo exibido em <code>/perguntas-frequentes</code>.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="{{ url_for('loja.perguntas_frequentes') }}" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-box-arrow-up-right"></i> Ver página pública
+        </a>
+        <a class="btn btn-primary" href="{{ url_for('loja_admin.gerenciar_faq') }}">
+            <i class="bi bi-plus-lg"></i> Nova pergunta
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-info" role="note">
+    As respostas são exibidas como texto simples; links de apoio podem ser adicionados separadamente. Para ocultar uma pergunta sem apagá-la, desmarque “Publicada”.
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">Ordem</th>
+                        <th scope="col">Pergunta e resposta</th>
+                        <th scope="col">Publicação</th>
+                        <th scope="col">Link de apoio</th>
+                        <th scope="col" class="text-end">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for faq in faqs %}
+                    <tr>
+                        <td>{{ faq.ordem }}</td>
+                        <td>
+                            <strong>{{ faq.pergunta }}</strong>
+                            <div class="small text-muted mt-1">{{ faq.resposta|truncate(180) }}</div>
+                        </td>
+                        <td>
+                            {% if faq.publicada %}
+                                <span class="badge text-bg-success">Publicada</span>
+                            {% else %}
+                                <span class="badge text-bg-secondary">Oculta</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if faq.link_texto and faq.link_url %}
+                                <a href="{{ faq.link_url }}" target="_blank" rel="noopener noreferrer">{{ faq.link_texto }}</a>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex flex-wrap justify-content-end gap-1">
+                                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('loja_admin.gerenciar_faq', id=faq.id) }}" aria-label="Editar: {{ faq.pergunta }}">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                                <form method="post" action="{{ url_for('loja_admin.excluir_faq', id=faq.id) }}" onsubmit="return confirm('Excluir esta pergunta? Esta ação não pode ser desfeita.');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i> Excluir
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-5">Nenhuma pergunta cadastrada.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

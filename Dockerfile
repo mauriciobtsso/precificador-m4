@@ -34,5 +34,5 @@ RUN useradd --system --create-home --user-group --uid 10001 app \
 USER app
 ENV HOME=/home/app
 
-# Mantém o mesmo WSGI alvo usado atualmente pelo serviço Render.
-CMD ["gunicorn", "--timeout", "120", "run:app"]
+# Atualiza o esquema de forma compatível antes de aceitar tráfego.
+CMD ["sh", "-c", "flask --app run:app db upgrade && exec gunicorn --timeout 120 run:app"]

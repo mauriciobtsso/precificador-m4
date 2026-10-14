@@ -55,6 +55,33 @@ class LinkUtil(db.Model):
         return f"<LinkUtil {self.titulo}>"
 
 
+class PerguntaFrequente(db.Model):
+    """Pergunta e resposta editáveis exibidas na FAQ pública da loja."""
+
+    __tablename__ = "loja_perguntas_frequentes"
+    __table_args__ = (
+        db.Index("ix_loja_faq_publicada_ordem", "publicada", "ordem"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    pergunta = db.Column(db.String(300), nullable=False)
+    resposta = db.Column(db.Text, nullable=False)
+    link_texto = db.Column(db.String(200), nullable=True)
+    link_url = db.Column(db.String(1000), nullable=True)
+    ordem = db.Column(db.Integer, nullable=False, default=0)
+    publicada = db.Column(db.Boolean, nullable=False, default=True)
+    criada_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    atualizada_em = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+    def __repr__(self):
+        return f"<PerguntaFrequente {self.id}: {self.pergunta[:40]}>"
+
+
 class TaxaLojaLink(db.Model):
     """Taxa de parcelamento usada exclusivamente pela vitrine da loja."""
 

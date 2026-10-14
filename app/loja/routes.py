@@ -4,7 +4,7 @@ from flask import render_template, abort, request, url_for, send_from_directory,
 from flask_login import login_required
 from app.loja import loja_bp
 from app import db
-from app.loja.models_admin import Banner, PaginaInstitucional, LinkUtil, TaxaLojaLink
+from app.loja.models_admin import Banner, PaginaInstitucional, LinkUtil, TaxaLojaLink, PerguntaFrequente
 from app.produtos.models import Produto
 from app.produtos.categorias.models import CategoriaProduto
 from app.models import Configuracao
@@ -556,8 +556,13 @@ def links_uteis():
 
 @loja_bp.route('/perguntas-frequentes')
 def perguntas_frequentes():
+    faqs = PerguntaFrequente.query.filter_by(publicada=True).order_by(
+        PerguntaFrequente.ordem.asc(),
+        PerguntaFrequente.id.asc(),
+    ).all()
     return render_template(
         'loja/perguntas_frequentes.html',
+        faqs=faqs,
         breadcrumb_current={
             'name': 'Perguntas frequentes',
             'path': url_for('loja.perguntas_frequentes'),

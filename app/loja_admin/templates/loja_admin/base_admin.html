@@ -71,6 +71,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ 'active' if 'faq' in (request.endpoint or '') }}" href="{{ url_for('loja_admin.faqs') }}">
+                            <i class="bi bi-question-circle"></i> Perguntas frequentes
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ 'active' if 'link_util' in (request.endpoint or '') }}" href="{{ url_for('loja_admin.links_uteis') }}">
                             <i class="bi bi-link-45deg"></i> Links úteis
                         </a>

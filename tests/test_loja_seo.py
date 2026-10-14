@@ -7,7 +7,7 @@ from uuid import uuid4
 from xml.etree.ElementTree import fromstring
 
 from app import db
-from app.loja.models_admin import PaginaInstitucional
+from app.loja.models_admin import PaginaInstitucional, PerguntaFrequente
 from app.loja.routes import cache
 from app.loja.seo import SITEMAP_NAMESPACE, build_sitemap_xml, canonical_store_url
 from app.produtos.categorias.models import CategoriaProduto
@@ -208,19 +208,40 @@ def test_product_page_has_mobile_sticky_purchase_cta():
     assert "env(safe-area-inset-bottom)" in source
 
 
-def test_public_faq_page_has_visible_answers_metadata_and_official_sources(client):
-    response = client.get("/loja/perguntas-frequentes")
-    html = response.get_data(as_text=True)
+def test_public_faq_page_has_visible_answers_metadata_and_official_sources(app, client):
+    token = uuid4().hex[:12]
+    faqs = [
+        PerguntaFrequente(pergunta=f"Preciso de porte para comprar uma arma? {token}", resposta="Resposta de aquisição.", ordem=1, publicada=True),
+        PerguntaFrequente(pergunta=f"Preciso de porte para comprar munição? {token}", resposta="Resposta sobre munição.", ordem=2, publicada=True),
+        PerguntaFrequente(pergunta=f"A M4 Tática envia munições? {token}", resposta="Retirada na loja física.", ordem=3, publicada=True),
+        PerguntaFrequente(pergunta=f"Preço do processo {token}", resposta="R$ 1.600,00 à vista.", ordem=4, publicada=True),
+        PerguntaFrequente(pergunta=f"FAQ oculta {token}", resposta="Não deve aparecer.", ordem=5, publicada=False),
+    ]
+    with app.app_context():
+        db.session.add_all(faqs)
+        db.session.commit()
+        cache.clear()
 
-    assert response.status_code == 200
-    assert '<link rel="canonical" href="https://loja.m4tatica.com.br/perguntas-frequentes">' in html
-    assert '"@type": "BreadcrumbList"' in html
-    assert "Preciso de porte para comprar uma arma?" in html
-    assert "Preciso de porte para comprar munição?" in html
-    assert "A M4 Tática envia munições" in html
-    assert "R$ 1.600,00 à vista" in html
-    assert "https://www.gov.br/pf/pt-br/assuntos/armas/normativos/legislacao" in html
-    assert "https://www.in.gov.br/en/web/dou/-/portaria-conjunta-c-ex/dg-pf-n-4-de-18-de-julho-de-2025-645587385" in html
+    try:
+        response = client.get("/loja/perguntas-frequentes")
+        html = response.get_data(as_text=True)
+
+        assert response.status_code == 200
+        assert '<link rel="canonical" href="https://loja.m4tatica.com.br/perguntas-frequentes">' in html
+        assert '"@type": "BreadcrumbList"' in html
+        assert "Falar com a equipe pelo WhatsApp" in html
+        assert f"Preciso de porte para comprar uma arma? {token}" in html
+        assert f"Preciso de porte para comprar munição? {token}" in html
+        assert f"A M4 Tática envia munições? {token}" in html
+        assert "R$ 1.600,00 à vista." in html
+        assert "FAQ oculta" not in html
+        assert "https://www.gov.br/pf/pt-br/assuntos/armas/normativos/legislacao" in html
+        assert "https://www.in.gov.br/en/web/dou/-/portaria-conjunta-c-ex/dg-pf-n-4-de-18-de-julho-de-2025-645587385" in html
+    finally:
+        with app.app_context():
+            PerguntaFrequente.query.filter(PerguntaFrequente.pergunta.contains(token)).delete(synchronize_session=False)
+            db.session.commit()
+            cache.clear()
 
 
 def test_store_header_styles_do_not_apply_to_content_headers():

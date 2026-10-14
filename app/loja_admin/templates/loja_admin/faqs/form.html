@@ -1,0 +1,65 @@
+{% extends 'loja_admin/base_admin.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap align-items-center gap-2 pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <h1 class="h2 mb-1">{{ 'Nova pergunta frequente' if novo else 'Editar pergunta frequente' }}</h1>
+        <p class="text-muted mb-0">O conteúdo é renderizado com segurança como texto simples na página pública.</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('loja_admin.faqs') }}"><i class="bi bi-arrow-left"></i> Voltar à lista</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+        <form method="post" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-3">
+                <label for="pergunta" class="form-label fw-semibold">Pergunta <span class="text-danger" aria-hidden="true">*</span></label>
+                <input type="text" class="form-control" id="pergunta" name="pergunta" maxlength="300" required value="{{ faq.pergunta or '' }}" autocomplete="off">
+            </div>
+
+            <div class="mb-3">
+                <label for="resposta" class="form-label fw-semibold">Resposta <span class="text-danger" aria-hidden="true">*</span></label>
+                <textarea class="form-control" id="resposta" name="resposta" rows="7" maxlength="12000" required aria-describedby="resposta-ajuda">{{ faq.resposta or '' }}</textarea>
+                <div id="resposta-ajuda" class="form-text">Use texto simples. Quebras de linha são mantidas; HTML não é executado.</div>
+            </div>
+
+            <fieldset class="border rounded p-3 mb-3">
+                <legend class="float-none w-auto px-2 fs-6 fw-semibold">Link de apoio (opcional)</legend>
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label for="link_texto" class="form-label">Texto do link</label>
+                        <input type="text" class="form-control" id="link_texto" name="link_texto" maxlength="200" value="{{ faq.link_texto or '' }}" aria-describedby="link-ajuda">
+                    </div>
+                    <div class="col-md-7">
+                        <label for="link_url" class="form-label">URL</label>
+                        <input type="text" class="form-control" id="link_url" name="link_url" maxlength="1000" inputmode="url" value="{{ faq.link_url or '' }}" aria-describedby="link-ajuda">
+                    </div>
+                </div>
+                <div id="link-ajuda" class="form-text">Preencha os dois campos ou deixe ambos vazios. Aceita endereços http://, https:// ou caminhos internos iniciados por /.</div>
+            </fieldset>
+
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-sm-4 col-md-3">
+                    <label for="ordem" class="form-label fw-semibold">Ordem</label>
+                    <input type="number" class="form-control" id="ordem" name="ordem" min="0" max="9999" value="{{ faq.ordem if faq.ordem is not none else 0 }}" required>
+                    <div class="form-text">Menor número aparece primeiro.</div>
+                </div>
+                <div class="col-sm-8 col-md-9">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="publicada" name="publicada" value="1" {% if faq.publicada %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold" for="publicada">Publicada na página da loja</label>
+                    </div>
+                    <div class="form-text">Se desmarcada, a pergunta permanece salva no painel, mas fica oculta para visitantes.</div>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 border-top pt-3">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Salvar pergunta</button>
+                <a href="{{ url_for('loja_admin.faqs') }}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

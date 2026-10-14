@@ -9,7 +9,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_, and_ 
 from app.produtos.models import Produto
 from app.loja_admin import loja_admin_bp
-from app.loja.models_admin import Banner, PaginaInstitucional, LinkUtil, TaxaLojaLink
+from app.loja.models_admin import Banner, PaginaInstitucional, LinkUtil, TaxaLojaLink, PerguntaFrequente
 from app.models import Configuracao
 from app.carrinho.models import Pedido
 from app.extensions import db
@@ -33,6 +33,7 @@ def inject_helpers():
 def index():
     total_banners = Banner.query.count()
     total_paginas = PaginaInstitucional.query.count()
+    total_faqs = PerguntaFrequente.query.count()
     total_links_uteis = LinkUtil.query.count()
     total_taxas_link = TaxaLojaLink.query.count()
     
@@ -43,6 +44,7 @@ def index():
     return render_template('loja_admin/index.html', 
                            total_banners=total_banners, 
                            total_paginas=total_paginas,
+                           total_faqs=total_faqs,
                            total_links_uteis=total_links_uteis,
                            total_taxas_link=total_taxas_link,
                            total_pedidos=total_pedidos,
@@ -230,6 +232,116 @@ def excluir_link_util(id):
     db.session.commit()
     flash('Link útil excluído!', 'success')
     return redirect(url_for('loja_admin.links_uteis'))
+
+
+# =========================================================
+# GERENCIAR PERGUNTAS FREQUENTES
+# =========================================================
+def _url_faq_valida(valor):
+    """Aceita URLs HTTP(S) e caminhos internos, bloqueando esquemas executáveis."""
+    url = (valor or '').strip()
+    if not url:
+        return ''
+    if url.startswith('/') and not url.startswith('//'):
+        return url
+    parsed = urlparse(url)
+    if (
+        parsed.scheme.lower() in ('http', 'https')
+        and parsed.netloc
+        and parsed.hostname
+        and not parsed.username
+        and not parsed.password
+    ):
+        return url
+    return None
+
+
+def _aplicar_dados_faq(form, faq):
+    pergunta = (form.get('pergunta') or '').strip()
+    resposta = (form.get('resposta') or '').strip()
+    link_texto = (form.get('link_texto') or '').strip()
+    link_url_original = (form.get('link_url') or '').strip()
+    link_url = _url_faq_valida(link_url_original)
+    ordem_raw = (form.get('ordem') or '0').strip()
+    erros = []
+
+    if not pergunta:
+        erros.append('Informe a pergunta.')
+    elif len(pergunta) > 300:
+        erros.append('A pergunta deve ter no máximo 300 caracteres.')
+    if not resposta:
+        erros.append('Informe a resposta.')
+    elif len(resposta) > 12000:
+        erros.append('A resposta deve ter no máximo 12.000 caracteres.')
+    if len(link_texto) > 200:
+        erros.append('O texto do link deve ter no máximo 200 caracteres.')
+    if len(link_url_original) > 1000:
+        erros.append('A URL do link deve ter no máximo 1.000 caracteres.')
+    if bool(link_texto) != bool(link_url_original):
+        erros.append('Preencha o texto e a URL do link de apoio, ou deixe ambos vazios.')
+    elif link_url is None:
+        erros.append('Use uma URL começando por http://, https:// ou / (caminho interno).')
+
+    try:
+        ordem = int(ordem_raw)
+        if not 0 <= ordem <= 9999:
+            raise ValueError
+    except (TypeError, ValueError):
+        ordem = 0
+        erros.append('A ordem deve ser um número entre 0 e 9.999.')
+
+    faq.pergunta = pergunta
+    faq.resposta = resposta
+    faq.link_texto = link_texto or None
+    faq.link_url = (link_url if link_url is not None else link_url_original) or None
+    faq.ordem = ordem
+    faq.publicada = 'publicada' in form
+
+    for erro in erros:
+        flash(erro, 'danger')
+    return not erros
+
+
+@loja_admin_bp.route('/perguntas-frequentes')
+@login_required
+def faqs():
+    lista_faqs = PerguntaFrequente.query.order_by(
+        PerguntaFrequente.ordem.asc(),
+        PerguntaFrequente.id.asc(),
+    ).all()
+    return render_template('loja_admin/faqs/lista.html', faqs=lista_faqs)
+
+
+@loja_admin_bp.route('/perguntas-frequentes/nova', methods=['GET', 'POST'])
+@loja_admin_bp.route('/perguntas-frequentes/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def gerenciar_faq(id=None):
+    faq = PerguntaFrequente.query.get_or_404(id) if id is not None else PerguntaFrequente()
+    if id is None:
+        maior_ordem = db.session.query(db.func.max(PerguntaFrequente.ordem)).scalar()
+        faq.ordem = (maior_ordem or 0) + 1
+        faq.publicada = True
+
+    if request.method == 'POST':
+        if not _aplicar_dados_faq(request.form, faq):
+            return render_template('loja_admin/faqs/form.html', faq=faq, novo=(id is None))
+        if id is None:
+            db.session.add(faq)
+        db.session.commit()
+        flash(f'Pergunta frequente {"criada" if id is None else "atualizada"} com sucesso!', 'success')
+        return redirect(url_for('loja_admin.faqs'))
+
+    return render_template('loja_admin/faqs/form.html', faq=faq, novo=(id is None))
+
+
+@loja_admin_bp.route('/perguntas-frequentes/excluir/<int:id>', methods=['POST'])
+@login_required
+def excluir_faq(id):
+    faq = PerguntaFrequente.query.get_or_404(id)
+    db.session.delete(faq)
+    db.session.commit()
+    flash('Pergunta frequente excluída.', 'success')
+    return redirect(url_for('loja_admin.faqs'))
 
 
 # =========================================================
