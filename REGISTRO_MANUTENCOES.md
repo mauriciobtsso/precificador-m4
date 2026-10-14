@@ -1245,3 +1245,13 @@ O PDF anexado não foi lido nem enviado à Groq. Nenhum documento ou dado de cli
 - Confirmar se a equipe pode responder em até 24 horas. Definir dias, horários e exceções antes de publicar esse prazo.
 - Fornecer cases reais, com período, métricas verificáveis e autorização de publicação.
 - Acompanhar o resultado no Google Search Console. Nenhuma alteração garante posição específica.
+
+
+## 14/10/2026 — Contraste do cabeçalho da página de FAQ
+
+- A causa era uma regra CSS global `header { ... }` no template base. Ela aplicava fundo preto e estilo de navegação também ao `<header>` interno da FAQ. O texto herdava cores secundárias e ficava difícil de ler.
+- O estilo foi restrito à classe `.store-header`, usada somente no cabeçalho principal da loja. O ajuste mobile também foi restrito a essa classe. O título e o texto da FAQ voltam ao fundo claro e às cores normais do conteúdo.
+- Adicionado teste de regressão para impedir que o seletor global volte a afetar cabeçalhos internos.
+- A suíte completa passou: **124 testes**. Também passaram a compilação do teste e `git diff --check`.
+- O commit `0b5f551` foi publicado na branch `main`. O deploy automático `dep-db7qtu2jnfac73dmd7d0` terminou como **live** em `2026-10-14T16:34:47Z`.
+- Após a propagação, quatro verificações consecutivas de `https://loja.m4tatica.com.br/perguntas-frequentes` retornaram HTTP 200, com `.store-header` e sem a regra global antiga. O HTML também foi confirmado no host direto do Render.
