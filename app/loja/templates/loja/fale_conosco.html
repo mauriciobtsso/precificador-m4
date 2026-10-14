@@ -120,8 +120,17 @@
     if (!form || !button) return;
 
     button.addEventListener('click', function() {
-        if (!form.checkValidity()) {
-            form.reportValidity();
+        var nameInput = document.getElementById('contact-name');
+        var subjectInput = document.getElementById('contact-subject');
+        var messageInput = document.getElementById('contact-message');
+        var missingField = !nameInput.value.trim() ? nameInput : (!subjectInput.value ? subjectInput : (!messageInput.value.trim() ? messageInput : null));
+        if (missingField || (typeof form.checkValidity === 'function' && !form.checkValidity())) {
+            if (typeof form.reportValidity === 'function') {
+                form.reportValidity();
+            } else if (missingField) {
+                missingField.focus();
+                if (status) status.textContent = 'Preencha o nome, o assunto e a mensagem para continuar.';
+            }
             return;
         }
 
@@ -139,7 +148,8 @@
             'Mensagem: ' + String(fields.get('message') || '').trim()
         ].join('\n');
         var url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
-        window.open(url, '_blank', 'noopener,noreferrer');
+        var whatsappWindow = window.open(url, '_blank');
+        if (whatsappWindow) whatsappWindow.opener = null;
         if (status) status.textContent = 'O WhatsApp foi aberto. Revise e envie a mensagem no aplicativo.';
     });
 })();

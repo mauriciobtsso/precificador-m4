@@ -232,6 +232,8 @@ def test_contact_form_composes_whatsapp_message_instead_of_posting(client):
     assert 'id="send-whatsapp-message"' in html
     assert "https://wa.me/" in html
     assert "new FormData(form)" in html
+    assert "missingField.focus()" in html
+    assert "window.open(url, '_blank')" in html
     assert 'name="csrf_token"' not in html
     assert 'method="POST"' not in html
 
