@@ -1216,3 +1216,32 @@ O PDF anexado não foi lido nem enviado à Groq. Nenhum documento ou dado de cli
 - Escolher como o formulário de contato deve funcionar.
 - Confirmar política de consentimento e payload permitido antes de enviar o evento `purchase` ao GA4/GTM.
 - Fornecer respostas comerciais aprovadas para cinco FAQs, um prazo de resposta cumprível e resultados reais com autorização de publicação.
+
+
+## 14/10/2026 — FAQ, contato por WhatsApp e medição de compra
+
+### Implementações
+- Criada a página pública `/perguntas-frequentes`, com as respostas enviadas pelo usuário, metadados próprios, canonical, `BreadcrumbList` e HTML renderizado no servidor.
+- Adicionados links para a FAQ na home e no rodapé. A página também entrou no sitemap.
+- O conteúdo legal foi comparado com fontes oficiais da Polícia Federal e com a Portaria Conjunta C Ex/DG-PF nº 4/2025. A lista de calibres do anexo não foi publicada como regra vigente. A norma oficial de 2025 alterou a classificação.
+- Publicado o preço indicado pelo usuário: R$ 1.600,00 à vista ou 10 parcelas de R$ 184,33.
+- Corrigida a página de contato. O formulário monta a mensagem no navegador e abre o WhatsApp. O visitante revê e envia a mensagem. Nenhum dado do formulário é enviado ao servidor da loja.
+- Adicionado fallback de validação para Safari antigo. Isso inclui o Safari usado no iPad mini 1.
+- Adicionado o evento `purchase` ao `dataLayer`. O evento só é emitido para pedidos pagos. Inclui identificador da transação, valor, moeda e um item genérico. Não envia dados pessoais nem produtos reais. Há uma proteção contra repetição na mesma sessão.
+- O script público do GTM respondeu HTTP 200 e contém referência a uma configuração GA4. Não foi possível confirmar se existe uma tag que encaminha `purchase` ao GA4. O painel do GTM não foi acessado e nenhuma tag foi alterada. A coleta também depende do consentimento aplicável.
+- Mantida a regra `Disallow: /carrinho/`. Ela impede o Google de ler o `noindex` da página de confirmação. Não alterei essa regra porque ela permite acesso do robô às rotas do checkout.
+
+### Validação e publicação
+- A suíte completa passou: **123 testes**. Também passaram `py_compile` e `git diff --check`. Permaneceu o aviso conhecido do Flask-Limiter sobre armazenamento em memória no ambiente de teste.
+- O commit `2428f4f` foi enviado à branch `main`. O deploy Docker `dep-db7po5ijnfac73dke9q0` terminou como **live** em `2026-10-14T15:14:27Z`.
+- A correção de compatibilidade Safari foi publicada no commit `ff749d8`. O deploy Docker `dep-db7pqiss728c73dg1pk0` terminou como **live** em `2026-10-14T15:20:03Z`.
+- A verificação final no domínio oficial confirmou HTTP 200 na home, FAQ, contato, `sitemap.xml` e `robots.txt`. A home linka para a FAQ. A FAQ está no sitemap e exibe `BreadcrumbList`. O contato contém o formulário WhatsApp e o fallback Safari.
+- Não criei pedidos nem pagamentos. Não enviei mensagens pelo WhatsApp. Os testes de conversão usam dados sintéticos. Não usei documentos nem dados reais de clientes.
+- O relatório atualizado está em `docs/auditoria-seo-loja-2026-10.md`.
+
+### Pendências atuais
+- Confirmar no Preview do GTM e no relatório em tempo real do GA4 se a tag recebe `purchase` e se respeita o consentimento configurado.
+- Decidir se o Google pode rastrear `/carrinho/` para ler o `noindex` da confirmação.
+- Confirmar se a equipe pode responder em até 24 horas. Definir dias, horários e exceções antes de publicar esse prazo.
+- Fornecer cases reais, com período, métricas verificáveis e autorização de publicação.
+- Acompanhar o resultado no Google Search Console. Nenhuma alteração garante posição específica.

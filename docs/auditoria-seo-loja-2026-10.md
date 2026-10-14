@@ -1,76 +1,63 @@
 # Auditoria SEO da loja M4 Tática
 
-**Data:** 14/10/2026  
-**Escopo:** loja pública em `https://loja.m4tatica.com.br`  
-**Commit de código:** `9c9b6b1`  
-**Render:** deploy `dep-db7l3m142hec739at9p0`, estado **live**
+**Atualizada:** 14/10/2026
+**Loja:** https://loja.m4tatica.com.br
+**Commit da auditoria técnica inicial:** `9c9b6b1`
+**Commits desta continuação:** `2428f4f` e `ff749d8`
+**Deploy de código:** `dep-db7pqiss728c73dg1pk0`, estado **live**
 
-## Resumo
+A loja tem os dez pontos da imagem verificados. Sete estão implementados ou melhorados. O evento de compra está no código, mas a coleta no GA4 depende de validar a tag e o consentimento no GTM. Dois itens de conteúdo continuam pendentes: cases reais e um prazo de resposta que a equipe consiga cumprir.
 
-A auditoria encontrou problemas técnicos e de conteúdo. As correções técnicas foram implementadas e publicadas. O deploy Docker terminou sem erro.
+## Itens verificados
 
-A verificação pública confirmou:
+| # | Item | Situação e ação |
+|---|---|---|
+| 1 | Página 404 personalizada | **Implementada.** Responde com HTTP 404, página em português, busca funcional e `noindex`. Respostas JSON de API continuam em JSON. |
+| 2 | CTA acima da dobra | **Implementado.** A home tem H1 e botão “Explorar catálogo” antes do banner. |
+| 3 | Links internos | **Melhorados.** Busca tem paginação HTML. Home e rodapé apontam para FAQ. O sitemap lista a FAQ. URLs canônicas usam o domínio público. |
+| 4 | Página de obrigado e conversão | **Implementado no código.** A página envia o evento `purchase` ao `dataLayer` somente para pedidos com status pago. Inclui ID da transação, valor, moeda BRL e um item genérico. Não inclui nome, CPF, telefone, e-mail, endereço ou produtos reais. O disparo no GA4 depende da tag e do consentimento configurados no GTM. |
+| 5 | Breadcrumbs | **Implementados.** Breadcrumbs visuais e `BreadcrumbList` usam a hierarquia real. A FAQ também tem breadcrumb estruturado. |
+| 6 | Cases com resultado | **Pendente.** Não há resultados públicos comprovados. É preciso fornecer números, período e autorização de publicação. |
+| 7 | Perguntas frequentes | **Implementadas.** A página pública contém as respostas do anexo do usuário, revisão de conteúdo legal, links oficiais, metadados, breadcrumb e links internos. Não foi adicionado schema `FAQPage`: o Google limita bastante os resultados enriquecidos de FAQ e não garante exibição para lojas comerciais. |
+| 8 | Prazo de resposta visível | **Pendente.** Não foi publicada a promessa de resposta em 24 horas. A equipe precisa confirmar que pode cumprir o prazo e informar dias e horários. |
+| 9 | CTA fixo no mobile | **Implementado** no detalhe do produto, para telas até 992 px. Inclui tablets e compatibilidade com Safari antigo. |
+| 10 | `robots.txt` | **Corrigido na auditoria inicial.** O arquivo aponta para o sitemap XML. `robots.txt` orienta rastreadores; não protege dados privados. |
 
-- Home: HTTP 200, H1 principal e CTA para o catálogo.
-- `robots.txt`: HTTP 200, uma declaração válida para o sitemap XML.
-- Sitemap: HTTP 200 e XML válido.
-- URL inexistente: HTTP 404, página personalizada e `X-Robots-Tag: noindex, follow`.
-- Uma categoria e um produto: HTTP 200, uma canonical para o domínio oficial.
-- JSON-LD de produto válido. A marcação de avaliação não comprovada foi removida.
-- CTA fixo do produto presente para telas de até 992 px. Isso inclui tablets com viewport de 768 px.
+## O que entrou nesta continuação
 
-O objetivo é melhorar a rastreabilidade, a clareza e a conversão. **Nenhuma alteração garante uma posição específica no Google.** Conteúdo útil, concorrência, autoridade e dados do Search Console também afetam o resultado.
+### FAQ pública
 
-## Auditoria dos dez itens
+A nova página está em `/perguntas-frequentes`. Ela responde às perguntas do anexo e aparece na home, no rodapé e no sitemap. A página usa conteúdo HTML do servidor. Não depende de JavaScript para mostrar as respostas.
 
-| # | Item | Estado antes da mudança | Ação e estado atual |
-|---|---|---|---|
-| 1 | Página 404 personalizada | A URL inexistente retornava HTTP 404, mas sem página visual própria. | **Implementado.** Página em português, pesquisa funcional, link para a loja, status 404 e `noindex`. Respostas 404 de API continuam em JSON quando solicitadas. |
-| 2 | CTA acima da dobra | A home pública não tinha H1 semântico visível no primeiro conteúdo. | **Implementado.** H1 curto e botão “Explorar catálogo” antes do banner. O botão leva à seção do catálogo. |
-| 3 | Links internos | A navegação interna existia. A busca não oferecia paginação rastreável. | **Melhorado.** A busca agora tem links HTML para as páginas seguintes. O helper de URL usa o host oficial e remove o prefixo interno `/loja`. |
-| 4 | Página de obrigado | A tela de pedido concluído existia. O código da aplicação não enviava evento `purchase` ao `dataLayer`. | **Parcial.** A tela recebe `noindex` no HTML e no cabeçalho HTTP. O evento de conversão não foi criado. O GTM está instalado, mas não foi possível inspecionar a configuração interna do container. A regra atual também bloqueia `/carrinho/` em `robots.txt`; assim, o Google não consegue ler a meta tag dessa rota. Mantive o bloqueio para não liberar o rastreio do checkout sem decisão. |
-| 5 | Breadcrumbs | Havia marcação de breadcrumb, mas ela podia usar host interno e criar hierarquia incompleta. | **Corrigido.** A marcação só aparece quando há mais de um nível. Os links usam URLs canônicas públicas. Categoria e produto foram verificados ao vivo. |
-| 6 | Cases com resultados | Não foram encontrados cases públicos com resultados verificáveis. | **Pendente.** Exige dados reais, autorização de publicação e, se necessário, anonimização. Não inventei resultados. |
-| 7 | Cinco perguntas frequentes | Não foi encontrada uma seção pública de FAQ. | **Pendente.** As perguntas e respostas precisam refletir políticas reais. O Google não garante rich results de FAQ para lojas comerciais. Use FAQ primeiro para ajudar visitantes. |
-| 8 | Prazo de resposta visível | Não foi encontrada promessa pública de prazo de resposta. | **Pendente.** Não publiquei “retorno em 24h” sem confirmar que a equipe pode cumprir esse prazo. |
-| 9 | CTA fixo no mobile | O detalhe de produto não tinha CTA persistente ao rolar a página. | **Implementado.** Barra fixa com preço à vista e botão de carrinho. O breakpoint inclui tablets e usa `bottom/left/right` para compatibilidade com Safari antigo. |
-| 10 | `robots.txt` | O arquivo apontava para o sitemap XML e também listava `llms.txt` como se fosse sitemap. | **Corrigido.** Ficou apenas a declaração do sitemap XML. `robots.txt` orienta rastreadores; ele não protege dados nem substitui autenticação. |
+O preço público foi publicado conforme o material recebido: **R$ 1.600,00 à vista ou 10 parcelas de R$ 184,33**. A resposta sobre aquisição de arma usa as orientações da Polícia Federal. A lista de calibres do anexo não foi copiada como regra vigente, pois existe norma oficial posterior sobre classificação. As respostas legais apontam para as fontes oficiais. Elas não substituem a confirmação dos requisitos atuais com a Polícia Federal.
 
-## Outras correções técnicas
+### Contato por WhatsApp
 
-- Canonicals, Open Graph e URLs de dados estruturados usam `https://loja.m4tatica.com.br`.
-- Busca e parâmetros de rastreamento não criam canonical duplicada.
-- O sitemap inclui produtos visíveis, categorias com produtos visíveis e páginas institucionais públicas. Exclui categorias vazias e páginas ocultas. O `lastmod` usa a atualização da página ou do produto relacionado.
-- Categorias, produtos, páginas institucionais, contato e links úteis recebem títulos e descrições próprios.
-- O JSON-LD de produto deixou de declarar avaliação 5/5, estoque sempre disponível, frete grátis, devolução grátis em sete dias e prazos fixos de entrega sem validação comercial. Também saiu a data fixa de validade do preço.
-- A página de contato tem um formulário que ainda não funciona: ele envia POST para `#`, não tem nomes de campos e a rota aceita apenas GET. Os canais de WhatsApp, e-mail e endereço aparecem na página. Não troquei o fluxo do formulário por WhatsApp ou e-mail sem autorização.
+A página de contato agora monta uma mensagem no navegador e abre o WhatsApp para o cliente revisar e enviar. A loja não recebe essa mensagem pelo servidor. O botão não envia nada automaticamente. Incluí uma validação alternativa para Safari antigo, como o usado no iPad mini 1.
 
-## Pendências e plano de ação
+### Evento de compra
 
-### Prioridade 1 — medir conversões e corrigir o contato
+A página de confirmação envia `purchase` apenas quando o pedido já está pago. O evento usa um nome genérico para o item e não envia dados pessoais nem nomes de produtos. Também evita repetir o envio na mesma sessão.
 
-1. Definir como enviar o formulário de contato: serviço de e-mail, WhatsApp com texto preenchido ou remoção do formulário com manutenção dos canais diretos.
-2. Definir o evento GA4 `purchase`, a regra de consentimento e os dados permitidos. Sugestão inicial: não enviar nome, e-mail, telefone ou outros dados pessoais. Confirmar também se os itens comprados podem ser enviados ao Google Analytics.
-3. Decidir se `/carrinho/` deve continuar bloqueado para rastreadores. Para o Google processar `noindex`, o robô precisa poder buscar a página. A exceção pode expor a página de confirmação ao crawler. Avaliar isso junto com o evento e a privacidade.
+O script público do GTM respondeu HTTP 200 e contém referência a uma configuração GA4. Isso não prova que exista uma tag acionada pelo evento `purchase`. Não acessei o painel privado do GTM e não alterei tags. Também não implementei um novo banner nem uma nova política de consentimento. A coleta depende da configuração atual do GTM e do consentimento aplicável.
 
-### Prioridade 2 — conteúdo real
-
-1. Aprovar cinco perguntas frequentes e respostas. Cobrir somente políticas confirmadas de pagamento, frete, troca, garantia e canais de atendimento.
-2. Confirmar se a equipe pode responder em até 24 horas. Definir horário, dias úteis e exceções antes de exibir a promessa.
-3. Enviar um ou mais resultados comprováveis. Informar os números, o período, a autorização de publicação e os dados que devem ser ocultados.
-
-### Prioridade 3 — acompanhar o efeito
-
-1. Conferir propriedade e sitemap no Google Search Console.
-2. Acompanhar cobertura, consultas, impressões, cliques e CTR por página.
-3. Comparar períodos equivalentes. Ajustar titles, descrições e conteúdo com base nos termos reais.
+A regra `Disallow: /carrinho/` continua ativa. Ela impede que o Google leia o `noindex` da página de confirmação. Não removi a regra porque isso permitiria rastreio de rotas de checkout. A decisão sobre essa exceção ainda precisa de aprovação.
 
 ## Validação
 
-- **119 testes aprovados**. `py_compile` e `git diff --check` passaram.
-- A suíte mantém um aviso conhecido do Flask-Limiter: o ambiente de teste usa armazenamento em memória.
-- Não acessei pedidos, contas de clientes nem configurações internas do GTM.
-- Não enviei dados do formulário e não criei cases, perguntas, prazos ou avaliações fictícias.
+Depois do deploy, o domínio oficial respondeu HTTP 200 na home, na FAQ, no contato, em `sitemap.xml` e em `robots.txt`. A FAQ estava visível e tinha canonical e `BreadcrumbList`. O sitemap XML era válido e continha a FAQ. O contato mostrava o formulário WhatsApp e o fallback de Safari antigo.
+
+A suíte completa passou: **123 testes**. Também passaram a compilação Python e `git diff --check`. Permaneceu um aviso conhecido do Flask-Limiter: os testes usam armazenamento em memória.
+
+O deploy Docker `dep-db7pqiss728c73dg1pk0`, associado ao commit `ff749d8`, terminou como **live** em `2026-10-14T15:20:03Z`. Nenhum pedido foi criado. Nenhum pagamento foi realizado. Nenhuma mensagem foi enviada pelo WhatsApp. Os testes de conversão usam pedidos sintéticos.
+
+## Próximas ações
+
+1. Confirmar no modo Preview do GTM e no relatório em tempo real do GA4 se `purchase` chega à propriedade. Confirmar também se a tag segue o consentimento configurado.
+2. Decidir se o Google pode rastrear `/carrinho/` para ler o `noindex`. Manter o bloqueio evita que o robô visite o checkout, mas também impede a leitura dessa meta tag.
+3. Confirmar se a equipe consegue responder em até 24 horas. Se sim, definir dias, horários e exceções antes de publicar o prazo.
+4. Enviar cases reais, com período, métricas verificáveis e autorização de publicação.
+5. Acompanhar impressões, cliques, CTR e consultas no Google Search Console. O SEO não garante posição específica.
 
 ## Fontes oficiais
 
@@ -83,3 +70,7 @@ O objetivo é melhorar a rastreabilidade, a clareza e a conversão. **Nenhuma al
 - [FAQ structured data](https://developers.google.com/search/docs/appearance/structured-data/faqpage)
 - [Eventos de e-commerce no GA4](https://developers.google.com/analytics/devguides/collection/ga4/ecommerce)
 - [Consentimento e Google tags](https://developers.google.com/tag-platform/security/guides/consent)
+- [Polícia Federal — aquisição de arma de fogo](https://www.gov.br/pf/pt-br/assuntos/carta-de-servicos/armas/adquirir-arma-de-fogo)
+- [Polícia Federal — legislação de armas](https://www.gov.br/pf/pt-br/assuntos/armas/normativos/legislacao)
+- [Instrução Normativa PF nº 201/2021](https://www.gov.br/pf/pt-br/assuntos/armas/normativos/in2012021atualizadadgpf.pdf)
+- [Portaria Conjunta C Ex/DG-PF nº 4/2025, Diário Oficial da União](https://www.in.gov.br/en/web/dou/-/portaria-conjunta-c-ex/dg-pf-n-4-de-18-de-julho-de-2025-645587385)
