@@ -1182,3 +1182,37 @@ A suíte completa passou: **108 testes aprovados**. Os testes simulam respostas 
 O commit `9426098` foi enviado à branch `main`. O deploy Docker `dep-db50keivcj2c73e6ncu0` concluiu como **live** em `2026-10-10T09:50:29Z`. Os logs confirmaram que o Gunicorn iniciou o worker. A página pública respondeu **HTTP 200** e redirecionou para o login.
 
 O PDF anexado não foi lido nem enviado à Groq. Nenhum documento ou dado de cliente foi processado no teste de produção; a resposta estruturada real da Groq deverá ser confirmada no próximo envio pelo formulário.
+
+
+## 14/10/2026 — Auditoria e correções técnicas SEO da /loja
+
+### Diagnóstico
+- A home pública respondia HTTP 200, mas não tinha um H1 semântico visível acima da dobra.
+- `robots.txt` listava o sitemap XML correto e também `llms.txt` como sitemap. A rota inexistente respondia HTTP 404, mas não mostrava uma página personalizada.
+- A busca pública não oferecia paginação HTML rastreável. Canonicals e dados estruturados podiam usar URLs do host interno ou com o prefixo `/loja`.
+- O template tinha JSON-LD de produto com uma avaliação 5/5 e alegações de estoque, frete, devolução e entrega que não eram confirmadas por dados do produto. O detalhe também não tinha CTA fixo para telas móveis.
+- Não foram encontradas páginas públicas de cases, FAQ ou prazo de resposta. A página de pedido concluído não enviava um evento `purchase` pelo código da aplicação.
+- O formulário de contato envia POST para `#`, não contém nomes de campos e a rota aceita apenas GET. A página também apresenta canais diretos. A implementação do formulário foi deixada para decisão do responsável.
+
+### Correções
+- Criada página 404 personalizada com status 404, `noindex`, link para a loja e busca funcional. A resposta 404 continua em JSON quando o cliente pede JSON.
+- Adicionados H1 e CTA do catálogo à home. A busca agora tem links de paginação.
+- Unificado o uso do domínio canônico `https://loja.m4tatica.com.br` em canonicals, metadados sociais e dados estruturados. Breadcrumbs agora só são emitidos para hierarquias reais.
+- Atualizado o sitemap para listar produtos visíveis, categorias que contêm produtos visíveis e páginas institucionais públicas. Categorias vazias e páginas ocultas ficam fora. O `lastmod` reflete alterações da categoria, do produto ou da página.
+- Removida a declaração de `llms.txt` como sitemap. `robots.txt` mantém uma única declaração para o sitemap XML.
+- Títulos, descrições e metadados sociais passaram a usar conteúdo de produto, categoria ou página institucional.
+- Removidas do JSON-LD de produto avaliação fictícia, disponibilidade permanente, frete e política de devolução não validados, prazos fixos de entrega e data de validade fixa do preço.
+- Adicionada barra fixa de compra com preço e botão de carrinho em larguras até 992 px, incluindo viewport de tablet de 768 px.
+- A página de confirmação recebe meta `noindex` e cabeçalho `X-Robots-Tag`. A regra `Disallow: /carrinho/` permanece para evitar o rastreio do checkout. Ela impede o Google de ler a meta tag enquanto a página estiver bloqueada; qualquer exceção requer decisão sobre privacidade.
+
+### Validação e publicação
+- A suíte completa passou: **119 testes aprovados**. Também passaram `py_compile` e `git diff --check`. Permaneceu o aviso conhecido do Flask-Limiter sobre armazenamento em memória no ambiente de teste.
+- O commit `9c9b6b1` foi enviado a `main`. O deploy Docker `dep-db7l3m142hec739at9p0` terminou como **live** em `2026-10-14T09:57:25Z`.
+- A verificação pública após o deploy confirmou home, `robots.txt`, sitemap XML e página 404. Uma categoria e um produto responderam HTTP 200, cada um com uma canonical para o domínio oficial. O JSON-LD do produto foi válido, sem a avaliação não comprovada, e a barra móvel estava presente.
+- Não acessei pedidos, contas de clientes nem as configurações internas do GTM. Não enviei formulários e não inventei cases, FAQs, prazos ou avaliações.
+- O relatório detalhado está em `docs/auditoria-seo-loja-2026-10.md`. As fontes oficiais do Google e do GA4 estão citadas no relatório.
+
+### Pendências
+- Escolher como o formulário de contato deve funcionar.
+- Confirmar política de consentimento e payload permitido antes de enviar o evento `purchase` ao GA4/GTM.
+- Fornecer respostas comerciais aprovadas para cinco FAQs, um prazo de resposta cumprível e resultados reais com autorização de publicação.
