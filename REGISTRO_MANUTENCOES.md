@@ -1255,3 +1255,21 @@ O PDF anexado não foi lido nem enviado à Groq. Nenhum documento ou dado de cli
 - A suíte completa passou: **124 testes**. Também passaram a compilação do teste e `git diff --check`.
 - O commit `0b5f551` foi publicado na branch `main`. O deploy automático `dep-db7qtu2jnfac73dmd7d0` terminou como **live** em `2026-10-14T16:34:47Z`.
 - Após a propagação, quatro verificações consecutivas de `https://loja.m4tatica.com.br/perguntas-frequentes` retornaram HTTP 200, com `.store-header` e sem a regra global antiga. O HTML também foi confirmado no host direto do Render.
+
+## 14/10/2026 — Painel administrativo para FAQs editáveis
+### Implementações
+- Criado o modelo `PerguntaFrequente` e a migração Alembic `20261014_editable_faq`, com criação da tabela e seed das nove perguntas e respostas já exibidas na página pública. Os links de apoio foram separados em campos próprios.
+- A rota `/loja/perguntas-frequentes` agora consulta apenas os registros publicados, ordena pelo campo definido no painel e continua renderizando o conteúdo no servidor. Canonical, título, descrição, Open Graph, breadcrumb, fontes oficiais e layout claro permanecem preservados.
+- Implementado CRUD protegido por login em `/admin-loja/perguntas-frequentes`: listar, criar, editar, ordenar, publicar/ocultar e excluir com confirmação e POST. O formulário aceita resposta em texto simples, quebras de linha e um link opcional. URLs são validadas e respostas são escapadas pelo Jinja; HTML ou esquemas executáveis não são aceitos como conteúdo/link.
+- Adicionado o acesso ao gerenciamento no menu lateral e no dashboard administrativo. A página pública mantém os CTAs de WhatsApp e a área de fontes oficiais.
+- O `Dockerfile` executa `flask --app run:app db upgrade` antes de iniciar o Gunicorn, para atualizar o esquema no boot do serviço. A aplicação continua com uma instância Render e sem comando de inicialização personalizado.
+- Nenhum código do evento `purchase` foi alterado. Os fluxos de WhatsApp e o ajuste de contraste da FAQ foram mantidos.
+### Validação
+- A suíte completa passou: **130 testes aprovados**. Os novos testes verificam autenticação, listagem/dashboard, criação, edição, publicação/ocultação, exclusão, rejeição de URL executável, escape de HTML e seed/downgrade da migração em SQLite isolado.
+- A revisão Alembic reconheceu `20261014_editable_faq` como único head. Também passaram `compileall` e `git diff --check`. Permaneceu o aviso conhecido do Flask-Limiter sobre armazenamento em memória nos testes.
+- O commit `03d2973` foi enviado à branch `main`; o deploy Docker `dep-db7rgcegekts73ear6p0` foi acionado automaticamente. O status final do deploy e as verificações públicas serão registrados após a conclusão.
+### Resultado final do deploy e verificação pública
+- O deploy `dep-db7rgcegekts73ear6p0`, associado ao commit `03d2973ed78628323b21a79e7bd9214f0c57001c`, terminou como **live** em `2026-10-14T17:14:48Z`.
+- Os logs confirmaram que o container executou `flask --app run:app db upgrade`, aplicou a revisão `20261007_pf_pj_localidade -> 20261014_editable_faq` no PostgreSQL e iniciou o Gunicorn na porta 10000.
+- `https://loja.m4tatica.com.br/perguntas-frequentes` respondeu HTTP 200. O HTML inicial contém as nove perguntas sem depender de JavaScript, canonical do domínio oficial, `BreadcrumbList`, CTA do WhatsApp e seção de fontes oficiais.
+- O painel está disponível em `https://app.m4tatica.com.br/admin-loja/perguntas-frequentes`. Sem sessão, a rota redireciona para o login; a gestão segue protegida por autenticação. O domínio `loja.m4tatica.com.br` é o endereço público da vitrine.
