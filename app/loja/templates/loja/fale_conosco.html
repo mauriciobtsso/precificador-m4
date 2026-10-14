@@ -3,7 +3,7 @@
 {% block title %}Fale Conosco | M4 Tática{% endblock %}
 
 {% block seo_meta %}
-<meta name="description" content="Fale com a equipe da M4 Tática por WhatsApp, e-mail ou telefone. Consulte canais de atendimento e endereço da loja em Teresina, PI.">
+<meta name="description" content="Fale com a equipe da M4 Tática pelo WhatsApp, e-mail ou telefone. Consulte os canais de atendimento e o endereço da loja em Teresina, PI.">
 {% endblock %}
 
 {% block opengraph %}
@@ -15,7 +15,7 @@
 <meta property="og:image" content="{{ loja_canonical_url(url_for('static', filename='img/logo.webp')) }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Fale Conosco | M4 Tática">
-<meta name="twitter:description" content="Entre em contato com a equipe da M4 Tática.">
+<meta name="twitter:description" content="Entre em contato com a equipe da M4 Tática pelo WhatsApp.">
 <meta name="twitter:image" content="{{ loja_canonical_url(url_for('static', filename='img/logo.webp')) }}">
 {% endblock %}
 
@@ -23,21 +23,21 @@
 <div class="container py-5">
     <div class="text-center mb-5">
         <h1 class="fw-bold text-uppercase" style="font-family: 'Oswald';">Fale Conosco</h1>
-        <p class="text-muted">Estamos prontos para atender você e tirar todas as suas dúvidas.</p>
+        <p class="text-muted">Preencha sua mensagem. O WhatsApp abrirá para você revisar e enviar.</p>
     </div>
 
     <div class="row g-5">
         <div class="col-lg-5">
             <div class="card border-0 bg-dark text-white p-4 h-100 shadow-lg">
-                <h4 class="text-gold mb-4">Canais Diretos</h4>
-                
+                <h2 class="h4 text-gold mb-4">Canais Diretos</h2>
+
                 <div class="d-flex align-items-center mb-4">
                     <div class="icon-box bg-gold text-dark me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
                         <i class="bi bi-whatsapp fs-4"></i>
                     </div>
                     <div>
                         <small class="d-block text-white-50">WhatsApp</small>
-                        <a href="https://wa.me/{{ loja.loja_whatsapp }}" class="text-white text-decoration-none fw-bold">{{ loja.loja_telefone }}</a>
+                        <a href="https://wa.me/{{ (loja.loja_whatsapp or '558630255885')|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" class="text-white text-decoration-none fw-bold" target="_blank" rel="noopener noreferrer">{{ loja.loja_telefone or '(86) 3025-5885' }}</a>
                     </div>
                 </div>
 
@@ -47,12 +47,12 @@
                     </div>
                     <div>
                         <small class="d-block text-white-50">E-mail</small>
-                        <span class="fw-bold">{{ loja.loja_email }}</span>
+                        <a class="text-white fw-bold" href="mailto:{{ loja.loja_email }}">{{ loja.loja_email }}</a>
                     </div>
                 </div>
 
                 <div class="d-flex align-items-center mb-4">
-                    <div class="icon-box bg-gold text-dark me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 90px; height: 50px;">
+                    <div class="icon-box bg-gold text-dark me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
                         <i class="bi bi-geo-alt fs-4"></i>
                     </div>
                     <div>
@@ -62,44 +62,41 @@
                 </div>
 
                 <hr class="my-4 opacity-25">
-                
-                <h5 class="text-gold small mb-3">Redes Sociais</h5>
+
+                <h2 class="h6 text-gold mb-3">Redes Sociais</h2>
                 <div class="d-flex gap-3">
-                    <a href="https://instagram.com/{{ loja.loja_instagram|replace('@','') }}" class="btn btn-outline-light btn-sm px-3"><i class="bi bi-instagram me-2"></i>Instagram</a>
+                    <a href="https://instagram.com/{{ loja.loja_instagram|replace('@','') }}" class="btn btn-outline-light btn-sm px-3" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram me-2"></i>Instagram</a>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-7">
             <div class="bg-light p-4 rounded shadow-sm border h-100">
-                <h4 class="mb-4">Envie uma Mensagem</h4>
-                <form action="#" method="POST">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
+                <h2 class="h4 mb-2">Envie uma mensagem pelo WhatsApp</h2>
+                <p class="text-muted mb-4">A mensagem só será enviada depois que você confirmar no WhatsApp.</p>
+                <form id="whatsapp-contact-form" data-whatsapp-number="{{ (loja.loja_whatsapp or '558630255885')|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Seu Nome</label>
-                            <input type="text" class="form-control" placeholder="Ex: João Silva" required>
+                            <label class="form-label small fw-bold" for="contact-name">Seu nome</label>
+                            <input id="contact-name" name="name" type="text" class="form-control" placeholder="Ex.: João Silva" maxlength="100" autocomplete="name" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Seu E-mail</label>
-                            <input type="email" class="form-control" placeholder="email@exemplo.com" required>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold">Assunto</label>
-                            <select class="form-select">
-                                <option>Dúvida sobre Produto</option>
-                                <option>Processo de CR / Posse e Documentação</option>
-                                <option>Sugestões ou Reclamações</option>
-                                <option>Outros</option>
+                            <label class="form-label small fw-bold" for="contact-subject">Assunto</label>
+                            <select id="contact-subject" name="subject" class="form-select" required>
+                                <option value="" selected disabled>Escolha um assunto</option>
+                                <option>Dúvida sobre produto</option>
+                                <option>Documentação e processo de posse</option>
+                                <option>Sugestão ou reclamação</option>
+                                <option>Outro assunto</option>
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small fw-bold">Mensagem</label>
-                            <textarea class="form-control" rows="5" placeholder="Como podemos ajudar?" required></textarea>
+                            <label class="form-label small fw-bold" for="contact-message">Mensagem</label>
+                            <textarea id="contact-message" name="message" class="form-control" rows="5" maxlength="2000" placeholder="Como podemos ajudar?" required></textarea>
                         </div>
                         <div class="col-12 mt-4">
-                            <button type="submit" class="btn btn-dark w-100 py-3 fw-bold text-uppercase">Enviar Mensagem</button>
+                            <button id="send-whatsapp-message" type="button" class="btn btn-dark w-100 py-3 fw-bold text-uppercase">Continuar no WhatsApp</button>
+                            <p id="whatsapp-contact-status" class="small text-muted mt-3 mb-0" aria-live="polite">O WhatsApp abrirá com a mensagem preenchida. Revise o texto antes de enviar.</p>
                         </div>
                     </div>
                 </form>
@@ -112,4 +109,39 @@
     .text-gold { color: var(--m4-gold) !important; }
     .bg-gold { background-color: var(--m4-gold) !important; }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var form = document.getElementById('whatsapp-contact-form');
+    var button = document.getElementById('send-whatsapp-message');
+    var status = document.getElementById('whatsapp-contact-status');
+    if (!form || !button) return;
+
+    button.addEventListener('click', function() {
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        var phone = (form.getAttribute('data-whatsapp-number') || '').replace(/\D/g, '');
+        if (phone.length < 10 || phone.length > 15) {
+            if (status) status.textContent = 'O canal de WhatsApp está indisponível. Use o número exibido nesta página.';
+            return;
+        }
+
+        var fields = new FormData(form);
+        var message = [
+            'Olá, M4 Tática!',
+            'Meu nome: ' + String(fields.get('name') || '').trim(),
+            'Assunto: ' + String(fields.get('subject') || '').trim(),
+            'Mensagem: ' + String(fields.get('message') || '').trim()
+        ].join('\n');
+        var url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        if (status) status.textContent = 'O WhatsApp foi aberto. Revise e envie a mensagem no aplicativo.';
+    });
+})();
+</script>
 {% endblock %}

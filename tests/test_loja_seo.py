@@ -91,6 +91,7 @@ def test_public_sitemap_is_xml_and_uses_official_host(client):
     assert response.status_code == 200
     assert response.mimetype == "application/xml"
     assert "https://loja.m4tatica.com.br/" in body
+    assert "https://loja.m4tatica.com.br/perguntas-frequentes" in body
     assert "precificador-m4.onrender.com" not in body
 
 
@@ -207,6 +208,34 @@ def test_product_page_has_mobile_sticky_purchase_cta():
     assert "env(safe-area-inset-bottom)" in source
 
 
+def test_public_faq_page_has_visible_answers_metadata_and_official_sources(client):
+    response = client.get("/loja/perguntas-frequentes")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert '<link rel="canonical" href="https://loja.m4tatica.com.br/perguntas-frequentes">' in html
+    assert '"@type": "BreadcrumbList"' in html
+    assert "Preciso de porte para comprar uma arma?" in html
+    assert "Preciso de porte para comprar munição?" in html
+    assert "A M4 Tática envia munições" in html
+    assert "R$ 1.600,00 à vista" in html
+    assert "https://www.gov.br/pf/pt-br/assuntos/armas/normativos/legislacao" in html
+    assert "https://www.in.gov.br/en/web/dou/-/portaria-conjunta-c-ex/dg-pf-n-4-de-18-de-julho-de-2025-645587385" in html
+
+
+def test_contact_form_composes_whatsapp_message_instead_of_posting(client):
+    response = client.get("/loja/fale-conosco")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'id="whatsapp-contact-form"' in html
+    assert 'id="send-whatsapp-message"' in html
+    assert "https://wa.me/" in html
+    assert "new FormData(form)" in html
+    assert 'name="csrf_token"' not in html
+    assert 'method="POST"' not in html
+
+
 def test_seo_templates_parse_without_jinja_syntax_errors(app):
     templates = [
         "loja/base.html",
@@ -214,6 +243,7 @@ def test_seo_templates_parse_without_jinja_syntax_errors(app):
         "loja/categoria.html",
         "loja/produto_detalhe.html",
         "loja/fale_conosco.html",
+        "loja/perguntas_frequentes.html",
         "loja/pagina_institucional.html",
         "loja/links_uteis.html",
         "carrinho/sucesso.html",

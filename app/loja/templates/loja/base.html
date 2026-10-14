@@ -233,6 +233,8 @@
     {% set breadcrumb_items = breadcrumb_items + [{'name': produto.nome_comercial or produto.nome, 'path': request.path}] %}
 {% elif pagina is defined and pagina %}
     {% set breadcrumb_items = breadcrumb_items + [{'name': pagina.titulo, 'path': request.path}] %}
+{% elif breadcrumb_current is defined and breadcrumb_current %}
+    {% set breadcrumb_items = breadcrumb_items + [breadcrumb_current] %}
 {% endif %}
 {% if breadcrumb_items|length > 1 %}
 <script type="application/ld+json">
@@ -344,6 +346,7 @@
                     <h2 class="footer-title">Conteúdo</h2>
                     <ul class="list-unstyled">
                         <li><a href="{{ url_for('loja.fale_conosco') }}">Fale Conosco</a></li>
+                        <li><a href="{{ url_for('loja.perguntas_frequentes') }}">Perguntas frequentes</a></li>
                         <li><a href="{{ url_for('loja.links_uteis') }}">Links úteis</a></li>
                         {% for p in paginas_rodape %}<li><a href="{{ url_for('loja.exibir_pagina', slug=p.slug) }}">{{ p.titulo }}</a></li>{% endfor %}
                     </ul>
@@ -425,6 +428,7 @@
     ['scroll','touchstart','keydown','pointerdown'].forEach(function(evt) {
         window.addEventListener(evt, function() { scheduleGTM(350); }, {once: true, passive: true});
     });
+    window.addEventListener('m4:purchase-ready', injectGTM, false);
 })();
     </script>
 

@@ -81,6 +81,50 @@
 
 {% block extra_js %}
 <script>
+{% if pedido.status == 'pago' %}
+(function() {
+    var transactionId = {{ pedido.public_id|tojson }};
+    var value = {{ (pedido.total_cobrado if pedido.total_cobrado is not none else pedido.total_pedido)|float|tojson }};
+    var sentKey = 'm4_purchase_sent_' + transactionId;
+    try {
+        if (window.sessionStorage && window.sessionStorage.getItem(sentKey)) return;
+    } catch (error) {}
+
+    // Inicia o GTM antes do evento para preservar a ordem da fila dataLayer.
+    try {
+        var readyEvent;
+        if (typeof window.Event === 'function') {
+            readyEvent = new Event('m4:purchase-ready');
+        } else {
+            readyEvent = document.createEvent('Event');
+            readyEvent.initEvent('m4:purchase-ready', false, false);
+        }
+        window.dispatchEvent(readyEvent);
+    } catch (error) {}
+
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    window.dataLayer.push({
+        event: 'purchase',
+        ecommerce: {
+            transaction_id: transactionId,
+            value: value,
+            currency: 'BRL',
+            items: [{
+                item_id: 'm4-order',
+                item_name: 'Pedido M4 Tática',
+                price: value,
+                quantity: 1
+            }]
+        }
+    });
+
+    try {
+        if (window.sessionStorage) window.sessionStorage.setItem(sentKey, '1');
+    } catch (error) {}
+})();
+{% endif %}
+
 function copyPix() {
     var field = document.getElementById('pix_copy');
     if (!field) return;

@@ -554,8 +554,17 @@ def links_uteis():
     links = LinkUtil.query.filter_by(ativo=True).order_by(LinkUtil.ordem.asc(), LinkUtil.titulo.asc()).all()
     return render_template('loja/links_uteis.html', links=links)
 
+@loja_bp.route('/perguntas-frequentes')
+def perguntas_frequentes():
+    return render_template(
+        'loja/perguntas_frequentes.html',
+        breadcrumb_current={
+            'name': 'Perguntas frequentes',
+            'path': url_for('loja.perguntas_frequentes'),
+        },
+    )
+
 @loja_bp.route('/fale-conosco')
-@cache.cached(timeout=3600)
 def fale_conosco():
     return render_template('loja/fale_conosco.html', title="Fale Conosco - M4 Tática")
 
@@ -565,12 +574,13 @@ def google_verification():
     return send_from_directory(static_dir, 'google8fe23db2fb19380f.html')
 
 @loja_bp.route('/sitemap.xml', strict_slashes=False)
-@cache.cached(timeout=3600, key_prefix='sitemap_xml_v4')
+@cache.cached(timeout=3600, key_prefix='sitemap_xml_v5')
 def sitemap():
     entradas = [
         (url_for('loja.index'), None),
         (url_for('loja.fale_conosco'), None),
         (url_for('loja.links_uteis'), None),
+        (url_for('loja.perguntas_frequentes'), None),
     ]
 
     categorias = CategoriaProduto.query.filter(

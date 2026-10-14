@@ -1,0 +1,128 @@
+{% extends 'loja/base.html' %}
+
+{% block title %}Perguntas frequentes sobre armas e munições | M4 Tática{% endblock %}
+
+{% block seo_meta %}
+<meta name="description" content="Tire dúvidas sobre aquisição legal de armas, CRAF, munições, documentos e atendimento da M4 Tática. Consulte fontes oficiais e fale conosco pelo WhatsApp.">
+{% endblock %}
+
+{% block opengraph %}
+<meta property="og:site_name" content="M4 Tática">
+<meta property="og:title" content="Perguntas frequentes sobre armas e munições | M4 Tática">
+<meta property="og:description" content="Respostas claras sobre aquisição, documentação, CRAF, munições e atendimento da M4 Tática.">
+<meta property="og:url" content="{{ loja_canonical_url() }}">
+<meta property="og:type" content="website">
+<meta property="og:image" content="{{ loja_canonical_url(url_for('static', filename='img/logo.webp')) }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Perguntas frequentes | M4 Tática">
+<meta name="twitter:description" content="Consulte as respostas sobre aquisição, documentos, munições e atendimento.">
+<meta name="twitter:image" content="{{ loja_canonical_url(url_for('static', filename='img/logo.webp')) }}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-lg-5">
+    <nav aria-label="Você está aqui" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('loja.index') }}">Início</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Perguntas frequentes</li>
+        </ol>
+    </nav>
+
+    <header class="mb-4 mb-lg-5">
+        <p class="text-uppercase small fw-bold text-secondary mb-2">Ajuda da M4 Tática</p>
+        <h1 class="fw-bold">Perguntas frequentes sobre armas e munições</h1>
+        <p class="text-muted mb-3">Veja informações gerais sobre compra, documentação e atendimento. As autorizações e decisões legais cabem aos órgãos competentes.</p>
+        <a class="btn btn-dark fw-bold" href="https://wa.me/{{ loja.loja_whatsapp or '558630255885' }}" target="_blank" rel="noopener noreferrer">Falar com a equipe pelo WhatsApp</a>
+    </header>
+
+    <section aria-label="Respostas às perguntas frequentes" class="faq-list">
+        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
+            <summary class="fw-bold">Preciso de porte para comprar uma arma?</summary>
+            <div class="mt-3">
+                <p>Não. O porte e a autorização de aquisição são processos diferentes. Para adquirir uma arma de uso permitido, é necessária autorização prévia da Polícia Federal. Depois da compra, é preciso fazer o registro. A PF informa que a retirada depende da emissão do CRAF e da guia de trânsito. <a href="https://www.gov.br/pf/pt-br/assuntos/carta-de-servicos/armas/adquirir-arma-de-fogo" target="_blank" rel="noopener noreferrer">Consulte o serviço oficial da PF</a>.</p>
+            </div>
+        </details>
+
+        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
+            <summary class="fw-bold">Quais são os requisitos básicos para iniciar a aquisição de uma arma?</summary>
+            <div class="mt-3">
+                <p>Para a categoria cidadão, a regra geral exige idade mínima de 25 anos, salvo exceções legais. A PF também analisa a efetiva necessidade, a idoneidade, a ocupação lícita, a residência, a capacidade técnica e a aptidão psicológica. A lista de documentos e o resultado dependem da análise oficial. <a href="https://www.gov.br/pf/pt-br/assuntos/carta-de-servicos/armas/adquirir-arma-de-fogo" target="_blank" rel="noopener noreferrer">Confira os requisitos e etapas na PF</a>.</p>
+            </div>
+        </details>
+
+        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
+            <summary class="fw-bold">Preciso de porte para comprar munição?</summary>
+            <div class="mt-3">
+                <p>Não. Para munição de uso permitido, a norma da PF prevê CRAF válido do proprietário e munição do calibre correspondente à arma registrada. A quantidade e os documentos adicionais seguem as regras atuais e podem variar conforme a categoria. <a href="https://www.gov.br/pf/pt-br/assuntos/armas/normativos/in2012021atualizadadgpf.pdf" target="_blank" rel="noopener noreferrer">Consulte a Instrução Normativa da PF</a>.</p>
+            </div>
+        </details>
+
+        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
+            <summary class="fw-bold">Que documentos devo levar para comprar munição?</summary>
+            <div class="mt-3">
+                <p>Leve documento de identificação e o CRAF válido da arma registrada em seu nome. Atiradores devem levar também o CR. Militares devem levar a identidade militar. Policiais e outras categorias devem levar a identificação funcional. A equipe confirma os documentos aplicáveis ao seu caso antes da venda.</p>
+            </div>
+        </details>
+
+        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
+            <summary class="fw-bold">A M4 Tática envia munições ou permite retirada por outra pessoa?</summary>
+            <div class="mt-3">
+                <p>Não. Pela política da M4 Tática, munições e cartuchos são vendidos e retirados somente na loja física. A retirada deve ser feita pelo próprio comprador, após a conferência da documentação.</p>
+            </div>
+        </details>
+
+        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
+            <summary class="fw-bold">Quais calibres são de uso restrito?</summary>
+            <div class="mt-3">
+                <p>A classificação depende das características da arma e das normas vigentes. As regras foram alteradas em 2025. Por isso, não use listas antigas como referência. Envie o modelo exato e sua categoria à equipe para conferência. A <a href="https://www.gov.br/pf/pt-br/assuntos/armas/normativos/legislacao" target="_blank" rel="noopener noreferrer">página de legislação da PF</a> reúne os atos atuais.</p>
+            </div>
+        </details>
+
+        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
+            <summary class="fw-bold">Que comprovante de endereço posso apresentar?</summary>
+            <div class="mt-3">
+                <p>A página de serviço da PF lista comprovante recente de residência e orienta sobre documentos adicionais quando a conta está em nome de cônjuge, companheiro ou terceiro. A mesma página informa o prazo de emissão aceito. Além disso, as certidões criminais podem abranger os locais de domicílio dos últimos cinco anos. São exigências diferentes. <a href="https://www.gov.br/pf/pt-br/assuntos/carta-de-servicos/armas/adquirir-arma-de-fogo" target="_blank" rel="noopener noreferrer">Confira o checklist oficial antes de enviar o pedido</a>.</p>
+            </div>
+        </details>
+
+        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
+            <summary class="fw-bold">Quanto tempo leva a análise da Polícia Federal?</summary>
+            <div class="mt-3">
+                <p>O prazo pode variar. A página de serviço da PF informa uma estimativa de até 30 dias para análise. Acompanhe o pedido pelos canais oficiais. A M4 Tática não controla a fila nem pode garantir a data de decisão.</p>
+            </div>
+        </details>
+
+        <details class="faq-item p-3 p-md-4 mb-3 border rounded bg-white">
+            <summary class="fw-bold">Qual é o valor do processo de posse e como posso parcelar?</summary>
+            <div class="mt-3">
+                <p>O valor informado pela M4 Tática é R$ 1.600,00 à vista ou 10 parcelas de R$ 184,33 no cartão de crédito. Confirme com a equipe se as condições continuam vigentes e o que está incluído. Para outros produtos, peça uma simulação atualizada de parcelamento pelo WhatsApp.</p>
+            </div>
+        </details>
+    </section>
+
+    <aside class="bg-light border rounded p-4 mt-5">
+        <h2 class="h4 fw-bold">Precisa de uma orientação para o seu caso?</h2>
+        <p class="mb-3">As regras podem mudar. Confirme os requisitos com a Polícia Federal e fale com a equipe da M4 Tática sobre documentos e disponibilidade de produtos.</p>
+        <a class="btn btn-success fw-bold" href="https://wa.me/{{ loja.loja_whatsapp or '558630255885' }}" target="_blank" rel="noopener noreferrer">Tirar dúvida pelo WhatsApp</a>
+        <a class="btn btn-outline-dark fw-bold ms-2" href="{{ url_for('loja.fale_conosco') }}">Ver canais de atendimento</a>
+    </aside>
+
+    <section class="mt-5" aria-labelledby="fontes-oficiais-titulo">
+        <h2 id="fontes-oficiais-titulo" class="h5 fw-bold">Fontes oficiais</h2>
+        <ul>
+            <li><a href="https://www.gov.br/pf/pt-br/assuntos/carta-de-servicos/armas/adquirir-arma-de-fogo" target="_blank" rel="noopener noreferrer">Polícia Federal: adquirir arma de fogo</a></li>
+            <li><a href="https://www.gov.br/pf/pt-br/assuntos/armas/normativos/legislacao" target="_blank" rel="noopener noreferrer">Polícia Federal: legislação atualizada de armas</a></li>
+            <li><a href="https://www.gov.br/pf/pt-br/assuntos/armas/normativos/in2012021atualizadadgpf.pdf" target="_blank" rel="noopener noreferrer">Polícia Federal: Instrução Normativa nº 201/2021</a></li>
+            <li><a href="https://www.in.gov.br/en/web/dou/-/portaria-conjunta-c-ex/dg-pf-n-4-de-18-de-julho-de-2025-645587385" target="_blank" rel="noopener noreferrer">Diário Oficial: Portaria Conjunta C Ex/DG-PF nº 4/2025</a></li>
+            <li><a href="https://www.planalto.gov.br/ccivil_03/leis/2003/l10.826.htm" target="_blank" rel="noopener noreferrer">Planalto: Lei nº 10.826/2003</a></li>
+        </ul>
+        <p class="small text-muted mb-0">Este conteúdo é informativo. A Polícia Federal e os demais órgãos competentes decidem cada processo.</p>
+    </section>
+</div>
+
+<style>
+    .faq-item summary { cursor: pointer; }
+    .faq-item summary:focus-visible { outline: 3px solid #9b771f; outline-offset: 4px; }
+    .faq-item p:last-child { margin-bottom: 0; }
+</style>
+{% endblock %}
