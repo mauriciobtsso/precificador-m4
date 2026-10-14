@@ -3,30 +3,33 @@
 {% set precos = produto.calcular_precos() %}
 
 {% block title %}
-    {{ produto.nome_comercial or produto.nome }} | {{ produto.calibre_rel.nome if produto.calibre_rel else 'M4 Tática' }} | Preço Atualizado {{ now_local().strftime('%Y') }}
+    {{ produto.meta_title or ((produto.nome_comercial or produto.nome) ~ ' | M4 Tática') }}
 {% endblock %}
 
 {% block seo_meta %}
-    {% set ano_atual = now_local().strftime('%Y') %}
-    {% set preco_formatado = "{:,.2f}".format(precos.preco_a_vista).replace(',','X').replace('.',',').replace('X','.') %}
-    
-    <meta name="description" content="Buscando o valor do {{ produto.nome_comercial or produto.nome }} em {{ ano_atual }}? Compre por R$ {{ preco_formatado }} à vista na M4 Tática. Calibre {{ produto.calibre_rel.nome if produto.calibre_rel else 'oficial' }}. Assessoria documental completa.">
+    {% set descricao_produto = produto.meta_description or ('Consulte preço, fotos e especificações de ' ~ (produto.nome_comercial or produto.nome) ~ ' na loja M4 Tática.') %}
+    <meta name="description" content="{{ descricao_produto|striptags|trim|truncate(160, true, '…') }}">
 {% endblock %}
 
 {% block opengraph %}
-    <meta property="og:title" content="{{ produto.nome_comercial if produto.nome_comercial else produto.nome }} - M4 Tática">
-    {% set desc_calibre = " Calibre " ~ produto.calibre_rel.nome ~ "." if produto.calibre_rel else "" %}
-    <meta property="og:description" content="Confira {{ produto.nome_comercial if produto.nome_comercial else produto.nome }} na M4 Tática.{{ desc_calibre }} Garanta o seu com segurança e qualidade.">
-    <meta property="og:url" content="{{ request.url }}">
-    {% set imagem_principal = produto.foto_url %}
-    {% if imagem_principal %}
-        <meta property="og:image" content="{{ gerar_link(imagem_principal) }}">
-    {% endif %}
+    {% set titulo_produto = produto.meta_title or ((produto.nome_comercial or produto.nome) ~ ' | M4 Tática') %}
+    {% set descricao_produto = produto.meta_description or ('Consulte preço, fotos e especificações de ' ~ (produto.nome_comercial or produto.nome) ~ ' na loja M4 Tática.') %}
+    {% set imagem_principal = produto.fotos[0].url if produto.fotos else produto.foto_url %}
+    {% set imagem_social = gerar_link(imagem_principal) if imagem_principal else loja_canonical_url(url_for('static', filename='img/logo.webp')) %}
+    <meta property="og:site_name" content="M4 Tática">
+    <meta property="og:title" content="{{ titulo_produto|striptags|trim }}">
+    <meta property="og:description" content="{{ descricao_produto|striptags|trim|truncate(200, true, '…') }}">
+    <meta property="og:url" content="{{ loja_canonical_url() }}">
+    <meta property="og:image" content="{{ imagem_social }}">
     <meta property="og:type" content="product">
     {% if precos and precos.preco_a_vista %}
         <meta property="product:price:amount" content="{{ "{:.2f}".format(precos.preco_a_vista) }}">
         <meta property="product:price:currency" content="BRL">
     {% endif %}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ titulo_produto|striptags|trim }}">
+    <meta name="twitter:description" content="{{ descricao_produto|striptags|trim|truncate(200, true, '…') }}">
+    <meta name="twitter:image" content="{{ imagem_social }}">
 {% endblock %}
 
 {% block extra_css %}
@@ -254,7 +257,7 @@
 <div class="container detail-container">
     <nav aria-label="breadcrumb" class="mb-5">
         <ol class="breadcrumb small">
-            <li class="breadcrumb-item"><a href="{{ url_for('loja.index') }}" class="text-decoration-none text-muted">Início</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('loja.index') }}" class="text-decoration-none text-muted">Home</a></li>
             {% if produto.categoria %}
             <li class="breadcrumb-item">
                 <a href="{{ url_for('loja.categoria', slug_categoria=produto.categoria.slug) }}" class="text-decoration-none text-muted">{{ produto.categoria.nome }}</a>
@@ -267,62 +270,30 @@
 {# ── DADOS ESTRUTURADOS FULL SNIPPET (PRODUTO) CORRIGIDO ── #}
 <script type="application/ld+json">
 {
-  "@context": "https://schema.org/",
+  "@context": "https://schema.org",
   "@type": "Product",
   "name": {{ (produto.nome_comercial or produto.nome) | tojson | safe }},
   "image": [
     {% if produto.fotos %}
       {% for foto in produto.fotos %}{{ gerar_link(foto.url) | tojson | safe }}{% if not loop.last %},{% endif %}{% endfor %}
-    {% else %}
+    {% elif produto.foto_url %}
       {{ gerar_link(produto.foto_url) | tojson | safe }}
+    {% else %}
+      {{ loja_canonical_url(url_for('static', filename='img/sem-foto.jpg')) | tojson | safe }}
     {% endif %}
   ],
-  "description": {{ (produto.descricao[:160] if produto.descricao else 'Equipamento tático de alta performance.') | tojson | safe }},
+  "description": {{ ((produto.descricao_comercial or produto.descricao or '')|striptags|trim|truncate(300, true, '…')) | tojson | safe }},
   "sku": {{ produto.codigo | tojson | safe }},
-  "mpn": {{ produto.codigo | tojson | safe }},
+  "mpn": {{ produto.codigo | tojson | safe }}{% if produto.marca_rel %},
   "brand": {
     "@type": "Brand",
-    "name": {{ (produto.marca_rel.nome if produto.marca_rel else 'M4 Tática') | tojson | safe }}
-  },
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "5",
-    "reviewCount": "1"
-  },
+    "name": {{ produto.marca_rel.nome | tojson | safe }}
+  }{% endif %},
   "offers": {
     "@type": "Offer",
-    "url": {{ request.url | tojson | safe }},
+    "url": {{ loja_canonical_url() | tojson | safe }},
     "priceCurrency": "BRL",
-    "price": "{{ "%.2f"|format(precos['preco_a_vista']|float) }}",
-    "priceValidUntil": "2026-12-31",
-    "validFrom": "{{ now_local().strftime('%Y-%m-%d') }}",
-    "availability": "https://schema.org/InStock",
-    "itemCondition": "https://schema.org/NewCondition",
-    "hasMerchantReturnPolicy": {
-      "@type": "MerchantReturnPolicy",
-      "applicableCountry": "BR",
-      "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
-      "merchantReturnDays": 7,
-      "returnMethod": "https://schema.org/ReturnByMail",
-      "returnFees": "https://schema.org/FreeReturn"
-    },
-    "shippingDetails": {
-      "@type": "OfferShippingDetails",
-      "shippingRate": {
-        "@type": "MonetaryAmount",
-        "value": "0.00",
-        "currency": "BRL"
-      },
-      "shippingDestination": {
-        "@type": "DefinedRegion",
-        "addressCountry": "BR"
-      },
-      "deliveryTime": {
-        "@type": "ShippingDeliveryTime",
-        "handlingTime": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 3, "unitCode": "d" },
-        "transitTime": { "@type": "QuantitativeValue", "minValue": 5, "maxValue": 15, "unitCode": "d" }
-      }
-    }
+    "price": "{{ "%.2f"|format(precos['preco_a_vista']|float) }}"
   }
 }
 </script>
@@ -640,6 +611,31 @@
 
 <style>
     .border-bottom-dashed { border-bottom: 1px dashed #dee2e6 !important; }
+    .produto-sticky-cta, .produto-sticky-spacer { display: none; }
+    @media (max-width: 991.98px) {
+        .produto-sticky-cta {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1030;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            padding-bottom: calc(10px + constant(safe-area-inset-bottom));
+            padding-bottom: calc(10px + env(safe-area-inset-bottom));
+            border-top: 1px solid #dedede;
+            background: #fff;
+            box-shadow: 0 -5px 18px rgba(0, 0, 0, .12);
+        }
+        .produto-sticky-cta .sticky-price { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+        .produto-sticky-cta .sticky-price small { color: #666; font-size: .7rem; }
+        .produto-sticky-cta .sticky-price strong { color: #111; font-size: .95rem; white-space: nowrap; }
+        .produto-sticky-cta .sticky-buy { min-height: 44px; padding: 9px 14px; font-size: .78rem; letter-spacing: .04em; }
+        .produto-sticky-spacer { display: block; height: 78px; }
+    }
 </style>    
 
     {% if acessorios %}
@@ -734,6 +730,16 @@
         </div>
     </div>
 </div>
+<div class="produto-sticky-cta d-lg-none" role="region" aria-label="Ação rápida de compra">
+    <span class="sticky-price">
+        <small>Preço à vista</small>
+        <strong>{{ precos.preco_a_vista|currency }}</strong>
+    </span>
+    <button type="button" class="btn btn-cart-m4 sticky-buy" onclick="adicionarAoCarrinho({{ produto.id }}, this)" aria-label="Adicionar {{ produto.nome_comercial or produto.nome }} ao carrinho">
+        <i class="bi bi-cart-plus-fill me-1" aria-hidden="true"></i> Adicionar
+    </button>
+</div>
+<div class="produto-sticky-spacer d-lg-none" aria-hidden="true"></div>
 {% endblock %}
 
 {% block extra_js %}

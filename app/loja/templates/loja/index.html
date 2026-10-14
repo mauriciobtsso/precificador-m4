@@ -6,6 +6,19 @@
 <meta name="description" content="Loja especializada em armas de fogo, munições e equipamentos táticos. A M4 Tática oferece assessoria completa para CR e posse legal. Acesse o catálogo!">
 {% endblock %}
 
+{% block opengraph %}
+<meta property="og:site_name" content="M4 Tática">
+<meta property="og:title" content="Armas de Fogo, Pistolas e Munições | M4 Tática - Loja Oficial">
+<meta property="og:description" content="Loja especializada em armas de fogo, munições e equipamentos táticos. Acesse o catálogo da M4 Tática.">
+<meta property="og:url" content="{{ loja_canonical_url() }}">
+<meta property="og:type" content="website">
+<meta property="og:image" content="{{ loja_canonical_url(url_for('static', filename='img/logo.webp')) }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Armas de Fogo, Pistolas e Munições | M4 Tática">
+<meta name="twitter:description" content="Acesse o catálogo da M4 Tática e encontre armas, munições e equipamentos táticos.">
+<meta name="twitter:image" content="{{ loja_canonical_url(url_for('static', filename='img/logo.webp')) }}">
+{% endblock %}
+
 {% block content %}
 
 {# ── DADOS ESTRUTURADOS DE ELITE (HOME) ── #}
@@ -15,10 +28,10 @@
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "M4 Tática",
-    "url": "{{ url_for('loja.index', _external=True) }}",
+    "url": "{{ loja_canonical_url(url_for('loja.index')) }}",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "{{ url_for('loja.index', _external=True) }}?q={search_term_string}",
+      "target": "{{ loja_canonical_url(url_for('loja.index')) }}?q={search_term_string}",
       "query-input": "required name=search_term_string"
     }
   },
@@ -26,8 +39,8 @@
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "M4 Tática",
-    "url": "{{ url_for('loja.index', _external=True) }}",
-    "logo": "{{ url_for('static', filename='img/logo.webp', _external=True) }}",
+    "url": "{{ loja_canonical_url(url_for('loja.index')) }}",
+    "logo": "{{ loja_canonical_url(url_for('static', filename='img/logo.webp')) }}",
     "contactPoint": {
       "@type": "ContactPoint",
       "telephone": "+55-86-3025-5885",
@@ -47,24 +60,34 @@
         "@type": "ListItem",
         "position": 1,
         "name": "Pistolas",
-        "url": "{{ url_for('loja.categoria', slug_categoria='pistola', _external=True) }}"
+        "url": "{{ loja_canonical_url(url_for('loja.categoria', slug_categoria='pistola')) }}"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Revólveres",
-        "url": "{{ url_for('loja.categoria', slug_categoria='revolver', _external=True) }}"
+        "url": "{{ loja_canonical_url(url_for('loja.categoria', slug_categoria='revolver')) }}"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": "Munições",
-        "url": "{{ url_for('loja.categoria', slug_categoria='municoes', _external=True) }}"
+        "url": "{{ loja_canonical_url(url_for('loja.categoria', slug_categoria='municoes')) }}"
       }
     ]
   }
 ]
 </script>
+
+{% if not termo_busca and not categoria_ativa %}
+<section class="container py-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3" aria-labelledby="loja-home-titulo">
+    <div>
+        <h1 id="loja-home-titulo" class="h4 fw-bold mb-1">Armas, munições e equipamentos táticos</h1>
+        <p class="text-muted mb-0">Explore o catálogo da M4 Tática e consulte as especificações dos produtos.</p>
+    </div>
+    <a href="#catalogo" class="btn btn-dark fw-bold px-4 py-2 text-nowrap">Explorar catálogo</a>
+</section>
+{% endif %}
 
 {# =============================================
    1. BANNER CARROSSEL (AUTOPLAY REATIVADO & LCP OTIMIZADO)
@@ -163,7 +186,7 @@
     {% endif %}
 {% endif %}
 
-<div class="container mt-4">
+<div class="container mt-4" id="catalogo">
     {% if not termo_busca and not categoria_ativa %}
 
         {# 3. LANÇAMENTOS #}
@@ -254,6 +277,21 @@
                         {% include 'loja/_card_produto.html' %}
                     {% endfor %}
                 </div>
+                {% if pagination is defined and pagination.pages > 1 %}
+                <nav class="mt-5" aria-label="Páginas de resultados da busca">
+                    <ul class="pagination justify-content-center">
+                        {% for num in pagination.iter_pages() %}
+                            {% if num %}
+                            <li class="page-item">
+                                <a class="page-link {{ 'active' if num == pagination.page else '' }}" href="{{ url_for('loja.index', q=termo_busca, page=num) }}" {% if num == pagination.page %}aria-current="page"{% endif %}>{{ num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </nav>
+                {% endif %}
             </div>
         </div>
     {% endif %}

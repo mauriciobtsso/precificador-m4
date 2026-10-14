@@ -1,4 +1,4 @@
-from flask import Flask, request, send_from_directory, redirect, url_for
+from flask import Flask, jsonify, request, send_from_directory, redirect, url_for
 from jinja2.runtime import Undefined
 from sqlalchemy import inspect
 from config import Config
@@ -175,6 +175,8 @@ def create_app():
         # (pagamentos e autenticação externa).
         response.headers.setdefault('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')
         response.headers.setdefault('Permissions-Policy', 'browsing-topics=()')
+        if request.endpoint == 'carrinho.sucesso':
+            response.headers.setdefault('X-Robots-Tag', 'noindex, follow')
         return response
 
     # =========================================================
@@ -247,6 +249,17 @@ def create_app():
     app.register_blueprint(certidoes_bp, url_prefix="/certidoes")
     app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(catalogo_bp, url_prefix="/catalogo")
+
+    @app.errorhandler(404)
+    def page_not_found(_error):
+        if request.accept_mimetypes.best_match(["text/html", "application/json"]) == "application/json":
+            response = jsonify(error="not_found", message="A rota solicitada não existe.")
+            response.headers["X-Robots-Tag"] = "noindex, follow"
+            return response, 404
+        response = send_from_directory(os.path.join(app.root_path, "static"), "404.html")
+        response.status_code = 404
+        response.headers["X-Robots-Tag"] = "noindex, follow"
+        return response
 
     # =========================================================
     # AGENDADOR DE TAREFAS

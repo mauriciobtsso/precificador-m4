@@ -30,15 +30,20 @@
 
     {% block opengraph %}
     <meta property="og:site_name" content="M4 Tática">
-    <meta property="og:title" content="{{ title if title else 'M4 Tática | Armas, Munições e Acessórios' }}">
+    <meta property="og:title" content="{{ self.title()|striptags|trim }}">
     <meta property="og:description" content="{{ meta_desc if meta_desc else 'A maior variedade de armas e munições com a qualidade M4 Tática.' }}">
-    <meta property="og:url" content="{{ request.base_url }}">
+    <meta property="og:url" content="{{ loja_canonical_url() }}">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="{{ url_for('static', filename='img/logo.webp', _external=True) }}">
+    <meta property="og:image" content="{{ loja_canonical_url(url_for('static', filename='img/logo.webp')) }}">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ self.title()|striptags|trim }}">
+    <meta name="twitter:description" content="{{ meta_desc if meta_desc else 'A maior variedade de armas e munições com a qualidade M4 Tática.' }}">
+    <meta name="twitter:image" content="{{ loja_canonical_url(url_for('static', filename='img/logo.webp')) }}">
     {% endblock %}
 
-    <link rel="canonical" href="{{ request.base_url }}">
+    {% if request.endpoint != 'carrinho.sucesso' %}
+    <link rel="canonical" href="{{ loja_canonical_url() }}">
+    {% endif %}
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon-loja.png') }}" type="image/png">
 
     {# ── CSS CRÍTICO INLINE (evita render-blocking) ── #}
@@ -218,34 +223,35 @@
 </head>
 <body>
     <header>
+{% set breadcrumb_items = [{'name': 'Home', 'path': url_for('loja.index')}] %}
+{% if categoria_ativa %}
+    {% set breadcrumb_items = breadcrumb_items + [{'name': categoria_ativa.nome, 'path': url_for('loja.categoria', slug_categoria=categoria_ativa.slug)}] %}
+{% elif produto is defined and produto and produto.categoria and produto.categoria.slug %}
+    {% set breadcrumb_items = breadcrumb_items + [{'name': produto.categoria.nome, 'path': url_for('loja.categoria', slug_categoria=produto.categoria.slug)}] %}
+{% endif %}
+{% if produto is defined and produto %}
+    {% set breadcrumb_items = breadcrumb_items + [{'name': produto.nome_comercial or produto.nome, 'path': request.path}] %}
+{% elif pagina is defined and pagina %}
+    {% set breadcrumb_items = breadcrumb_items + [{'name': pagina.titulo, 'path': request.path}] %}
+{% endif %}
+{% if breadcrumb_items|length > 1 %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
-  "itemListElement": [{
-    "@type": "ListItem",
-    "position": 1,
-    "name": "Início",
-    "item": "{{ url_for('loja.index', _external=True) }}"
-  }
-  {% if categoria_ativa %}
-  ,{
-    "@type": "ListItem",
-    "position": 2,
-    "name": "{{ categoria_ativa.nome }}",
-    "item": "{{ url_for('loja.categoria', slug_categoria=categoria_ativa.slug, _external=True) }}"
-  }
-  {% endif %}
-  {% if produto %}
-  ,{
-    "@type": "ListItem",
-    "position": 3,
-    "name": "{{ produto.nome }}",
-    "item": "{{ request.base_url }}"
-  }
-  {% endif %}]
+  "itemListElement": [
+    {% for item in breadcrumb_items %}
+    {
+      "@type": "ListItem",
+      "position": {{ loop.index }},
+      "name": {{ item.name|tojson }},
+      "item": {{ loja_canonical_url(item.path)|tojson }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
 }
 </script>
+{% endif %}
 
         <div class="navbar-main">
             <div class="container d-flex flex-wrap align-items-center justify-content-between">

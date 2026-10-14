@@ -1,10 +1,27 @@
 {% extends 'loja/base.html' %}
 
+{% block title %}{{ categoria_ativa.nome }} | Produtos e modelos | M4 Tática{% endblock %}
+
+{% block seo_meta %}
+    {% set descricao_categoria = categoria_ativa.descricao or ('Veja produtos da categoria ' ~ categoria_ativa.nome ~ ' na loja M4 Tática.') %}
+    <meta name="description" content="{{ descricao_categoria|striptags|trim|truncate(160, true, '…') }}">
+{% endblock %}
+
 {# ==========================================
    BLINDAGEM SEO - PREVENÇÃO DE SOFT 404 
    ========================================== #}
 {% block opengraph %}
-    <link rel="canonical" href="{{ url_for('loja.categoria', slug_categoria=categoria_ativa.slug, _external=True) }}">
+    {% set descricao_categoria = categoria_ativa.descricao or ('Veja produtos da categoria ' ~ categoria_ativa.nome ~ ' na loja M4 Tática.') %}
+    <meta property="og:site_name" content="M4 Tática">
+    <meta property="og:title" content="{{ categoria_ativa.nome }} | Produtos e modelos | M4 Tática">
+    <meta property="og:description" content="{{ descricao_categoria|striptags|trim|truncate(200, true, '…') }}">
+    <meta property="og:url" content="{{ loja_canonical_url() }}">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="{{ loja_canonical_url(url_for('static', filename='img/logo.webp')) }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ categoria_ativa.nome }} | M4 Tática">
+    <meta name="twitter:description" content="{{ descricao_categoria|striptags|trim|truncate(200, true, '…') }}">
+    <meta name="twitter:image" content="{{ loja_canonical_url(url_for('static', filename='img/logo.webp')) }}">
 
     {% if not produtos or produtos|length == 0 %}
         <meta name="robots" content="noindex, follow">

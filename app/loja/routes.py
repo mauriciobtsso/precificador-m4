@@ -12,6 +12,7 @@ from app.utils.r2_helpers import gerar_link_r2
 from app.utils.youtube import youtube_embed_url, youtube_video_id
 from app.utils.thumbnail_utils import get_thumb_url
 from app.catalogo.image_url_helper import convert_resized_url
+from app.loja.seo import build_sitemap_xml, canonical_store_url
 import app.utils.parcelamento as parcelamento_logic
 from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload, subqueryload
@@ -168,6 +169,12 @@ def inject_thumb_helper():
         get_thumb_url=get_thumb_url,
         imagem_otimizada=convert_resized_url,
     )
+
+
+@loja_bp.app_context_processor
+def inject_seo_helper():
+    return dict(loja_canonical_url=canonical_store_url)
+
 
 @loja_bp.app_context_processor
 def inject_parcelamento_helper():
@@ -558,34 +565,62 @@ def google_verification():
     return send_from_directory(static_dir, 'google8fe23db2fb19380f.html')
 
 @loja_bp.route('/sitemap.xml', strict_slashes=False)
-@cache.cached(timeout=86400, key_prefix='sitemap_xml_v3')
+@cache.cached(timeout=3600, key_prefix='sitemap_xml_v4')
 def sitemap():
-    # 1. Configuração do fuso horário e domínio base blindado contra o proxy do Render
-    tz = pytz.timezone('America/Sao_Paulo')
-    hoje = datetime.now(tz).strftime('%Y-%m-%d')
-    base_url = "https://loja.m4tatica.com.br"
-    
-    xml = ['<?xml version="1.0" encoding="UTF-8"?>']
-    xml.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
-    
-    # 2. Rota Principal (Home)
-    xml.append(f'  <url>\n    <loc>{base_url}/</loc>\n    <lastmod>{hoje}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>')
-    xml.append(f'  <url>\n    <loc>{base_url}/links-uteis</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.5</priority>\n  </url>')
-    
-    # 3. Rotas de Categorias
-    categorias = CategoriaProduto.query.with_entities(CategoriaProduto.slug).all()
-    for cat in categorias:
-        xml.append(f'  <url>\n    <loc>{base_url}/categoria/{cat.slug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>')
-        
-    # 4. Rotas de Produtos
-    produtos = Produto.query.filter_by(visivel_loja=True).with_entities(Produto.slug).all()
-    for prod in produtos:
-        xml.append(f'  <url>\n    <loc>{base_url}/produto/{prod.slug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.9</priority>\n  </url>')
-        
-    xml.append('</urlset>')
-    
-    # 5. Gera a resposta forçando o cabeçalho correto para o Google ler como XML puro
-    response = make_response('\n'.join(xml))
+    entradas = [
+        (url_for('loja.index'), None),
+        (url_for('loja.fale_conosco'), None),
+        (url_for('loja.links_uteis'), None),
+    ]
+
+    categorias = CategoriaProduto.query.filter(
+        CategoriaProduto.slug.isnot(None)
+    ).all()
+    categorias_por_id = {categoria.id: categoria for categoria in categorias}
+    produtos = Produto.query.filter_by(visivel_loja=True).with_entities(
+        Produto.slug, Produto.categoria_id, Produto.atualizado_em
+    ).all()
+
+    categorias_com_produtos = set()
+    categoria_ultima_alteracao = {
+        categoria.id: categoria.atualizado_em
+        for categoria in categorias
+        if categoria.atualizado_em
+    }
+    for slug, categoria_id, atualizado_em in produtos:
+        if slug:
+            entradas.append((url_for('loja.detalhe_produto', slug=slug), atualizado_em))
+
+        if not categoria_id:
+            continue
+
+        categoria = categorias_por_id.get(categoria_id)
+        ids_validos = {categoria_id}
+        if categoria and categoria.pai_id:
+            ids_validos.add(categoria.pai_id)
+        categorias_com_produtos.update(ids_validos)
+
+        if atualizado_em:
+            for id_categoria in ids_validos:
+                atual = categoria_ultima_alteracao.get(id_categoria)
+                if atual is None or atualizado_em > atual:
+                    categoria_ultima_alteracao[id_categoria] = atualizado_em
+
+    for categoria in categorias:
+        if categoria.id in categorias_com_produtos:
+            entradas.append((
+                url_for('loja.categoria', slug_categoria=categoria.slug),
+                categoria_ultima_alteracao.get(categoria.id),
+            ))
+
+    paginas_publicas = PaginaInstitucional.query.filter_by(
+        visivel_rodape=True
+    ).with_entities(PaginaInstitucional.slug, PaginaInstitucional.updated_at).all()
+    for slug, atualizado_em in paginas_publicas:
+        if slug:
+            entradas.append((url_for('loja.exibir_pagina', slug=slug), atualizado_em))
+
+    response = make_response(build_sitemap_xml(entradas))
     response.headers["Content-Type"] = "application/xml; charset=utf-8"
     return response
 

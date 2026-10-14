@@ -48,6 +48,5 @@ Allow: /
 User-agent: PerplexityBot
 Allow: /
 
-# MAPA DO SITE E LLMS.TXT
+# MAPA XML DO SITE
 Sitemap: https://loja.m4tatica.com.br/sitemap.xml
-Sitemap: https://loja.m4tatica.com.br/llms.txt

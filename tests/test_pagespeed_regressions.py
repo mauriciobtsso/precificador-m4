@@ -190,7 +190,8 @@ def test_home_seo_uses_expected_block_and_current_store_origin():
     assert "{% block seo_meta %}" in home
     assert "{% block meta_description %}" not in home
     assert "app.m4tatica.com.br/loja" not in home
-    assert "url_for('loja.index', _external=True)" in home
+    assert "loja_canonical_url(url_for('loja.index'))" in home
+    assert "url_for('loja.index', _external=True)" not in home
 
 
 def test_store_icon_subset_contains_all_icons_used_by_store_templates():
