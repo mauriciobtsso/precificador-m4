@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import io
+import html
+import re
 from datetime import date
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.lib.pagesizes import A4
@@ -20,16 +22,28 @@ def _endereco(cliente) -> str:
 def gerar_declaracao(cliente, tipo: str) -> bytes:
     if tipo not in {"residencia", "nao_inquerito"}:
         raise ValueError("Tipo de declaração inválido.")
-    nome = cliente.nome or "________________________________________"
-    documento = cliente.documento or "________________________"
-    endereco = _endereco(cliente) or "________________________________________"
+    nome = html.escape(cliente.nome or "________________________________________")
+    documento = html.escape(cliente.documento or "________________________")
+    endereco = html.escape(_endereco(cliente) or "________________________________________")
     hoje = date.today().strftime("%d/%m/%Y")
     if tipo == "residencia":
         titulo = "DECLARAÇÃO DE RESIDÊNCIA"
         texto = f"Eu, <b>{nome}</b>, inscrito(a) no CPF/CNPJ sob o nº <b>{documento}</b>, declaro, para os devidos fins, que resido no endereço <b>{endereco}</b>. Declaro ainda que as informações acima são verdadeiras, estando ciente das responsabilidades legais decorrentes da falsidade desta declaração."
+        chave_modelo = "declaracao_residencia"
     else:
         titulo = "DECLARAÇÃO DE NÃO RESPONDER A INQUÉRITO POLICIAL"
         texto = f"Eu, <b>{nome}</b>, inscrito(a) no CPF/CNPJ sob o nº <b>{documento}</b>, declaro, para os devidos fins, que não estou respondendo a inquérito policial, salvo se expressamente informado em documento próprio. Declaro que as informações prestadas são verdadeiras e assumo responsabilidade por seu conteúdo."
+        chave_modelo = "declaracao_nao_inquerito"
+
+    try:
+        from app.models import ModeloDocumento
+        modelo = ModeloDocumento.query.filter_by(chave=chave_modelo).first()
+        if modelo and modelo.conteudo:
+            texto = modelo.conteudo
+            texto = texto.replace("{{ cliente.nome }}", nome).replace("{{ cliente.documento }}", documento).replace("{{ cliente.endereco_completo }}", endereco)
+            texto = re.sub(r"\{\{\s*cliente\.(nome|documento|endereco_completo)\s*\}\}", "", texto)
+    except Exception:
+        pass
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2.5 * cm, leftMargin=2.5 * cm, topMargin=2.5 * cm, bottomMargin=2.5 * cm)

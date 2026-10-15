@@ -24,8 +24,8 @@
     }
     return false;
   };
-  chrome.storage.local.get(['m4ClienteSelecionado', 'm4ClienteSelecionadoEm']).then(({m4ClienteSelecionado: data, m4ClienteSelecionadoEm: savedAt}) => {
-    if (!data || !savedAt || (Date.now() - savedAt) > 30 * 60 * 1000) return chrome.storage.local.remove(['m4ClienteSelecionado', 'm4ClienteSelecionadoEm']);
+  const fill = (data, clear = true) => {
+    if (!data) return 0;
     let filled = 0;
     Object.keys(selectors).forEach((key) => { if (setField(key, data[key])) filled++; });
     if (filled) {
@@ -33,7 +33,16 @@
       banner.textContent = `M4: ${filled} campos preenchidos. Revise os dados e conclua manualmente.`;
       banner.style.cssText = 'position:fixed;z-index:2147483647;top:12px;right:12px;background:#14532d;color:#fff;padding:12px 16px;border-radius:8px;font:14px Arial;box-shadow:0 2px 8px #0005';
       document.body.appendChild(banner); setTimeout(() => banner.remove(), 7000);
-      chrome.storage.local.remove(['m4ClienteSelecionado', 'm4ClienteSelecionadoEm']);
+      if (clear) chrome.storage.local.remove(['m4ClienteSelecionado', 'm4ClienteSelecionadoEm']);
     }
+    return filled;
+  };
+  const fillFromStorage = () => chrome.storage.local.get(['m4ClienteSelecionado', 'm4ClienteSelecionadoEm']).then(({m4ClienteSelecionado: data, m4ClienteSelecionadoEm: savedAt}) => {
+    if (!data || !savedAt || (Date.now() - savedAt) > 30 * 60 * 1000) return chrome.storage.local.remove(['m4ClienteSelecionado', 'm4ClienteSelecionadoEm']);
+    fill(data);
   });
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message?.type === 'M4_FILL_NOW') fillFromStorage();
+  });
+  fillFromStorage();
 })();
