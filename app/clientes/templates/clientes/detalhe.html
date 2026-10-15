@@ -550,6 +550,40 @@
                 </form>
             </div>
 
+            <div class="card border-primary-subtle bg-light mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <h6 class="mb-1"><i class="fas fa-bolt text-primary me-1"></i> Preenchimento assistido</h6>
+                            <small class="text-muted">Abra o portal oficial com os dados deste cliente preparados pela extensão M4.</small>
+                        </div>
+                        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('certidoes.payload_autofill', cliente_id=cliente.id) }}" target="_blank">Ver payload</a>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        {% for chave, portal in portais_certidoes.items() %}
+                        <a class="btn btn-sm btn-outline-primary" href="{{ portal.url }}" target="_blank" rel="noopener" data-m4-portal="{{ chave }}">
+                            <i class="fas fa-external-link-alt me-1"></i>{{ portal.nome }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    <div class="form-text mt-2">A extensão preenche apenas campos editáveis. Revise os dados, resolva o CAPTCHA e envie manualmente no portal oficial.</div>
+                    <script type="application/json" data-m4-client-payload>{{ autofill_payload|tojson }}</script>
+                </div>
+            </div>
+
+            <div class="card border-0 bg-white mb-3">
+                <div class="card-body px-0 pb-0">
+                    <h6 class="mb-2"><i class="fas fa-file-pdf text-danger me-1"></i> Declarações</h6>
+                    <a class="btn btn-sm btn-outline-dark me-2 mb-2" href="{{ url_for('certidoes.baixar_declaracao', cliente_id=cliente.id, tipo='residencia') }}">
+                        <i class="fas fa-home me-1"></i> Declaração de residência
+                    </a>
+                    <a class="btn btn-sm btn-outline-dark mb-2" href="{{ url_for('certidoes.baixar_declaracao', cliente_id=cliente.id, tipo='nao_inquerito') }}">
+                        <i class="fas fa-balance-scale me-1"></i> Não responder a inquérito policial
+                    </a>
+                    <div class="form-text">O PDF é um modelo preenchido e deve ser conferido e assinado pelo declarante.</div>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-light">

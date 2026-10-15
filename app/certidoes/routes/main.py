@@ -19,6 +19,9 @@ from app.clientes.models import Cliente
 from app.utils.storage import gerar_link_publico
 
 from app.certidoes.tasks import emitir_certidao
+from app.certidoes.portal_catalog import PORTAIS, cliente_payload
+from app.certidoes.declaracoes import gerar_declaracao
+from flask import jsonify, make_response
 
 certidoes_bp = Blueprint(
     "certidoes",
@@ -164,3 +167,26 @@ def baixar_certidao(certidao_id):
         )
         flash("Não foi possível abrir o arquivo desta certidão.", "danger")
         return redirect(url_for("certidoes.listar_certidoes"))
+
+
+@certidoes_bp.route("/api/cliente/<int:cliente_id>/autofill")
+@login_required
+def payload_autofill(cliente_id):
+    """Retorna apenas os dados necessários ao preenchimento assistido."""
+    cliente = Cliente.query.get_or_404(cliente_id)
+    return jsonify({"cliente": cliente_payload(cliente), "portais": PORTAIS})
+
+
+@certidoes_bp.route("/cliente/<int:cliente_id>/declaracao/<tipo>.pdf")
+@login_required
+def baixar_declaracao(cliente_id, tipo):
+    cliente = Cliente.query.get_or_404(cliente_id)
+    try:
+        pdf = gerar_declaracao(cliente, tipo)
+    except ValueError:
+        return jsonify({"error": "Tipo de declaração inválido."}), 400
+    nome = "declaracao_residencia" if tipo == "residencia" else "declaracao_nao_inquerito"
+    response = make_response(pdf)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f'attachment; filename="{nome}_{cliente.id}.pdf"'
+    return response

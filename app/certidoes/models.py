@@ -9,6 +9,10 @@ class CertidaoTipo(enum.Enum):
     MILITAR_STM = "militar_stm"
     ELEITORAL_TSE = "eleitoral_tse"
     FEDERAL_TRF1 = "federal_trf1"
+    ESTADUAL_MPPI = "estadual_mppi"
+    FEDERAL_MPF = "federal_mpf"
+    FEDERAL_CJF = "federal_cjf"
+    POLICIAL_PI = "policial_pi"
 
 class CertidaoStatus(enum.Enum):
     PENDENTE = "pendente"
@@ -102,6 +106,10 @@ class Certidao(db.Model):
             CertidaoTipo.MILITAR_STM: "Crimes Militares – STM",
             CertidaoTipo.ELEITORAL_TSE: "Crimes Eleitorais – TSE",
             CertidaoTipo.FEDERAL_TRF1: "Criminal Federal – TRF1 (1ª Região)",
+            CertidaoTipo.ESTADUAL_MPPI: "Negativa Estadual – MPPI",
+            CertidaoTipo.FEDERAL_MPF: "Negativa Federal – MPF",
+            CertidaoTipo.FEDERAL_CJF: "Negativa Federal – CJF",
+            CertidaoTipo.POLICIAL_PI: "Certidão Policial – PC-PI",
         }
         return mapping.get(self.tipo, self.tipo.value)
 

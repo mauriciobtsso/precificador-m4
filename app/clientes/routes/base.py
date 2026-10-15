@@ -23,6 +23,7 @@ from app.clientes.constants import (
 )
 
 from datetime import datetime
+from app.certidoes.portal_catalog import PORTAIS, cliente_payload
 
 
 # -------------------------------------------------
@@ -316,6 +317,8 @@ def detalhe(cliente_id):
             documentos_cnh=documentos_cnh,
             documentos_cr=documentos_cr,
             armas_com_craf=armas_com_craf,
+            portais_certidoes=PORTAIS,
+            autofill_payload=cliente_payload(cliente),
         )
     except Exception as e:
         current_app.logger.error(f"Erro ao carregar detalhe do cliente {cliente_id}: {e}")
