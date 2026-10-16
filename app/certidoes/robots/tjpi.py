@@ -11,9 +11,10 @@ Fluxo (semi-automático, por causa do reCAPTCHA v2 real do Google):
        e captura o PDF.
 """
 
-import io
 import re
+import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout, Page
@@ -91,6 +92,90 @@ def _preencher_input(page: Page, form_control_name: str, valor: Optional[str]):
     locator.press_sequentially(valor, delay=50)
 
 
+def _bytes_de_pdf(valor: bytes | None) -> bytes | None:
+    """Retorna apenas conteúdo que aparenta ser um PDF válido."""
+    if not valor:
+        return None
+    inicio = valor[:1024].lstrip(b"\xef\xbb\xbf\x00\t\r\n ")
+    return valor if inicio.startswith(b"%PDF") else None
+
+
+def _pdf_da_url(context, url: str) -> bytes | None:
+    """Baixa uma URL de resultado usando o mesmo contexto autenticado."""
+    if not url or url.startswith(("about:", "blob:", "javascript:")):
+        return None
+    try:
+        resposta = context.request.get(url, timeout=15_000)
+        if resposta.ok:
+            return _bytes_de_pdf(resposta.body())
+    except Exception:
+        return None
+    return None
+
+
+def _aguardar_pdf(page: Page, context, timeout_segundos: int) -> bytes:
+    """Aguarda o resultado depois que o operador resolve o CAPTCHA e envia."""
+    downloads = []
+    paginas = [page]
+    respostas_pdf = []
+
+    def registrar_download(download):
+        downloads.append(download)
+
+    def registrar_popup(nova_pagina):
+        paginas.append(nova_pagina)
+
+    def registrar_resposta(resposta):
+        content_type = resposta.headers.get("content-type", "").lower()
+        if "application/pdf" in content_type or resposta.url.lower().split("?", 1)[0].endswith(".pdf"):
+            respostas_pdf.append(resposta)
+
+    page.on("download", registrar_download)
+    page.on("popup", registrar_popup)
+    page.on("response", registrar_resposta)
+    context.on("page", registrar_popup)
+
+    limite = time.monotonic() + timeout_segundos
+    while time.monotonic() < limite:
+        for download in downloads:
+            try:
+                caminho = download.path()
+                if caminho:
+                    pdf = _bytes_de_pdf(Path(caminho).read_bytes())
+                    if pdf:
+                        return pdf
+            except Exception:
+                continue
+
+        for resposta in reversed(respostas_pdf):
+            try:
+                pdf = _bytes_de_pdf(resposta.body())
+                if pdf:
+                    return pdf
+            except Exception:
+                continue
+
+        for resultado in paginas:
+            try:
+                pdf = _pdf_da_url(context, resultado.url)
+                if pdf:
+                    return pdf
+                for seletor in ("embed", "object", "iframe"):
+                    elementos = resultado.locator(seletor)
+                    for indice in range(min(elementos.count(), 5)):
+                        url = elementos.nth(indice).get_attribute("src") or elementos.nth(indice).get_attribute("data")
+                        pdf = _pdf_da_url(context, url or "")
+                        if pdf:
+                            return pdf
+            except Exception:
+                continue
+        time.sleep(0.5)
+
+    raise TJPIRobotError(
+        f"O TJPI não disponibilizou um PDF após {timeout_segundos}s da submissão."
+    )
+
+
 def emitir_certidao_tjpi(dados: DadosRequerenteTJPI, timeout_captcha_segundos: int = 300) -> bytes:
     with sync_playwright() as p:
         browser = p.chromium.launch(
@@ -152,17 +237,11 @@ def emitir_certidao_tjpi(dados: DadosRequerenteTJPI, timeout_captcha_segundos: i
                   "o desafio de imagens) e clique em 'Emitir'.")
 
             # --------------------------------------------------------
-            # Espera submissão (intervenção humana)
+            # O CAPTCHA e o clique em Emitir continuam manuais. Depois que o
+            # operador envia o formulário, capturamos download, popup,
+            # navegação para PDF ou resposta application/pdf.
             # --------------------------------------------------------
-            with page.expect_navigation(timeout=timeout_captcha_segundos * 1000):
-                pass  
-
-            # Placeholder para capturar o PDF que resolveremos na próxima etapa
-            raise TJPIRobotError(
-                "Formulário submetido com sucesso, mas a captura do PDF final "
-                "ainda não está implementada — preciso ver o HTML da página de "
-                "resultado (depois do captcha) para fechar essa parte."
-            )
+            return _aguardar_pdf(page, context, timeout_captcha_segundos)
 
         except PlaywrightTimeout:
             raise TJPIRobotError(
