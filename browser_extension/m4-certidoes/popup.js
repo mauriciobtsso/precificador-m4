@@ -55,7 +55,7 @@ button.addEventListener('click', async () => {
     }
   }
   status.textContent = response?.ok
-    ? `Preenchimento solicitado: ${response.filled} campos neste quadro. Revise a página.`
-    : 'Nenhum campo compatível foi encontrado nesta página.';
+    ? `Preenchidos e conferidos: ${response.filled} campo(s). Revise o formulário antes de continuar.`
+    : 'Nenhum campo visível compatível foi encontrado. Verifique se o formulário terminou de carregar.';
   status.className = response?.ok ? 'ok' : 'warn';
 });

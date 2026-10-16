@@ -1510,3 +1510,36 @@ A partir desta manutenção, todas as respostas dadas neste projeto devem seguir
 - Não afirmar conformidade formal com regras de inglês técnico quando a resposta estiver em português.
 
 Esta regra orienta as respostas do projeto. Ela não altera o código dos portais nem declara certificação formal do texto em português.
+
+
+## 16/10/2026 — Correção da extensão PCPI e TSE
+
+### Diagnóstico
+
+- A pasta da extensão foi localizada em `browser_extension/m4-certidoes` na branch `main` do repositório `mauriciobtsso/precificador-m4`.
+- Na PCPI, `rotuloDoCampo` incluía o texto do elemento pai. Nesse formulário, os campos ocultos do Quform aparecem antes dos campos visíveis e têm o formulário inteiro como elemento pai. O script encontrava esses metadados, alterava campos invisíveis e contava a ação como preenchimento.
+- No formulário público atual da PCPI, o tipo correto disponível para antecedentes é **Antecedentes Criminais**. A busca anterior por uma opção chamada “negativa” não selecionava nenhuma opção.
+- No TSE, o tratamento específico formatava a data ISO em `DD/MM/AAAA`. Depois, o preenchimento genérico escrevia novamente a data ISO no campo mascarado. Com a máscara `DD/MM/AAAA`, os dígitos `19781030` resultavam em `19/78/1030`.
+
+### Correções executadas
+
+- A extensão agora considera apenas campos visíveis, habilitados e editáveis. O texto do formulário pai deixou de ser usado como rótulo.
+- A confirmação de preenchimento depende do valor real do campo após os eventos `input` e `change`. Campos ocultos não contam como sucesso.
+- A PCPI seleciona **Antecedentes Criminais** e usa o formato ISO apenas no campo cujo placeholder solicita `YYYY-MM-DD`.
+- O TSE converte datas ISO, brasileiras ou compactas para o formato adequado ao campo. O preenchimento genérico não sobrescreve os campos dos portais PCPI, TSE e STM.
+- O popup agora informa quantos campos foram efetivamente preenchidos e conferidos. Se não encontrar campos visíveis, informa que o formulário pode não ter carregado.
+- A extensão foi identificada como versão **1.0.5**. O README explica como recarregar a extensão e a página do portal.
+- Foram adicionados três testes Node para os metadados ocultos da PCPI, a ausência de falsos sucessos e a data mascarada do TSE.
+
+### Validação
+
+- A estrutura e os rótulos atuais do formulário público da PCPI foram inspecionados. Nenhum dado real foi inserido e nenhum formulário foi enviado.
+- `node --test tests/browser_extension/portal-fill.test.js` — **3 testes aprovados**.
+- `node --check` nos scripts `portal-fill.js` e `popup.js` — aprovado.
+- Validação do `manifest.json` na versão `1.0.5` — aprovada.
+- `python3 -m pytest -q` — **133 testes aprovados**; permaneceu um aviso preexistente do Flask-Limiter sobre armazenamento de limite em memória na configuração de teste.
+- `git diff --check` — aprovado.
+
+### Próximo passo de uso
+
+Como a extensão foi carregada sem compactação, depois de atualizar o repositório é necessário abrir `chrome://extensions`, clicar em **Recarregar** na M4 Certidões e recarregar a página da PCPI ou do TSE. O usuário deve revisar todos os campos antes de resolver o CAPTCHA ou enviar qualquer formulário. A extensão não envia solicitações.
