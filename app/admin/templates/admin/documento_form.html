@@ -18,13 +18,14 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold">Conteúdo (HTML/Texto)</label>
                     <textarea name="conteudo" class="form-control font-monospace" rows="20">{{ modelo.conteudo }}</textarea>
-                    <div class="form-text">Use HTML básico (&lt;b&gt;, &lt;br&gt;, &lt;p&gt;) para formatar.</div>
+                    <div class="form-text">Use HTML básico (&lt;b&gt;, &lt;br&gt;, &lt;p&gt;) para formatar. As variáveis são substituídas quando o PDF é gerado; os dados do proprietário e o vínculo são solicitados a cada declaração de residência.</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card bg-light">
                     <div class="card-header fw-bold small">Variáveis Disponíveis</div>
                     <div class="card-body p-2">
+                        <p class="small text-muted">Os campos <code>proprietario</code> e <code>declaracao.vinculo</code> são usados na declaração de residência.</p>
                         <ul class="list-unstyled small mb-0">
                             {% for v in variaveis_disponiveis %}
                             <li class="mb-1"><code>{{ v }}</code></li>

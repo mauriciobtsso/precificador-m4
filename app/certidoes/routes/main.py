@@ -20,7 +20,11 @@ from app.utils.storage import gerar_link_publico
 
 from app.certidoes.tasks import emitir_certidao
 from app.certidoes.portal_catalog import PORTAIS, cliente_payload
-from app.certidoes.declaracoes import gerar_declaracao
+from app.certidoes.declaracoes import (
+    endereco_completo_cliente,
+    gerar_declaracao,
+    localidade_cliente,
+)
 from flask import jsonify, make_response
 
 certidoes_bp = Blueprint(
@@ -177,16 +181,89 @@ def payload_autofill(cliente_id):
     return jsonify({"cliente": cliente_payload(cliente), "portais": PORTAIS})
 
 
+def _contexto_formulario_residencia(cliente, dados=None):
+    valores = {
+        "proprietario_nome": "",
+        "proprietario_documento": "",
+        "proprietario_rg": "",
+        "proprietario_rg_emissor": "",
+        "proprietario_endereco": endereco_completo_cliente(cliente),
+        "vinculo": "",
+        "local": localidade_cliente(cliente),
+    }
+    if dados:
+        valores.update(dados)
+    return render_template(
+        "certidoes/declaracao_residencia_form.html",
+        cliente=cliente,
+        dados=valores,
+    )
+
+
+@certidoes_bp.route(
+    "/cliente/<int:cliente_id>/declaracao/residencia",
+    methods=["GET", "POST"],
+)
+@login_required
+def preparar_declaracao_residencia(cliente_id):
+    cliente = Cliente.query.get_or_404(cliente_id)
+    if request.method == "GET":
+        return _contexto_formulario_residencia(cliente)
+
+    labels = {
+        "proprietario_nome": "nome do proprietário/declarante",
+        "proprietario_documento": "CPF do proprietário/declarante",
+        "proprietario_rg": "RG do proprietário/declarante",
+        "proprietario_rg_emissor": "órgão emissor do RG",
+        "proprietario_endereco": "endereço do imóvel",
+        "vinculo": "vínculo com o cliente",
+    }
+    limites = {
+        "proprietario_nome": 180,
+        "proprietario_documento": 30,
+        "proprietario_rg": 50,
+        "proprietario_rg_emissor": 50,
+        "proprietario_endereco": 400,
+        "vinculo": 100,
+        "local": 120,
+    }
+    dados = {
+        campo: (request.form.get(campo) or "").strip()
+        for campo in limites
+    }
+    campos_vazios = [labels[campo] for campo in labels if not dados[campo]]
+    campos_longos = [campo for campo, limite in limites.items() if len(dados[campo]) > limite]
+
+    if campos_vazios or campos_longos:
+        if campos_vazios:
+            flash("Preencha estes campos: " + ", ".join(campos_vazios) + ".", "warning")
+        if campos_longos:
+            flash("Alguns campos excedem o tamanho permitido. Revise os dados e tente novamente.", "warning")
+        return _contexto_formulario_residencia(cliente, dados), 400
+
+    try:
+        pdf = gerar_declaracao(cliente, "residencia", dados=dados)
+    except ValueError:
+        return jsonify({"error": "Tipo de declaração inválido."}), 400
+    response = make_response(pdf)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f'attachment; filename="declaracao_residencia_{cliente.id}.pdf"'
+    return response
+
+
 @certidoes_bp.route("/cliente/<int:cliente_id>/declaracao/<tipo>.pdf")
 @login_required
 def baixar_declaracao(cliente_id, tipo):
     cliente = Cliente.query.get_or_404(cliente_id)
+    if tipo == "residencia":
+        return redirect(url_for("certidoes.preparar_declaracao_residencia", cliente_id=cliente.id))
+    if tipo != "nao_inquerito":
+        return jsonify({"error": "Tipo de declaração inválido."}), 400
     try:
         pdf = gerar_declaracao(cliente, tipo)
     except ValueError:
         return jsonify({"error": "Tipo de declaração inválido."}), 400
-    nome = "declaracao_residencia" if tipo == "residencia" else "declaracao_nao_inquerito"
     response = make_response(pdf)
     response.headers["Content-Type"] = "application/pdf"
-    response.headers["Content-Disposition"] = f'attachment; filename="{nome}_{cliente.id}.pdf"'
+    response.headers["Content-Disposition"] = f'attachment; filename="declaracao_nao_inquerito_{cliente.id}.pdf"'
     return response

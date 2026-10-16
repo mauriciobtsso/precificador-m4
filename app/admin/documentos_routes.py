@@ -2,17 +2,12 @@ from flask import render_template, request, redirect, url_for, flash, current_ap
 from flask_login import login_required
 from app.extensions import db
 from app.models import ModeloDocumento
+from app.certidoes.declaracoes import MODELOS_PADRAO
 from app.admin import admin_bp
 
 
-_DECLARACOES_PADRAO = [
-    ("Declaração de Residência", "declaracao_residencia", "Eu, <b>{{ cliente.nome }}</b>, inscrito(a) no CPF/CNPJ sob o nº <b>{{ cliente.documento }}</b>, declaro, para os devidos fins, que resido no endereço <b>{{ cliente.endereco_completo }}</b>. Declaro ainda que as informações acima são verdadeiras, estando ciente das responsabilidades legais decorrentes da falsidade desta declaração."),
-    ("Declaração de Não Responder a Inquérito Policial", "declaracao_nao_inquerito", "Eu, <b>{{ cliente.nome }}</b>, inscrito(a) no CPF/CNPJ sob o nº <b>{{ cliente.documento }}</b>, declaro, para os devidos fins, que não estou respondendo a inquérito policial, salvo se expressamente informado em documento próprio. Declaro que as informações prestadas são verdadeiras e assumo responsabilidade por seu conteúdo."),
-]
-
-
 def _garantir_modelos_declaracoes():
-    for titulo, chave, conteudo in _DECLARACOES_PADRAO:
+    for titulo, chave, conteudo in MODELOS_PADRAO:
         if not ModeloDocumento.query.filter_by(chave=chave).first():
             db.session.add(ModeloDocumento(titulo=titulo, chave=chave, conteudo=conteudo))
     db.session.commit()
@@ -45,6 +40,9 @@ def inject_vars():
         "{{ venda.id }}", "{{ venda.data_abertura }}", "{{ venda.valor_total }}",
         "{{ cliente.nome }}", "{{ cliente.documento }}", "{{ cliente.rg }}",
         "{{ cliente.endereco_completo }}", "{{ cliente.email }}", "{{ cliente.telefone }}",
+        "{{ proprietario.nome }}", "{{ proprietario.documento }}", "{{ proprietario.rg }}",
+        "{{ proprietario.rg_emissor }}", "{{ proprietario.endereco_completo }}",
+        "{{ declaracao.vinculo }}",
         "{{ empresa.razao_social }}", "{{ empresa.cnpj }}", "{{ empresa.endereco }}",
         "{{ itens_lista }}"
     ])

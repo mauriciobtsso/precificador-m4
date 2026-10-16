@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4" style="max-width: 960px;">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <a href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}" class="small text-decoration-none">
+                <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Voltar ao cliente
+            </a>
+            <h1 class="h3 mt-2 mb-1">Declaração de residência</h1>
+            <p class="text-muted mb-0">Informe os dados da pessoa proprietária do imóvel e o vínculo com o cliente.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="{{ url_for('admin.documentos') }}">
+            <i class="fas fa-edit me-1" aria-hidden="true"></i>Editar texto padrão
+        </a>
+    </div>
+
+    <div class="alert alert-info" role="note">
+        O endereço residencial do cliente foi usado como sugestão para o endereço do imóvel. Confira e ajuste se necessário.
+        O sistema não verifica a propriedade nem envia o PDF a nenhum órgão. O declarante deve confirmar que as informações são verdadeiras e assinar o documento.
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <strong>Cliente</strong>
+        </div>
+        <div class="card-body">
+            <div><strong>Nome:</strong> {{ cliente.nome }}</div>
+            <div><strong>CPF/CNPJ:</strong> {{ cliente.documento or 'não informado' }}</div>
+        </div>
+    </div>
+
+    <form method="post" action="{{ url_for('certidoes.preparar_declaracao_residencia', cliente_id=cliente.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <strong>Dados da pessoa proprietária/declarante</strong>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label" for="proprietario_nome">Nome completo <span class="text-danger" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="proprietario_nome" name="proprietario_nome" type="text" maxlength="180" autocomplete="name" value="{{ dados.proprietario_nome }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="proprietario_documento">CPF <span class="text-danger" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="proprietario_documento" name="proprietario_documento" type="text" maxlength="30" inputmode="numeric" autocomplete="off" value="{{ dados.proprietario_documento }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="proprietario_rg">RG <span class="text-danger" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="proprietario_rg" name="proprietario_rg" type="text" maxlength="50" autocomplete="off" value="{{ dados.proprietario_rg }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="proprietario_rg_emissor">Órgão emissor do RG <span class="text-danger" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="proprietario_rg_emissor" name="proprietario_rg_emissor" type="text" maxlength="50" placeholder="Ex.: SSP-PI" autocomplete="off" value="{{ dados.proprietario_rg_emissor }}" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="proprietario_endereco">Endereço do imóvel <span class="text-danger" aria-hidden="true">*</span></label>
+                        <textarea class="form-control" id="proprietario_endereco" name="proprietario_endereco" rows="3" maxlength="400" autocomplete="street-address" required>{{ dados.proprietario_endereco }}</textarea>
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label" for="vinculo">Vínculo com o cliente <span class="text-danger" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="vinculo" name="vinculo" type="text" maxlength="100" placeholder="Ex.: mãe, pai, cônjuge" value="{{ dados.vinculo }}" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label" for="local">Cidade/UF da assinatura</label>
+                        <input class="form-control" id="local" name="local" type="text" maxlength="120" placeholder="Ex.: Teresina/PI" value="{{ dados.local }}">
+                        <div class="form-text">Se deixar em branco, o sistema usará a cidade/UF cadastrada para o cliente.</div>
+                    </div>
+                </div>
+
+                <p class="small text-muted mt-3 mb-0">Os campos marcados com * são obrigatórios. A data de emissão será preenchida automaticamente.</p>
+            </div>
+            <div class="card-footer bg-white d-flex flex-wrap justify-content-end gap-2">
+                <a class="btn btn-outline-secondary" href="{{ url_for('clientes.detalhe', cliente_id=cliente.id) }}">Cancelar</a>
+                <button class="btn btn-primary" type="submit">
+                    <i class="fas fa-file-pdf me-1" aria-hidden="true"></i>Gerar PDF
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

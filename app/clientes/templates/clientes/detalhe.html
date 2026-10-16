@@ -574,13 +574,14 @@
             <div class="card border-0 bg-white mb-3">
                 <div class="card-body px-0 pb-0">
                     <h6 class="mb-2"><i class="fas fa-file-pdf text-danger me-1"></i> Declarações</h6>
-                    <a class="btn btn-sm btn-outline-dark me-2 mb-2" href="{{ url_for('certidoes.baixar_declaracao', cliente_id=cliente.id, tipo='residencia') }}">
-                        <i class="fas fa-home me-1"></i> Declaração de residência
+                    <a class="btn btn-sm btn-outline-dark me-2 mb-2" href="{{ url_for('certidoes.preparar_declaracao_residencia', cliente_id=cliente.id) }}">
+                        <i class="fas fa-home me-1"></i> Gerar declaração de residência
                     </a>
                     <a class="btn btn-sm btn-outline-dark mb-2" href="{{ url_for('certidoes.baixar_declaracao', cliente_id=cliente.id, tipo='nao_inquerito') }}">
                         <i class="fas fa-balance-scale me-1"></i> Não responder a inquérito policial
                     </a>
-                    <div class="form-text">O PDF é um modelo preenchido e deve ser conferido e assinado pelo declarante.</div>
+                    <div class="form-text mb-2">Na declaração de residência, informe os dados do proprietário do imóvel e o vínculo com o cliente. Confira e obtenha a assinatura do declarante.</div>
+                    <a class="small" href="{{ url_for('admin.documentos') }}"><i class="fas fa-edit me-1" aria-hidden="true"></i>Editar textos padrão das declarações</a>
                 </div>
             </div>
 

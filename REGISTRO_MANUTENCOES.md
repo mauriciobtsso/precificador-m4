@@ -1543,3 +1543,18 @@ Esta regra orienta as respostas do projeto. Ela não altera o código dos portai
 ### Próximo passo de uso
 
 Como a extensão foi carregada sem compactação, depois de atualizar o repositório é necessário abrir `chrome://extensions`, clicar em **Recarregar** na M4 Certidões e recarregar a página da PCPI ou do TSE. O usuário deve revisar todos os campos antes de resolver o CAPTCHA ou enviar qualquer formulário. A extensão não envia solicitações.
+
+
+## 16/10/2026 — Textos editáveis e dados do declarante nas declarações
+
+O sistema já possuía edição de modelos em `/admin/documentos`, mas os textos padrão eram simplificados e a geração da declaração de residência não solicitava os dados da pessoa proprietária nem o vínculo com o cliente. A tela `/clientes` agora abre um formulário para coletar nome, CPF, RG, órgão emissor, endereço do imóvel e vínculo. A cidade/UF é sugerida pelo cadastro do cliente e pode ser ajustada; a data é preenchida por extenso. O endereço residencial cadastrado também é usado como sugestão para o imóvel.
+
+Os dois modelos padrão foram aproximados do conteúdo dos PDFs fornecidos. A declaração de residência inclui proprietário/declarante, cliente, vínculo, data/local e assinatura do declarante. A declaração de inexistência de inquéritos/processos inclui o endereço do cliente, texto declaratório, trecho do Art. 299, data/local e assinatura. Os títulos e corpos continuam editáveis em `/admin/documentos`; a seção de declarações em `/clientes` agora contém um atalho para essa tela. A declaração de não responder a inquérito continua gerando o PDF diretamente.
+
+A nova migração `20261016_update_declaracoes` atualiza somente textos que ainda correspondem ao modelo inicial anterior. Ela preserva títulos customizados e não sobrescreve corpos já editados. A aplicação não verifica se alguém é proprietário do imóvel nem envia a declaração a órgãos externos. O declarante deve conferir se o conteúdo é verdadeiro e assinar. O texto foi baseado nos anexos; esta manutenção não constitui revisão jurídica.
+
+### Validação
+
+- Quatro testes novos cobrem os dados variáveis e a assinatura nos PDFs, o formulário de geração, o retorno do arquivo PDF, o tamanho de uma página e a preservação de personalizações pela migração.
+- `python3 -m pytest -q` — **137 testes aprovados**; permaneceu o aviso conhecido do Flask-Limiter sobre armazenamento em memória no ambiente de teste.
+- `compileall`, `git diff --check` e a revisão do grafo Alembic passaram. `20261016_update_declaracoes` é o único head.
