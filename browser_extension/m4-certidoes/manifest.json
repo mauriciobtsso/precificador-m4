@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "M4 Certidões – preenchimento assistido",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Preenche dados do cliente selecionado no M4 nos portais oficiais de certidões.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
@@ -11,7 +11,7 @@
   ],
   "content_scripts": [
     {"matches": ["http://localhost:5000/*", "https://*.m4tatica.com.br/*"], "js": ["m4-context.js"], "run_at": "document_idle"},
-    {"matches": ["https://www.stm.jus.br/*", "https://www.mppi.mp.br/*", "https://aplicativos.mpf.mp.br/*", "https://europa.tjpi.jus.br/*", "https://www.tse.jus.br/*", "https://www.cjf.jus.br/*", "https://portal.pi.gov.br/*"], "js": ["portal-fill.js"], "run_at": "document_idle"}
+    {"matches": ["https://www.stm.jus.br/*", "https://www.mppi.mp.br/*", "https://aplicativos.mpf.mp.br/*", "https://europa.tjpi.jus.br/*", "https://www.tse.jus.br/*", "https://www.cjf.jus.br/*", "https://portal.pi.gov.br/*"], "js": ["portal-fill.js"], "run_at": "document_idle", "all_frames": true}
   ],
   "action": {"default_title": "M4 Certidões", "default_popup": "popup.html"}
 }

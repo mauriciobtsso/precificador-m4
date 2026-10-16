@@ -38,6 +38,24 @@ carregarCliente();
 button.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
   if (!tab?.id) return;
-  await chrome.tabs.sendMessage(tab.id, {type: 'M4_FILL_NOW'}).catch(() => {});
-  status.textContent = 'Preenchimento solicitado. Revise os campos da página.';
+  let response = {ok: false, filled: 0};
+  try {
+    // portal-fill.js também possui all_frames no manifest. A injeção explícita
+    // aqui permite testar uma página que já estava aberta antes da extensão.
+    await chrome.scripting.executeScript({target: {tabId: tab.id, allFrames: true}, files: ['portal-fill.js']});
+    response = await chrome.tabs.sendMessage(tab.id, {type: 'M4_FILL_NOW'}).catch(() => response);
+  } catch (error) {
+    try {
+      await chrome.scripting.executeScript({target: {tabId: tab.id}, files: ['portal-fill.js']});
+      response = await chrome.tabs.sendMessage(tab.id, {type: 'M4_FILL_NOW'}).catch(() => response);
+    } catch (_) {
+      status.textContent = 'Não foi possível acessar esta página. Recarregue o portal e tente novamente.';
+      status.className = 'warn';
+      return;
+    }
+  }
+  status.textContent = response?.ok
+    ? `Preenchimento solicitado: ${response.filled} campos neste quadro. Revise a página.`
+    : 'Nenhum campo compatível foi encontrado nesta página.';
+  status.className = response?.ok ? 'ok' : 'warn';
 });
