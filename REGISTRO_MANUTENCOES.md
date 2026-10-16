@@ -1582,3 +1582,7 @@ A primeira ativação do commit `69d8a88` foi interrompida porque o identificado
 - A edição e o cadastro ativo de clientes agora exibem e persistem `rg` e `rg_emissor` nos campos principais de `Cliente`.
 - Confirmado que os arquivos/metadados da aba **Documentos** são registros separados (`Documento`) e não atualizam automaticamente `Cliente.rg`. A declaração de residência recebe o RG da pessoa declarante informado no formulário, não o RG do cliente nem um anexo selecionado.
 - Validação: **141 testes aprovados**, incluindo persistência/recarregamento da declaração, criação/edição de RG e migração reversível; compilação Python, verificação do diff e grafo Alembic com head único `20261016_decl_res_data`.
+
+### Publicação em produção — declaração reutilizável e RG
+
+O commit `e447b8dfc431ace49073d1cfcf3a193e9ae4d18c` foi implantado no Render e ficou **live** no deploy `dep-db97rb0ae00c739b15rg`. Os logs confirmam a migração `20261016_sep_end_res` → `20261016_decl_res_data` e a inicialização do Gunicorn. A checagem HTTP do formulário vazio `/clientes/novo` confirmou os campos `rg` e `rg_emissor`; nenhum cadastro de cliente foi consultado.
