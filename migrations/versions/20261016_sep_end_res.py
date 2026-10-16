@@ -1,12 +1,12 @@
 """Separate declarant and customer residence addresses in the default declaration.
 
-Revision ID: 20261016_sep_enderecos_residencia
+Revision ID: 20261016_sep_end_res
 Revises: 20261016_update_declaracoes
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = "20261016_sep_enderecos_residencia"
+revision = "20261016_sep_end_res"
 down_revision = "20261016_update_declaracoes"
 branch_labels = None
 depends_on = None

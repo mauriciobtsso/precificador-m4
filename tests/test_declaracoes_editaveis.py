@@ -231,10 +231,11 @@ def test_migracao_atualiza_apenas_modelos_que_nao_foram_personalizados():
 
 
 def test_migracao_enderecos_separados_preserva_texto_personalizado():
-    caminho = Path(__file__).parents[1] / "migrations" / "versions" / "20261016_sep_enderecos_residencia.py"
+    caminho = Path(__file__).parents[1] / "migrations" / "versions" / "20261016_sep_end_res.py"
     spec = spec_from_file_location("migration_sep_enderecos_residencia", caminho)
     migration = module_from_spec(spec)
     spec.loader.exec_module(migration)
+    assert len(migration.revision) <= 32
     modelos_residencia = {
         chave: (titulo, conteudo)
         for titulo, chave, conteudo in MODELOS_PADRAO
