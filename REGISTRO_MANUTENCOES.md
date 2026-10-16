@@ -1555,6 +1555,6 @@ A nova migração `20261016_update_declaracoes` atualiza somente textos que aind
 
 ### Validação
 
-- Quatro testes novos cobrem os dados variáveis e a assinatura nos PDFs, o formulário de geração, o retorno do arquivo PDF, o tamanho de uma página e a preservação de personalizações pela migração.
+- Cinco testes novos cobrem os dados variáveis e a assinatura nos PDFs, o uso do texto salvo no painel, o formulário de geração, o retorno do arquivo PDF, o tamanho de uma página e a preservação de personalizações pela migração.
 - `python3 -m pytest -q` — **137 testes aprovados**; permaneceu o aviso conhecido do Flask-Limiter sobre armazenamento em memória no ambiente de teste.
 - `compileall`, `git diff --check` e a revisão do grafo Alembic passaram. `20261016_update_declaracoes` é o único head.

@@ -13,6 +13,7 @@ from pdfminer.high_level import extract_pages, extract_text
 from app import db
 from app.clientes.models import Cliente
 from app.certidoes.declaracoes import MODELOS_PADRAO, gerar_declaracao
+from app.models import ModeloDocumento
 # Cliente possui um relacionamento com este modelo, que precisa estar registrado.
 from app.estoque.models import ItemEstoque as _ItemEstoque
 
@@ -114,6 +115,50 @@ def test_formulario_residencia_exige_dados_do_declarante_e_gera_pdf(client, app)
             if cliente:
                 db.session.delete(cliente)
                 db.session.commit()
+
+
+def test_texto_personalizado_no_painel_e_usado_no_pdf(app):
+    with app.app_context():
+        modelo = ModeloDocumento.query.filter_by(chave="declaracao_residencia").first()
+        modelo_novo = modelo is None
+        if modelo_novo:
+            modelo = ModeloDocumento(
+                titulo="Modelo editado no teste",
+                chave="declaracao_residencia",
+                conteudo="Texto editado: <b>{{ proprietario.nome }}</b>; {{ declaracao.vinculo }}; {{ cliente.nome }}.",
+            )
+            db.session.add(modelo)
+        else:
+            titulo_anterior, conteudo_anterior = modelo.titulo, modelo.conteudo
+            modelo.titulo = "Modelo editado no teste"
+            modelo.conteudo = "Texto editado: <b>{{ proprietario.nome }}</b>; {{ declaracao.vinculo }}; {{ cliente.nome }}."
+        db.session.commit()
+
+        try:
+            pdf = gerar_declaracao(
+                _cliente_teste(),
+                "residencia",
+                {
+                    "proprietario_nome": "Dona da Casa",
+                    "proprietario_documento": "98765432100",
+                    "proprietario_rg": "1234",
+                    "proprietario_rg_emissor": "SSP-PI",
+                    "proprietario_endereco": "Rua de Teste, 42",
+                    "vinculo": "mãe",
+                    "local": "Teresina/PI",
+                },
+                date(2026, 6, 1),
+            )
+            texto = " ".join(extract_text(BytesIO(pdf)).split())
+            assert "MODELO EDITADO NO TESTE" in texto
+            assert "Texto editado: Dona da Casa; mãe; Cliente de Teste." in texto
+        finally:
+            if modelo_novo:
+                db.session.delete(modelo)
+            else:
+                modelo.titulo = titulo_anterior
+                modelo.conteudo = conteudo_anterior
+            db.session.commit()
 
 
 def test_migracao_atualiza_apenas_modelos_que_nao_foram_personalizados():
