@@ -18,6 +18,15 @@
         O endereço residencial do cliente foi sugerido a partir do cadastro e pode ser ajustado. O endereço da pessoa declarante começa em branco: ele pode ser diferente do endereço do cliente.
         O sistema não verifica as informações nem a propriedade do imóvel, e não envia o PDF a nenhum órgão. O declarante deve confirmar que o conteúdo é verdadeiro e assinar.
     </div>
+    {% if dados_salvos %}
+    <div class="alert alert-success" role="status">
+        Os dados da última declaração deste cliente foram carregados. Revise-os antes de gerar: as alterações serão salvas para a próxima emissão e a data do PDF será atualizada automaticamente.
+    </div>
+    {% else %}
+    <div class="alert alert-secondary" role="note">
+        Ao gerar a declaração pela primeira vez, os dados preenchidos serão salvos neste cliente para facilitar futuras emissões.
+    </div>
+    {% endif %}
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-light">

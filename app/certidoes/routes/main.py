@@ -15,7 +15,7 @@ from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.utils.datetime import now_local
 from app.certidoes.models import Certidao, CertidaoStatus, CertidaoTipo
-from app.clientes.models import Cliente
+from app.clientes.models import Cliente, DadosDeclaracaoResidencia
 from app.utils.storage import gerar_link_publico
 
 from app.certidoes.tasks import emitir_certidao
@@ -182,15 +182,19 @@ def payload_autofill(cliente_id):
 
 
 def _contexto_formulario_residencia(cliente, dados=None):
+    dados_salvos = cliente.dados_declaracao_residencia
     valores = {
-        "proprietario_nome": "",
-        "proprietario_documento": "",
-        "proprietario_rg": "",
-        "proprietario_rg_emissor": "",
-        "proprietario_endereco": "",
-        "cliente_endereco": endereco_completo_cliente(cliente),
-        "vinculo": "",
-        "local": localidade_cliente(cliente),
+        "proprietario_nome": dados_salvos.proprietario_nome if dados_salvos else "",
+        "proprietario_documento": dados_salvos.proprietario_documento if dados_salvos else "",
+        "proprietario_rg": dados_salvos.proprietario_rg if dados_salvos else "",
+        "proprietario_rg_emissor": dados_salvos.proprietario_rg_emissor if dados_salvos else "",
+        "proprietario_endereco": dados_salvos.proprietario_endereco if dados_salvos else "",
+        "cliente_endereco": (
+            dados_salvos.cliente_endereco if dados_salvos
+            else endereco_completo_cliente(cliente)
+        ),
+        "vinculo": dados_salvos.vinculo if dados_salvos else "",
+        "local": dados_salvos.local if dados_salvos else localidade_cliente(cliente),
     }
     if dados:
         valores.update(dados)
@@ -198,6 +202,7 @@ def _contexto_formulario_residencia(cliente, dados=None):
         "certidoes/declaracao_residencia_form.html",
         cliente=cliente,
         dados=valores,
+        dados_salvos=bool(dados_salvos),
     )
 
 
@@ -243,6 +248,24 @@ def preparar_declaracao_residencia(cliente_id):
         if campos_longos:
             flash("Alguns campos excedem o tamanho permitido. Revise os dados e tente novamente.", "warning")
         return _contexto_formulario_residencia(cliente, dados), 400
+
+    registro = cliente.dados_declaracao_residencia
+    if registro is None:
+        registro = DadosDeclaracaoResidencia(cliente_id=cliente.id)
+        db.session.add(registro)
+    for campo in limites:
+        setattr(registro, campo, dados[campo])
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Falha ao salvar dados da declaração de residência do cliente %s",
+            cliente.id,
+        )
+        flash("Não foi possível salvar os dados da declaração. Revise e tente novamente.", "danger")
+        return _contexto_formulario_residencia(cliente, dados), 500
 
     try:
         pdf = gerar_declaracao(cliente, "residencia", dados=dados)

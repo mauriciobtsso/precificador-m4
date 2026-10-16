@@ -73,11 +73,23 @@
                value="{{ cliente.documento or '' }}">
       </div>
       <div class="col-md-4 mb-3">
+        <label class="form-label" for="rg">Número do RG</label>
+        <input type="text" id="rg" name="rg" class="form-control" autocomplete="off"
+               value="{{ cliente.rg or '' }}">
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label" for="rg_emissor">Órgão emissor do RG</label>
+        <input type="text" id="rg_emissor" name="rg_emissor" class="form-control" autocomplete="off"
+               value="{{ cliente.rg_emissor or '' }}">
+      </div>
+    </div>
+    <div class="row mb-3">
+      <div class="col-md-6 mb-3">
         <label class="form-label">CR</label>
         <input type="text" name="cr" class="form-control"
                value="{{ cliente.cr or '' }}">
       </div>
-      <div class="col-md-4 mb-3">
+      <div class="col-md-6 mb-3">
         <label class="form-label">Emissor do CR</label>
         <input type="text" name="cr_emissor" class="form-control"
                value="{{ cliente.cr_emissor or '' }}">
@@ -223,4 +235,3 @@ document.addEventListener("DOMContentLoaded", function () {
 <!-- ============================== -->
 <script src="{{ url_for('static', filename='js/enderecos.js') }}"></script>
 <script src="{{ url_for('static', filename='js/cep_lookup.js') }}"></script>
-

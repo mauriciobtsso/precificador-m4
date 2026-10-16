@@ -107,6 +107,12 @@ class Cliente(db.Model):
     enderecos = db.relationship("EnderecoCliente", back_populates="cliente", cascade="all, delete-orphan", lazy="select")
     contatos = db.relationship("ContatoCliente", back_populates="cliente", cascade="all, delete-orphan", lazy="select")
     certidoes = db.relationship("Certidao", back_populates="cliente", cascade="all, delete-orphan", lazy="select")
+    dados_declaracao_residencia = db.relationship(
+        "DadosDeclaracaoResidencia",
+        back_populates="cliente",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
     itens_fornecidos = db.relationship("ItemEstoque", back_populates="fornecedor", lazy="dynamic")
 
     # ----------------------------------------------------------
@@ -129,6 +135,36 @@ class Cliente(db.Model):
 
     def __repr__(self):
         return f"<Cliente {self.id} - {self.nome}>"
+
+
+class DadosDeclaracaoResidencia(db.Model):
+    """Últimos dados de residência preenchidos para gerar declaração do cliente."""
+    __tablename__ = "clientes_declaracoes_residencia"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(
+        db.Integer,
+        db.ForeignKey("clientes.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    proprietario_nome = db.Column(db.String(180), nullable=False)
+    proprietario_documento = db.Column(db.String(30), nullable=False)
+    proprietario_rg = db.Column(db.String(50), nullable=False)
+    proprietario_rg_emissor = db.Column(db.String(50), nullable=False)
+    proprietario_endereco = db.Column(db.String(400), nullable=False)
+    cliente_endereco = db.Column(db.String(400), nullable=False)
+    vinculo = db.Column(db.String(100), nullable=False)
+    local = db.Column(db.String(120), nullable=False, default="")
+    created_at = db.Column(db.DateTime, nullable=False, default=now_local)
+    updated_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=now_local,
+        onupdate=now_local,
+    )
+
+    cliente = db.relationship("Cliente", back_populates="dados_declaracao_residencia")
 
 
 # =========================

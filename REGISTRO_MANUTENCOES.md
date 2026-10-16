@@ -1574,3 +1574,11 @@ A migração `20261016_sep_end_res` atualiza apenas o conteúdo padrão antigo a
 ### Publicação e correção do identificador Alembic
 
 A primeira ativação do commit `69d8a88` foi interrompida porque o identificador da revisão Alembic excedia o limite de 32 caracteres da coluna de versão do PostgreSQL. O identificador foi encurtado para `20261016_sep_end_res` no commit `f612418`. Os logs do deploy confirmam a execução da migração de `20261016_update_declaracoes` para `20261016_sep_end_res`, seguida da inicialização do Gunicorn. O deploy `f612418` ficou **live**; a rota `/admin/documentos` continua redirecionando para o login, e `/clientes` responde com o redirecionamento canônico para `/clientes/`.
+
+## 16/10/2026 — Dados reutilizáveis da declaração de residência e RG editável
+
+- Criada a tabela `clientes_declaracoes_residencia`, com relação um-para-um com o cliente, para guardar a última versão válida dos dados usados na declaração: declarante, CPF, RG e emissor, endereços separados, vínculo e local.
+- Ao gerar a declaração, os dados são salvos no cliente. Ao abrir novamente o formulário, os últimos valores são carregados e podem ser revisados/alterados; cada novo PDF continua recebendo a data atual automaticamente. O endereço do declarante permanece independente do endereço do cliente.
+- A edição e o cadastro ativo de clientes agora exibem e persistem `rg` e `rg_emissor` nos campos principais de `Cliente`.
+- Confirmado que os arquivos/metadados da aba **Documentos** são registros separados (`Documento`) e não atualizam automaticamente `Cliente.rg`. A declaração de residência recebe o RG da pessoa declarante informado no formulário, não o RG do cliente nem um anexo selecionado.
+- Validação: **141 testes aprovados**, incluindo persistência/recarregamento da declaração, criação/edição de RG e migração reversível; compilação Python, verificação do diff e grafo Alembic com head único `20261016_decl_res_data`.

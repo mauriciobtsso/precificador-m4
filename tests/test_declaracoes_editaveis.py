@@ -11,7 +11,7 @@ from alembic.operations import Operations
 from pdfminer.high_level import extract_pages, extract_text
 
 from app import db
-from app.clientes.models import Cliente
+from app.clientes.models import Cliente, DadosDeclaracaoResidencia
 from app.certidoes.declaracoes import MODELOS_PADRAO, gerar_declaracao
 from app.models import ModeloDocumento
 # Cliente possui um relacionamento com este modelo, que precisa estar registrado.
@@ -97,6 +97,8 @@ def test_formulario_residencia_exige_dados_do_declarante_e_gera_pdf(client, app)
 
         incompleta = client.post(url, data={})
         assert incompleta.status_code == 400
+        with app.app_context():
+            assert DadosDeclaracaoResidencia.query.filter_by(cliente_id=cliente_id).first() is None
 
         completa = client.post(
             url,
@@ -119,6 +121,23 @@ def test_formulario_residencia_exige_dados_do_declarante_e_gera_pdf(client, app)
         assert "987.654.321-00" in texto_pdf
         assert "Rua do Declarante, 10, Teresina/PI" in texto_pdf
         assert "Av. do Cliente, 999, Teresina/PI" in texto_pdf
+
+        with app.app_context():
+            salvo = DadosDeclaracaoResidencia.query.filter_by(cliente_id=cliente_id).one()
+            assert salvo.proprietario_nome == "Declarante Rota Teste"
+            assert salvo.proprietario_rg == "12345"
+            assert salvo.proprietario_endereco == "Rua do Declarante, 10, Teresina/PI"
+            assert salvo.cliente_endereco == "Av. do Cliente, 999, Teresina/PI"
+            assert salvo.vinculo == "mãe"
+
+        reaberta = client.get(url)
+        html = reaberta.get_data(as_text=True)
+        assert reaberta.status_code == 200
+        assert "Os dados da última declaração deste cliente foram carregados" in html
+        assert 'value="Declarante Rota Teste"' in html
+        assert 'value="12345"' in html
+        assert "Rua do Declarante, 10, Teresina/PI</textarea>" in html
+        assert "Av. do Cliente, 999, Teresina/PI</textarea>" in html
     finally:
         with app.app_context():
             cliente = db.session.get(Cliente, cliente_id)
@@ -291,5 +310,42 @@ def test_migracao_enderecos_separados_preserva_texto_personalizado():
             {"chave": migration._CHAVE},
         ).scalar_one()
         assert conteudo == texto_customizado
+
+    engine.dispose()
+
+
+def test_migracao_cria_tabela_unica_de_dados_da_declaracao():
+    caminho = Path(__file__).parents[1] / "migrations" / "versions" / "20261016_decl_res_data.py"
+    spec = spec_from_file_location("migration_decl_res_data", caminho)
+    migration = module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    assert len(migration.revision) <= 32
+    assert migration.down_revision == "20261016_sep_end_res"
+
+    engine = sa.create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        connection.execute(sa.text("CREATE TABLE clientes (id INTEGER PRIMARY KEY)"))
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+
+        inspector = sa.inspect(connection)
+        assert inspector.has_table("clientes_declaracoes_residencia")
+        columns = {column["name"] for column in inspector.get_columns("clientes_declaracoes_residencia")}
+        assert {
+            "cliente_id",
+            "proprietario_nome",
+            "proprietario_documento",
+            "proprietario_rg",
+            "proprietario_endereco",
+            "cliente_endereco",
+            "vinculo",
+            "local",
+        }.issubset(columns)
+        unique = inspector.get_unique_constraints("clientes_declaracoes_residencia")
+        assert any(constraint["column_names"] == ["cliente_id"] for constraint in unique)
+
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.downgrade()
+        assert not sa.inspect(connection).has_table("clientes_declaracoes_residencia")
 
     engine.dispose()

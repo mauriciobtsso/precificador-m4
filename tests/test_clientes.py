@@ -52,3 +52,47 @@ def test_lista_clientes_tem_layout_responsivo_sem_largura_minima_da_tabela(clien
     assert "table-layout: fixed;" in css
     assert "overflow-wrap: anywhere;" in css
     assert ".clientes-pagination .pagination" in css
+
+
+def test_cadastro_e_edicao_de_cliente_persistem_rg_e_orgao_emissor(client, app):
+    response = client.get("/clientes/novo")
+    assert response.status_code == 200
+    assert 'name="rg"' in response.get_data(as_text=True)
+    assert 'name="rg_emissor"' in response.get_data(as_text=True)
+
+    criado = client.post(
+        "/clientes/novo",
+        data={
+            "nome": "Cliente RG Teste",
+            "rg": "12.345.678-9",
+            "rg_emissor": "SSP-PI",
+        },
+    )
+    assert criado.status_code == 302
+    with app.app_context():
+        cliente = Cliente.query.filter_by(nome="Cliente RG Teste").one()
+        cliente_id = cliente.id
+        assert cliente.rg == "12.345.678-9"
+        assert cliente.rg_emissor == "SSP-PI"
+
+    formulario = client.get(f"/clientes/{cliente_id}/editar")
+    html = formulario.get_data(as_text=True)
+    assert formulario.status_code == 200
+    assert 'value="12.345.678-9"' in html
+    assert 'value="SSP-PI"' in html
+
+    editado = client.post(
+        f"/clientes/{cliente_id}/editar",
+        data={
+            "nome": "Cliente RG Teste",
+            "rg": "98.765.432-1",
+            "rg_emissor": "PC-PI",
+        },
+    )
+    assert editado.status_code == 302
+    with app.app_context():
+        cliente = db.session.get(Cliente, cliente_id)
+        assert cliente.rg == "98.765.432-1"
+        assert cliente.rg_emissor == "PC-PI"
+        db.session.delete(cliente)
+        db.session.commit()

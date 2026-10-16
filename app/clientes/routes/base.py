@@ -184,6 +184,8 @@ def novo_cliente():
                 nome_pai=request.form.get("nome_pai"),
                 nome_mae=request.form.get("nome_mae"),
                 documento=documento,
+                rg=request.form.get("rg") or None,
+                rg_emissor=request.form.get("rg_emissor") or None,
                 cac=bool(request.form.get("cac")),
                 filiado=bool(request.form.get("filiado")),
                 policial=bool(request.form.get("policial")),
@@ -346,6 +348,8 @@ def editar_cliente(cliente_id):
             cliente.nome_mae = request.form.get("nome_mae") or None
 
             cliente.documento = request.form.get("documento") or None
+            cliente.rg = request.form.get("rg") or None
+            cliente.rg_emissor = request.form.get("rg_emissor") or None
             cliente.cr = request.form.get("cr") or None
             cliente.cr_emissor = request.form.get("cr_emissor") or None
             cliente.sigma = request.form.get("sigma") or None
