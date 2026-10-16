@@ -187,7 +187,8 @@ def _contexto_formulario_residencia(cliente, dados=None):
         "proprietario_documento": "",
         "proprietario_rg": "",
         "proprietario_rg_emissor": "",
-        "proprietario_endereco": endereco_completo_cliente(cliente),
+        "proprietario_endereco": "",
+        "cliente_endereco": endereco_completo_cliente(cliente),
         "vinculo": "",
         "local": localidade_cliente(cliente),
     }
@@ -215,7 +216,8 @@ def preparar_declaracao_residencia(cliente_id):
         "proprietario_documento": "CPF do proprietário/declarante",
         "proprietario_rg": "RG do proprietário/declarante",
         "proprietario_rg_emissor": "órgão emissor do RG",
-        "proprietario_endereco": "endereço do imóvel",
+        "proprietario_endereco": "endereço residencial da pessoa declarante",
+        "cliente_endereco": "endereço onde o cliente reside",
         "vinculo": "vínculo com o cliente",
     }
     limites = {
@@ -224,6 +226,7 @@ def preparar_declaracao_residencia(cliente_id):
         "proprietario_rg": 50,
         "proprietario_rg_emissor": 50,
         "proprietario_endereco": 400,
+        "cliente_endereco": 400,
         "vinculo": 100,
         "local": 120,
     }

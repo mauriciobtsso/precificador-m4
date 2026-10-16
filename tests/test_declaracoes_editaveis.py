@@ -32,7 +32,7 @@ def _cliente_teste():
     return SimpleNamespace(
         id=123,
         nome="Cliente de Teste",
-        documento="123.456.789-00",
+        documento="12345678900",
         enderecos=[endereco],
     )
 
@@ -40,10 +40,11 @@ def _cliente_teste():
 def test_declaracao_residencia_inclui_proprietario_vinculo_e_data():
     dados = {
         "proprietario_nome": "Proprietária de Teste",
-        "proprietario_documento": "987.654.321-00",
+        "proprietario_documento": "98765432100",
         "proprietario_rg": "1234567",
         "proprietario_rg_emissor": "SSP-PI",
-        "proprietario_endereco": "Av. Exemplo, 100, Centro, Teresina/PI",
+        "proprietario_endereco": "Rua do Declarante, 10, Centro, Teresina/PI",
+        "cliente_endereco": "Av. do Cliente, 999, Bairro Novo, Teresina/PI",
         "vinculo": "mãe",
         "local": "Teresina/PI",
     }
@@ -58,7 +59,10 @@ def test_declaracao_residencia_inclui_proprietario_vinculo_e_data():
     assert "1234567" in texto
     assert "SSP-PI" in texto
     assert "Cliente de Teste" in texto
-    assert "Av. Exemplo, 100, Centro, Teresina/PI" in texto
+    assert "Rua do Declarante, 10, Centro, Teresina/PI" in texto
+    assert "Av. do Cliente, 999, Bairro Novo, Teresina/PI" in texto
+    assert "endereço acima citado" not in texto
+    assert "titular do imóvel" not in texto
     assert "mãe" in texto
     assert "Teresina/PI, 1º de Junho de 2026" in texto
 
@@ -88,7 +92,8 @@ def test_formulario_residencia_exige_dados_do_declarante_e_gera_pdf(client, app)
         url = f"/certidoes/cliente/{cliente_id}/declaracao/residencia"
         resposta = client.get(url)
         assert resposta.status_code == 200
-        assert "Dados da pessoa proprietária/declarante" in resposta.get_data(as_text=True)
+        assert "Dados da pessoa declarante" in resposta.get_data(as_text=True)
+        assert 'name="cliente_endereco"' in resposta.get_data(as_text=True)
 
         incompleta = client.post(url, data={})
         assert incompleta.status_code == 400
@@ -100,7 +105,8 @@ def test_formulario_residencia_exige_dados_do_declarante_e_gera_pdf(client, app)
                 "proprietario_documento": "98765432100",
                 "proprietario_rg": "12345",
                 "proprietario_rg_emissor": "SSP-PI",
-                "proprietario_endereco": "Rua Exemplo, 10, Teresina/PI",
+                "proprietario_endereco": "Rua do Declarante, 10, Teresina/PI",
+                "cliente_endereco": "Av. do Cliente, 999, Teresina/PI",
                 "vinculo": "mãe",
                 "local": "Teresina/PI",
             },
@@ -109,6 +115,10 @@ def test_formulario_residencia_exige_dados_do_declarante_e_gera_pdf(client, app)
         assert completa.mimetype == "application/pdf"
         assert completa.data.startswith(b"%PDF")
         assert "declaracao_residencia_" in completa.headers["Content-Disposition"]
+        texto_pdf = " ".join(extract_text(BytesIO(completa.data)).split())
+        assert "987.654.321-00" in texto_pdf
+        assert "Rua do Declarante, 10, Teresina/PI" in texto_pdf
+        assert "Av. do Cliente, 999, Teresina/PI" in texto_pdf
     finally:
         with app.app_context():
             cliente = db.session.get(Cliente, cliente_id)
@@ -166,8 +176,6 @@ def test_migracao_atualiza_apenas_modelos_que_nao_foram_personalizados():
     spec = spec_from_file_location("migration_update_declaracoes", caminho)
     migration = module_from_spec(spec)
     spec.loader.exec_module(migration)
-    assert {chave: (titulo, conteudo) for titulo, chave, conteudo in MODELOS_PADRAO} == migration._NOVOS
-
     engine = sa.create_engine("sqlite:///:memory:")
     with engine.begin() as connection:
         connection.execute(sa.text(
@@ -218,5 +226,69 @@ def test_migracao_atualiza_apenas_modelos_que_nao_foram_personalizados():
             sa.text("SELECT titulo FROM modelos_documento WHERE chave = 'declaracao_nao_inquerito'")
         ).scalar_one()
         assert titulo_customizado == "Meu modelo personalizado"
+
+    engine.dispose()
+
+
+def test_migracao_enderecos_separados_preserva_texto_personalizado():
+    caminho = Path(__file__).parents[1] / "migrations" / "versions" / "20261016_sep_enderecos_residencia.py"
+    spec = spec_from_file_location("migration_sep_enderecos_residencia", caminho)
+    migration = module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    modelos_residencia = {
+        chave: (titulo, conteudo)
+        for titulo, chave, conteudo in MODELOS_PADRAO
+        if chave == "declaracao_residencia"
+    }
+    assert modelos_residencia == {migration._CHAVE: ("Declaração de Residência", migration._NOVO)}
+
+    engine = sa.create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        connection.execute(sa.text(
+            "CREATE TABLE modelos_documento ("
+            "id INTEGER PRIMARY KEY, titulo VARCHAR(100) NOT NULL, "
+            "chave VARCHAR(50) NOT NULL UNIQUE, conteudo TEXT NOT NULL)"
+        ))
+        connection.execute(
+            sa.text("INSERT INTO modelos_documento (id, titulo, chave, conteudo) VALUES (1, :titulo, :chave, :conteudo)"),
+            {
+                "titulo": "Declaração personalizada",
+                "chave": migration._CHAVE,
+                "conteudo": migration._ANTIGO,
+            },
+        )
+
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+        conteudo = connection.execute(
+            sa.text("SELECT conteudo FROM modelos_documento WHERE chave = :chave"),
+            {"chave": migration._CHAVE},
+        ).scalar_one()
+        assert conteudo == migration._NOVO
+        assert "{{ proprietario.endereco_completo }}" in conteudo
+        assert "{{ cliente.endereco_completo }}" in conteudo
+
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.downgrade()
+        conteudo = connection.execute(
+            sa.text("SELECT conteudo FROM modelos_documento WHERE chave = :chave"),
+            {"chave": migration._CHAVE},
+        ).scalar_one()
+        assert conteudo == migration._ANTIGO
+
+        texto_customizado = "Texto personalizado pela equipe."
+        connection.execute(
+            sa.text("UPDATE modelos_documento SET conteudo = :conteudo WHERE chave = :chave"),
+            {"conteudo": texto_customizado, "chave": migration._CHAVE},
+        )
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.downgrade()
+        conteudo = connection.execute(
+            sa.text("SELECT conteudo FROM modelos_documento WHERE chave = :chave"),
+            {"chave": migration._CHAVE},
+        ).scalar_one()
+        assert conteudo == texto_customizado
 
     engine.dispose()

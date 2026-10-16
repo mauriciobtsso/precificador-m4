@@ -1558,3 +1558,15 @@ A nova migração `20261016_update_declaracoes` atualiza somente textos que aind
 - Cinco testes novos cobrem os dados variáveis e a assinatura nos PDFs, o uso do texto salvo no painel, o formulário de geração, o retorno do arquivo PDF, o tamanho de uma página e a preservação de personalizações pela migração.
 - `python3 -m pytest -q` — **137 testes aprovados**; permaneceu o aviso conhecido do Flask-Limiter sobre armazenamento em memória no ambiente de teste.
 - `compileall`, `git diff --check` e a revisão do grafo Alembic passaram. `20261016_update_declaracoes` é o único head.
+
+
+## 16/10/2026 — CPF formatado e endereços independentes na declaração de residência
+
+Após o retorno de uso, a geração passou a formatar CPFs com 11 dígitos como `000.000.000-00`, tanto no corpo/assinatura do PDF quanto no campo do formulário. A residência da pessoa declarante e a residência do cliente agora são campos separados: o endereço do cliente vem como sugestão editável do cadastro; o endereço do declarante inicia vazio para não presumir que more com o cliente. O texto padrão identifica explicitamente o endereço de cada pessoa e não afirma automaticamente que o declarante é proprietário do imóvel ou titular das contas, evitando essa afirmação indevida quando o vínculo informado for, por exemplo, locatário.
+
+A migração `20261016_sep_enderecos_residencia` atualiza apenas o conteúdo padrão antigo ainda intacto. Títulos e textos personalizados são preservados. O formulário mantém a máscara visual de CPF e a geração do PDF também formata o documento no servidor, independentemente do navegador.
+
+### Validação
+
+- **139 testes aprovados**, incluindo regressões para CPF sem pontuação, endereços diferentes, ausência de presunção de propriedade e preservação de modelos personalizados.
+- `compileall`, `node --check` do script de máscara, `git diff --check` e validação do grafo Alembic passaram; há um único head, `20261016_sep_enderecos_residencia`.

@@ -7,7 +7,7 @@
                 <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Voltar ao cliente
             </a>
             <h1 class="h3 mt-2 mb-1">Declaração de residência</h1>
-            <p class="text-muted mb-0">Informe os dados da pessoa proprietária do imóvel e o vínculo com o cliente.</p>
+            <p class="text-muted mb-0">Informe os dados de quem fará a declaração. Os endereços da pessoa declarante e do cliente são campos separados.</p>
         </div>
         <a class="btn btn-outline-secondary" href="{{ url_for('admin.documentos') }}">
             <i class="fas fa-edit me-1" aria-hidden="true"></i>Editar texto padrão
@@ -15,8 +15,8 @@
     </div>
 
     <div class="alert alert-info" role="note">
-        O endereço residencial do cliente foi usado como sugestão para o endereço do imóvel. Confira e ajuste se necessário.
-        O sistema não verifica a propriedade nem envia o PDF a nenhum órgão. O declarante deve confirmar que as informações são verdadeiras e assinar o documento.
+        O endereço residencial do cliente foi sugerido a partir do cadastro e pode ser ajustado. O endereço da pessoa declarante começa em branco: ele pode ser diferente do endereço do cliente.
+        O sistema não verifica as informações nem a propriedade do imóvel, e não envia o PDF a nenhum órgão. O declarante deve confirmar que o conteúdo é verdadeiro e assinar.
     </div>
 
     <div class="card border-0 shadow-sm mb-4">
@@ -33,7 +33,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-dark text-white">
-                <strong>Dados da pessoa proprietária/declarante</strong>
+                <strong>Dados da pessoa declarante</strong>
             </div>
             <div class="card-body">
                 <div class="row g-3">
@@ -43,7 +43,8 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="proprietario_documento">CPF <span class="text-danger" aria-hidden="true">*</span></label>
-                        <input class="form-control" id="proprietario_documento" name="proprietario_documento" type="text" maxlength="30" inputmode="numeric" autocomplete="off" value="{{ dados.proprietario_documento }}" required>
+                        <input class="form-control" id="proprietario_documento" name="proprietario_documento" type="text" maxlength="14" inputmode="numeric" autocomplete="off" value="{{ dados.proprietario_documento }}" aria-describedby="cpfAjuda" required>
+                        <div class="form-text" id="cpfAjuda">A máscara 000.000.000-00 é aplicada automaticamente.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="proprietario_rg">RG <span class="text-danger" aria-hidden="true">*</span></label>
@@ -54,12 +55,18 @@
                         <input class="form-control" id="proprietario_rg_emissor" name="proprietario_rg_emissor" type="text" maxlength="50" placeholder="Ex.: SSP-PI" autocomplete="off" value="{{ dados.proprietario_rg_emissor }}" required>
                     </div>
                     <div class="col-12">
-                        <label class="form-label" for="proprietario_endereco">Endereço do imóvel <span class="text-danger" aria-hidden="true">*</span></label>
-                        <textarea class="form-control" id="proprietario_endereco" name="proprietario_endereco" rows="3" maxlength="400" autocomplete="street-address" required>{{ dados.proprietario_endereco }}</textarea>
+                        <label class="form-label" for="proprietario_endereco">Endereço residencial da pessoa declarante <span class="text-danger" aria-hidden="true">*</span></label>
+                        <textarea class="form-control" id="proprietario_endereco" name="proprietario_endereco" rows="3" maxlength="400" autocomplete="off" aria-describedby="enderecoDeclaranteAjuda" required>{{ dados.proprietario_endereco }}</textarea>
+                        <div class="form-text" id="enderecoDeclaranteAjuda">Não é preenchido com o endereço do cliente; informe o endereço real de quem assina.</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="cliente_endereco">Endereço onde o cliente reside <span class="text-danger" aria-hidden="true">*</span></label>
+                        <textarea class="form-control" id="cliente_endereco" name="cliente_endereco" rows="3" maxlength="400" autocomplete="street-address" aria-describedby="enderecoClienteAjuda" required>{{ dados.cliente_endereco }}</textarea>
+                        <div class="form-text" id="enderecoClienteAjuda">Sugestão do cadastro do cliente; revise e altere se necessário.</div>
                     </div>
                     <div class="col-md-7">
-                        <label class="form-label" for="vinculo">Vínculo com o cliente <span class="text-danger" aria-hidden="true">*</span></label>
-                        <input class="form-control" id="vinculo" name="vinculo" type="text" maxlength="100" placeholder="Ex.: mãe, pai, cônjuge" value="{{ dados.vinculo }}" required>
+                        <label class="form-label" for="vinculo">Vínculo/qualificação da pessoa declarante com o cliente <span class="text-danger" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="vinculo" name="vinculo" type="text" maxlength="100" placeholder="Ex.: mãe, pai, cônjuge, locatário do imóvel" value="{{ dados.vinculo }}" required>
                     </div>
                     <div class="col-md-5">
                         <label class="form-label" for="local">Cidade/UF da assinatura</label>
@@ -79,4 +86,34 @@
         </div>
     </form>
 </div>
+<script>
+(function () {
+    var campo = document.getElementById('proprietario_documento');
+    if (!campo) return;
+
+    function mascararCPF(valor) {
+        var digitos = (valor || '').replace(/\D/g, '').substring(0, 11);
+        if (digitos.length > 9) {
+            return digitos.substring(0, 3) + '.' + digitos.substring(3, 6) + '.' + digitos.substring(6, 9) + '-' + digitos.substring(9, 11);
+        }
+        if (digitos.length > 6) {
+            return digitos.substring(0, 3) + '.' + digitos.substring(3, 6) + '.' + digitos.substring(6);
+        }
+        if (digitos.length > 3) {
+            return digitos.substring(0, 3) + '.' + digitos.substring(3);
+        }
+        return digitos;
+    }
+
+    campo.value = mascararCPF(campo.value);
+    campo.addEventListener('input', function () {
+        var posicao = this.selectionStart;
+        var valorAntigo = this.value;
+        this.value = mascararCPF(this.value);
+        if (posicao !== null && valorAntigo.length === this.value.length) {
+            this.setSelectionRange(posicao, posicao);
+        }
+    });
+})();
+</script>
 {% endblock %}

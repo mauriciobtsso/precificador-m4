@@ -25,11 +25,10 @@ MODELOS_PADRAO = [
             "<br/><br/>"
             "DECLARO, sob as penas da lei e junto à Polícia Federal (SINARM), que o(a) Sr.(a) "
             "<b>{{ cliente.nome }}</b>, inscrito(a) no CPF sob o nº <b>{{ cliente.documento }}</b>, "
-            "reside de forma fixa e permanente no endereço acima citado."
+            "reside de forma fixa e permanente no endereço <b>{{ cliente.endereco_completo }}</b>."
             "<br/><br/>"
             "Declaro, ainda, que o vínculo que possuo com o requerente é o de "
-            "<b>{{ declaracao.vinculo }}</b>, sendo eu o(a) titular do imóvel e das contas "
-            "de consumo atreladas ao referido endereço."
+            "<b>{{ declaracao.vinculo }}</b>."
             "<br/><br/>"
             "Por ser a expressão da verdade e ciente das responsabilidades civis e penais "
             "decorrentes de declaração falsa, firmo a presente."
@@ -100,6 +99,15 @@ def _texto_seguro(valor, fallback: str) -> str:
     return html.escape(texto or fallback, quote=True)
 
 
+def formatar_cpf(valor) -> str:
+    """Formata CPFs com 11 dígitos, mantendo outros documentos como foram informados."""
+    original = str(valor or "").strip()
+    digitos = re.sub(r"\D", "", original)
+    if len(digitos) != 11:
+        return original
+    return f"{digitos[:3]}.{digitos[3:6]}.{digitos[6:9]}-{digitos[9:]}"
+
+
 def _data_extenso(data: date) -> str:
     dia = "1º" if data.day == 1 else str(data.day)
     mes = _MESES[data.month - 1].capitalize()
@@ -135,17 +143,22 @@ def gerar_declaracao(cliente, tipo: str, dados: dict | None = None, data_emissao
         titulo = modelo.titulo or titulo
         texto_padrao = modelo.conteudo or texto_padrao
 
-    endereco_cliente = endereco_completo_cliente(cliente)
+    endereco_cliente = (
+        str(dados.get("cliente_endereco") or "").strip()
+        or endereco_completo_cliente(cliente)
+    )
     valores = {
         "cliente.nome": _texto_seguro(cliente.nome, "________________________________________"),
-        "cliente.documento": _texto_seguro(cliente.documento, "________________________"),
+        "cliente.documento": _texto_seguro(formatar_cpf(cliente.documento), "________________________"),
         "cliente.endereco_completo": _texto_seguro(endereco_cliente, "________________________________________"),
         "proprietario.nome": _texto_seguro(dados.get("proprietario_nome"), "________________________"),
-        "proprietario.documento": _texto_seguro(dados.get("proprietario_documento"), "________________________"),
+        "proprietario.documento": _texto_seguro(
+            formatar_cpf(dados.get("proprietario_documento")), "________________________"
+        ),
         "proprietario.rg": _texto_seguro(dados.get("proprietario_rg"), "________________________"),
         "proprietario.rg_emissor": _texto_seguro(dados.get("proprietario_rg_emissor"), "________"),
         "proprietario.endereco_completo": _texto_seguro(
-            dados.get("proprietario_endereco"), endereco_cliente or "________________________________________"
+            dados.get("proprietario_endereco"), "________________________________________"
         ),
         "declaracao.vinculo": _texto_seguro(dados.get("vinculo"), "________________________"),
     }
