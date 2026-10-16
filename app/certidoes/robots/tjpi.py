@@ -80,16 +80,54 @@ def _selecionar_mat_select(page: Page, form_control_name: str, texto_opcao: str,
     opcao.click()
 
 
+def _localizar_input(page: Page, form_control_name: str, rotulo: str | None = None):
+    """Localiza um input pelo Angular Material e aceita o rótulo como fallback."""
+    locator = page.locator(f'input[formcontrolname="{form_control_name}"]')
+    if locator.count():
+        return locator.first
+    if rotulo:
+        return page.get_by_label(re.compile(rotulo, re.IGNORECASE)).first
+    raise TJPIRobotError(f"Campo TJPI não encontrado: {form_control_name}")
+
+
 def _preencher_input(page: Page, form_control_name: str, valor: Optional[str]):
     """
     Clica no campo e digita tecla por tecla para humanizar a interação.
     """
     if not valor:
         return
-    locator = page.locator(f'input[formcontrolname="{form_control_name}"]')
+    rotulos = {
+        "requerente": r"Nome / Razão Social do Requerente",
+        "cpf": r"CPF",
+        "rg": r"RG",
+        "orgaoExpedidor": r"Órgão Expeditor",
+        "pai": r"Pai do Requerente",
+        "mae": r"Mae do Requerente",
+        "cep": r"CEP",
+        "numero": r"Nº",
+        "complemento": r"Complemento",
+    }
+    locator = _localizar_input(page, form_control_name, rotulos.get(form_control_name))
     locator.wait_for(state="visible", timeout=5000)
     locator.click()
     locator.press_sequentially(valor, delay=50)
+
+
+def _aguardar_endereco_do_cep(page: Page, timeout_ms: int = 15000):
+    """Aguarda o TJPI concluir a busca de endereço após sair do CEP."""
+    inicio = time.monotonic()
+    while (time.monotonic() - inicio) * 1000 < timeout_ms:
+        try:
+            endereco = _localizar_input(page, "endereco", r"Endereço do Requerente")
+            bairro = _localizar_input(page, "bairro", r"Bairro do Requerente")
+            if endereco.input_value().strip() and bairro.input_value().strip():
+                return
+        except Exception:
+            pass
+        time.sleep(0.2)
+    raise TJPIRobotError(
+        "O TJPI não carregou endereço e bairro após a saída do campo CEP."
+    )
 
 
 def _bytes_de_pdf(valor: bytes | None) -> bytes | None:
@@ -211,7 +249,7 @@ def emitir_certidao_tjpi(dados: DadosRequerenteTJPI, timeout_captcha_segundos: i
             # Campos de texto simples
             # --------------------------------------------------------
             _preencher_input(page, "requerente", dados.nome)
-            _preencher_input(page, "cpf", dados.cpf)
+            _preencher_input(page, "cpf", re.sub(r"\D", "", dados.cpf))
             _preencher_input(page, "rg", dados.rg)
             _preencher_input(page, "orgaoExpedidor", dados.orgao_expedidor)
             _preencher_input(page, "pai", dados.pai)
@@ -220,13 +258,14 @@ def emitir_certidao_tjpi(dados: DadosRequerenteTJPI, timeout_captcha_segundos: i
             # --------------------------------------------------------
             # Automação Inteligente do CEP
             # --------------------------------------------------------
-            cep_locator = page.locator('input[formcontrolname="cep"]')
+            cep_locator = _localizar_input(page, "cep", r"CEP")
             cep_locator.click()
-            cep_locator.press_sequentially(dados.cep, delay=100)
-            cep_locator.press("Tab") # Dispara a busca do TJPI
-            
-            # Espera a API do TJPI carregar Bairro, Rua e Cidade
-            page.wait_for_timeout(2500)
+            cep_locator.press_sequentially(re.sub(r"\D", "", dados.cep), delay=100)
+            cep_locator.press("Tab")
+
+            # O portal inicia a busca ao sair do CEP; aguarde os campos reais,
+            # não um atraso fixo que pode ser curto ou desnecessariamente longo.
+            _aguardar_endereco_do_cep(page)
             
             # Preenche apenas o que ficou faltando
             _preencher_input(page, "numero", dados.numero)
