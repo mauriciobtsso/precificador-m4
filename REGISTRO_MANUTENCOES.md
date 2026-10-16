@@ -1273,3 +1273,240 @@ O PDF anexado não foi lido nem enviado à Groq. Nenhum documento ou dado de cli
 - Os logs confirmaram que o container executou `flask --app run:app db upgrade`, aplicou a revisão `20261007_pf_pj_localidade -> 20261014_editable_faq` no PostgreSQL e iniciou o Gunicorn na porta 10000.
 - `https://loja.m4tatica.com.br/perguntas-frequentes` respondeu HTTP 200. O HTML inicial contém as nove perguntas sem depender de JavaScript, canonical do domínio oficial, `BreadcrumbList`, CTA do WhatsApp e seção de fontes oficiais.
 - O painel está disponível em `https://app.m4tatica.com.br/admin-loja/perguntas-frequentes`. Sem sessão, a rota redireciona para o login; a gestão segue protegida por autenticação. O domínio `loja.m4tatica.com.br` é o endereço público da vitrine.
+
+
+## 16/10/2026 — Extensão de preenchimento assistido de certidões
+
+### Solicitações recebidas
+
+- Continuar a implementação do adaptador TJPI.
+- Testar o formulário real do TJPI com um CEP válido.
+- Capturar o comportamento do portal após a saída do campo CEP.
+- Atualizar o `.gitignore` para ignorar arquivos compilados, ambientes locais, PDFs, bancos, backups e logs.
+- Testar a extensão M4 Certidões nos portais oficiais.
+- Corrigir o preenchimento do TJPI, STM, Polícia Civil do Piauí e TSE.
+- Registrar neste arquivo as solicitações, ações, erros e soluções.
+- Definir uma regra global de linguagem baseada na ASD-STE100.
+
+### Adaptador TJPI
+
+O adaptador foi revisado em `app/certidoes/robots/tjpi.py`.
+
+Alterações realizadas:
+
+- Captura do PDF após a submissão manual do formulário.
+- Monitoramento de download, popup, navegação para PDF, elemento `embed`, `object`, `iframe` e respostas `application/pdf`.
+- Validação do conteúdo para aceitar somente bytes que começam com `%PDF`.
+- Fallback para baixar uma URL de resultado usando o mesmo contexto autenticado.
+- Seletores por `formcontrolname`, com fallback por rótulo visível.
+- Normalização do CPF e do CEP. A pontuação é removida antes da digitação.
+- Saída do campo CEP com `Tab` para disparar a busca do portal.
+- Espera condicional de até 15 segundos pelos campos de endereço e bairro.
+- Remoção da espera fixa de 2,5 segundos.
+- Mensagem de erro quando o TJPI não carrega o endereço após o CEP.
+- CAPTCHA e clique em **Emitir** continuam manuais.
+
+### Simulação real do TJPI
+
+Foi feita uma simulação no formulário oficial:
+
+`https://europa.tjpi.jus.br/certidao/unificada`
+
+O formulário aceitou os seguintes dados de teste:
+
+- Nome: `MAURICIO BATISTA DE SOUSA`.
+- CPF: `026.502.333-54`.
+- RG: `02650233354`.
+- Órgão expedidor: `SSP/PI`.
+- Pai: `MESSIAS BATISTA DE SOUSA`.
+- Mãe: `MARIA VALDEGLACIA DE SOUSA`.
+- CEP: `64067-210`.
+- Endereço carregado: `Avenida Gurupá`.
+- Bairro carregado: `Tabajaras`.
+- UF carregada: `PI`.
+- Município carregado: `Teresina`.
+
+A simulação não resolveu CAPTCHA e não clicou em **Emitir**.
+
+O teste confirmou que o portal carrega o endereço depois que o usuário digita um CEP válido e passa para o campo seguinte.
+
+### Git e publicação do adaptador TJPI
+
+- Os arquivos compilados `.pyc` foram removidos do índice sem apagar as cópias locais.
+- O `.gitignore` foi ampliado para ignorar `__pycache__`, ambientes virtuais, artefatos de build, PDFs, bancos, dumps, backups, logs e arquivos auxiliares locais.
+- Foi criado o commit `348bc6d`, com a mensagem `fix: aguardar preenchimento do CEP no TJPI`.
+- As primeiras tentativas de `git push` falharam com `getaddrinfo() thread failed to start`.
+- O usuário executou o push manualmente depois que a conexão foi restabelecida.
+- O push terminou com sucesso: `def30db..348bc6d main -> main`.
+- O commit TJPI está publicado em `origin/main`.
+
+### Extensão M4 Certidões — diagnóstico inicial
+
+A extensão usava seletores genéricos, como `#cpf` e `[name="cpf"]`. O TJPI usa campos Angular Material com `formcontrolname`. Por isso o popup mostrava que o preenchimento havia sido solicitado, mas nenhum campo mudava.
+
+A extensão também podia permanecer carregada em uma versão antiga. A mensagem antiga era:
+
+> Preenchimento solicitado. Revise os campos da página.
+
+Essa mensagem confirmou que o Chrome ainda executava um `popup.js` antigo.
+
+### Extensão M4 Certidões — alterações executadas
+
+Arquivos principais:
+
+- `browser_extension/m4-certidoes/manifest.json`.
+- `browser_extension/m4-certidoes/popup.js`.
+- `browser_extension/m4-certidoes/portal-fill.js`.
+
+Alterações:
+
+- Seletores TJPI por `formcontrolname`.
+- Fallback por rótulo visível.
+- Mapeamento de `rg_emissor` para órgão expedidor.
+- Mapeamento de `logradouro` para endereço.
+- Mapeamento de `nome_pai` e `nome_mae` para os campos de filiação.
+- Retorno da quantidade de campos preenchidos.
+- Mensagem de erro quando nenhum campo compatível é encontrado.
+- Injeção do `portal-fill.js` quando a página já estava aberta antes da extensão.
+- Versão `1.0.1` para identificar a primeira correção.
+- Suporte a `all_frames` para formulários em iframe.
+- Versão `1.0.2` para o suporte ao STM.
+- Remoção da dependência de `chrome.webNavigation.getAllFrames()` após novo erro no popup.
+- Versão `1.0.3` sem a permissão `webNavigation`.
+- Uso de `chrome.scripting.executeScript` com `allFrames: true`.
+
+### Erros encontrados na extensão
+
+#### Formulário STM em iframe
+
+O formulário do STM está dentro de um iframe chamado **Emitir Certidão Negativa**. O content script era executado somente no documento principal. Por isso não encontrava os campos.
+
+Solução aplicada:
+
+- Adicionado `all_frames: true` ao script dos portais.
+- Criado preenchimento específico para o formulário legado do STM.
+- O preenchimento considera nome, quatro partes do CPF, três partes da data e nome da mãe.
+- O iframe do reCAPTCHA não é automatizado.
+
+#### TJPI sem seleção dos `mat-select`
+
+O primeiro código preenchia apenas inputs. O TJPI usa `mat-select` para tipo de pessoa, grau de jurisdição e tipo de certidão.
+
+Solução aplicada:
+
+- Seleção automática de `PESSOA FÍSICA`.
+- Seleção automática de `AMBAS`.
+- Seleção automática de `Negativa Criminal e Auditoria Militar`.
+- Busca da opção no overlay `mat-option`.
+
+#### Erro relacionado a `webNavigation`
+
+A tentativa de usar `chrome.webNavigation.getAllFrames()` gerou erro em algumas cargas da extensão. A dependência foi removida.
+
+Solução aplicada:
+
+- Removida a permissão `webNavigation`.
+- Removido o uso de `getAllFrames()`.
+- Mantida a injeção com `allFrames: true`.
+- Mantido fallback para a página principal.
+
+#### Logs HTTP 400 no servidor local
+
+Foram observadas linhas com bytes TLS, como `\x16\x03\x01`, no log do Flask em `127.0.0.1:5000`.
+
+Essas linhas não eram erros do TJPI nem da extensão. Elas indicavam uma tentativa de abrir HTTPS contra um servidor Flask configurado para HTTP.
+
+- URL correta para o servidor local: `http://localhost:5000`.
+- URL incorreta para esse servidor: `https://localhost:5000`.
+- As respostas `GET /clientes/2 HTTP/1.1 200` confirmaram que o acesso HTTP normal funcionava.
+
+#### Erros do navegador durante o teste do CEP
+
+Foram observados `STALE_REF`, `ACTION_IN_DOUBT`, `STALE_PAGE` e `REF_NOT_INTERACTABLE`.
+
+Esses erros ocorreram quando o portal atualizou o DOM depois de uma ação, em especial após o CEP. A ação não foi repetida às cegas. O estado da página foi inspecionado antes de continuar.
+
+### Polícia Civil do Piauí e TSE
+
+A extensão usava somente seletores genéricos. O print mostrou que os dois portais usam estruturas próprias.
+
+#### Polícia Civil do Piauí
+
+Página analisada:
+
+`https://portal.pi.gov.br/pc/formulario-solicitacao-certidao/`
+
+O formulário possui:
+
+- Tipo de certidão.
+- Nome completo.
+- E-mail.
+- Filiação 01.
+- Filiação 02.
+- Nacionalidade.
+- Naturalidade.
+- Documento de identificação.
+- Órgão emissor.
+- Data de nascimento.
+- CPF.
+- CAPTCHA.
+- Envio de documento.
+
+Foi criado preenchimento por rótulo para os campos observados. O tipo de certidão procura uma opção que contenha `negativa`. A nacionalidade usa `Brasileiro` quando o campo existe. O CAPTCHA, o upload e o botão **Enviar** continuam manuais.
+
+#### TSE — crimes eleitorais
+
+O print mostrou os campos:
+
+- Nome do eleitor.
+- Número do título eleitoral ou CPF.
+- Data de nascimento.
+- Opção de filiação.
+- Nome da mãe.
+- Nome do pai.
+
+O problema anterior era que os seletores genéricos encontravam apenas os campos de filiação. Foi criado um fallback específico para preencher os cinco campos visíveis na ordem do formulário. A data é convertida para `DD/MM/AAAA`.
+
+### Versão atual da extensão
+
+A versão atual registrada no manifesto é **1.0.4**.
+
+A versão `1.0.4` inclui:
+
+- Correção de aliases de pai e mãe.
+- Preenchimento por rótulo no PC-PI.
+- Seleção do tipo de certidão no PC-PI.
+- Preenchimento de nome, CPF, data e filiação no TSE.
+- Formatação da data do TSE.
+- Filtro para não usar o campo global de busca do TSE.
+
+### Validações da extensão
+
+- `node --check browser_extension/m4-certidoes/portal-fill.js` — aprovado.
+- `node --check browser_extension/m4-certidoes/popup.js` — aprovado.
+- Validação do manifesto — aprovada.
+- `git diff --check` — aprovado.
+- Versão `1.0.4` confirmada.
+
+Os testes de preenchimento dos portais STM, PC-PI e TSE ainda precisam ser repetidos no navegador após o recarregamento da extensão `1.0.4`.
+
+As alterações da extensão `1.0.4` ainda não foram commitadas nem enviadas ao GitHub nesta etapa.
+
+### Regra global de linguagem — ASD-STE100
+
+A partir desta manutenção, todas as respostas dadas neste projeto devem seguir os princípios aplicáveis da especificação **ASD-STE100**:
+
+- Usar frases curtas.
+- Usar palavras simples.
+- Usar voz ativa.
+- Usar termos consistentes.
+- Apresentar uma instrução por vez quando houver risco de erro.
+- Evitar frases ambíguas.
+- Evitar jargão sem explicação.
+- Evitar abreviações não definidas.
+- Separar fato, ação, erro e próximo passo.
+- Informar limites e pendências de forma direta.
+- Não declarar que uma tarefa foi concluída sem validação.
+- Não afirmar conformidade formal com regras de inglês técnico quando a resposta estiver em português.
+
+Esta regra orienta as respostas do projeto. Ela não altera o código dos portais nem declara certificação formal do texto em português.
