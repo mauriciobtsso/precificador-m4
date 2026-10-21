@@ -1586,3 +1586,26 @@ A primeira ativação do commit `69d8a88` foi interrompida porque o identificado
 ### Publicação em produção — declaração reutilizável e RG
 
 O commit `e447b8dfc431ace49073d1cfcf3a193e9ae4d18c` foi implantado no Render e ficou **live** no deploy `dep-db97rb0ae00c739b15rg`. Os logs confirmam a migração `20261016_sep_end_res` → `20261016_decl_res_data` e a inicialização do Gunicorn. A checagem HTTP do formulário vazio `/clientes/novo` confirmou os campos `rg` e `rg_emissor`; nenhum cadastro de cliente foi consultado.
+
+
+## 21/10/2026 — Análise de reutilização do DeskcommCRM sem VPS paga
+
+Foi analisada a possibilidade de utilizar o projeto open source `melgarafael/DeskcommCRM` junto ao sistema `mauriciobtsso/precificador-m4`, sem contratar uma VPS. A análise foi registrada em `docs/ANALISE_DESKCOMMCRM_SEM_VPS.md`.
+
+O DeskcommCRM é uma aplicação independente em Next.js/React, com Supabase, workers, scheduler e WAHA para WhatsApp. O precificador atual é uma aplicação Flask/Python em Docker, iniciada por Gunicorn, com migrações Alembic e tarefas Python. Portanto, não é recomendável copiar o CRM diretamente para dentro do precificador nem misturar os bancos sem um projeto de integração definido.
+
+Foi confirmado que o DeskcommCRM está sob licença MIT, permitindo uso e modificação com preservação do aviso de copyright e da licença. Também foi confirmado que o WAHA, os workers e o scheduler exigem processos persistentes, o que impede executar a instalação atual integralmente apenas em funções serverless.
+
+Foram comparadas as alternativas Oracle Cloud Always Free, computador próprio/mini-PC, Meta Cloud API com Supabase e jobs serverless, Cloudflare Workers, Vercel Hobby e implementação de um CRM reduzido dentro do Flask. A recomendação é começar com um piloto separado em Oracle Always Free ou computador próprio, mantendo o precificador independente, e integrar inicialmente por links, identificador externo, API mínima e webhooks. Para produção, deve-se escolher entre manter WAHA em uma máquina persistente ou adaptar o fluxo para a Meta Cloud API oficial.
+
+Foram consultadas as páginas oficiais do DeskcommCRM, da licença MIT, do Supabase Free, da Vercel Hobby, dos limites do Cloudflare Workers e do Oracle Cloud Free Tier. A análise não alterou a lógica funcional da aplicação; alterou apenas a documentação.
+
+### Validação
+
+- Relatório `docs/ANALISE_DESKCOMMCRM_SEM_VPS.md` criado e revisado.
+- `git diff --check` executado após a documentação.
+- Nenhuma dependência, migração ou rota funcional foi alterada.
+
+### Entrega
+
+A documentação será commitada e enviada para a branch `main` do repositório `mauriciobtsso/precificador-m4`.
