@@ -1671,3 +1671,12 @@ O comando `docker --version` confirmou que o Docker ainda não está instalado. 
 O Docker foi instalado e validado com sucesso na VM Oracle. Foram confirmados `Docker version 29.9.2` e `Docker Compose version v5.6.1`. O usuário foi adicionado ao grupo `docker` e aplicou `newgrp docker`, permitindo executar comandos sem `sudo` na sessão atual.
 
 O comando `docker run hello-word` falhou apenas por erro de digitação no nome da imagem. Em seguida, `docker run hello-world` baixou e executou corretamente a imagem ARM64, exibindo `Hello from Docker!`. Isso confirma comunicação com o daemon, download do Docker Hub, criação de container e compatibilidade ARM64.
+
+
+## 22/10/2026 — Plano de swap e DNS do DeskcommCRM
+
+Foi definida a criação de um arquivo de swap de 4 GB na VM Ubuntu, depois de verificar que não existe swap ativa, com permissão 600, ativação imediata e persistência no `/etc/fstab`. A swap será usada como proteção para picos de memória durante Docker e a inicialização da stack.
+
+Foi definido o DNS inicial do CRM como um registro `A` para `crm.m4tatica.com.br`, apontando para o IP público efêmero atual da Oracle. O registro deverá ficar inicialmente como **DNS only** na Cloudflare durante a validação do domínio e a emissão do certificado pelo proxy do DeskcommCRM. Se o IP efêmero mudar, o registro deverá ser atualizado; posteriormente poderá ser avaliada uma solução de IP reservado ou DNS dinâmico.
+
+As orientações foram baseadas na documentação oficial da Cloudflare sobre registros DNS, status de proxy e modos SSL. Nenhuma alteração funcional foi feita no M4.
