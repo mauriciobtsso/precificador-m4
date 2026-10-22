@@ -1719,3 +1719,10 @@ Antes da instalação definitiva, será executado somente o script interativo de
 O exemplo de ambiente foi conferido e confirmou os campos do Supabase e das URLs do aplicativo. O script `bash hostgator-setup-kit/comecar.sh` foi iniciado dentro de `/opt/DeskcommCRM` na VM Oracle. O menu identificou corretamente que o usuário está dentro do servidor e aguarda a opção `3` — servidor já existente e sessão atual dentro da VPS.
 
 A instalação definitiva ainda não foi confirmada nem executada; a próxima etapa é avançar pelo assistente e revisar cada pergunta antes de aceitar alterações.
+
+
+## 22/10/2026 — Escolha do provedor de IA no instalador
+
+O instalador apresentou OpenRouter, Anthropic e OpenAI. Como o objetivo desta implantação é utilizar ferramentas gratuitas e evitar custos, a orientação é escolher `1) OpenRouter`, não aceitar o padrão Anthropic. O OpenRouter pode oferecer modelos com identificador `:free`, mas a disponibilidade, limites e desempenho dependem do provedor/modelo; a chave deve ser criada sem habilitar cobrança e não deve ser compartilhada no chat.
+
+Anthropic e OpenAI não foram escolhidos porque, em geral, exigem créditos ou cobrança para uso de API. A IA é opcional para o funcionamento básico do CRM e poderá ser trocada posteriormente.
