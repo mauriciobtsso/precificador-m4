@@ -1664,3 +1664,10 @@ O UFW foi instalado e ativado com política padrão de negar entradas e permitir
 Foi confirmado que o volume de aproximadamente 100 GB foi definido intencionalmente para a VM. A decisão é iniciar com esse espaço, monitorar o consumo de Docker, WAHA, logs e backups e somente anexar armazenamento adicional se necessário.
 
 O comando `docker --version` confirmou que o Docker ainda não está instalado. A próxima etapa será instalar Docker Engine, CLI, containerd, Buildx e Docker Compose pelo repositório oficial compatível com Ubuntu 24.04 ARM64. Também foi orientado como colar comandos em uma sessão SSH do PowerShell/Windows Terminal, preferindo colagem por botão direito, `Shift+Insert` ou `Ctrl+Shift+V`, conforme o terminal utilizado.
+
+
+## 22/10/2026 — Docker validado na VM Oracle ARM64
+
+O Docker foi instalado e validado com sucesso na VM Oracle. Foram confirmados `Docker version 29.9.2` e `Docker Compose version v5.6.1`. O usuário foi adicionado ao grupo `docker` e aplicou `newgrp docker`, permitindo executar comandos sem `sudo` na sessão atual.
+
+O comando `docker run hello-word` falhou apenas por erro de digitação no nome da imagem. Em seguida, `docker run hello-world` baixou e executou corretamente a imagem ARM64, exibindo `Hello from Docker!`. Isso confirma comunicação com o daemon, download do Docker Hub, criação de container e compatibilidade ARM64.
