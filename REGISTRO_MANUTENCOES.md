@@ -1774,3 +1774,10 @@ O acesso inicial e a conexão do WhatsApp por QR Code ainda precisam ser testado
 O acesso ao endereço `https://crm.m4tatica.com.br/` apresentou `ERR_CONNECTION_TIMED_OUT`. A validação externa confirmou que o DNS resolve `crm.m4tatica.com.br` para `147.15.20.209` e que as portas 80 e 443 aceitam conexão TCP. Entretanto, HTTP retorna resposta vazia e HTTPS fica travado durante o handshake TLS.
 
 O problema preliminar não parece ser DNS ou ausência de regra básica de rede; é necessário verificar localmente na VM o Caddy, os listeners 80/443, os logs do proxy e as respostas localhost. Nenhum reinício ou alteração destrutiva foi executado.
+
+
+## 22/10/2026 — Causa do timeout identificada: ingress da Oracle bloqueando ACME
+
+O diagnóstico local confirmou que todos os containers estão ativos, o app está saudável, o Caddy escuta em `0.0.0.0:80` e `0.0.0.0:443`, e HTTP local responde `308 Permanent Redirect` para HTTPS. O HTTPS local retorna alerta TLS interno porque ainda não há certificado válido.
+
+Os logs do Caddy mostram que os desafios ACME HTTP-01 e TLS-ALPN-01 falharam com timeout ao tentar alcançar `147.15.20.209`. Portanto, as regras de entrada da VCN Security List ou NSG da Oracle não estão permitindo corretamente o tráfego público TCP 80/443, apesar do UFW estar configurado. O próximo ajuste é liberar TCP 80 e 443 de `0.0.0.0/0` na camada de rede da Oracle; não é necessário alterar Docker, Caddy ou DNS.
