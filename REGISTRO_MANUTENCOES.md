@@ -1733,3 +1733,10 @@ Anthropic e OpenAI não foram escolhidos porque, em geral, exigem créditos ou c
 No assistente interativo, foi selecionado OpenRouter como provedor de IA. O domínio foi corrigido para o formato exigido, sem protocolo: `crm.m4tatica.com.br`. O e-mail `m4tatica@gmail.com` foi aceito para avisos de SSL.
 
 O instalador chegou à pergunta da imagem Docker do aplicativo, oferecendo por padrão `ghcr.io/melgarafael/deskcommcrm:1.87.0`. A orientação é aceitar a imagem padrão com Enter, preservando a versão oficial fornecida pelo projeto e compatível com a implantação ARM64. A instalação definitiva ainda não foi confirmada.
+
+
+## 22/10/2026 — Credenciais Supabase no instalador
+
+A imagem padrão do app foi aceita e o instalador validou a Project URL do Supabase. A chave `anon` foi apresentada no terminal, mas a validação da `service_role` retornou HTTP 400 e o instalador voltou a solicitar o campo. O diagnóstico principal é colagem incorreta ou uso de uma chave diferente da chave legada `service_role`; o instalador exige a chave `service_role` de `Settings > API`, não a chave `anon`, `publishable` ou `secret` moderna.
+
+Foi orientado usar colagem pelo Windows Terminal com `Ctrl+Shift+V`, botão direito ou `Shift+Insert`. Como entradas de senha/chaves ficam ocultas no prompt, a ausência de caracteres visíveis é normal. A chave `service_role` não deve ser enviada pelo chat, screenshot, GitHub ou arquivo público.
