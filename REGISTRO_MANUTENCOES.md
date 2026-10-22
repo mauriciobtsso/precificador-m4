@@ -1629,3 +1629,10 @@ A orientação é localizar a chave privada baixada da Oracle e conectar com `ss
 Também foi alertado que os comandos do vídeo não devem ser executados ainda: o DeskcommCRM usa Docker e seu próprio proxy HTTPS, portanto não é necessário instalar Nginx neste momento. O comando `iptables -D INPUT 5` é destrutivo e não deve ser executado sem identificar a regra. O UFW só deve ser configurado depois do primeiro acesso SSH, permitindo SSH, HTTP e HTTPS antes de ativá-lo.
 
 A orientação foi baseada na documentação oficial da Oracle sobre conexão Linux, gerenciamento de chaves e troubleshooting de SSH. Nenhum código funcional foi alterado.
+
+
+## 22/10/2026 — Correção de permissões da chave privada SSH no Windows
+
+Foi confirmado que a chave pública `ssh-key-2026-10-21.key.pub` foi a enviada à Oracle e que a chave privada correspondente é `ssh-key-2026-10-21.key`. O novo erro `UNPROTECTED PRIVATE KEY FILE` indica que a chave correta foi localizada, mas o OpenSSH do Windows a ignorou porque o arquivo permite acesso ao grupo padrão de usuários.
+
+A correção é remover a herança de permissões do arquivo `.key` e conceder leitura somente ao usuário atual, mantendo o arquivo `.pub` fora do parâmetro `-i`. Após isso, o acesso deve ser tentado com `ssh -i ... ubuntu@IP`. Nenhuma alteração funcional foi feita no M4.
