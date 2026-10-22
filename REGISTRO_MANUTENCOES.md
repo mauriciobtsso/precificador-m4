@@ -1636,3 +1636,8 @@ A orientação foi baseada na documentação oficial da Oracle sobre conexão Li
 Foi confirmado que a chave pública `ssh-key-2026-10-21.key.pub` foi a enviada à Oracle e que a chave privada correspondente é `ssh-key-2026-10-21.key`. O novo erro `UNPROTECTED PRIVATE KEY FILE` indica que a chave correta foi localizada, mas o OpenSSH do Windows a ignorou porque o arquivo permite acesso ao grupo padrão de usuários.
 
 A correção é remover a herança de permissões do arquivo `.key` e conceder leitura somente ao usuário atual, mantendo o arquivo `.pub` fora do parâmetro `-i`. Após isso, o acesso deve ser tentado com `ssh -i ... ubuntu@IP`. Nenhuma alteração funcional foi feita no M4.
+
+
+## 22/10/2026 — Correção do principal Windows na ACL da chave SSH
+
+Após a primeira correção, o `icacls` exibiu `POSITIVO-M4\:(R)`, sem o nome do usuário. Isso confirmou que `$env:USERNAME` não foi interpretado corretamente na concessão da permissão. A orientação foi ajustada para obter o principal completo com `whoami`, resetar a ACL e conceder leitura ao valor completo, que deve aparecer como `POSITIVO-M4\cvgbnghj:(R)` ou equivalente.
