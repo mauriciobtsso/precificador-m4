@@ -1712,3 +1712,10 @@ Foi confirmado que a implantação não utilizará HostGator. O DeskcommCRM ser�
 O diretório `hostgator-setup-kit` é apenas o nome histórico do kit de instalação do repositório; seu uso na VM Oracle não implica contratação, integração ou dependência da HostGator. A arquitetura seguirá com Next.js/serviços do DeskcommCRM em Docker na Oracle, Supabase Free como banco/serviços gerenciados e Cloudflare como DNS.
 
 Antes da instalação definitiva, será executado somente o script interativo de pré-verificação `bash hostgator-setup-kit/comecar.sh`, que não instala nada sem confirmação. Nenhum código funcional do M4 foi alterado.
+
+
+## 22/10/2026 — Pré-instalador iniciado na VM Oracle
+
+O exemplo de ambiente foi conferido e confirmou os campos do Supabase e das URLs do aplicativo. O script `bash hostgator-setup-kit/comecar.sh` foi iniciado dentro de `/opt/DeskcommCRM` na VM Oracle. O menu identificou corretamente que o usuário está dentro do servidor e aguarda a opção `3` — servidor já existente e sessão atual dentro da VPS.
+
+A instalação definitiva ainda não foi confirmada nem executada; a próxima etapa é avançar pelo assistente e revisar cada pergunta antes de aceitar alterações.
