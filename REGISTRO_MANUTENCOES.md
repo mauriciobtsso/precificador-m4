@@ -1747,3 +1747,12 @@ Foi orientado usar colagem pelo Windows Terminal com `Ctrl+Shift+V`, botão dire
 Durante o instalador, a connection string do Supabase foi colada em mensagem e continha a senha do banco. Por segurança, a senha deve ser considerada comprometida e trocada imediatamente no painel do Supabase antes de continuar. O registro não armazena a string nem qualquer segredo.
 
 A senha também continha `%`, caractere que precisa ser percent-encoded quando usado em uma URI PostgreSQL. A orientação é gerar uma nova senha forte sem caracteres reservados de URI, ou copiar a URI do Supabase e aplicar a codificação correta. O teste do instalador puxou normalmente a imagem `postgres:17-alpine`; a falha de conexão não indica incompatibilidade ARM64 e deve ser corrigida pela troca/codificação da senha.
+
+
+## 22/10/2026 — Revisão da configuração antes da instalação
+
+O resumo do instalador foi revisado. Estão corretos o domínio, e-mail ACME, imagem oficial ARM64, URL/chaves do Supabase, e-mail do proprietário, nome do app e configurações opcionais. O `SUPABASE_ACCESS_TOKEN` vazio é adequado porque o projeto Supabase já foi criado manualmente.
+
+Foi identificada uma pendência: `OPENROUTER_API_KEY` está vazio apesar de OpenRouter ter sido selecionado como provedor. Antes de confirmar, deve-se corrigir o item 9 com uma chave OpenRouter; caso se opte por não usar IA no primeiro momento, deve-se voltar e escolher explicitamente um modo sem IA, se oferecido, em vez de manter um provedor selecionado sem chave.
+
+A connection string exibida de forma mascarada deve ser a nova string gerada após a troca da senha comprometida. Nenhum segredo foi armazenado no registro.
