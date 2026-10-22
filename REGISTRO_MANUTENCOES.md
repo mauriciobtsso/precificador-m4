@@ -1641,3 +1641,12 @@ A correção é remover a herança de permissões do arquivo `.key` e conceder l
 ## 22/10/2026 — Correção do principal Windows na ACL da chave SSH
 
 Após a primeira correção, o `icacls` exibiu `POSITIVO-M4\:(R)`, sem o nome do usuário. Isso confirmou que `$env:USERNAME` não foi interpretado corretamente na concessão da permissão. A orientação foi ajustada para obter o principal completo com `whoami`, resetar a ACL e conceder leitura ao valor completo, que deve aparecer como `POSITIVO-M4\cvgbnghj:(R)` ou equivalente.
+
+
+## 22/10/2026 — Acesso SSH à VM Oracle confirmado
+
+A correção da ACL no Windows foi concluída usando o principal retornado por `whoami`, `POSITIVO-M4\Positivo-M4`. O acesso foi confirmado com a chave privada `C:\OracleCloud\ssh-key-2026-10-21.key`:
+
+`ssh -i $key ubuntu@147.15.20.209`
+
+A VM respondeu com Ubuntu 24.04.5 LTS em arquitetura `aarch64`, host `m4tatica`, confirmando que a instância Oracle está acessível e compatível com o plano de preparação do DeskcommCRM. A próxima etapa deve ser preparar o sistema com segurança e instalar Docker; não será instalado Nginx neste momento e não será executado `iptables -D INPUT 5`.
