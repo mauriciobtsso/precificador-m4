@@ -1703,3 +1703,12 @@ Foi confirmado que o Supabase Free será utilizado como backend independente do 
 O repositório do DeskcommCRM foi clonado com sucesso em `/opt/DeskcommCRM` na VM Oracle ARM64. O arquivo `.env.hostgator.example` fica na raiz do projeto, e não dentro de `hostgator-setup-kit`; a tentativa de leitura no subdiretório falhou apenas por caminho incorreto.
 
 A configuração do Supabase para o instalador usará `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e `SUPABASE_DB_URL` com a conexão IPv4 do **Session pooler**. O schema/baseline e as extensões deverão ser aplicados pelo instalador; não será usado Aiven nesta primeira implantação. Segredos não devem ser enviados pelo chat, commitados ou colocados no repositório do M4.
+
+
+## 22/10/2026 — Hospedagem própria Oracle; HostGator não utilizado
+
+Foi confirmado que a implantação não utilizará HostGator. O DeskcommCRM será hospedado na VM própria Oracle Cloud, com o domínio `crm.m4tatica.com.br` gerenciado pela Cloudflare e utilizando somente os recursos gratuitos definidos no projeto.
+
+O diretório `hostgator-setup-kit` é apenas o nome histórico do kit de instalação do repositório; seu uso na VM Oracle não implica contratação, integração ou dependência da HostGator. A arquitetura seguirá com Next.js/serviços do DeskcommCRM em Docker na Oracle, Supabase Free como banco/serviços gerenciados e Cloudflare como DNS.
+
+Antes da instalação definitiva, será executado somente o script interativo de pré-verificação `bash hostgator-setup-kit/comecar.sh`, que não instala nada sem confirmação. Nenhum código funcional do M4 foi alterado.
