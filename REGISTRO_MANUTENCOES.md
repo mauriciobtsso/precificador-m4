@@ -1680,3 +1680,10 @@ Foi definida a criação de um arquivo de swap de 4 GB na VM Ubuntu, depois de v
 Foi definido o DNS inicial do CRM como um registro `A` para `crm.m4tatica.com.br`, apontando para o IP público efêmero atual da Oracle. O registro deverá ficar inicialmente como **DNS only** na Cloudflare durante a validação do domínio e a emissão do certificado pelo proxy do DeskcommCRM. Se o IP efêmero mudar, o registro deverá ser atualizado; posteriormente poderá ser avaliada uma solução de IP reservado ou DNS dinâmico.
 
 As orientações foram baseadas na documentação oficial da Cloudflare sobre registros DNS, status de proxy e modos SSL. Nenhuma alteração funcional foi feita no M4.
+
+
+## 22/10/2026 — Registro DNS do CRM configurado
+
+Foi confirmado que a Cloudflare está com o registro `A` `crm.m4tatica.com.br` apontando para `147.15.20.209`, com status **Somente DNS**, que é a configuração correta para a fase inicial.
+
+Na VM Ubuntu, `nslookup` não estava instalado e `Resolve-DnsName` não existe no Bash; este último é um comando do PowerShell do Windows. A validação poderá ser feita com `getent hosts` já disponível ou instalando `dnsutils` para usar `nslookup`/`dig`. Nenhum código funcional do M4 foi alterado.
