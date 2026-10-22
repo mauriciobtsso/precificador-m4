@@ -1609,3 +1609,12 @@ Foram consultadas as páginas oficiais do DeskcommCRM, da licença MIT, do Supab
 ### Entrega
 
 A documentação será commitada e enviada para a branch `main` do repositório `mauriciobtsso/precificador-m4`.
+
+
+## 22/10/2026 — Configuração Oracle Cloud Always Free para o DeskcommCRM
+
+Foi revisada a configuração planejada para hospedar o DeskcommCRM independente do M4. A documentação oficial atual da Oracle informa que a cota gratuita contínua do Ampere A1 equivale a **2 OCPUs e 12 GB de memória**, correspondentes a 1.500 horas de OCPU e 9.000 GB-horas por mês. Portanto, a configuração de 4 OCPUs e 24 GB não deve ser considerada gratuita 24/7; ela pode consumir a cota em aproximadamente metade do mês e gerar custo ou exigir créditos.
+
+A orientação para uma instalação sem cobrança é criar uma única VM `VM.Standard.A1.Flex`, com 2 OCPUs, 12 GB de memória, Ubuntu ARM64 elegível para Always Free, 200 GB totais de volume em blocos na região home, IP público e portas de entrada somente SSH, HTTP e HTTPS. WAHA, PostgreSQL e Redis não devem ser expostos diretamente à internet.
+
+Foram consultadas as páginas oficiais da Oracle sobre Free Tier, recursos Always Free, rede e regras de segurança. Nenhum código funcional do M4 foi alterado.
