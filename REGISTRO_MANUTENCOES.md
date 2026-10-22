@@ -1767,3 +1767,10 @@ Imagens e serviços confirmados: Caddy, app `ghcr.io/melgarafael/deskcommcrm:1.8
 Pendências pós-instalação: configurar manualmente no Supabase `Authentication > URL Configuration` com Site URL `https://crm.m4tatica.com.br` e Redirect URL `https://crm.m4tatica.com.br/auth/confirm`; instalar o pacote `cron` e repetir o instalador para ativar automações e o botão de atualização; configurar SMTP/Resend somente se forem necessários convites, recuperação de senha e PDF de LGPD. A telemetria de erros anonimizados ficou ligada por escolha durante o assistente e pode ser desligada posteriormente.
 
 O acesso inicial e a conexão do WhatsApp por QR Code ainda precisam ser testados no navegador. Nenhum código funcional do M4 foi alterado.
+
+
+## 22/10/2026 — Timeout no acesso público ao CRM
+
+O acesso ao endereço `https://crm.m4tatica.com.br/` apresentou `ERR_CONNECTION_TIMED_OUT`. A validação externa confirmou que o DNS resolve `crm.m4tatica.com.br` para `147.15.20.209` e que as portas 80 e 443 aceitam conexão TCP. Entretanto, HTTP retorna resposta vazia e HTTPS fica travado durante o handshake TLS.
+
+O problema preliminar não parece ser DNS ou ausência de regra básica de rede; é necessário verificar localmente na VM o Caddy, os listeners 80/443, os logs do proxy e as respostas localhost. Nenhum reinício ou alteração destrutiva foi executado.
