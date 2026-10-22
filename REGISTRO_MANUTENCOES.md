@@ -1657,3 +1657,10 @@ A VM respondeu com Ubuntu 24.04.5 LTS em arquitetura `aarch64`, host `m4tatica`,
 A VM foi validada após o acesso SSH. A memória disponível é de aproximadamente 11 GiB, coerente com a configuração de 12 GB. O sistema está em ARM64 e o filesystem raiz apresenta aproximadamente 96 GiB disponíveis, indicando que o volume de inicialização criado é de cerca de 100 GB, não 200 GB; os 200 GB da cota Oracle são um limite combinado e não aparecem automaticamente no sistema se não forem provisionados/anexados.
 
 O UFW foi instalado e ativado com política padrão de negar entradas e permitir saídas. Foram liberadas as portas 22/tcp, 80/tcp e 443/tcp, inclusive regras IPv6. A instalação removeu `iptables-persistent` e `netfilter-persistent`, sem necessidade de executar remoção manual de regras. Ainda não foi instalado Nginx nem Docker.
+
+
+## 22/10/2026 — Decisão de iniciar com 100 GB e Docker ausente
+
+Foi confirmado que o volume de aproximadamente 100 GB foi definido intencionalmente para a VM. A decisão é iniciar com esse espaço, monitorar o consumo de Docker, WAHA, logs e backups e somente anexar armazenamento adicional se necessário.
+
+O comando `docker --version` confirmou que o Docker ainda não está instalado. A próxima etapa será instalar Docker Engine, CLI, containerd, Buildx e Docker Compose pelo repositório oficial compatível com Ubuntu 24.04 ARM64. Também foi orientado como colar comandos em uma sessão SSH do PowerShell/Windows Terminal, preferindo colagem por botão direito, `Shift+Insert` ou `Ctrl+Shift+V`, conforme o terminal utilizado.
