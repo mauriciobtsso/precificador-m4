@@ -1687,3 +1687,10 @@ As orientações foram baseadas na documentação oficial da Cloudflare sobre re
 Foi confirmado que a Cloudflare está com o registro `A` `crm.m4tatica.com.br` apontando para `147.15.20.209`, com status **Somente DNS**, que é a configuração correta para a fase inicial.
 
 Na VM Ubuntu, `nslookup` não estava instalado e `Resolve-DnsName` não existe no Bash; este último é um comando do PowerShell do Windows. A validação poderá ser feita com `getent hosts` já disponível ou instalando `dnsutils` para usar `nslookup`/`dig`. Nenhum código funcional do M4 foi alterado.
+
+
+## 22/10/2026 — DNS resolvido na VM e próximo passo de instalação
+
+A consulta `getent hosts crm.m4tatica.com.br` retornou `147.15.20.209`, confirmando que o subdomínio resolve corretamente a partir da própria VM Oracle.
+
+O próximo passo planejado é criar e validar a swap de 4 GB, conferir disco e Docker e então clonar o repositório do DeskcommCRM para revisar o instalador antes da execução. A instalação não será iniciada às cegas; primeiro serão confirmados domínio, modo de banco/Supabase, configuração WAHA por QR e variáveis de ambiente.
