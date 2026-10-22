@@ -1740,3 +1740,10 @@ O instalador chegou à pergunta da imagem Docker do aplicativo, oferecendo por p
 A imagem padrão do app foi aceita e o instalador validou a Project URL do Supabase. A chave `anon` foi apresentada no terminal, mas a validação da `service_role` retornou HTTP 400 e o instalador voltou a solicitar o campo. O diagnóstico principal é colagem incorreta ou uso de uma chave diferente da chave legada `service_role`; o instalador exige a chave `service_role` de `Settings > API`, não a chave `anon`, `publishable` ou `secret` moderna.
 
 Foi orientado usar colagem pelo Windows Terminal com `Ctrl+Shift+V`, botão direito ou `Shift+Insert`. Como entradas de senha/chaves ficam ocultas no prompt, a ausência de caracteres visíveis é normal. A chave `service_role` não deve ser enviada pelo chat, screenshot, GitHub ou arquivo público.
+
+
+## 22/10/2026 — Connection string Supabase exposta e URI inválida
+
+Durante o instalador, a connection string do Supabase foi colada em mensagem e continha a senha do banco. Por segurança, a senha deve ser considerada comprometida e trocada imediatamente no painel do Supabase antes de continuar. O registro não armazena a string nem qualquer segredo.
+
+A senha também continha `%`, caractere que precisa ser percent-encoded quando usado em uma URI PostgreSQL. A orientação é gerar uma nova senha forte sem caracteres reservados de URI, ou copiar a URI do Supabase e aplicar a codificação correta. O teste do instalador puxou normalmente a imagem `postgres:17-alpine`; a falha de conexão não indica incompatibilidade ARM64 e deve ser corrigida pela troca/codificação da senha.
