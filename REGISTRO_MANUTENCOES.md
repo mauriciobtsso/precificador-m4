@@ -1726,3 +1726,10 @@ A instalação definitiva ainda não foi confirmada nem executada; a próxima et
 O instalador apresentou OpenRouter, Anthropic e OpenAI. Como o objetivo desta implantação é utilizar ferramentas gratuitas e evitar custos, a orientação é escolher `1) OpenRouter`, não aceitar o padrão Anthropic. O OpenRouter pode oferecer modelos com identificador `:free`, mas a disponibilidade, limites e desempenho dependem do provedor/modelo; a chave deve ser criada sem habilitar cobrança e não deve ser compartilhada no chat.
 
 Anthropic e OpenAI não foram escolhidos porque, em geral, exigem créditos ou cobrança para uso de API. A IA é opcional para o funcionamento básico do CRM e poderá ser trocada posteriormente.
+
+
+## 22/10/2026 — Configuração inicial do instalador do CRM
+
+No assistente interativo, foi selecionado OpenRouter como provedor de IA. O domínio foi corrigido para o formato exigido, sem protocolo: `crm.m4tatica.com.br`. O e-mail `m4tatica@gmail.com` foi aceito para avisos de SSL.
+
+O instalador chegou à pergunta da imagem Docker do aplicativo, oferecendo por padrão `ghcr.io/melgarafael/deskcommcrm:1.87.0`. A orientação é aceitar a imagem padrão com Enter, preservando a versão oficial fornecida pelo projeto e compatível com a implantação ARM64. A instalação definitiva ainda não foi confirmada.
