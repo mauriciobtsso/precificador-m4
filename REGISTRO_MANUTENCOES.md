@@ -1618,3 +1618,14 @@ Foi revisada a configuração planejada para hospedar o DeskcommCRM independente
 A orientação para uma instalação sem cobrança é criar uma única VM `VM.Standard.A1.Flex`, com 2 OCPUs, 12 GB de memória, Ubuntu ARM64 elegível para Always Free, 200 GB totais de volume em blocos na região home, IP público e portas de entrada somente SSH, HTTP e HTTPS. WAHA, PostgreSQL e Redis não devem ser expostos diretamente à internet.
 
 Foram consultadas as páginas oficiais da Oracle sobre Free Tier, recursos Always Free, rede e regras de segurança. Nenhum código funcional do M4 foi alterado.
+
+
+## 22/10/2026 — Diagnóstico de acesso SSH à VM Oracle
+
+Foi analisado o erro `Permission denied (publickey)` ao acessar a nova VM Oracle pelo PowerShell. A conexão de rede e o IP estão funcionando, pois a VM respondeu ao handshake e aceitou o fingerprint; o problema é que o comando foi executado sem `-i` e, portanto, sem informar a chave privada correspondente à chave pública cadastrada na criação da instância.
+
+A orientação é localizar a chave privada baixada da Oracle e conectar com `ssh -i "CAMINHO_DA_CHAVE" ubuntu@IP`, usando a chave exata da instância. Se essa chave tiver sido perdida, ela não pode ser reconstruída a partir da chave pública; será necessário usar uma conexão de console para adicionar uma nova chave ou recriar a VM vazia.
+
+Também foi alertado que os comandos do vídeo não devem ser executados ainda: o DeskcommCRM usa Docker e seu próprio proxy HTTPS, portanto não é necessário instalar Nginx neste momento. O comando `iptables -D INPUT 5` é destrutivo e não deve ser executado sem identificar a regra. O UFW só deve ser configurado depois do primeiro acesso SSH, permitindo SSH, HTTP e HTTPS antes de ativá-lo.
+
+A orientação foi baseada na documentação oficial da Oracle sobre conexão Linux, gerenciamento de chaves e troubleshooting de SSH. Nenhum código funcional foi alterado.
