@@ -1694,3 +1694,12 @@ Na VM Ubuntu, `nslookup` não estava instalado e `Resolve-DnsName` não existe n
 A consulta `getent hosts crm.m4tatica.com.br` retornou `147.15.20.209`, confirmando que o subdomínio resolve corretamente a partir da própria VM Oracle.
 
 O próximo passo planejado é criar e validar a swap de 4 GB, conferir disco e Docker e então clonar o repositório do DeskcommCRM para revisar o instalador antes da execução. A instalação não será iniciada às cegas; primeiro serão confirmados domínio, modo de banco/Supabase, configuração WAHA por QR e variáveis de ambiente.
+
+
+## 22/10/2026 — Supabase Free aprovado para o piloto do DeskcommCRM
+
+Foi confirmado que o Supabase Free será utilizado como backend independente do DeskcommCRM no piloto. O plano fornece PostgreSQL, Auth, Storage e Realtime, dentro dos limites atuais de 500 MB de banco, 1 GB de arquivos, 5 GB de egress e até dois projetos ativos; projetos gratuitos podem ser pausados após uma semana de inatividade e o suporte é comunitário.
+
+O repositório do DeskcommCRM foi clonado com sucesso em `/opt/DeskcommCRM` na VM Oracle ARM64. O arquivo `.env.hostgator.example` fica na raiz do projeto, e não dentro de `hostgator-setup-kit`; a tentativa de leitura no subdiretório falhou apenas por caminho incorreto.
+
+A configuração do Supabase para o instalador usará `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e `SUPABASE_DB_URL` com a conexão IPv4 do **Session pooler**. O schema/baseline e as extensões deverão ser aplicados pelo instalador; não será usado Aiven nesta primeira implantação. Segredos não devem ser enviados pelo chat, commitados ou colocados no repositório do M4.
