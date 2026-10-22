@@ -1650,3 +1650,10 @@ A correção da ACL no Windows foi concluída usando o principal retornado por `
 `ssh -i $key ubuntu@147.15.20.209`
 
 A VM respondeu com Ubuntu 24.04.5 LTS em arquitetura `aarch64`, host `m4tatica`, confirmando que a instância Oracle está acessível e compatível com o plano de preparação do DeskcommCRM. A próxima etapa deve ser preparar o sistema com segurança e instalar Docker; não será instalado Nginx neste momento e não será executado `iptables -D INPUT 5`.
+
+
+## 22/10/2026 — Validação de recursos e firewall da VM Oracle
+
+A VM foi validada após o acesso SSH. A memória disponível é de aproximadamente 11 GiB, coerente com a configuração de 12 GB. O sistema está em ARM64 e o filesystem raiz apresenta aproximadamente 96 GiB disponíveis, indicando que o volume de inicialização criado é de cerca de 100 GB, não 200 GB; os 200 GB da cota Oracle são um limite combinado e não aparecem automaticamente no sistema se não forem provisionados/anexados.
+
+O UFW foi instalado e ativado com política padrão de negar entradas e permitir saídas. Foram liberadas as portas 22/tcp, 80/tcp e 443/tcp, inclusive regras IPv6. A instalação removeu `iptables-persistent` e `netfilter-persistent`, sem necessidade de executar remoção manual de regras. Ainda não foi instalado Nginx nem Docker.
