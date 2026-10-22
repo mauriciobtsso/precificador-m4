@@ -1756,3 +1756,14 @@ O resumo do instalador foi revisado. Estão corretos o domínio, e-mail ACME, im
 Foi identificada uma pendência: `OPENROUTER_API_KEY` está vazio apesar de OpenRouter ter sido selecionado como provedor. Antes de confirmar, deve-se corrigir o item 9 com uma chave OpenRouter; caso se opte por não usar IA no primeiro momento, deve-se voltar e escolher explicitamente um modo sem IA, se oferecido, em vez de manter um provedor selecionado sem chave.
 
 A connection string exibida de forma mascarada deve ser a nova string gerada após a troca da senha comprometida. Nenhum segredo foi armazenado no registro.
+
+
+## 22/10/2026 — Instalação do DeskcommCRM concluída na Oracle
+
+A instalação foi concluída com sucesso na VM Oracle. O instalador confirmou DNS, aplicou extensões `vector`, `citext` e `pg_trgm`, aplicou o schema do Supabase com 203 tabelas públicas, criou e promoveu o proprietário `m4tatica@gmail.com` a super-admin e iniciou 13/13 recursos Docker.
+
+Imagens e serviços confirmados: Caddy, app `ghcr.io/melgarafael/deskcommcrm:1.87.0`, scheduler, worker, WAHA ARM64 `devlikeapro/waha:noweb-arm-2026.7.2`, Redis e serverless Redis HTTP. O app ficou saudável, o catálogo de modelos foi semeado e as chaves de cifra foram ativadas.
+
+Pendências pós-instalação: configurar manualmente no Supabase `Authentication > URL Configuration` com Site URL `https://crm.m4tatica.com.br` e Redirect URL `https://crm.m4tatica.com.br/auth/confirm`; instalar o pacote `cron` e repetir o instalador para ativar automações e o botão de atualização; configurar SMTP/Resend somente se forem necessários convites, recuperação de senha e PDF de LGPD. A telemetria de erros anonimizados ficou ligada por escolha durante o assistente e pode ser desligada posteriormente.
+
+O acesso inicial e a conexão do WhatsApp por QR Code ainda precisam ser testados no navegador. Nenhum código funcional do M4 foi alterado.
