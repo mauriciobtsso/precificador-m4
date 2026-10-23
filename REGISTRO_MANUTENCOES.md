@@ -1836,3 +1836,25 @@ Publicar a API de consulta somente leitura do catálogo do M4 e conectá-la ao a
 ### Complemento — consulta detalhada por produto
 
 Após a publicação inicial, foi criada também a HTTP Tool `consultar_produto_catalogo` no agente **Consultor**, usando `GET https://loja.m4tatica.com.br/api/v1/catalogo/produtos/{slug}`. O parâmetro de caminho `slug` é obrigatório, o mesmo cabeçalho Bearer é armazenado criptografado pelo OpenLivery e as instruções determinam que a ferramenta seja usada quando a busca já tiver identificado um produto específico. O agente agora dispõe de busca por termo e consulta detalhada por slug.
+
+
+## 23/10/2026 — Respostas concisas e foco no estoque real do OpenLivery
+
+### Solicitação
+
+Foi identificado que o agente Consultor estava respondendo a uma entrada simples como “g2c” com explicações longas, variantes de armas, acessórios, regras legais e várias perguntas de triagem, mesmo quando o objetivo era consultar munições disponíveis.
+
+### Ajuste realizado
+
+As instruções principais do agente Consultor no OpenLivery foram atualizadas com base no documento anexado `InstruçõesdeComportamentoparaaIA.docx`, preservando as regras de compliance, sigilo, atendimento humano e dependência das autoridades públicas.
+
+Foi adicionada uma regra explícita de concisão: no máximo três frases ou cinco itens curtos por resposta, salvo quando o cliente solicitar detalhes; no máximo uma pergunta objetiva por vez; sem discursos comerciais, explicações jurídicas extensas ou repetição.
+
+Para catálogo e estoque, o agente agora deve consultar primeiro `buscar_produtos_catalogo`, mostrar somente produtos retornados pela API e nunca inventar preço, quantidade, promoção, compatibilidade ou estoque. Quando a mensagem contiver somente um modelo de arma, como “G2C”, e o contexto for munição, o agente deve perguntar objetivamente qual calibre e não listar variantes da arma, carregadores ou coldres. A ferramenta `consultar_produto_catalogo` deve ser usada somente quando já existir um slug retornado pela busca.
+
+### Validação
+
+- Configuração salva no agente **Consultor** do OpenLivery.
+- As duas ferramentas de catálogo permaneceram ativas.
+- Um teste novo com “g2c” foi enviado no Playground; o provedor gratuito ainda estava processando a resposta no momento do registro, portanto o resultado do Playground não foi marcado como aprovado.
+- Nenhuma chave ou segredo foi alterado ou incluído no repositório.
