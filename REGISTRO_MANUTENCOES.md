@@ -1795,3 +1795,39 @@ A orientação foi corrigida para deixar o intervalo de portas de origem vazio/q
 Foi identificada a branch remota `feature/api-catalogo-openlivery`, com commit `e9d05a0`, contendo uma API Flask autenticada e somente leitura para o catálogo: `GET /api/v1/catalogo/produtos` e `GET /api/v1/catalogo/produtos/<slug>`. A implementação usa o segredo de ambiente `OPENLIVERY_CATALOG_API_KEY`, Bearer token, limite de requisições e respostas sem cache; os testes da branch foram registrados como aprovados pelo commit. A API ainda não foi publicada na VPS.
 
 O Sandbox foi escolhido como único dispositivo disponível para a conexão Tailscale. O cliente Tailscale ARM64 1.104.2 foi instalado e o serviço foi habilitado. Como o Sandbox usa rede link-local `169.254.x.x`, foi configurado userspace networking na porta local 1055 e aplicado o workaround documentado `TS_ASSUME_NETWORK_UP_FOR_TEST=1`, sem alterar rotas padrão, exit node, DNS ou políticas de firewall. O daemon gerou uma URL de autorização; ela não foi salva neste registro por ser sensível. A autorização da conta Tailscale ainda está pendente.
+
+
+## 23/10/2026 — API autenticada do catálogo para o OpenLivery
+
+### Objetivo
+
+Publicar a API de consulta somente leitura do catálogo do M4 e conectá-la ao agente **Consultor** do OpenLivery, sem alterar a API Meta e sem expor dados administrativos do catálogo.
+
+### Implementação e publicação
+
+- Incorporada na `main` a branch `feature/api-catalogo-openlivery` por merge commit `afe0342`.
+- A API foi publicada no serviço Render **Loja-M4**, ligado ao repositório `mauriciobtsso/precificador-m4`, com deploy automático pela `main`.
+- Foi gerado um token aleatório forte para `OPENLIVERY_CATALOG_API_KEY` e gravado somente como variável secreta do Render. O valor do segredo não foi salvo neste repositório, em arquivos de configuração ou neste registro.
+- O deploy Render `dep-dbds8g2d6m0s738789e0` ficou com status **live**.
+- O endpoint publicado é `GET https://loja.m4tatica.com.br/api/v1/catalogo/produtos`, protegido por `Authorization: Bearer <token>` e com parâmetro de busca `q`.
+
+### Configuração do OpenLivery
+
+- Agente configurado: **Consultor**, ID `1ebd6d64-5f7e-4735-a6dc-b5c7ef785573`.
+- Criada a HTTP Tool `buscar_produtos_catalogo` com método `GET`.
+- A ferramenta usa o domínio público `loja.m4tatica.com.br`, parâmetro obrigatório `q` e cabeçalho Authorization armazenado criptografado pelo OpenLivery.
+- As instruções da ferramenta orientam consultar produtos, preço, promoção, disponibilidade, marca, categoria e código, responder somente com dados retornados e não inventar preço ou estoque.
+
+### Validações
+
+- `python3 -m py_compile` dos módulos da API e do teste — aprovado.
+- `git diff --check` — aprovado.
+- Teste externo autenticado no endpoint Render/domínio público — HTTP **200**, resposta JSON válida e paginação retornada.
+- Verificado que a ferramenta aparece ativa na aba **Tools** do agente Consultor.
+- O `pytest` não estava instalado no Sandbox local; a validação não alterou as dependências do projeto nem a produção.
+
+### Segurança e observações
+
+- O token de produção não foi incluído em commit, documentação ou resposta final; deve ser tratado como segredo compartilhado entre Render e OpenLivery.
+- A API é somente leitura, exige autenticação Bearer e não usa a API Meta.
+- O commit foi publicado na branch `main` e o repositório ficou sincronizado com `origin/main`.
