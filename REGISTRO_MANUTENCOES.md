@@ -1781,3 +1781,20 @@ O problema preliminar não parece ser DNS ou ausência de regra básica de rede;
 O diagnóstico local confirmou que todos os containers estão ativos, o app está saudável, o Caddy escuta em `0.0.0.0:80` e `0.0.0.0:443`, e HTTP local responde `308 Permanent Redirect` para HTTPS. O HTTPS local retorna alerta TLS interno porque ainda não há certificado válido.
 
 Os logs do Caddy mostram que os desafios ACME HTTP-01 e TLS-ALPN-01 falharam com timeout ao tentar alcançar `147.15.20.209`. Portanto, as regras de entrada da VCN Security List ou NSG da Oracle não estão permitindo corretamente o tráfego público TCP 80/443, apesar do UFW estar configurado. O próximo ajuste é liberar TCP 80 e 443 de `0.0.0.0/0` na camada de rede da Oracle; não é necessário alterar Docker, Caddy ou DNS.
+
+
+## 23/10/2026 — API de leitura do catálogo para OpenLivery
+
+Foi criada uma API versionada e somente de leitura para permitir consultas autenticadas ao catálogo público da loja. As rotas `GET /api/v1/catalogo/produtos` e `GET /api/v1/catalogo/produtos/<slug>` permitem buscar produtos visíveis e consultar detalhes por slug. A busca exige termo com 2 a 120 caracteres e usa paginação limitada a 20 itens por página.
+
+A autenticação usa o cabeçalho `Authorization: Bearer ...` e o segredo de ambiente `OPENLIVERY_CATALOG_API_KEY`. A implementação falha fechada quando o segredo não está configurado, compara o token em tempo constante, configura limite de 120 chamadas por minuto por IP e marca respostas como `private, no-store`. O armazenamento atual do Flask-Limiter é em memória; portanto, a contagem é local a cada processo/worker, não distribuída. A API não possui rotas de escrita. Ela retorna somente campos públicos, calcula o preço com a regra já usada pela loja, resume o estoque em disponibilidade e omite custos, margem, lucro e quantidade exata. A execução do cálculo não deixa alterações pendentes no objeto do banco.
+
+Foi incluído o guia `docs/API_CATALOGO_OPENLIVERY.md`, com exemplos de chamada, configuração do segredo na hospedagem e criação das ferramentas HTTP no OpenLivery. Nenhum segredo foi adicionado ao repositório. A API ainda não foi configurada na hospedagem nem publicada; esse passo exige definir `OPENLIVERY_CATALOG_API_KEY` no ambiente de produção e depois testar o serviço público.
+
+### Validação
+
+- `pytest -q tests/test_api_catalogo_openlivery.py` — **6 testes aprovados**, cobrindo autenticação, falha fechada, paginação, filtro de produtos ocultos, campos internos omitidos, detalhes e validação de parâmetros.
+- `pytest -q` — **147 testes aprovados**; o teste sinalizou o aviso conhecido de armazenamento em memória do Flask-Limiter.
+- `python3 -m py_compile` nos módulos e testes novos e `git diff --check` — aprovados.
+
+A implementação e este registro estão na branch `feature/api-catalogo-openlivery`; não houve merge nem deploy de produção.
