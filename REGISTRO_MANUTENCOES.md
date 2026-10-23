@@ -1831,3 +1831,8 @@ Publicar a API de consulta somente leitura do catálogo do M4 e conectá-la ao a
 - O token de produção não foi incluído em commit, documentação ou resposta final; deve ser tratado como segredo compartilhado entre Render e OpenLivery.
 - A API é somente leitura, exige autenticação Bearer e não usa a API Meta.
 - O commit foi publicado na branch `main` e o repositório ficou sincronizado com `origin/main`.
+
+
+### Complemento — consulta detalhada por produto
+
+Após a publicação inicial, foi criada também a HTTP Tool `consultar_produto_catalogo` no agente **Consultor**, usando `GET https://loja.m4tatica.com.br/api/v1/catalogo/produtos/{slug}`. O parâmetro de caminho `slug` é obrigatório, o mesmo cabeçalho Bearer é armazenado criptografado pelo OpenLivery e as instruções determinam que a ferramenta seja usada quando a busca já tiver identificado um produto específico. O agente agora dispõe de busca por termo e consulta detalhada por slug.
