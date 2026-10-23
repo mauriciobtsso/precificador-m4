@@ -216,6 +216,7 @@ def create_app():
     from app.loja_admin import loja_admin_bp
     from app.carrinho import carrinho_bp
     from app.catalogo import catalogo_bp
+    from app.catalog_api import catalog_api_bp
     
     # -----------------------------------------------------
     # A VIRADA DE CHAVE (Isolamento de Infraestrutura)
@@ -249,6 +250,7 @@ def create_app():
     app.register_blueprint(certidoes_bp, url_prefix="/certidoes")
     app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(catalogo_bp, url_prefix="/catalogo")
+    app.register_blueprint(catalog_api_bp)
 
     @app.errorhandler(404)
     def page_not_found(_error):
