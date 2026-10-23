@@ -1781,3 +1781,17 @@ O problema preliminar não parece ser DNS ou ausência de regra básica de rede;
 O diagnóstico local confirmou que todos os containers estão ativos, o app está saudável, o Caddy escuta em `0.0.0.0:80` e `0.0.0.0:443`, e HTTP local responde `308 Permanent Redirect` para HTTPS. O HTTPS local retorna alerta TLS interno porque ainda não há certificado válido.
 
 Os logs do Caddy mostram que os desafios ACME HTTP-01 e TLS-ALPN-01 falharam com timeout ao tentar alcançar `147.15.20.209`. Portanto, as regras de entrada da VCN Security List ou NSG da Oracle não estão permitindo corretamente o tráfego público TCP 80/443, apesar do UFW estar configurado. O próximo ajuste é liberar TCP 80 e 443 de `0.0.0.0/0` na camada de rede da Oracle; não é necessário alterar Docker, Caddy ou DNS.
+
+
+## 22/10/2026 — Correção das regras Oracle: porta de destino
+
+Foi revisada a configuração feita na Default Security List da VCN. As regras foram criadas com `80` e `443` no intervalo de portas de origem e o destino em branco. Isso está invertido para tráfego web: clientes usam portas de origem efêmeras, enquanto a VM deve receber nas portas de destino 80 e 443.
+
+A orientação foi corrigida para deixar o intervalo de portas de origem vazio/qualquer e configurar a porta de destino como `80` em uma regra e `443` em outra, com origem `0.0.0.0/0`, protocolo TCP e monitoramento de estado mantido. O comando destrutivo `iptables -D INPUT 5` do vídeo continua não sendo recomendado.
+
+
+## 23/10/2026 — Preparação de acesso à VPS via Tailscale
+
+Foi identificada a branch remota `feature/api-catalogo-openlivery`, com commit `e9d05a0`, contendo uma API Flask autenticada e somente leitura para o catálogo: `GET /api/v1/catalogo/produtos` e `GET /api/v1/catalogo/produtos/<slug>`. A implementação usa o segredo de ambiente `OPENLIVERY_CATALOG_API_KEY`, Bearer token, limite de requisições e respostas sem cache; os testes da branch foram registrados como aprovados pelo commit. A API ainda não foi publicada na VPS.
+
+O Sandbox foi escolhido como único dispositivo disponível para a conexão Tailscale. O cliente Tailscale ARM64 1.104.2 foi instalado e o serviço foi habilitado. Como o Sandbox usa rede link-local `169.254.x.x`, foi configurado userspace networking na porta local 1055 e aplicado o workaround documentado `TS_ASSUME_NETWORK_UP_FOR_TEST=1`, sem alterar rotas padrão, exit node, DNS ou políticas de firewall. O daemon gerou uma URL de autorização; ela não foi salva neste registro por ser sensível. A autorização da conta Tailscale ainda está pendente.
