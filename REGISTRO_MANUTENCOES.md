@@ -1858,3 +1858,30 @@ Para catálogo e estoque, o agente agora deve consultar primeiro `buscar_produto
 - As duas ferramentas de catálogo permaneceram ativas.
 - Um teste novo com “g2c” foi enviado no Playground; o provedor gratuito ainda estava processando a resposta no momento do registro, portanto o resultado do Playground não foi marcado como aprovado.
 - Nenhuma chave ou segredo foi alterado ou incluído no repositório.
+
+
+
+## 23/10/2026 — Base legal revisada e aplicada ao OpenLivery
+
+### Solicitação
+
+O agente Consultor estava variando as respostas sobre compra de armas e munições e afirmando requisitos sem confirmação, como curso de tiro ou teste psicológico para compra de munição. Foi fornecido um material gerado pelo NotebookLM com legislação, regras operacionais, auditoria de inconsistências e respostas seguras.
+
+### Revisão realizada
+
+O material foi revisado antes da aplicação. A base foi consolidada em `docs/BASE_CONHECIMENTO_LEGAL_OPENLIVERY.md`, removendo ou bloqueando o uso automático de pontos incompletos ou conflitantes. A versão revisada separa arma de munição, cidadão civil de CAC/policial/militar, e aquisição de registro, posse, porte e transporte.
+
+Foram mantidos como bloqueios: não inventar requisitos; não afirmar curso, teste psicológico, laudo ou certidão como exigência geral; não informar cotas específicas de CAC sem validação humana; não usar regras antigas ou conflitantes da PMPI como regra geral; não prometer prazo, aprovação, taxa, dispensa de documento ou resultado de recurso; e não solicitar senha do gov.br, dados bancários ou documentos originais fora do procedimento formal.
+
+### Aplicação no OpenLivery
+
+- Salvo o contexto manual prioritário no agente **Consultor**, com 2.228 caracteres de regras de segurança jurídica e concisão.
+- Gerado o PDF `BASE_CONHECIMENTO_LEGAL_OPENLIVERY.pdf` a partir da base revisada.
+- PDF carregado no agente Consultor e processado com sucesso; o OpenLivery confirmou **6.174 caracteres extraídos**.
+- Adicionada resposta fixa para “Precisa fazer curso de tiro ou teste psicológico para comprar munição?”, orientando a não tratar esses itens como exigência geral e a confirmar a categoria.
+
+### Validação
+
+No Playground, em conversa nova, a pergunta “Para comprar munição, preciso fazer curso de tiro e teste psicológico na Polícia Federal?” fez o agente perguntar primeiro se o cliente é cidadão civil, CAC/atirador, policial ou outra categoria. A fonte exibida foi `BASE_CONHECIMENTO_LEGAL_OPENLIVERY.pdf`. O segundo turno, após a identificação como cidadão civil, estava em processamento no momento da conferência e não foi declarado como aprovado.
+
+Nenhuma chave, senha ou segredo foi incluído no repositório.
