@@ -1904,3 +1904,20 @@ Foram identificadas opções gratuitas multimodais no catálogo atual, incluindo
 - Documentação de entrada de áudio: https://openrouter.ai/docs/features/multimodal/audio
 
 Nenhuma chave ou segredo foi alterado ou incluído no repositório.
+
+
+
+## 24/10/2026 — Aplicação do Nemotron 3 Nano Omni e testes multimodais
+
+### Configuração aplicada
+
+Com autorização explícita, o agente **Consultor** do OpenLivery foi alterado de `nvidia/nemotron-3.5-lightning:free` para `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`, usando o provedor OpenRouter. As opções **Image recognition** e **Audio recognition** permaneceram ativadas. O OpenLivery confirmou **Configuration saved**.
+
+### Testes realizados no Playground
+
+- **Imagem:** foi anexado `teste-openlivery.png`, contendo texto de teste, e enviada a solicitação para descrever o conteúdo. O Playground retornou `An unexpected error occurred`.
+- **Áudio:** foi anexado `teste-openlivery.wav`, com fala em português para transcrição, e enviada a solicitação “Transcreva o áudio anexado.”. O Playground também retornou erro genérico; em uma resposta intermediária, o agente informou que não havia áudio anexado, apesar do anexo ter sido selecionado.
+
+### Resultado
+
+O modelo foi salvo corretamente, mas os testes de imagem e áudio não foram aprovados. O mesmo erro genérico apareceu nas duas modalidades, indicando falha na integração multimodal do OpenLivery, no formato encaminhado ao OpenRouter ou na disponibilidade/compatibilidade do endpoint gratuito, e não apenas em uma modalidade específica. A consulta de logs da VPS foi interrompida porque o Tailscale SSH solicitou nova autenticação; nenhum segredo foi alterado ou incluído no repositório.
