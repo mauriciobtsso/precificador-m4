@@ -1885,3 +1885,22 @@ Foram mantidos como bloqueios: não inventar requisitos; não afirmar curso, tes
 No Playground, em conversa nova, a pergunta “Para comprar munição, preciso fazer curso de tiro e teste psicológico na Polícia Federal?” fez o agente perguntar primeiro se o cliente é cidadão civil, CAC/atirador, policial ou outra categoria. A fonte exibida foi `BASE_CONHECIMENTO_LEGAL_OPENLIVERY.pdf`. O segundo turno, após a identificação como cidadão civil, estava em processamento no momento da conferência e não foi declarado como aprovado.
 
 Nenhuma chave, senha ou segredo foi incluído no repositório.
+
+
+## 23/10/2026 — Diagnóstico dos modelos gratuitos para reconhecimento de imagem e áudio
+
+### Investigação
+
+Foi verificada a configuração do agente Consultor no OpenLivery. O provedor selecionado é **OpenRouter** e o modelo atual é `nvidia/nemotron-3.5-lightning:free`. As opções **Image recognition** e **Audio recognition** estão ativadas, porém são apenas capacidades do agente; não existe, nessa tela, um seletor separado de modelo para cada modalidade.
+
+A consulta ao catálogo público do OpenRouter mostrou que o modelo atual não aparece entre os modelos gratuitos com entrada de imagem, áudio ou vídeo. Assim, ele é adequado para texto, mas não deve ser considerado suficiente para reconhecimento multimodal. O OpenLivery permite informar manualmente outro identificador no seletor de modelo usando a opção **Use [model]**.
+
+Foram identificadas opções gratuitas multimodais no catálogo atual, incluindo `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`, com entrada de texto, áudio, imagem e vídeo; `thinkingmachines/inkling:free` e `thinkingmachines/inkling-small:free`, com texto, imagem e áudio; e `nvidia/nemotron-3.5-super-vl:free`, com texto, imagem e vídeo. Nenhuma alteração de modelo foi salva nesta investigação.
+
+### Referências consultadas
+
+- Catálogo público de modelos do OpenRouter: https://openrouter.ai/api/v1/models
+- Documentação de multimodalidade por imagem: https://openrouter.ai/docs/features/multimodal/images
+- Documentação de entrada de áudio: https://openrouter.ai/docs/features/multimodal/audio
+
+Nenhuma chave ou segredo foi alterado ou incluído no repositório.
