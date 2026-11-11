@@ -1921,3 +1921,21 @@ Com autorização explícita, o agente **Consultor** do OpenLivery foi alterado 
 ### Resultado
 
 O modelo foi salvo corretamente, mas os testes de imagem e áudio não foram aprovados. O mesmo erro genérico apareceu nas duas modalidades, indicando falha na integração multimodal do OpenLivery, no formato encaminhado ao OpenRouter ou na disponibilidade/compatibilidade do endpoint gratuito, e não apenas em uma modalidade específica. A consulta de logs da VPS foi interrompida porque o Tailscale SSH solicitou nova autenticação; nenhum segredo foi alterado ou incluído no repositório.
+
+
+## 11/11/2026 — Roteiro e script para piloto comparativo de OCR em PDFs
+
+### Artefatos preparados
+
+- Criado `tools/ocr_comparison/README.md` com o protocolo da amostra, critérios de avaliação manual, configuração isolada, comandos, interpretação de métricas e limitações do benchmark do upstream.
+- Criado `tools/ocr_comparison/compare_pdf_ocr.py`, que compara o extrator local do M4 (`pdfplumber`/Tesseract com Poppler quando necessário) com o modo automático `pdf_oxide`, usando o mesmo limite padrão de três páginas e a dica de idioma `pt` (modelo Latin).
+- O comparador não chama Groq, OCR.Space ou outro serviço de OCR externo, não inicializa o Flask, não acessa banco e não altera os PDFs. Por padrão, o JSON contém métricas, tempos e IDs derivados do hash do arquivo, sem nome original ou texto OCR. Salvar texto e incluir nomes exige flags explícitas; arquivos de texto são gravados com permissões restritas no sistema POSIX.
+- O provisionamento de modelos do `pdf_oxide` é opcional e explícito (`--prefetch-oxide-models`). Foi tratado o export do prefetch do wheel 0.3.78, disponível no módulo nativo do pacote.
+
+### Validação
+
+- `py_compile` do script e `--help` — aprovados.
+- Criado e processado somente um PDF sintético local, sem documentos reais. O comparativo concluiu nos dois motores; o relatório indicou `ocr_used=true` no `pdf_oxide`. Os resultados foram verificados apenas por contagens/métricas; nenhum texto bruto foi exportado.
+- O pacote `pdf_oxide[ocr]==0.3.78`, ONNX Runtime, Tesseract e idiomas `por`/`eng` foram instalados em ambiente de validação temporário; isso não alterou `requirements.txt` nem o ambiente de produção.
+- O teste valida a instrumentação e a execução técnica, não a superioridade do OCR. A acurácia em documentos brasileiros ainda depende da avaliação contra referência manual autorizada, conforme o roteiro.
+- Nenhum documento de cliente foi processado; nenhum dado foi enviado a terceiros; nenhuma linha foi gravada no banco.
