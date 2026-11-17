@@ -241,8 +241,8 @@ def inventario_municoes_pdf(conferencia_id):
     for row in rows[1:]:
         identification = escape(str(row[5] or "-"))
         formatted_rows.append([
-            Paragraph(escape(str(row[1] or "-")), table_cell_style),
             Paragraph(escape(str(row[0] or "-")), table_cell_style),
+            Paragraph(escape(str(row[1] or "-")), table_cell_style),
             Paragraph(escape(str(row[2] or "-")), table_cell_style),
             Paragraph(escape(str(row[3] or "-")), table_cell_style),
             Paragraph(escape(str(row[4] or "-")), table_cell_style),

@@ -1963,3 +1963,7 @@ Os revision IDs foram encurtados para `20261117_id_municao_sisgcorp` e `20261117
 ## 17/11/2026 — ID antes do código no inventário de munições
 
 Reorganizadas as colunas do inventário para exibir **ID** antes de **Código** em todos os pontos da conferência: tabela desktop, cartões mobile, PDF e Excel. O cabeçalho passou a usar somente o nome **ID**, mantendo o ID externo da munição identificado de forma mais objetiva para a conferência e entrega ao Exército.
+
+## 17/11/2026 — Correção dos valores das colunas ID e Código
+
+Corrigida a montagem das células do PDF do inventário. A lista de exportação mantém a ordem `[ID, Código, ...]`, e a renderização agora utiliza `row[0]` na coluna **ID** e `row[1]` na coluna **Código**. Assim, os títulos e os valores ficam alinhados corretamente na coluna A e na coluna B.
