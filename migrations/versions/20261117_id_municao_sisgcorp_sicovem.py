@@ -1,12 +1,12 @@
 """Adiciona IDs externos de munição ao cadastro e ao inventário.
 
-Revision ID: 20261117_id_municao_sisgcorp_sicovem
+Revision ID: 20261117_id_municao_sisgcorp
 Revises: 20261006_inventario_municoes
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = "20261117_id_municao_sisgcorp_sicovem"
+revision = "20261117_id_municao_sisgcorp"
 down_revision = "20261006_inventario_municoes"
 branch_labels = None
 depends_on = None

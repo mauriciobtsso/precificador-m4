@@ -1953,3 +1953,9 @@ Foi criada a migração `20261117_id_municao_sisgcorp_sicovem.py`, encadeada ap�
 O deploy do Render falhou na inicialização ao executar `flask db upgrade`, com o erro `Multiple head revisions are present for given argument 'head'`. A análise identificou dois heads independentes: `20261016_decl_res_data` e `20261117_id_municao_sisgcorp_sicovem`.
 
 Criada a migração merge-only `20261117_merge_heads_declaracoes_municoes.py`, com os dois heads como `down_revision` e sem operações de alteração de dados. Isso unifica o grafo Alembic em um único head e permite que o comando de inicialização do Docker conclua antes de iniciar o Gunicorn.
+
+## 17/11/2026 — Correção do limite do `alembic_version` no PostgreSQL
+
+O segundo deploy revelou que a coluna `alembic_version.version_num` do banco possui limite de 32 caracteres. O revision ID `20261117_id_municao_sisgcorp_sicovem` ultrapassava esse limite e causava `psycopg2.errors.StringDataRightTruncation` ao registrar a migração.
+
+Os revision IDs foram encurtados para `20261117_id_municao_sisgcorp` e `20261117_merge_decl_mun`, mantendo a identificação única e atualizando a relação entre as migrações. Nenhuma operação de negócio ou dado da aplicação foi alterado.
