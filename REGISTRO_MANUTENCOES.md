@@ -1959,3 +1959,7 @@ Criada a migração merge-only `20261117_merge_heads_declaracoes_municoes.py`, c
 O segundo deploy revelou que a coluna `alembic_version.version_num` do banco possui limite de 32 caracteres. O revision ID `20261117_id_municao_sisgcorp_sicovem` ultrapassava esse limite e causava `psycopg2.errors.StringDataRightTruncation` ao registrar a migração.
 
 Os revision IDs foram encurtados para `20261117_id_municao_sisgcorp` e `20261117_merge_decl_mun`, mantendo a identificação única e atualizando a relação entre as migrações. Nenhuma operação de negócio ou dado da aplicação foi alterado.
+
+## 17/11/2026 — ID antes do código no inventário de munições
+
+Reorganizadas as colunas do inventário para exibir **ID** antes de **Código** em todos os pontos da conferência: tabela desktop, cartões mobile, PDF e Excel. O cabeçalho passou a usar somente o nome **ID**, mantendo o ID externo da munição identificado de forma mais objetiva para a conferência e entrega ao Exército.

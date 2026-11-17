@@ -185,7 +185,7 @@ def _linhas_exportacao(conferencia):
         grupo["embalagens"] += 1
         grupo["total"] += item.quantidade_total
     return [[
-        grupo["codigo"], grupo["id_municao"], grupo["descricao"], grupo["calibre"], grupo["lote"],
+        grupo["id_municao"], grupo["codigo"], grupo["descricao"], grupo["calibre"], grupo["lote"],
         ", ".join(grupo["identificacoes"]), grupo["embalagens"], grupo["total"],
     ] for grupo in agrupados.values()]
 
@@ -200,7 +200,7 @@ def inventario_municoes_excel(conferencia_id):
     ws.append(["CNPJ da Loja", "Nome da Loja", "Endereço da Loja", "CR da Loja", "Data da Conferência"])
     ws.append([conferencia.loja_cnpj, conferencia.loja_nome, conferencia.loja_endereco, conferencia.loja_cr, conferencia.data_conferencia.strftime("%d/%m/%Y")])
     ws.append([])
-    headers = ["Código da Munição", "ID da Munição (SisgCorp/SICOVEM)", "Descrição", "Calibre", "Lote", "Identificações das Embalagens", "Quantidade de Embalagens", "Quantidade Total da Munição"]
+    headers = ["ID", "Código da Munição", "Descrição", "Calibre", "Lote", "Identificações das Embalagens", "Quantidade de Embalagens", "Quantidade Total da Munição"]
     ws.append(headers)
     for row in _linhas_exportacao(conferencia):
         ws.append(row)
@@ -235,14 +235,14 @@ def inventario_municoes_pdf(conferencia_id):
     header = Table([[logo, header_content]], colWidths=[36 * mm, 231 * mm])
     header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
     story = [header, Spacer(1, 3 * mm), Paragraph("INVENTÁRIO FÍSICO DE MUNIÇÕES", title_style), Spacer(1, 3 * mm)]
-    rows = [["Código", "ID da munição", "Descrição", "Calibre", "Lote", "Identificações das embalagens", "Qtd. embalagens", "Qtd. total"]]
+    rows = [["ID", "Código", "Descrição", "Calibre", "Lote", "Identificações das embalagens", "Qtd. embalagens", "Qtd. total"]]
     rows.extend(_linhas_exportacao(conferencia))
     formatted_rows = [[Paragraph(escape(str(cell)), table_header_style) for cell in rows[0]]]
     for row in rows[1:]:
         identification = escape(str(row[5] or "-"))
         formatted_rows.append([
-            Paragraph(escape(str(row[0] or "-")), table_cell_style),
             Paragraph(escape(str(row[1] or "-")), table_cell_style),
+            Paragraph(escape(str(row[0] or "-")), table_cell_style),
             Paragraph(escape(str(row[2] or "-")), table_cell_style),
             Paragraph(escape(str(row[3] or "-")), table_cell_style),
             Paragraph(escape(str(row[4] or "-")), table_cell_style),
