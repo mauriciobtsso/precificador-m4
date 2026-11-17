@@ -1947,3 +1947,9 @@ Adicionado o campo opcional **ID da munição** ao cadastro de Produtos. O campo
 O ID preenchido passou a aparecer na listagem de produtos, no modal de visualização e no módulo de conferência de munições. Cada item da conferência guarda um snapshot do ID no momento da leitura, garantindo que os relatórios históricos não mudem caso o cadastro do produto seja alterado posteriormente. As exportações Excel e PDF do inventário passaram a incluir a coluna **ID da munição**, mantendo o agrupamento separado por código, ID, calibre e lote. A tela do inventário também exibe o ID em desktop e mobile.
 
 Foi criada a migração `20261117_id_municao_sisgcorp_sicovem.py`, encadeada após `20261006_inventario_municoes`, com coluna opcional no cadastro de produtos e nos itens do inventário.
+
+## 17/11/2026 — Correção do deploy: merge dos heads Alembic
+
+O deploy do Render falhou na inicialização ao executar `flask db upgrade`, com o erro `Multiple head revisions are present for given argument 'head'`. A análise identificou dois heads independentes: `20261016_decl_res_data` e `20261117_id_municao_sisgcorp_sicovem`.
+
+Criada a migração merge-only `20261117_merge_heads_declaracoes_municoes.py`, com os dois heads como `down_revision` e sem operações de alteração de dados. Isso unifica o grafo Alembic em um único head e permite que o comando de inicialização do Docker conclua antes de iniciar o Gunicorn.
