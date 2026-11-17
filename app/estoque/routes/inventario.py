@@ -49,6 +49,7 @@ def _produto_payload(produto, lote="", identificacao="", quantidade=0):
     return {
         "produto_id": produto.id,
         "codigo": produto.codigo or "",
+        "id_municao": produto.id_municao or "",
         "descricao": produto.nome,
         "calibre": produto.calibre_rel.nome if produto.calibre_rel else "",
         "lote": lote or "",
@@ -117,6 +118,7 @@ def inventario_municoes_scan(conferencia_id):
         conferencia_id=conferencia.id,
         produto_id=produto.id,
         codigo_municao=produto.codigo or "",
+        id_municao=produto.id_municao or None,
         descricao=produto.nome,
         calibre=produto.calibre_rel.nome if produto.calibre_rel else "",
         lote=lote or None,
@@ -129,6 +131,7 @@ def inventario_municoes_scan(conferencia_id):
     return jsonify(success=True, item={
         "id": item.id,
         "codigo": item.codigo_municao,
+        "id_municao": item.id_municao or "",
         "descricao": item.descricao,
         "calibre": item.calibre or "",
         "lote": item.lote or "",
@@ -167,9 +170,10 @@ def inventario_municoes_finalizar(conferencia_id):
 def _linhas_exportacao(conferencia):
     agrupados = {}
     for item in conferencia.itens:
-        chave = (item.codigo_municao, item.descricao, item.calibre or "", item.lote or "")
+        chave = (item.codigo_municao, item.id_municao or "", item.descricao, item.calibre or "", item.lote or "")
         grupo = agrupados.setdefault(chave, {
             "codigo": item.codigo_municao,
+            "id_municao": item.id_municao or "",
             "descricao": item.descricao,
             "calibre": item.calibre or "",
             "lote": item.lote or "",
@@ -181,7 +185,7 @@ def _linhas_exportacao(conferencia):
         grupo["embalagens"] += 1
         grupo["total"] += item.quantidade_total
     return [[
-        grupo["codigo"], grupo["descricao"], grupo["calibre"], grupo["lote"],
+        grupo["codigo"], grupo["id_municao"], grupo["descricao"], grupo["calibre"], grupo["lote"],
         ", ".join(grupo["identificacoes"]), grupo["embalagens"], grupo["total"],
     ] for grupo in agrupados.values()]
 
@@ -196,7 +200,7 @@ def inventario_municoes_excel(conferencia_id):
     ws.append(["CNPJ da Loja", "Nome da Loja", "Endereço da Loja", "CR da Loja", "Data da Conferência"])
     ws.append([conferencia.loja_cnpj, conferencia.loja_nome, conferencia.loja_endereco, conferencia.loja_cr, conferencia.data_conferencia.strftime("%d/%m/%Y")])
     ws.append([])
-    headers = ["Código da Munição", "Descrição", "Calibre", "Lote", "Identificações das Embalagens", "Quantidade de Embalagens", "Quantidade Total da Munição"]
+    headers = ["Código da Munição", "ID da Munição (SisgCorp/SICOVEM)", "Descrição", "Calibre", "Lote", "Identificações das Embalagens", "Quantidade de Embalagens", "Quantidade Total da Munição"]
     ws.append(headers)
     for row in _linhas_exportacao(conferencia):
         ws.append(row)
@@ -231,21 +235,22 @@ def inventario_municoes_pdf(conferencia_id):
     header = Table([[logo, header_content]], colWidths=[36 * mm, 231 * mm])
     header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
     story = [header, Spacer(1, 3 * mm), Paragraph("INVENTÁRIO FÍSICO DE MUNIÇÕES", title_style), Spacer(1, 3 * mm)]
-    rows = [["Código", "Descrição", "Calibre", "Lote", "Identificações das embalagens", "Qtd. embalagens", "Qtd. total"]]
+    rows = [["Código", "ID da munição", "Descrição", "Calibre", "Lote", "Identificações das embalagens", "Qtd. embalagens", "Qtd. total"]]
     rows.extend(_linhas_exportacao(conferencia))
     formatted_rows = [[Paragraph(escape(str(cell)), table_header_style) for cell in rows[0]]]
     for row in rows[1:]:
-        identification = escape(str(row[4] or "-"))
+        identification = escape(str(row[5] or "-"))
         formatted_rows.append([
             Paragraph(escape(str(row[0] or "-")), table_cell_style),
             Paragraph(escape(str(row[1] or "-")), table_cell_style),
             Paragraph(escape(str(row[2] or "-")), table_cell_style),
             Paragraph(escape(str(row[3] or "-")), table_cell_style),
+            Paragraph(escape(str(row[4] or "-")), table_cell_style),
             Paragraph(identification, table_cell_style),
-            Paragraph(str(row[5]), table_cell_bold_style),
             Paragraph(str(row[6]), table_cell_bold_style),
+            Paragraph(str(row[7]), table_cell_bold_style),
         ])
-    table = Table(formatted_rows, repeatRows=1, colWidths=[27 * mm, 72 * mm, 24 * mm, 23 * mm, 64 * mm, 25 * mm, 22 * mm])
+    table = Table(formatted_rows, repeatRows=1, colWidths=[21 * mm, 28 * mm, 62 * mm, 20 * mm, 20 * mm, 61 * mm, 23 * mm, 21 * mm])
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F2937")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),

@@ -149,6 +149,14 @@
         </div>
       </div>
 
+      <div class="col-12 col-md-6" id="grupoIdMunicao" {% if not (produto and produto.tipo_rel and 'muni' in (produto.tipo_rel.nome or '').lower()) %}style="display:none;"{% endif %}>
+        <label class="form-label fw-semibold small" for="id_municao">ID da munição</label>
+        <input type="text" class="form-control" id="id_municao" name="id_municao"
+               value="{{ produto.id_municao or '' }}"
+               placeholder="ID no SisgCorp ou SICOVEM" maxlength="80">
+        <div class="form-text">Opcional. Informe o ID externo da munição quando existir.</div>
+      </div>
+
       <div class="col-12 col-md-6">
         <label class="form-label fw-semibold small">Categoria</label>
         <div class="input-group">
@@ -218,3 +226,25 @@
     <textarea name="descricao" rows="3" class="form-control" placeholder="Descrição breve do produto">{{ produto.descricao or '' }}</textarea>
   </div>
 </div>
+
+<script>
+(function () {
+  function atualizarCampoIdMunicao() {
+    var tipo = document.getElementById('tipo_id');
+    var grupo = document.getElementById('grupoIdMunicao');
+    if (!tipo || !grupo) return;
+    var opcao = tipo.options[tipo.selectedIndex];
+    var ehMunicao = opcao && (opcao.textContent || '').toLowerCase().indexOf('muni') !== -1;
+    grupo.style.display = ehMunicao ? '' : 'none';
+    if (!ehMunicao) {
+      var campo = document.getElementById('id_municao');
+      if (campo) campo.value = '';
+    }
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    var tipo = document.getElementById('tipo_id');
+    if (tipo) tipo.addEventListener('change', atualizarCampoIdMunicao);
+    atualizarCampoIdMunicao();
+  });
+})();
+</script>

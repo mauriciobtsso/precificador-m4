@@ -47,6 +47,9 @@ class Produto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     foto_url = db.Column(db.String(512), nullable=True)
     codigo = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    # Identificador externo da munição nos sistemas SisgCorp/SICOVEM.
+    # O campo é opcional e é utilizado somente para produtos do tipo munição.
+    id_municao = db.Column(db.String(80), nullable=True, index=True)
     
     # NOME 1: Nome Interno (Administrativo/Fiscal)
     nome = db.Column(db.String(255), nullable=False, index=True)
@@ -226,6 +229,7 @@ class Produto(db.Model):
         return {
             'id': self.id,
             'nome': self.nome_comercial or self.nome,
+            'id_municao': self.id_municao or '',
             'categoria': self.categoria.nome if self.categoria else 'N/A',
             'calibre': self.calibre_rel.nome if self.calibre_rel else 'N/A',
             'preco_vista': float(self.preco_a_vista) if self.preco_a_vista else 0.0,

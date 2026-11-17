@@ -40,6 +40,7 @@ class ConferenciaInventarioItem(db.Model):
     )
     produto_id = db.Column(db.Integer, db.ForeignKey("produtos.id"), nullable=True, index=True)
     codigo_municao = db.Column(db.String(50), nullable=False)
+    id_municao = db.Column(db.String(80), nullable=True)
     descricao = db.Column(db.String(255), nullable=False)
     calibre = db.Column(db.String(80), nullable=True)
     lote = db.Column(db.String(80), nullable=True)

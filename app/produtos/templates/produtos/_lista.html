@@ -13,7 +13,10 @@
         <tbody>
           {% for produto in produtos %}
           <tr>
-            <td>{{ produto.codigo or '-' }}</td>
+            <td>
+              {{ produto.codigo or '-' }}
+              {% if produto.id_municao %}<small class="d-block text-muted">ID munição: {{ produto.id_municao }}</small>{% endif %}
+            </td>
             <td class="text-start" style="max-width:320px;">
                 <span class="d-block text-truncate">{{ produto.nome }}</span>
                 
@@ -85,7 +88,10 @@
                         </small>
                 {% endif %}
             </div>
-            <span class="badge bg-light text-dark border fw-semibold small">{{ produto.codigo or '-' }}</span>
+            <div class="text-end">
+              <span class="badge bg-light text-dark border fw-semibold small">{{ produto.codigo or '-' }}</span>
+              {% if produto.id_municao %}<small class="d-block text-muted mt-1">ID: {{ produto.id_municao }}</small>{% endif %}
+            </div>
           </div>
             <p class="mb-2 text-primary fw-semibold small">
             <i class="fas fa-money-bill-wave me-1"></i> {{ preco_atual.preco_a_vista|currency }}

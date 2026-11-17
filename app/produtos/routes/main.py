@@ -168,6 +168,7 @@ def gerenciar_produto(produto_id=None):
                 descricao_longa=produto_ref.descricao_longa,
                 categoria_id=produto_ref.categoria_id,
                 tipo_id=produto_ref.tipo_id,
+                id_municao=produto_ref.id_municao,
                 marca_id=produto_ref.marca_id,
                 calibre_id=produto_ref.calibre_id,
                 funcionamento_id=produto_ref.funcionamento_id,
@@ -213,7 +214,7 @@ def gerenciar_produto(produto_id=None):
             return parse_decimal(value) or Decimal(0)
 
         campos_auditados = [
-            "codigo", "nome", "nome_comercial", "slug", "descricao", "descricao_comercial", "descricao_longa",
+            "codigo", "id_municao", "nome", "nome_comercial", "slug", "descricao", "descricao_comercial", "descricao_longa",
             "categoria_id", "marca_id", "calibre_id", "tipo_id", "funcionamento_id",
             "preco_fornecedor", "desconto_fornecedor", "frete", "margem", "lucro_alvo", "preco_final",
             "ipi", "ipi_tipo", "difal", "imposto_venda", "meta_title", "meta_description",
@@ -285,6 +286,9 @@ def gerenciar_produto(produto_id=None):
                     categorias=categorias, marcas=marcas, calibres=calibres, tipos=tipos, funcionamentos=funcionamentos, produtos_para_acessorios=produtos_para_acessorios,
                 )
             produto.tipo_id = tipo_id
+            tipo_produto = db.session.get(TipoProduto, tipo_id)
+            eh_municao = bool(tipo_produto and "muni" in (tipo_produto.nome or "").lower())
+            produto.id_municao = ((data.get("id_municao") or "").strip() or None) if eh_municao else None
 
             produto.funcionamento_id = to_int(data.get("funcionamento_id"))
 
@@ -717,7 +721,7 @@ def visualizar_produto(produto_id):
     parcelado_label = f"12x de {currency(parcela_12x_val)}" if parcela_12x_val is not None else "-"
 
     return {
-        "id": produto.id, "codigo": produto.codigo or "-", "nome": produto.nome, "descricao": produto.descricao or "",
+        "id": produto.id, "codigo": produto.codigo or "-", "id_municao": produto.id_municao or "", "nome": produto.nome, "descricao": produto.descricao or "",
         "foto_url": url_imagem,
         "categoria": produto.categoria.nome if produto.categoria else "-",
         "marca": produto.marca_rel.nome if produto.marca_rel else "-",

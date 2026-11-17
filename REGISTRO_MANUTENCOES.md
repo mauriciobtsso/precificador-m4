@@ -1939,3 +1939,11 @@ O modelo foi salvo corretamente, mas os testes de imagem e áudio não foram apr
 - O pacote `pdf_oxide[ocr]==0.3.78`, ONNX Runtime, Tesseract e idiomas `por`/`eng` foram instalados em ambiente de validação temporário; isso não alterou `requirements.txt` nem o ambiente de produção.
 - O teste valida a instrumentação e a execução técnica, não a superioridade do OCR. A acurácia em documentos brasileiros ainda depende da avaliação contra referência manual autorizada, conforme o roteiro.
 - Nenhum documento de cliente foi processado; nenhum dado foi enviado a terceiros; nenhuma linha foi gravada no banco.
+
+## 17/11/2026 — ID externo de munições SisgCorp/SICOVEM
+
+Adicionado o campo opcional **ID da munição** ao cadastro de Produtos. O campo aparece no formulário somente quando o tipo selecionado é Munição, aceita o identificador usado nos sistemas SisgCorp e SICOVEM e é removido automaticamente quando o produto deixa de ser desse tipo. O valor também é salvo pelo fluxo normal e pelo autosave, registrado no histórico do produto e copiado ao duplicar um produto de munição.
+
+O ID preenchido passou a aparecer na listagem de produtos, no modal de visualização e no módulo de conferência de munições. Cada item da conferência guarda um snapshot do ID no momento da leitura, garantindo que os relatórios históricos não mudem caso o cadastro do produto seja alterado posteriormente. As exportações Excel e PDF do inventário passaram a incluir a coluna **ID da munição**, mantendo o agrupamento separado por código, ID, calibre e lote. A tela do inventário também exibe o ID em desktop e mobile.
+
+Foi criada a migração `20261117_id_municao_sisgcorp_sicovem.py`, encadeada após `20261006_inventario_municoes`, com coluna opcional no cadastro de produtos e nos itens do inventário.
