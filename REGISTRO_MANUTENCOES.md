@@ -1967,3 +1967,9 @@ Reorganizadas as colunas do inventário para exibir **ID** antes de **Código** 
 ## 17/11/2026 — Correção dos valores das colunas ID e Código
 
 Corrigida a montagem das células do PDF do inventário. A lista de exportação mantém a ordem `[ID, Código, ...]`, e a renderização agora utiliza `row[0]` na coluna **ID** e `row[1]` na coluna **Código**. Assim, os títulos e os valores ficam alinhados corretamente na coluna A e na coluna B.
+
+## 18/11/2026 — Correção das logos de marcas e modernização das configurações
+
+Corrigido o upload de logos em `/produtos/configs`: os arquivos estavam sendo enviados ao bucket privado, enquanto o caminho `produtos/*` é servido pelo CDN público. Os uploads de criação e edição de marcas agora usam explicitamente o bucket `m4-loja-publico` e salvam a chave canônica do arquivo, permitindo que o helper global gere a URL pública corretamente.
+
+A página de configurações de produtos também foi modernizada mantendo o layout do Sistema M4: tipografia menor e harmonizada, abas compactas, cartões-resumo, tabelas mais limpas, botões consistentes, responsividade para telas menores, preview da logo no modal e fallback visual quando uma imagem não carregar. As cinco áreas foram contempladas: categorias, marcas, calibres, tipos e funcionamentos.

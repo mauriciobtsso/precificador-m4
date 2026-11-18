@@ -1,217 +1,94 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  .config-page { --m4-ink:#172033; --m4-muted:#718096; --m4-line:#e7ebf1; --m4-soft:#f7f9fc; font-size:.82rem; color:var(--m4-ink); }
+  .config-page .page-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+  .config-page .page-title { font-size:1.22rem; font-weight:750; letter-spacing:-.02em; margin:0; }
+  .config-page .page-subtitle { color:var(--m4-muted); font-size:.76rem; margin:.2rem 0 0; }
+  .config-page .hero-icon { width:2.35rem; height:2.35rem; display:grid; place-items:center; border-radius:.72rem; background:#fff1f2; color:#c5223f; }
+  .config-page .summary-strip { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.65rem; margin-bottom:1rem; }
+  .config-page .summary-card { border:1px solid var(--m4-line); border-radius:.72rem; background:#fff; padding:.62rem .75rem; box-shadow:0 3px 12px rgba(23,32,51,.035); }
+  .config-page .summary-label { color:var(--m4-muted); font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; font-weight:700; }
+  .config-page .summary-value { font-size:1.15rem; line-height:1.1; font-weight:750; margin-top:.18rem; }
+  .config-page .config-shell { border:1px solid var(--m4-line); border-radius:.85rem; background:#fff; box-shadow:0 8px 28px rgba(23,32,51,.05); overflow:hidden; }
+  .config-page .nav-tabs { padding:.55rem .65rem 0; gap:.25rem; border-bottom:1px solid var(--m4-line); background:var(--m4-soft); }
+  .config-page .nav-tabs .nav-link { border:0; border-radius:.55rem .55rem 0 0; color:#637083; font-size:.76rem; font-weight:650; padding:.58rem .72rem; }
+  .config-page .nav-tabs .nav-link:hover { color:var(--m4-ink); background:#eef2f7; }
+  .config-page .nav-tabs .nav-link.active { color:#fff; background:var(--m4-ink); }
+  .config-page .tab-content { padding:1rem; }
+  .config-page .tab-toolbar { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin-bottom:.65rem; }
+  .config-page .tab-title { font-size:.92rem; font-weight:750; margin:0; }
+  .config-page .tab-hint { color:var(--m4-muted); font-size:.72rem; }
+  .config-page .btn { font-size:.75rem; border-radius:.48rem; }
+  .config-page .table { margin:0; font-size:.76rem; }
+  .config-page .table thead th { color:#6b778a; background:#fbfcfe; border-bottom:1px solid var(--m4-line); font-size:.67rem; text-transform:uppercase; letter-spacing:.035em; font-weight:750; padding:.62rem .65rem; }
+  .config-page .table tbody td { border-color:#eef1f5; padding:.48rem .65rem; vertical-align:middle; }
+  .config-page .table tbody tr:hover { background:#fafbfd; }
+  .config-page .description-cell { color:var(--m4-muted); max-width:0; }
+  .config-page .brand-logo { width:2.8rem; height:2.05rem; object-fit:contain; border:1px solid var(--m4-line); border-radius:.42rem; background:#fff; padding:.16rem; }
+  .config-page .empty-state { color:var(--m4-muted); text-align:center; padding:2rem 1rem; }
+  .config-page .modal-content { border:0; border-radius:.85rem; box-shadow:0 18px 55px rgba(23,32,51,.2); }
+  .config-page .modal-header { border:0; padding:1rem 1.1rem .75rem; }
+  .config-page .modal-body { padding:.35rem 1.1rem 1rem; }
+  .config-page .modal-footer { border-top:1px solid var(--m4-line); padding:.7rem 1.1rem; }
+  .config-page .form-label { font-size:.72rem; color:#536176; font-weight:700; margin-bottom:.28rem; }
+  .config-page .form-control { font-size:.8rem; border-color:#dfe5ec; border-radius:.48rem; }
+  .config-page .form-control:focus { border-color:#8da4c4; box-shadow:0 0 0 .18rem rgba(74,111,165,.12); }
+  .config-page .logo-preview { width:5.2rem; height:3.4rem; object-fit:contain; border:1px dashed #cfd7e3; border-radius:.55rem; background:var(--m4-soft); padding:.3rem; }
+  @media (max-width: 900px) { .config-page .summary-strip { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media (max-width: 600px) { .config-page .page-heading { align-items:flex-start; } .config-page .summary-strip { grid-template-columns:repeat(2,minmax(0,1fr)); } .config-page .tab-content { padding:.7rem; } .config-page .nav-tabs { overflow-x:auto; flex-wrap:nowrap; } .config-page .nav-tabs .nav-link { white-space:nowrap; } .config-page .tab-toolbar { align-items:flex-start; } }
+</style>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h2 class="mb-0">
-    <i class="fas fa-cogs me-2 text-danger"></i> Configurações
-  </h2>
-</div>
+<div class="container-fluid py-2 config-page">
+  <div class="page-heading">
+    <div class="d-flex align-items-center gap-2">
+      <div class="hero-icon"><i class="fas fa-sliders-h"></i></div>
+      <div><h1 class="page-title">Configurações de produtos</h1><p class="page-subtitle">Organize os cadastros usados no catálogo e na ficha técnica.</p></div>
+    </div>
+  </div>
 
-<ul class="nav nav-tabs" id="tabsConfig" role="tablist">
-  {% for aba in [
-    ("categorias", "fa-layer-group", "Categorias"),
-    ("marcas", "fa-industry", "Marcas"),
-    ("calibres", "fa-bullseye", "Calibres"),
-    ("tipos", "fa-gun", "Tipos"),
-    ("funcionamentos", "fa-cogs", "Funcionamentos")
-  ] %}
-  <li class="nav-item">
-    <button class="nav-link {% if loop.first %}active{% endif %}" id="tab-{{ aba[0] }}" data-bs-toggle="tab" data-bs-target="#{{ aba[0] }}" type="button" role="tab">
-      <i class="fas {{ aba[1] }} me-1"></i> {{ aba[2] }}
-    </button>
-  </li>
-  {% endfor %}
-</ul>
-
-<div class="tab-content border border-top-0 p-3 bg-white rounded-bottom shadow-sm">
   {% set tabelas_info = [
-    ('categorias', categorias, 'categoria'),
-    ('marcas', marcas, 'marca'),
-    ('calibres', calibres, 'calibre'),
-    ('tipos', tipos, 'tipo'),
-    ('funcionamentos', funcionamentos, 'funcionamento')
+    ('categorias', categorias, 'categoria', 'fa-layer-group', 'Estruture a organização dos produtos.'),
+    ('marcas', marcas, 'marca', 'fa-industry', 'Cadastre fabricantes e suas logos.'),
+    ('calibres', calibres, 'calibre', 'fa-bullseye', 'Mantenha os calibres padronizados.'),
+    ('tipos', tipos, 'tipo', 'fa-gun', 'Defina os tipos de produto.'),
+    ('funcionamentos', funcionamentos, 'funcionamento', 'fa-cogs', 'Padronize os funcionamentos.' )
   ] %}
-
-  {% for id_aba, lista, tipo_singular in tabelas_info %}
-  <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ id_aba }}" role="tabpanel">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="mb-0 text-capitalize">{{ id_aba }}</h5>
-      <button class="btn btn-sm btn-success btnAdicionarNovo" data-tabela="{{ tipo_singular }}">
-        <i class="fas fa-plus"></i> Adicionar
-      </button>
-    </div>
-    
-    <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle" style="table-layout: fixed; width: 100%;">
-          <thead class="table-light">
-            <tr>
-              {% if id_aba == 'marcas' %}
-                <th style="width: 100px;">Logo</th>
-              {% endif %}
-              <th style="width: 30%;">Nome</th>
-              <th>Descrição</th>
-              <th style="width: 120px;" class="text-end">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for i in lista %}
-            <tr>
-              {% if id_aba == 'marcas' %}
-<td>
-  {% if i.logo_url %}
-    <img src="{{ gerar_link(i.logo_url) }}" 
-         style="height: 35px; width: 60px; object-fit: contain; background: #fff;" 
-         class="border rounded shadow-sm">
-  {% else %}
-    <span class="badge bg-light text-dark border" style="font-size: 0.65rem;">Sem Logo</span>
-  {% endif %}
-</td>
-              {% endif %}
-              <td class="text-truncate fw-bold">{{ i.nome }}</td>
-              <td class="text-muted small text-truncate">{{ i.descricao or '-' }}</td>
-              <td class="text-end">
-                <button class="btn btn-xs btn-outline-primary btnEditarItem" 
-                        data-tabela="{{ tipo_singular }}" data-id="{{ i.id }}" 
-                        data-nome="{{ i.nome }}" data-desc="{{ i.descricao or '' }}">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-xs btn-outline-danger btnExcluirItem" data-tabela="{{ tipo_singular }}" data-id="{{ i.id }}">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-    </div>
+  <div class="summary-strip">
+    {% for id_aba, lista, tipo_singular, icone, hint in tabelas_info %}<div class="summary-card"><div class="summary-label"><i class="fas {{ icone }} me-1"></i>{{ id_aba }}</div><div class="summary-value">{{ lista|length }}</div></div>{% endfor %}
   </div>
-  {% endfor %}
-</div>
 
-<div class="modal fade" id="modalConfigUnico" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <form id="formConfigUnico" enctype="multipart/form-data">
-        <div class="modal-header bg-dark text-white">
-          <h5 class="modal-title"><i class="fas fa-edit me-2"></i><span>Item</span></h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+  <div class="config-shell">
+    <ul class="nav nav-tabs" id="tabsConfig" role="tablist">
+      {% for id_aba, lista, tipo_singular, icone, hint in tabelas_info %}<li class="nav-item"><button class="nav-link {% if loop.first %}active{% endif %}" id="tab-{{ id_aba }}" data-bs-toggle="tab" data-bs-target="#{{ id_aba }}" type="button" role="tab"><i class="fas {{ icone }} me-1"></i>{{ id_aba|capitalize }}</button></li>{% endfor %}
+    </ul>
+    <div class="tab-content">
+      {% for id_aba, lista, tipo_singular, icone, hint in tabelas_info %}
+      <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ id_aba }}" role="tabpanel">
+        <div class="tab-toolbar"><div><h2 class="tab-title">{{ id_aba|capitalize }}</h2><div class="tab-hint">{{ hint }}</div></div><button class="btn btn-sm btn-primary btnAdicionarNovo" data-tabela="{{ tipo_singular }}"><i class="fas fa-plus me-1"></i>Adicionar</button></div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle" style="table-layout:fixed;width:100%;"><thead><tr>{% if id_aba == 'marcas' %}<th style="width:82px;">Logo</th>{% endif %}<th style="width:28%;">Nome</th><th>Descrição</th><th style="width:92px;" class="text-end">Ações</th></tr></thead>
+          <tbody>{% for i in lista %}<tr>{% if id_aba == 'marcas' %}<td>{% if i.logo_url %}<img src="{{ gerar_link(i.logo_url) }}" class="brand-logo" alt="Logo {{ i.nome }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/placeholder.jpg') }}';">{% else %}<span class="badge text-bg-light border fw-normal">Sem logo</span>{% endif %}</td>{% endif %}<td class="text-truncate fw-semibold" title="{{ i.nome }}">{{ i.nome }}</td><td class="description-cell text-truncate" title="{{ i.descricao or '' }}">{{ i.descricao or 'Sem descrição' }}</td><td class="text-end"><button class="btn btn-sm btn-outline-primary btnEditarItem" title="Editar" data-tabela="{{ tipo_singular }}" data-id="{{ i.id }}" data-nome="{{ i.nome }}" data-desc="{{ i.descricao or '' }}" data-logo="{{ i.logo_url or '' }}"><i class="fas fa-pen"></i></button><button class="btn btn-sm btn-outline-danger btnExcluirItem ms-1" title="Excluir" data-tabela="{{ tipo_singular }}" data-id="{{ i.id }}"><i class="fas fa-trash"></i></button></td></tr>{% else %}<tr><td colspan="4" class="empty-state">Nenhum registro cadastrado.</td></tr>{% endfor %}</tbody></table>
         </div>
-        <div class="modal-body">
-          <input type="hidden" id="modal_tabela">
-          <input type="hidden" id="modal_id">
-          
-          <div class="mb-3">
-            <label class="form-label fw-bold">Nome</label>
-            <input type="text" id="modal_nome" class="form-control" required>
-          </div>
-
-          <div id="modal_container_logo" class="mb-3 d-none">
-            <label class="form-label fw-bold">Logo da Marca</label>
-            <input type="file" id="modal_logo" class="form-control" accept="image/*">
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label fw-bold">Descrição</label>
-            <textarea id="modal_desc" class="form-control" rows="2"></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-success px-4">Salvar</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        </div>
-      </form>
+      </div>
+      {% endfor %}
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="modalConfigUnico" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form id="formConfigUnico" enctype="multipart/form-data"><div class="modal-header"><div><h5 class="modal-title fw-bold mb-1"><span>Item</span></h5><div class="text-muted small">Preencha os dados do cadastro.</div></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="modal_tabela"><input type="hidden" id="modal_id"><div class="mb-3"><label class="form-label" for="modal_nome">Nome</label><input type="text" id="modal_nome" class="form-control" required></div><div id="modal_container_logo" class="mb-3 d-none"><label class="form-label" for="modal_logo">Logo da marca</label><div class="d-flex align-items-center gap-3"><img id="modal_logo_preview" class="logo-preview d-none" alt="Pré-visualização da logo"><input type="file" id="modal_logo" class="form-control" accept="image/*"></div><div class="form-text small">Use PNG, JPG ou WebP. A logo será publicada no catálogo.</div></div><div><label class="form-label" for="modal_desc">Descrição</label><textarea id="modal_desc" class="form-control" rows="2"></textarea></div></div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary px-3">Salvar</button></div></form></div></div></div>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-    const modalEl = new bootstrap.Modal(document.getElementById('modalConfigUnico'));
-    const form = document.getElementById('formConfigUnico');
-    const containerLogo = document.getElementById('modal_container_logo');
-
-    // BOTÃO ADICIONAR
-    document.querySelectorAll('.btnAdicionarNovo').forEach(btn => {
-        btn.addEventListener('click', () => {
-            form.reset();
-            const tabela = btn.dataset.tabela;
-            document.getElementById('modal_tabela').value = tabela;
-            document.getElementById('modal_id').value = "";
-            
-            // Lógica do campo de Logo
-            if(tabela === 'marca') containerLogo.classList.remove('d-none');
-            else containerLogo.classList.add('d-none');
-
-            document.querySelector('.modal-title span').innerText = "Novo " + tabela;
-            modalEl.show();
-        });
-    });
-
-    // BOTÃO EDITAR
-    document.querySelectorAll('.btnEditarItem').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabela = btn.dataset.tabela;
-            document.getElementById('modal_tabela').value = tabela;
-            document.getElementById('modal_id').value = btn.dataset.id;
-            document.getElementById('modal_nome').value = btn.dataset.nome;
-            document.getElementById('modal_desc').value = btn.dataset.desc;
-
-            if(tabela === 'marca') containerLogo.classList.remove('d-none');
-            else containerLogo.classList.add('d-none');
-
-            document.querySelector('.modal-title span').innerText = "Editar " + tabela;
-            modalEl.show();
-        });
-    });
-
-    // SUBMIT DO FORMULÁRIO
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const tabela = document.getElementById('modal_tabela').value;
-        const id = document.getElementById('modal_id').value;
-        const submitBtn = form.querySelector('button[type="submit"]');
-        
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-        const formData = new FormData();
-        formData.append('nome', document.getElementById('modal_nome').value);
-        formData.append('descricao', document.getElementById('modal_desc').value);
-        
-        const logoFile = document.getElementById('modal_logo').files[0];
-        if (tabela === 'marca' && logoFile) {
-            formData.append('logo', logoFile);
-        }
-
-        const url = id ? `/produtos/configs/editar/${tabela}/${id}` : `/produtos/configs/adicionar/${tabela}`;
-        const method = id ? 'PUT' : 'POST';
-
-        try {
-            const resp = await fetch(url, { method, body: formData });
-            if (resp.ok) window.location.reload();
-            else alert("Erro ao salvar.");
-        } catch (err) {
-            console.error(err);
-        } finally {
-            submitBtn.disabled = false;
-        }
-    });
-
-    // BOTÃO EXCLUIR
-    document.querySelectorAll('.btnExcluirItem').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            if(!confirm("Excluir item?")) return;
-            const resp = await fetch(`/produtos/configs/excluir/${btn.dataset.tabela}/${btn.dataset.id}`, { method: 'DELETE' });
-            if(resp.ok) window.location.reload();
-        });
-    });
+document.addEventListener('DOMContentLoaded', function () {
+  var modalEl = document.getElementById('modalConfigUnico');
+  var modal = new bootstrap.Modal(modalEl), form = document.getElementById('formConfigUnico');
+  var containerLogo = document.getElementById('modal_container_logo'), logoInput = document.getElementById('modal_logo'), logoPreview = document.getElementById('modal_logo_preview');
+  function setLogoVisible(visible, logoKey) { containerLogo.classList.toggle('d-none', !visible); logoPreview.classList.add('d-none'); logoPreview.removeAttribute('src'); if (visible && logoKey) { logoPreview.src = '{{ gerar_link('__LOGO_KEY__') }}'.replace('__LOGO_KEY__', logoKey); logoPreview.classList.remove('d-none'); } }
+  document.querySelectorAll('.btnAdicionarNovo').forEach(function (btn) { btn.addEventListener('click', function () { form.reset(); document.getElementById('modal_tabela').value = btn.dataset.tabela; document.getElementById('modal_id').value = ''; setLogoVisible(btn.dataset.tabela === 'marca', ''); document.querySelector('.modal-title span').innerText = 'Novo ' + btn.dataset.tabela; modal.show(); }); });
+  document.querySelectorAll('.btnEditarItem').forEach(function (btn) { btn.addEventListener('click', function () { var tabela = btn.dataset.tabela; document.getElementById('modal_tabela').value = tabela; document.getElementById('modal_id').value = btn.dataset.id; document.getElementById('modal_nome').value = btn.dataset.nome; document.getElementById('modal_desc').value = btn.dataset.desc; logoInput.value = ''; setLogoVisible(tabela === 'marca', btn.dataset.logo || ''); document.querySelector('.modal-title span').innerText = 'Editar ' + tabela; modal.show(); }); });
+  logoInput.addEventListener('change', function () { if (logoInput.files[0]) { logoPreview.src = URL.createObjectURL(logoInput.files[0]); logoPreview.classList.remove('d-none'); } });
+  form.addEventListener('submit', function (e) { e.preventDefault(); var tabela = document.getElementById('modal_tabela').value, id = document.getElementById('modal_id').value, submitBtn = form.querySelector('button[type="submit"]'); submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Salvando'; var data = new FormData(); data.append('nome', document.getElementById('modal_nome').value); data.append('descricao', document.getElementById('modal_desc').value); if (tabela === 'marca' && logoInput.files[0]) data.append('logo', logoInput.files[0]); fetch(id ? '/produtos/configs/editar/' + tabela + '/' + id : '/produtos/configs/adicionar/' + tabela, { method: id ? 'PUT' : 'POST', body: data }).then(function (resp) { if (!resp.ok) return resp.json().then(function (d) { throw new Error(d.error || 'Erro ao salvar.'); }); window.location.reload(); }).catch(function (err) { alert(err.message); submitBtn.disabled = false; submitBtn.innerHTML = 'Salvar'; }); });
+  document.querySelectorAll('.btnExcluirItem').forEach(function (btn) { btn.addEventListener('click', function () { if (!confirm('Excluir item?')) return; fetch('/produtos/configs/excluir/' + btn.dataset.tabela + '/' + btn.dataset.id, { method: 'DELETE' }).then(function (resp) { if (resp.ok) window.location.reload(); else alert('Não foi possível excluir este item.'); }); }); });
 });
 </script>
-
-<style>
-.table-responsive { overflow-x: hidden; } /* Mata o scroll horizontal */
-.btn-xs { padding: 0.1rem 0.4rem; font-size: 0.75rem; }
-.nav-tabs .nav-link.active { background-color: #212529; color: #fff; border-color: #212529; }
-.nav-tabs .nav-link { color: #212529; font-weight: 600; }
-</style>
 {% endblock %}
