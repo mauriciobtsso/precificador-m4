@@ -1973,3 +1973,7 @@ Corrigida a montagem das células do PDF do inventário. A lista de exportação
 Corrigido o upload de logos em `/produtos/configs`: os arquivos estavam sendo enviados ao bucket privado, enquanto o caminho `produtos/*` é servido pelo CDN público. Os uploads de criação e edição de marcas agora usam explicitamente o bucket `m4-loja-publico` e salvam a chave canônica do arquivo, permitindo que o helper global gere a URL pública corretamente.
 
 A página de configurações de produtos também foi modernizada mantendo o layout do Sistema M4: tipografia menor e harmonizada, abas compactas, cartões-resumo, tabelas mais limpas, botões consistentes, responsividade para telas menores, preview da logo no modal e fallback visual quando uma imagem não carregar. As cinco áreas foram contempladas: categorias, marcas, calibres, tipos e funcionamentos.
+
+## 18/11/2026 — Tratamento de erro no upload de logos
+
+Corrigido o JavaScript do cadastro de marcas para não tentar interpretar como JSON uma página HTML retornada pelo proxy ou servidor. A resposta agora é lida com segurança, exibindo o status e uma mensagem compreensível; também foi incluído limite preventivo de 8 MB para arquivos de logo.
