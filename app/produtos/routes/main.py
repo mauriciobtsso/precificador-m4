@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 from app.produtos.routes.utils import _key_from_url
 
 from app.utils.r2_helpers import gerar_link_r2
+from app.loja.seo import canonical_store_url
 
 # ============================================================
 #  Cache leve em memória para fragmentos da listagem (AJAX)
@@ -134,7 +135,7 @@ def index():
         html = render_template(
             "produtos/_lista.html", produtos=produtos, pagination=pagination,
             per_page=per_page, request=request, agora=agora,
-            precos_atuais=precos_atuais,
+            precos_atuais=precos_atuais, loja_canonical_url=canonical_store_url,
         )
         resp = make_response(html)
         resp.headers["Cache-Control"] = "no-store"
@@ -144,6 +145,7 @@ def index():
         "produtos/index.html", produtos=produtos, pagination=pagination,
         tipos=tipos, categorias=categorias, marcas=marcas, calibres=calibres,
         per_page=per_page, agora=agora, precos_atuais=precos_atuais,
+        loja_canonical_url=canonical_store_url,
     )
 
 

@@ -355,6 +355,21 @@
       });
     });
 
+    /* ENVIAR LINK PÚBLICO DA LOJA */
+    listaEl.querySelectorAll(".btn-compartilhar-loja").forEach(btn=>{
+      btn.addEventListener("click", e=>{
+        e.preventDefault();
+        const nome = btn.getAttribute("data-produto-nome") || "produto";
+        const link = btn.getAttribute("data-loja-link") || "";
+        if(!link) return;
+
+        const texto = `Olá! Confira este produto na loja M4 Tática:\n\n*${nome}*\n${link}`;
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+        const janela = window.open(whatsappUrl, "_blank");
+        if(janela) janela.opener = null;
+      });
+    });
+
     /* BOTÃO EXCLUIR */
     listaEl.querySelectorAll(".btn-excluir").forEach(btn=>{
       btn.addEventListener("click",()=>{

@@ -48,6 +48,14 @@
                 <button class="btn btn-light btn-sm btn-whatsapp" data-produto-id="{{ produto.id }}" title="Copiar para WhatsApp">
                   <i class="fab fa-whatsapp text-success"></i>
                 </button>
+                {% if produto.slug %}
+                <button class="btn btn-light btn-sm btn-compartilhar-loja"
+                        data-produto-nome="{{ produto.nome|e }}"
+                        data-loja-link="{{ loja_canonical_url(url_for('loja.detalhe_produto', slug=produto.slug)) }}"
+                        title="Enviar link da loja">
+                  <i class="fas fa-share-alt text-primary"></i>
+                </button>
+                {% endif %}
                 <button class="btn btn-light btn-sm text-danger btn-excluir"
                         data-id="{{ produto.id }}"
                         data-nome="{{ produto.nome }}"
@@ -113,6 +121,14 @@
             <button class="btn btn-sm btn-success flex-fill btn-whatsapp" data-produto-id="{{ produto.id }}">
               <i class="fab fa-whatsapp"></i>
             </button>
+            {% if produto.slug %}
+            <button class="btn btn-sm btn-outline-primary flex-fill btn-compartilhar-loja"
+                    data-produto-nome="{{ produto.nome|e }}"
+                    data-loja-link="{{ loja_canonical_url(url_for('loja.detalhe_produto', slug=produto.slug)) }}"
+                    title="Enviar link da loja">
+              <i class="fas fa-share-alt"></i>
+            </button>
+            {% endif %}
             <button class="btn btn-sm btn-outline-danger flex-fill btn-excluir"
                     data-id="{{ produto.id }}"
                     data-nome="{{ produto.nome }}"

@@ -1983,3 +1983,9 @@ Corrigido o JavaScript do cadastro de marcas para não tentar interpretar como J
 Identificado que a rota AJAX `/produtos/<id>/visualizar` calculava o valor do cartão diretamente com `preco_final` ou `preco_a_vista`, sem executar a regra temporal de `Produto.calcular_precos()`. Com isso, um valor gravado durante uma promoção podia continuar aparecendo na visualização mesmo após `promo_data_fim`, enquanto `promo_ativada` permanecia marcada.
 
 A rota passou a calcular o preço vigente no momento da consulta usando o mesmo método da listagem administrativa. O valor à vista e todas as parcelas do cartão agora são derivados desse preço efetivo, respeitando início, fim e expiração da promoção.
+
+## 19/11/2026 — Compartilhamento rápido do link público da loja
+
+Adicionada uma ação específica **Enviar link da loja** na lista administrativa de produtos, disponível na tabela desktop e nos cartões mobile. O botão monta uma mensagem curta com o nome do produto e seu endereço canônico em `loja.m4tatica.com.br/produto/...`, abrindo o WhatsApp com o texto preenchido para revisão antes do envio.
+
+O botão anterior de WhatsApp foi preservado para continuar gerando/copiar as informações comerciais internas do produto. A URL pública é construída com o helper canônico da loja para evitar o envio de endereços internos do painel.
