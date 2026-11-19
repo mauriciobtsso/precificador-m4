@@ -1977,3 +1977,9 @@ A página de configurações de produtos também foi modernizada mantendo o layo
 ## 18/11/2026 — Tratamento de erro no upload de logos
 
 Corrigido o JavaScript do cadastro de marcas para não tentar interpretar como JSON uma página HTML retornada pelo proxy ou servidor. A resposta agora é lida com segurança, exibindo o status e uma mensagem compreensível; também foi incluído limite preventivo de 8 MB para arquivos de logo.
+
+## 19/11/2026 — Visualização de produto respeita promoção expirada
+
+Identificado que a rota AJAX `/produtos/<id>/visualizar` calculava o valor do cartão diretamente com `preco_final` ou `preco_a_vista`, sem executar a regra temporal de `Produto.calcular_precos()`. Com isso, um valor gravado durante uma promoção podia continuar aparecendo na visualização mesmo após `promo_data_fim`, enquanto `promo_ativada` permanecia marcada.
+
+A rota passou a calcular o preço vigente no momento da consulta usando o mesmo método da listagem administrativa. O valor à vista e todas as parcelas do cartão agora são derivados desse preço efetivo, respeitando início, fim e expiração da promoção.

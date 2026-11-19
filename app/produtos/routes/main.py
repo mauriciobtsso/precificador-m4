@@ -705,7 +705,11 @@ def visualizar_produto(produto_id):
         key = _key_from_url(produto.foto_url)
         if key: url_imagem = url_for('main.imagem_proxy', key=key)
 
-    valor_base = float(produto.preco_final or produto.preco_a_vista or 0.0)
+    # A visualização deve usar a mesma regra da lista: calcular o preço no
+    # instante da consulta para que uma promoção expirada não permaneça no
+    # cartão apenas porque a flag promo_ativada ainda está marcada.
+    precos_atuais = produto.calcular_precos()
+    valor_base = float(precos_atuais.get("preco_a_vista") or 0.0)
     taxas = Taxa.query.order_by(Taxa.numero_parcelas).all()
     linhas_raw = parc.gerar_linhas_parcelas(valor_base, taxas)
 
